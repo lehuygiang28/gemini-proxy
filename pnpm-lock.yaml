@@ -18,7 +18,7 @@ importers:
         specifier: ^1.12.4
         version: 1.13.4
       typescript:
-        specifier: ^5.9.2
+        specifier: ^5.3.3
         version: 5.9.2
 
   apps/api:
@@ -33,6 +33,9 @@ importers:
       '@types/node':
         specifier: ^20.11.17
         version: 20.19.11
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       tsx:
         specifier: ^4.7.1
         version: 4.20.4

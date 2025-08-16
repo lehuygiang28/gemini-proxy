@@ -6,9 +6,10 @@
         "node": ">=18.0.0"
     },
     "scripts": {
-        "dev": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096 --no-deprecation\" refine dev",
+        "dev": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096 --no-deprecation\" PORT=4040 refine dev",
         "build": "cross-env NODE_OPTIONS=\"--no-deprecation\" refine build",
-        "start": "refine start",
+        "start": "cross-env NODE_ENV=production PORT=4041 refine start",
+        "start:dev": "cross-env NODE_ENV=development PORT=4040 refine start",
         "lint": "next lint",
         "refine": "refine",
         "clean": "rm -rf .next .turbo"

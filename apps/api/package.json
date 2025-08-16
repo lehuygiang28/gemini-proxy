@@ -2,9 +2,10 @@
     "name": "api",
     "type": "module",
     "scripts": {
-        "dev": "tsx watch src/index.ts",
+        "dev": "cross-env NODE_ENV=development API_PORT=9090 tsx watch src/index.ts",
         "build": "tsc",
-        "start": "node dist/index.js"
+        "start": "cross-env NODE_ENV=production PORT=9091 node dist/index.js",
+        "start:dev": "cross-env NODE_ENV=development API_PORT=9090 node dist/index.js"
     },
     "dependencies": {
         "@hono/node-server": "^1.18.2",
@@ -12,6 +13,7 @@
     },
     "devDependencies": {
         "@types/node": "^20.11.17",
+        "cross-env": "^7.0.3",
         "tsx": "^4.7.1",
         "typescript": "^5.9.2"
     }
