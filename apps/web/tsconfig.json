@@ -19,10 +19,15 @@
             }
         ],
         "paths": {
-            "@*": ["./src/*"],
+            "@/*": ["./src/*"],
+            "@components/*": ["./src/components/*"],
+            "@providers/*": ["./src/providers/*"],
+            "@contexts/*": ["./src/contexts/*"],
+            "@utils/*": ["./src/utils/*"],
             "@pages/*": ["./pages/*"]
         },
-        "incremental": true
+        "incremental": true,
+        "baseUrl": "."
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next.config.mjs"],
     "exclude": ["node_modules"]

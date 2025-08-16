@@ -15,33 +15,34 @@
         "clean": "rm -rf .next .turbo"
     },
     "dependencies": {
+        "@ant-design/icons": "^5.5.1",
+        "@ant-design/nextjs-registry": "^1.0.0",
+        "@refinedev/antd": "^5.44.0",
         "@refinedev/cli": "^2.16.21",
         "@refinedev/core": "^4.47.1",
         "@refinedev/devtools": "^1.1.32",
-        "@refinedev/nextjs-router": "^6.0.0",
         "@refinedev/kbar": "^1.3.6",
-        "next": "^14.1.0",
-        "react": "^18.0.0",
-        "react-dom": "^18.0.0",
+        "@refinedev/nextjs-router": "^6.0.0",
         "@refinedev/supabase": "^5.7.4",
         "@supabase/ssr": "^0.3.0",
-        "js-cookie": "^3.0.5",
-        "@refinedev/antd": "^5.44.0",
-        "@ant-design/icons": "^5.5.1",
         "antd": "^5.17.0",
-        "@ant-design/nextjs-registry": "^1.0.0"
+        "graceful-fs": "^4.2.11",
+        "js-cookie": "^3.0.5",
+        "next": "^14.2.0",
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0"
     },
     "devDependencies": {
+        "@types/js-cookie": "^3.0.6",
+        "@types/node": "^18.19.123",
         "@types/react": "^18.0.0",
         "@types/react-dom": "^18.0.0",
-        "@types/node": "^18.16.2",
-        "@typescript-eslint/parser": "^6.21.0",
         "@typescript-eslint/eslint-plugin": "^6.21.0",
-        "typescript": "^5.9.2",
+        "@typescript-eslint/parser": "^6.21.0",
         "cross-env": "^7.0.3",
         "eslint": "^8",
         "eslint-config-next": "^14.2.31",
-        "@types/js-cookie": "^3.0.6"
+        "typescript": "^5.9.2"
     },
     "refine": {
         "projectId": "T9Lqmt-n4uhnL-kmcQSq"
