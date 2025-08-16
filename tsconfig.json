@@ -14,7 +14,11 @@
         "isolatedModules": true,
         "jsx": "preserve",
         "incremental": true,
-        "baseUrl": "."
+        "baseUrl": ".",
+        "paths": {
+            "@gemini-proxy/core": ["packages/core/src/index.ts"],
+            "@gemini-proxy/core/*": ["packages/core/src/*"]
+        }
     },
     "include": ["**/*.ts", "**/*.tsx", "apps/web/next.config.mjs"],
     "exclude": ["node_modules", "dist", "build", ".next", ".turbo"]

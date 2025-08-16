@@ -16,8 +16,9 @@
         "declaration": false,
         "declarationMap": false,
         "sourceMap": true,
-        "incremental": false
+        "incremental": false,
+        "verbatimModuleSyntax": false
     },
     "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist", "../web/**/*"]
+    "exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts"]
 }

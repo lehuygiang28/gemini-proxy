@@ -1,0 +1,18 @@
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+    entry: ['src/index.ts', 'src/app.ts', 'src/types.ts', 'src/utils/index.ts'],
+    format: ['esm'],
+    dts: true,
+    splitting: false,
+    sourcemap: true,
+    clean: true,
+    outDir: 'dist',
+    target: 'es2020',
+    bundle: false,
+    minify: false,
+    tsconfig: './tsconfig.json',
+    esbuildOptions(options) {
+        options.mainFields = ['module', 'main'];
+    },
+});

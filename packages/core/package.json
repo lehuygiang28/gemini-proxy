@@ -1,0 +1,25 @@
+{
+    "name": "@gemini-proxy/core",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "Core business logic for Gemini Proxy service - platform agnostic",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "clean": "rm -rf dist"
+    },
+    "license": "MIT",
+    "peerDependencies": {
+        "hono": ">=4.0.0"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.55.0",
+        "parse-json": "^8.3.0",
+        "uuid": "^11.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.16",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2"
+    }
+}

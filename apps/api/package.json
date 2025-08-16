@@ -2,18 +2,20 @@
     "name": "api",
     "type": "module",
     "scripts": {
-        "dev": "cross-env NODE_ENV=development API_PORT=9090 tsx watch src/index.ts",
-        "build": "tsc",
-        "start": "cross-env NODE_ENV=production PORT=9091 node dist/index.js",
-        "start:dev": "cross-env NODE_ENV=development API_PORT=9090 node dist/index.js"
+        "dev": "cross-env NODE_ENV=development API_PORT=9090 tsx watch --env-file .env src/index.ts",
+        "build": "tsup",
+        "start": "cross-env NODE_ENV=production PORT=9091 tsx --env-file=.env.production dist/index.js",
+        "start:dev": "cross-env NODE_ENV=development API_PORT=9090 tsx --env-file=.env dist/index.js"
     },
     "dependencies": {
+        "@gemini-proxy/core": "workspace:*",
         "@hono/node-server": "^1.18.2",
         "hono": "^4.9.2"
     },
     "devDependencies": {
         "@types/node": "^20.11.17",
         "cross-env": "^7.0.3",
+        "tsup": "^8.5.0",
         "tsx": "^4.7.1",
         "typescript": "^5.9.2"
     }

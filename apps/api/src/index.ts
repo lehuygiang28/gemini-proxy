@@ -1,25 +1,29 @@
-import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { getRuntimeKey } from 'hono/adapter';
 
-const app = new Hono();
+import { coreApp } from '@gemini-proxy/core';
 
-app.get('/', (c) => {
-    return c.text('Hello Hono!');
+// Create the main API app
+const app = new Hono()
+    .get('/', (c) =>
+        c.json({
+            message: 'Gemini Proxy API',
+            version: '0.0.1',
+            platform: getRuntimeKey(),
+            status: 'running',
+        }),
+    )
+    .route('/api/gproxy/*', coreApp);
+
+// Start server
+const port = process.env.API_PORT || 9090;
+console.log(`🚀 Gemini Proxy API Server starting on port ${port}`);
+console.log(`🌍 Platform: ${getRuntimeKey()}`);
+
+serve({
+    fetch: app.fetch,
+    port: parseInt(port.toString()),
 });
 
-// Get port from environment variables with fallbacks
-const port =
-    process.env.PORT ||
-    process.env.API_PORT ||
-    (process.env.NODE_ENV === 'production' ? 9091 : 9090);
-
-serve(
-    {
-        fetch: app.fetch,
-        port: Number(port),
-    },
-    (info) => {
-        console.log(`🚀 API Server is running on http://localhost:${info.port}`);
-        console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    },
-);
+export default app;

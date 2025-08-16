@@ -11,6 +11,8 @@ A modern monorepo setup using pnpm workspaces and Turborepo for managing multipl
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS + Ant Design
 - **Code Formatting**: Prettier
+- **Database**: Supabase (PostgreSQL)
+- **Core Logic**: Platform-agnostic TypeScript package
 
 ## 📁 Project Structure
 
@@ -32,7 +34,14 @@ gemini-proxy/
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── README.md
-├── packages/                # Shared packages (empty for now)
+├── packages/                # Shared packages
+│   ├── core/               # Core business logic for Gemini Proxy
+│   │   ├── src/            # Source code
+│   │   ├── package.json    # Package configuration
+│   │   ├── tsconfig.json   # TypeScript configuration
+│   │   └── README.md       # Core package documentation
+│   └── database/           # Database schema and migrations
+│       └── schema.sql      # Supabase database schema
 ├── package.json             # Root package.json
 ├── pnpm-workspace.yaml      # pnpm workspace configuration
 ├── turbo.json              # Turborepo configuration
@@ -115,12 +124,24 @@ Use `workspace:*` in package.json to reference other packages in the monorepo:
 ```json
 {
     "dependencies": {
-        "@gemini-proxy/shared": "workspace:*"
+        "@gemini-proxy/core": "workspace:*"
     }
 }
 ```
 
-Note: Currently using external dependencies (Ant Design for UI, Hono for API) instead of internal packages.
+### Core Package
+
+The `@gemini-proxy/core` package contains all the business logic for the Gemini Proxy service:
+
+- **Platform Agnostic**: Works on Node.js, Cloudflare Workers, Netlify, Vercel, and Deno
+- **Database Integration**: Uses Supabase with service role for all database operations
+- **API Key Management**: Intelligent API key selection and rotation
+- **Request Logging**: Comprehensive request tracking and analytics
+- **Usage Parsing**: Extracts usage metadata from both Gemini and OpenAI-compatible responses
+- **Streaming Support**: Handles streaming responses from both API formats
+- **Retry Logic**: Automatic retry with different API keys on failures
+
+See `packages/core/README.md` for detailed documentation.
 
 ## 🏗️ Build Pipeline
 
