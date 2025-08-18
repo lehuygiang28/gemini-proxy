@@ -18,8 +18,10 @@
         "paths": {
             "@gemini-proxy/core": ["packages/core/src/index.ts"],
             "@gemini-proxy/core/*": ["packages/core/src/*"],
-            "@gemini-proxy/database": ["packages/database"],
-            "@gemini-proxy/database/*": ["packages/database/src/*"]
+            "@gemini-proxy/database": ["packages/database/index.ts"],
+            "@gemini-proxy/database/*": ["packages/database/*"],
+            "@gemini-proxy/vercel": ["packages/vercel/src/index.ts"],
+            "@gemini-proxy/vercel/*": ["packages/vercel/src/*"]
         }
     },
     "include": ["**/*.ts", "**/*.tsx", "apps/web/next.config.mjs"],

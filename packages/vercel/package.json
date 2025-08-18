@@ -1,0 +1,22 @@
+{
+    "name": "@gemini-proxy/vercel",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "Vercel proxy for Gemini Proxy service",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch"
+    },
+    "license": "MIT",
+    "peerDependencies": {
+        "hono": ">=4.0.0"
+    },
+    "dependencies": {
+        "@gemini-proxy/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.16",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2"
+    }
+}

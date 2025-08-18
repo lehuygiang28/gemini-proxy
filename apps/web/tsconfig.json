@@ -1,4 +1,5 @@
 {
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
         "target": "es5",
         "lib": ["dom", "dom.iterable", "esnext"],
@@ -24,7 +25,9 @@
             "@providers/*": ["./src/providers/*"],
             "@contexts/*": ["./src/contexts/*"],
             "@utils/*": ["./src/utils/*"],
-            "@pages/*": ["./pages/*"]
+            "@pages/*": ["./pages/*"],
+            "@gemini-proxy/core": ["../../packages/core/src/index.ts"],
+            "@gemini-proxy/vercel": ["../../packages/vercel/src/index.ts"]
         },
         "incremental": true,
         "baseUrl": "."

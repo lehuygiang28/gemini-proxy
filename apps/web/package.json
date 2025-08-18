@@ -26,6 +26,8 @@
         "@refinedev/supabase": "^5.7.4",
         "@supabase/ssr": "^0.3.0",
         "antd": "^5.17.0",
+        "@gemini-proxy/vercel": "workspace:*",
+        "@gemini-proxy/core": "workspace:*",
         "graceful-fs": "^4.2.11",
         "js-cookie": "^3.0.5",
         "next": "^14.2.0",
