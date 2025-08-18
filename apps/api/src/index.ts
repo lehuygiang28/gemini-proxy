@@ -11,7 +11,7 @@ const app = new Hono()
         cors({
             origin: ['http://localhost:3000', 'https://your-domain.com'],
             allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-            allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+            allowHeaders: ['Content-Type', 'Authorization', 'X-Goog-Api-Key'],
             credentials: true,
         }),
     )
