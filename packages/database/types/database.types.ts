@@ -117,6 +117,7 @@ export type Database = {
                     created_at: string | null;
                     error_details: Json | null;
                     id: string;
+                    is_stream: boolean;
                     is_successful: boolean;
                     performance_metrics: Json | null;
                     proxy_key_id: string | null;
@@ -133,6 +134,7 @@ export type Database = {
                     created_at?: string | null;
                     error_details?: Json | null;
                     id?: string;
+                    is_stream?: boolean;
                     is_successful?: boolean;
                     performance_metrics?: Json | null;
                     proxy_key_id?: string | null;
@@ -149,6 +151,7 @@ export type Database = {
                     created_at?: string | null;
                     error_details?: Json | null;
                     id?: string;
+                    is_stream?: boolean;
                     is_successful?: boolean;
                     performance_metrics?: Json | null;
                     proxy_key_id?: string | null;

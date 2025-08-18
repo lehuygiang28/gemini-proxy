@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS request_logs (
     error_details JSONB,
     usage_metadata JSONB,
     performance_metrics JSONB DEFAULT '{}',
+    is_stream BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

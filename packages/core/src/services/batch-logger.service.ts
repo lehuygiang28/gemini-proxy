@@ -19,6 +19,7 @@ export interface RequestLogData {
     requestData: any;
     responseData?: any;
     isSuccessful: boolean;
+    isStream: boolean;
     errorDetails?: any;
     performanceMetrics?: any;
     usageMetadata?: {
@@ -232,6 +233,7 @@ export class BatchLoggerService {
                     request_data: log.requestData,
                     response_data: log.responseData || null,
                     is_successful: log.isSuccessful,
+                    is_stream: log.isStream,
                     error_details: log.errorDetails || null,
                     performance_metrics: log.performanceMetrics || null,
                     usage_metadata: usageMetadata

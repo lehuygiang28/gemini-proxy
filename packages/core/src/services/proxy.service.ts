@@ -154,6 +154,7 @@ export class ProxyService {
                         headers: Object.fromEntries(response.headers.entries()),
                     },
                     isSuccessful: true,
+                    isStream: proxyRequestDataParsed.stream,
                     performanceMetrics: {
                         duration_ms: finalAttemptDuration,
                         attempt_count: currentAttempt + 1,
@@ -187,6 +188,7 @@ export class ProxyService {
                         method: clonedRequest.method,
                         url: proxyRequestDataParsed.urlToProxy,
                     },
+                    isStream: proxyRequestDataParsed.stream,
                     isSuccessful: false,
                     errorDetails: {
                         message: errorObj.message,
