@@ -1,54 +1,33 @@
 # Gemini Proxy Monorepo
 
-A modern monorepo setup using pnpm workspaces and Turborepo for managing multiple applications and packages.
+This monorepo contains the applications and packages for the Gemini Proxy service, a powerful tool for managing and proxying requests to the Gemini API.
 
 ## 🚀 Tech Stack
 
 - **Package Manager**: pnpm
 - **Build System**: Turborepo
-- **Frontend**: Next.js 14 + Ant Design
+- **Frontend**: Next.js 14 (Refine) + Ant Design
 - **Backend**: Hono Framework
+- **BaaS**: Supabase (PostgreSQL + Auth)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS + Ant Design
 - **Code Formatting**: Prettier
-- **Database**: Supabase (PostgreSQL)
 - **Core Logic**: Platform-agnostic TypeScript package
 
 ## 📁 Project Structure
 
 ```md
 gemini-proxy/
-├── apps/
-│   ├── web/                 # Next.js web application with Ant Design
-│   │   ├── src/
-│   │   │   ├── app/         # Next.js 13+ app directory
-│   │   │   ├── components/  # App-specific components
-│   │   │   └── lib/         # App-specific utilities
-│   │   ├── package.json
-│   │   ├── next.config.js
-│   │   ├── tailwind.config.js
-│   │   └── tsconfig.json
-│   └── api/                 # Hono API server
-│       ├── src/
-│       │   └── index.ts     # Main server entry point
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── README.md
-├── packages/                # Shared packages
+├── apps/                   # Main apps
+│   ├── web/                # Next.js web application with Ant Design
+│   └── api/                # Node.js Hono API server
+├── packages/               # Shared packages
 │   ├── core/               # Core business logic for Gemini Proxy
-│   │   ├── src/            # Source code
-│   │   ├── package.json    # Package configuration
-│   │   ├── tsconfig.json   # TypeScript configuration
-│   │   └── README.md       # Core package documentation
 │   └── database/           # Database schema and migrations
-│       └── schema.sql      # Supabase database schema
-├── package.json             # Root package.json
-├── pnpm-workspace.yaml      # pnpm workspace configuration
+├── package.json            # Root package.json
+├── pnpm-workspace.yaml     # pnpm workspace configuration
 ├── turbo.json              # Turborepo configuration
-├── tsconfig.json           # Root TypeScript configuration
-├── .prettierrc            # Prettier configuration
-├── .gitignore             # Git ignore rules
-└── README.md              # This file
+└── README.md               # This file
 ```
 
 ## 🛠️ Getting Started
@@ -73,7 +52,11 @@ gemini-proxy/
     pnpm install
     ```
 
-3. **Start development server**
+3. **Set up environment variables**
+
+    Create a `.env` file in `apps/api` and `apps/web` by copying the `.env.example` files and filling in the required values.
+
+4. **Start development server**
 
     ```bash
     pnpm dev
@@ -91,45 +74,7 @@ gemini-proxy/
 - `pnpm format` - Format all code with Prettier
 - `pnpm format:check` - Check code formatting
 
-### App-Specific Scripts
-
-Navigate to any app or package directory to run app-specific scripts:
-
-```bash
-cd apps/web
-pnpm dev    # Start Next.js development server
-pnpm build  # Build the Next.js app
-```
-
-## 🔧 Development
-
-### Adding a New App
-
-1. Create a new directory in `apps/`
-2. Initialize with your preferred framework
-3. Add the app to the workspace in `pnpm-workspace.yaml`
-4. Update `turbo.json` if needed
-
-### Adding a New Package
-
-1. Create a new directory in `packages/`
-2. Set up the package with its own `package.json`
-3. Add the package to the workspace in `pnpm-workspace.yaml`
-4. Export components/functions from the package
-
-### Workspace Dependencies
-
-Use `workspace:*` in package.json to reference other packages in the monorepo:
-
-```json
-{
-    "dependencies": {
-        "@gemini-proxy/core": "workspace:*"
-    }
-}
-```
-
-### Core Package
+## ✨ Core Features
 
 The `@gemini-proxy/core` package contains all the business logic for the Gemini Proxy service:
 
@@ -143,39 +88,12 @@ The `@gemini-proxy/core` package contains all the business logic for the Gemini 
 
 See `packages/core/README.md` for detailed documentation.
 
-## 🏗️ Build Pipeline
-
-Turborepo handles the build pipeline with the following tasks:
-
-- **build**: Builds packages and apps with proper dependency ordering
-- **dev**: Runs development servers (not cached, persistent)
-- **lint**: Runs linting across all packages
-- **test**: Runs tests with build dependencies
-- **clean**: Cleans build artifacts
-
-## 📦 Package Management
-
-This monorepo uses pnpm workspaces for efficient package management:
-
-- Shared dependencies are hoisted to the root
-- Workspace packages can reference each other
-- Efficient installation and updates
-- Lockfile ensures reproducible builds
-
-## 🎨 Code Style
-
-- **TypeScript**: Strict mode enabled
-- **Prettier**: Consistent code formatting
-- **ESLint**: Code quality and consistency
-- **Tailwind CSS**: Utility-first styling
-- **Ant Design**: Component library for UI
-
 ## 🚀 Deployment
 
 Each app can be deployed independently:
 
 - **Web App**: Deploy to Vercel, Netlify, or any Next.js-compatible platform
-- **Packages**: Publish to npm registry if needed
+- **API Server**: Deploy to any Node.js compatible environment or serverless platform with Hono support
 
 ## 📝 Contributing
 

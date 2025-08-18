@@ -3,6 +3,11 @@ import { ApiKeyService } from './api-key.service';
 import { BatchLoggerService } from './batch-logger.service';
 import { ConfigService } from './config.service';
 import { HonoApp } from '../types';
+import type { ProxyRequestDataParsed, ProxyRequestOptions } from '../types';
+import type { RetryConfig } from './config.service';
+import type { ApiKeyWithStats } from './api-key.service';
+import type { Tables } from '@gemini-proxy/database';
+import { UsageMetadataParser } from '../utils/usage-metadata-parser';
 import {
     ProxyError,
     RateLimitError,
@@ -17,75 +22,177 @@ export class ProxyService {
         const proxyRequestDataParsed = c.get('proxyRequestDataParsed');
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
-        const clonedRequest = c.req.raw.clone();
+        const baseRequest = c.req.raw.clone();
 
-        const retryConfig = ConfigService.getRetryConfig(c);
-        let currentAttempt = 0;
-        let lastError: ProxyError | null = null;
-        let retryAttempts: any[] = [];
-        let finalApiKeyId = 'unknown';
-        let finalResponse: Response | null = null;
-        let finalAttemptDuration = 0;
+        const retryConfigBase = ConfigService.getRetryConfig(c);
+        const options = c.get('proxyRequestOptions');
+        const retryConfig: RetryConfig = {
+            ...retryConfigBase,
+            ...(options?.retry || {}),
+        };
 
-        // Get all available API keys upfront to avoid multiple database calls
         const allApiKeys = await ApiKeyService.getSmartApiKeys(c, {
             userId: proxyApiKeyData.user_id,
-            prioritizeLeastRecentlyUsed: true,
-            prioritizeLeastErrors: true,
-            prioritizeNewer: true,
-            count: retryConfig.maxRetries, // Get enough keys for all retry attempts
+            prioritizeLeastRecentlyUsed:
+                options?.apiKeySelection?.prioritizeLeastRecentlyUsed ?? true,
+            prioritizeLeastErrors: options?.apiKeySelection?.prioritizeLeastErrors ?? true,
+            prioritizeNewer: options?.apiKeySelection?.prioritizeNewer ?? true,
+            count: retryConfig.maxRetries,
         });
 
         if (!allApiKeys || allApiKeys.length === 0) {
             throw new InvalidKeyError('No API key found');
         }
 
-        while (currentAttempt <= Math.max(retryConfig.maxRetries, allApiKeys?.length)) {
+        const firstApiKey = allApiKeys[0];
+        const {
+            response: firstResponse,
+            headers: firstHeaders,
+            durationMs: firstAttemptDuration,
+        } = await this.performAttempt({
+            baseRequest,
+            apiKeyValue: firstApiKey.api_key_value,
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            url: proxyRequestDataParsed.urlToProxy,
+        });
+
+        if (firstResponse.ok) {
+            const shouldTreatAsFailure = await this.shouldTreatOkAsFailure({
+                response: firstResponse,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                options,
+            });
+            if (shouldTreatAsFailure) {
+                // proceed to retry path using a synthetic error
+            } else {
+                BatchLoggerService.addApiKeyUsage(c, {
+                    apiKeyId: firstApiKey.id,
+                    isSuccessful: true,
+                });
+
+                const responseClone = firstResponse.clone();
+                const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
+
+                BatchLoggerService.addRequestLog(c, {
+                    requestId,
+                    apiKeyId: firstApiKey.id,
+                    proxyKeyId: proxyApiKeyData.id,
+                    userId: proxyApiKeyData.user_id,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    requestData: {
+                        method: baseRequest.method,
+                        url: proxyRequestDataParsed.urlToProxy,
+                        headers: Object.fromEntries(firstHeaders.entries()),
+                    },
+                    responseData: {
+                        status: firstResponse.status,
+                        headers: Object.fromEntries(firstResponse.headers.entries()),
+                    },
+                    isSuccessful: true,
+                    isStream: proxyRequestDataParsed.stream,
+                    performanceMetrics: {
+                        duration_ms: firstAttemptDuration,
+                        attempt_count: 1,
+                    },
+                    responseBody: responseClone.clone(),
+                    retryAttempts: null,
+                });
+
+                return new Response(responseClone.body, {
+                    status: responseClone.status,
+                    headers: filteredResponseHeaders,
+                });
+            }
+        }
+
+        const firstError = this.createProxyError(firstResponse, firstAttemptDuration);
+
+        BatchLoggerService.addApiKeyUsage(c, {
+            apiKeyId: firstApiKey.id,
+            isSuccessful: false,
+            errorDetails: {
+                message: firstError.message,
+                type: firstError.type,
+                status: firstResponse.status,
+                code: firstError.code,
+            },
+        });
+
+        return this.retryApiRequest({
+            c,
+            baseRequest,
+            allApiKeys,
+            startAttemptIndex: 1,
+            retryConfig,
+            requestId,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            initialError: firstError,
+            options,
+        });
+    }
+
+    private static async retryApiRequest(params: {
+        c: Context<HonoApp>;
+        baseRequest: Request;
+        allApiKeys: ApiKeyWithStats[];
+        startAttemptIndex: number;
+        retryConfig: RetryConfig;
+        requestId: string;
+        proxyApiKeyData: Tables<'proxy_api_keys'>;
+        proxyRequestDataParsed: ProxyRequestDataParsed;
+        initialError: ProxyError;
+        options?: ProxyRequestOptions;
+    }): Promise<Response> {
+        const {
+            c,
+            baseRequest,
+            allApiKeys,
+            startAttemptIndex,
+            retryConfig,
+            requestId,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            initialError,
+            options,
+        } = params;
+
+        let retryAttempts: Array<{
+            attempt_number: number;
+            api_key_id: string;
+            error: { message: string; type: string; status?: number; code?: string };
+            duration_ms: number;
+            timestamp: string;
+        }> = [];
+
+        let lastError: ProxyError = initialError;
+        const retriesTimes =
+            retryConfig.maxRetries === -1 ? allApiKeys.length : retryConfig.maxRetries;
+
+        for (
+            let currentAttempt = startAttemptIndex;
+            currentAttempt <= retriesTimes;
+            currentAttempt++
+        ) {
             try {
-                // Select the next available API key
+                console.log(`attempt ${currentAttempt} of ${retryConfig.maxRetries}`);
                 const selectedApiKey = allApiKeys[currentAttempt];
                 if (!selectedApiKey) {
                     throw new InvalidKeyError('No more API keys available for retry');
                 }
 
                 const attemptStart = Date.now();
-
-                // Clone the request for each attempt to avoid "already used" issues
-                const requestClone = clonedRequest.clone();
-
-                // Create a new headers object to avoid immutable header issues
-                const headers = new Headers(requestClone.headers);
-
-                // Add the appropriate API key header based on format
-                if (proxyRequestDataParsed.apiFormat === 'gemini') {
-                    headers.set('x-goog-api-key', selectedApiKey.api_key_value);
-                } else {
-                    headers.set('authorization', `Bearer ${selectedApiKey.api_key_value}`);
-                }
-
-                const requestInit: RequestInit = {
-                    method: requestClone.method,
-                    headers,
-                };
-
-                // Add body if it exists
-                if (requestClone.body) {
-                    requestInit.body = requestClone.body;
-                    // Node.js requires duplex option when sending a body
-                    if (typeof process !== 'undefined') {
-                        requestInit.duplex = 'half';
-                    }
-                }
-
-                const response = await fetch(
-                    new Request(proxyRequestDataParsed.urlToProxy, requestInit),
-                );
+                const { response, headers } = await this.performAttempt({
+                    baseRequest,
+                    apiKeyValue: selectedApiKey.api_key_value,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    url: proxyRequestDataParsed.urlToProxy,
+                });
                 const attemptDuration = Date.now() - attemptStart;
 
                 if (!response.ok) {
                     const error = this.createProxyError(response, attemptDuration);
 
-                    // Add API key usage to batch (non-blocking)
                     BatchLoggerService.addApiKeyUsage(c, {
                         apiKeyId: selectedApiKey.id,
                         isSuccessful: false,
@@ -97,7 +204,6 @@ export class ProxyService {
                         },
                     });
 
-                    // Log the failed attempt
                     if (currentAttempt > 0) {
                         retryAttempts.push({
                             attempt_number: currentAttempt,
@@ -113,39 +219,83 @@ export class ProxyService {
                         });
                     }
 
-                    // Check if we should retry
                     if (currentAttempt >= retryConfig.maxRetries || !this.shouldRetry(error)) {
-                        throw error;
+                        lastError = error;
+                        break;
                     }
 
                     lastError = error;
-                    currentAttempt++;
-                    continue; // No delay, retry immediately
+                    continue;
                 }
 
-                // Success - add API key usage to batch (non-blocking)
+                // Even when response is OK, evaluate optional zero-completion retry rule
+                const treatOkAsFailure = await this.shouldTreatOkAsFailure({
+                    response,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    options,
+                });
+                if (treatOkAsFailure) {
+                    const syntheticError = new ProxyError(
+                        'Zero completion tokens detected',
+                        'server_error',
+                        response.status,
+                        'zero_completion_tokens',
+                    );
+
+                    BatchLoggerService.addApiKeyUsage(c, {
+                        apiKeyId: selectedApiKey.id,
+                        isSuccessful: false,
+                        errorDetails: {
+                            message: syntheticError.message,
+                            type: syntheticError.type,
+                            status: response.status,
+                            code: syntheticError.code,
+                        },
+                    });
+
+                    if (currentAttempt > 0) {
+                        retryAttempts.push({
+                            attempt_number: currentAttempt,
+                            api_key_id: selectedApiKey.id,
+                            error: {
+                                message: syntheticError.message,
+                                type: syntheticError.type,
+                                status: response.status,
+                                code: syntheticError.code,
+                            },
+                            duration_ms: attemptDuration,
+                            timestamp: new Date().toISOString(),
+                        });
+                    }
+
+                    if (
+                        currentAttempt >= retryConfig.maxRetries ||
+                        !this.shouldRetry(syntheticError)
+                    ) {
+                        lastError = syntheticError;
+                        break;
+                    }
+
+                    lastError = syntheticError;
+                    continue;
+                }
+
                 BatchLoggerService.addApiKeyUsage(c, {
                     apiKeyId: selectedApiKey.id,
                     isSuccessful: true,
                 });
 
-                finalApiKeyId = selectedApiKey.id;
-                finalResponse = response;
-                finalAttemptDuration = attemptDuration;
-
-                // Clone the response to avoid "already used" issues
                 const responseClone = response.clone();
                 const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
 
-                // Add successful request log to batch (non-blocking) - parsing will be done in batch logger
                 BatchLoggerService.addRequestLog(c, {
                     requestId,
-                    apiKeyId: finalApiKeyId,
+                    apiKeyId: selectedApiKey.id,
                     proxyKeyId: proxyApiKeyData.id,
                     userId: proxyApiKeyData.user_id,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     requestData: {
-                        method: requestClone.method,
+                        method: baseRequest.method,
                         url: proxyRequestDataParsed.urlToProxy,
                         headers: Object.fromEntries(headers.entries()),
                     },
@@ -156,14 +306,13 @@ export class ProxyService {
                     isSuccessful: true,
                     isStream: proxyRequestDataParsed.stream,
                     performanceMetrics: {
-                        duration_ms: finalAttemptDuration,
+                        duration_ms: attemptDuration,
                         attempt_count: currentAttempt + 1,
                     },
-                    responseBody: responseClone.clone(), // Pass the response for async parsing
+                    responseBody: responseClone.clone(),
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
                 });
 
-                // Return the cloned response to preserve streaming
                 return new Response(responseClone.body, {
                     status: responseClone.status,
                     headers: filteredResponseHeaders,
@@ -177,47 +326,39 @@ export class ProxyService {
                               'server_error',
                           );
 
-                // Add failed request log to batch (non-blocking)
-                BatchLoggerService.addRequestLog(c, {
-                    requestId,
-                    apiKeyId: finalApiKeyId,
-                    proxyKeyId: proxyApiKeyData.id,
-                    userId: proxyApiKeyData.user_id,
-                    apiFormat: proxyRequestDataParsed.apiFormat,
-                    requestData: {
-                        method: clonedRequest.method,
-                        url: proxyRequestDataParsed.urlToProxy,
-                    },
-                    isStream: proxyRequestDataParsed.stream,
-                    isSuccessful: false,
-                    errorDetails: {
-                        message: errorObj.message,
-                        type: errorObj.type,
-                        status: errorObj.status,
-                        code: errorObj.code,
-                    },
-                    retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
-                });
-
-                // Return error response
-                return c.json(
-                    {
-                        error: errorObj.type,
-                        message: errorObj.message,
-                        code: errorObj.code,
-                    },
-                    (errorObj.status as any) || 500,
-                );
+                lastError = errorObj;
+                break;
             }
         }
 
-        // This should never be reached, but just in case
+        BatchLoggerService.addRequestLog(c, {
+            requestId,
+            apiKeyId: 'unknown',
+            proxyKeyId: proxyApiKeyData.id,
+            userId: proxyApiKeyData.user_id,
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            requestData: {
+                method: baseRequest.method,
+                url: proxyRequestDataParsed.urlToProxy,
+            },
+            isStream: proxyRequestDataParsed.stream,
+            isSuccessful: false,
+            errorDetails: {
+                message: lastError.message,
+                type: lastError.type,
+                status: lastError.status,
+                code: lastError.code,
+            },
+            retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
+        });
+
         return c.json(
             {
-                error: 'server_error',
-                message: lastError?.message || 'Max retries exceeded',
+                error: lastError.type,
+                message: lastError.message,
+                code: lastError.code,
             },
-            500,
+            (lastError.status as any) || 500,
         );
     }
 
@@ -280,5 +421,80 @@ export class ProxyService {
         });
 
         return filteredHeaders;
+    }
+
+    private static async performAttempt(params: {
+        baseRequest: Request;
+        apiKeyValue: string;
+        apiFormat: ProxyRequestDataParsed['apiFormat'];
+        url: string;
+    }): Promise<{ response: Response; durationMs: number; headers: Headers }> {
+        const { baseRequest, apiKeyValue, apiFormat, url } = params;
+        const requestClone = baseRequest.clone();
+        const headers = new Headers(requestClone.headers);
+
+        // Remove internal control headers so they are not sent to the origin
+        headers.forEach((_v, k) => {
+            if (k.toLowerCase().startsWith('x-gproxy-')) {
+                headers.delete(k);
+            }
+        });
+
+        if (apiFormat === 'gemini') {
+            headers.set('x-goog-api-key', apiKeyValue);
+        } else {
+            headers.set('authorization', `Bearer ${apiKeyValue}`);
+        }
+
+        const requestInit: RequestInit = {
+            method: requestClone.method,
+            headers,
+        };
+
+        if (requestClone.body) {
+            requestInit.body = requestClone.body;
+            if (typeof process !== 'undefined') {
+                (requestInit as any).duplex = 'half';
+            }
+        }
+
+        const start = Date.now();
+        const response = await fetch(new Request(url, requestInit));
+        const durationMs = Date.now() - start;
+
+        return { response, durationMs, headers };
+    }
+
+    private static async shouldTreatOkAsFailure(params: {
+        response: Response;
+        apiFormat: ProxyRequestDataParsed['apiFormat'];
+        options?: { retry?: { onZeroCompletionTokens?: boolean } };
+    }): Promise<boolean> {
+        const { response, apiFormat, options } = params;
+        const retryOpts = options?.retry || {};
+        if (!retryOpts.onZeroCompletionTokens) return false;
+
+        try {
+            const cloned = response.clone();
+            const text = await cloned.text();
+
+            const parsed = UsageMetadataParser.parseFromResponseBody(text, apiFormat);
+            if (!parsed) {
+                // Treat empty or unparsable body as zero completion tokens for this rule
+                const isEmpty = !text || text.trim().length === 0;
+                if (isEmpty) return true;
+                return false;
+            }
+
+            const hasAnyTokenSignal =
+                (parsed.totalTokens ?? 0) > 0 || (parsed.promptTokens ?? 0) > 0;
+            if (hasAnyTokenSignal && parsed.completionTokens === 0) {
+                return true;
+            }
+        } catch {
+            // If parsing fails, do not force retry
+        }
+
+        return false;
     }
 }
