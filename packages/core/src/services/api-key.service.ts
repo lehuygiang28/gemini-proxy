@@ -1,9 +1,9 @@
 import type { Context } from 'hono';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+import type { Tables } from '@gemini-proxy/database';
 import { getSupabaseClient } from './supabase.service';
 import type { HonoApp } from '../types';
-import { Tables } from '../types/database.type';
 
 export interface ApiKeyParams {
     userId: string | null;

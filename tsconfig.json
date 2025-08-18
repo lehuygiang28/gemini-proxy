@@ -17,7 +17,9 @@
         "baseUrl": ".",
         "paths": {
             "@gemini-proxy/core": ["packages/core/src/index.ts"],
-            "@gemini-proxy/core/*": ["packages/core/src/*"]
+            "@gemini-proxy/core/*": ["packages/core/src/*"],
+            "@gemini-proxy/database": ["packages/database"],
+            "@gemini-proxy/database/*": ["packages/database/src/*"]
         }
     },
     "include": ["**/*.ts", "**/*.tsx", "apps/web/next.config.mjs"],

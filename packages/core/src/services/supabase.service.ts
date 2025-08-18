@@ -1,7 +1,7 @@
 import { Context } from 'hono';
 import { env } from 'hono/adapter';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../types/database.type';
+import type { Database } from '@gemini-proxy/database';
 
 // Singleton instance
 let client: SupabaseClient | null = null;

@@ -1,5 +1,5 @@
 import type { Variables as HonoVariables, Bindings as HonoBindings } from 'hono/types';
-import { Tables } from './database.type';
+import type { Tables } from '@gemini-proxy/database';
 
 export type ProxyApiFormat = 'gemini' | 'openai-compatible';
 
