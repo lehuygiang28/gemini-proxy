@@ -1,355 +1,88 @@
-# @gemini-proxy/core
+# Core Package
 
-Core business logic for Gemini Proxy service - platform agnostic.
-
-This package contains all the core functionality for the Gemini Proxy service that can be used across different platforms (Node.js, Cloudflare Workers, Netlify, Vercel, etc.).
+This package contains the core proxy functionality for the Gemini Proxy service.
 
 ## Features
 
-- **Platform Agnostic**: Works on Node.js, Cloudflare Workers, Netlify, Vercel, and Deno
-- **Database Integration**: Uses Supabase with service role for all database operations
-- **API Key Management**: Intelligent API key selection and rotation
-- **Request Logging**: Comprehensive request tracking and analytics
-- **Usage Parsing**: Extracts usage metadata from both Gemini and OpenAI-compatible responses
-- **Streaming Support**: Handles streaming responses from both API formats
-- **Retry Logic**: Automatic retry with different API keys on failures
-- **Error Handling**: Comprehensive error categorization and handling
+### Retry Mechanism
 
-## Installation
+- **Fast automatic retries**: Failed requests are retried immediately without delays
+- **Smart key selection**: API keys are fetched upfront and rotated on each retry attempt
+- **Configurable retry settings**: Retry behavior can be configured via environment variables
 
-```bash
-pnpm add @gemini-proxy/core
-```
+### Logging System
 
-## Quick Start
+- **Comprehensive logging**: All requests, responses, and errors are logged to the database
+- **Batch processing**: Database operations are batched for optimal performance (100ms delay, max 50 ops)
+- **Data sanitization**: Sensitive information (API keys, tokens, headers) is automatically redacted
+- **Performance metrics**: Request duration and retry attempts are tracked
+- **Error tracking**: Detailed error information is captured for debugging
+- **Storage optimization**: Large data is truncated to prevent excessive storage usage
+- **Non-blocking**: All logging operations are asynchronous and don't block request processing
 
-### Basic Setup
+### API Key Management
 
-```typescript
-import { 
-    defaultConfig, 
-    detectPlatform, 
-    LoggingService,
-    ApiKeyManager,
-    DatabaseConnection 
-} from '@gemini-proxy/core';
-
-// Initialize database connection
-const dbConnection = DatabaseConnection.getInstance();
-dbConnection.connect(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// Initialize services
-const loggingService = new LoggingService();
-const keyManager = new ApiKeyManager();
-
-// Check platform
-console.log(`Running on: ${detectPlatform()}`);
-```
-
-### Using with Hono (Node.js)
-
-```typescript
-import { Hono } from 'hono';
-import { 
-    defaultConfig,
-    LoggingService,
-    ApiKeyManager,
-    DatabaseConnection 
-} from '@gemini-proxy/core';
-
-const app = new Hono();
-
-// Initialize services
-const dbConnection = DatabaseConnection.getInstance();
-const loggingService = new LoggingService();
-const keyManager = new ApiKeyManager();
-
-// Connect to database
-dbConnection.connect(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// Health check endpoint
-app.get('/health', async (c) => {
-    const keyStats = await keyManager.getKeyStats();
-    const logs = await loggingService.getRecentLogs(5);
-    
-    return c.json({
-        status: 'healthy',
-        database: dbConnection.isReady(),
-        apiKeys: {
-            total: keyStats.totalKeys,
-            active: keyStats.activeKeys
-        },
-        recentLogs: logs.length
-    });
-});
-```
-
-### Using with Cloudflare Workers
-
-```typescript
-import { 
-    defaultConfig,
-    LoggingService,
-    ApiKeyManager,
-    DatabaseConnection 
-} from '@gemini-proxy/core';
-
-export default {
-    async fetch(request: Request, env: any): Promise<Response> {
-        // Initialize services
-        const dbConnection = DatabaseConnection.getInstance();
-        const loggingService = new LoggingService();
-        const keyManager = new ApiKeyManager();
-
-        // Connect to database
-        dbConnection.connect(
-            env.SUPABASE_URL,
-            env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        // Your worker logic here
-        return new Response('Hello from Cloudflare Workers!');
-    }
-};
-```
+- **Health scoring**: API keys are scored based on error rate, usage patterns, and recency
+- **Smart selection**: Keys are selected based on health score and user preferences
+- **Usage tracking**: Key usage and performance are continuously monitored
 
 ## Configuration
 
-The package uses environment variables for configuration:
+### Environment Variables
 
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
+#### Retry Configuration
 
-You can also use the default configuration:
+- `PROXY_MAX_RETRIES`: Maximum number of retry attempts (default: 3)
+- `PROXY_RETRY_DELAY_MS`: Delay between retries in milliseconds (default: 0 - no delay)
+- `PROXY_BACKOFF_MULTIPLIER`: Backoff multiplier (default: 1 - no backoff)
 
-```typescript
-import { defaultConfig } from '@gemini-proxy/core';
+#### Logging Configuration
 
-const config = {
-    ...defaultConfig,
-    proxy: {
-        ...defaultConfig.proxy,
-        maxRetries: 5, // Override default
-        timeoutMs: 60000 // Override default
-    }
-};
-```
+- `PROXY_LOGGING_ENABLED`: Enable/disable logging (default: true)
+- `PROXY_LOG_LEVEL`: Log level (debug, info, warn, error) (default: info)
 
-## Database Schema
+#### Batch Processing
 
-The package expects the following Supabase tables:
+The system uses intelligent batching to optimize database performance:
 
-### api_keys
+- **Batch Delay**: 100ms delay to collect operations before executing
+- **Batch Size**: Maximum 50 operations per batch
+- **Parallel Execution**: Multiple batch types executed concurrently
+- **Non-blocking**: Logging operations don't block request processing
 
-```sql
-CREATE TABLE api_keys (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT UNIQUE NOT NULL,
-    key TEXT NOT NULL,
-    provider TEXT NOT NULL DEFAULT 'gemini',
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    metadata JSONB NOT NULL DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+#### Data Sanitization
 
-### proxy_api_keys
+The system automatically sanitizes sensitive data before logging:
 
-```sql
-CREATE TABLE proxy_api_keys (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    key_id TEXT UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    usage JSONB NOT NULL DEFAULT '{}',
-    metadata JSONB NOT NULL DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### request_logs
-
-```sql
-CREATE TABLE request_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    proxy_key_id TEXT NOT NULL,
-    api_key_id TEXT NOT NULL,
-    request_id TEXT UNIQUE NOT NULL,
-    api_format TEXT NOT NULL,
-    request JSONB NOT NULL,
-    response JSONB,
-    retries JSONB NOT NULL DEFAULT '[]',
-    success BOOLEAN NOT NULL,
-    error JSONB,
-    usage JSONB,
-    metrics JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-## API Reference
-
-### Core Classes
-
-#### DatabaseConnection
-
-Singleton class for managing Supabase connection.
-
-```typescript
-const db = DatabaseConnection.getInstance();
-db.connect(supabaseUrl, serviceRoleKey);
-const isReady = db.isReady();
-```
-
-#### ApiKeyManager
-
-Manages Gemini API keys with intelligent selection and rotation.
-
-```typescript
-const keyManager = new ApiKeyManager();
-
-// Select best key
-const { key, apiKey } = await keyManager.selectBestKey({ 
-    provider: 'gemini',
-    excludeKeys: ['key1', 'key2'],
-    maxErrorRate: 0.1
-});
-
-// Add new key
-await keyManager.addApiKey({
-    name: 'my-key',
-    key: 'your-gemini-api-key',
-    provider: 'gemini'
-});
-
-// Get statistics
-const stats = await keyManager.getKeyStats();
-```
-
-#### LoggingService
-
-Comprehensive request logging and analytics.
-
-```typescript
-const loggingService = new LoggingService();
-
-// Start request log
-const requestId = await loggingService.startRequestLog({
-    proxyKeyId: 'proxy-key-id',
-    apiKeyId: 'api-key-id',
-    apiFormat: 'gemini',
-    request: proxyRequest
-});
-
-// Log response
-await loggingService.logResponse({
-    requestId,
-    response,
-    apiCallDurationMs: 1500,
-    usage: usageMetadata
-});
-
-// Finalize log
-await loggingService.finalizeRequestLog({
-    requestId,
-    success: true,
-    totalDurationMs: 2000,
-    usage: usageMetadata
-});
-
-// Get statistics
-const stats = await loggingService.getStatistics();
-```
-
-### Parsers
-
-#### UsageMetadataParser
-
-Extracts usage metadata from different API formats.
-
-```typescript
-import { usageParser } from '@gemini-proxy/core';
-
-// Parse OpenAI format
-const usage = usageParser.parseOpenAIUsage({ responseBody });
-
-// Parse Gemini format
-const usage = usageParser.parseGeminiUsage({ responseBody });
-
-// Auto-detect format
-const usage = usageParser.parseUnifiedUsage({ responseBody });
-```
-
-#### StreamResponseParser
-
-Parses streaming responses.
-
-```typescript
-import { streamParser } from '@gemini-proxy/core';
-
-const result = streamParser.parseStream({ chunks });
-console.log(result.usage); // Usage metadata
-console.log(result.model); // Model name
-console.log(result.finished); // Whether stream is complete
-```
-
-### Platform Detection
-
-```typescript
-import { detectPlatform, isServerless } from '@gemini-proxy/core';
-
-const platform = detectPlatform(); // 'node' | 'cloudflare' | 'netlify' | 'vercel' | 'deno'
-const serverless = isServerless(); // true/false
-```
+- **API Keys**: Redacted as `[REDACTED_API_KEY]`
+- **Tokens**: Redacted as `[REDACTED_TOKEN]`
+- **Sensitive Headers**: Authorization, API keys, cookies, etc.
+- **URL Parameters**: API keys, tokens, passwords in URLs
+- **Data Truncation**: Large strings truncated to 1000 characters
 
 ## Error Handling
 
-The package provides custom error classes:
+The system handles various types of errors:
+
+- **Rate Limit Errors (429)**: Automatically retried with different keys immediately
+- **Authentication Errors (401/403)**: Retried with different API keys immediately
+- **Server Errors (5xx)**: Retried immediately with different keys
+- **Network Errors**: Retried immediately with different keys
+- **Client Errors (4xx)**: Not retried (except auth errors)
+
+## Database Schema
+
+The system uses the following tables:
+
+- `api_keys`: Stores API keys and their metadata
+- `proxy_api_keys`: Stores proxy authentication keys
+- `request_logs`: Stores detailed request/response logs
+
+## Usage
 
 ```typescript
-import { ProxyError, KeySelectionError, RetryExhaustedError } from '@gemini-proxy/core';
+import { ProxyService } from './services/proxy.service';
 
-try {
-    // Your code here
-} catch (error) {
-    if (error instanceof ProxyError) {
-        console.log(`Proxy error: ${error.message} (${error.type})`);
-    } else if (error instanceof KeySelectionError) {
-        console.log(`Key selection error: ${error.message}`);
-    } else if (error instanceof RetryExhaustedError) {
-        console.log(`Retry exhausted: ${error.message}`);
-    }
-}
+// The service automatically handles retries and logging
+const response = await ProxyService.makeApiRequest({ c });
 ```
-
-## Building
-
-```bash
-# Build the package
-pnpm build
-
-# Watch mode for development
-pnpm dev
-
-# Clean build artifacts
-pnpm clean
-```
-
-## Contributing
-
-1. Make changes to the source files in `src/`
-2. Run `pnpm build` to compile TypeScript
-3. Test your changes
-4. Submit a pull request
-
-## License
-
-MIT

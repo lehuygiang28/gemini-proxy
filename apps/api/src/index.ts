@@ -1,17 +1,18 @@
 import { Hono } from 'hono';
-import { serve } from '@hono/node-server';
 import { getRuntimeKey } from 'hono/adapter';
+import { cors } from 'hono/cors';
+import { serve } from '@hono/node-server';
 
 import { coreApp } from '@gemini-proxy/core';
 
 // Create the main API app
 const app = new Hono()
-    .get('/', (c) =>
-        c.json({
-            message: 'Gemini Proxy API',
-            version: '0.0.1',
-            platform: getRuntimeKey(),
-            status: 'running',
+    .use(
+        cors({
+            origin: ['http://localhost:3000', 'https://your-domain.com'],
+            allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+            credentials: true,
         }),
     )
     .route('/api/gproxy/*', coreApp);

@@ -1,7 +1,13 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts', 'src/app.ts', 'src/types.ts', 'src/utils/index.ts'],
+    entry: [
+        'src/index.ts',
+        'src/app.ts',
+        'src/types.ts',
+        'src/utils/index.ts',
+        'src/utils/usage-metadata-parser.ts',
+    ],
     format: ['esm'],
     dts: true,
     splitting: false,
