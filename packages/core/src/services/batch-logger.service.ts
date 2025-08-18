@@ -5,7 +5,7 @@ import { DataSanitizer } from '../utils/sanitizer';
 import { UsageMetadataParser } from '../utils/usage-metadata-parser';
 
 export interface BatchLogOperation {
-    type: 'request_log' | 'api_key_usage';
+    type: 'request_log' | 'api_key_usage' | 'proxy_api_key_usage';
     data: any;
     timestamp: number;
 }
@@ -37,6 +37,14 @@ export interface ApiKeyUsageData {
     apiKeyId: string;
     isSuccessful: boolean;
     errorDetails?: any;
+}
+
+export interface ProxyApiKeyUsageData {
+    proxyApiKeyId: string;
+    isSuccessful: boolean;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
 }
 
 export class BatchLoggerService {
@@ -137,8 +145,15 @@ export class BatchLoggerService {
         }
 
         // Group operations by type
-        const requestLogs = batch.filter((op) => op.type === 'request_log').map((op) => op.data);
-        const apiKeyUsages = batch.filter((op) => op.type === 'api_key_usage').map((op) => op.data);
+        const requestLogs = batch
+            .filter((op) => op.type === 'request_log')
+            .map((op) => op.data as RequestLogData);
+        const apiKeyUsages = batch
+            .filter((op) => op.type === 'api_key_usage')
+            .map((op) => op.data as ApiKeyUsageData);
+        const proxyApiKeyUsages = batch
+            .filter((op) => op.type === 'proxy_api_key_usage')
+            .map((op) => op.data as ProxyApiKeyUsageData);
 
         // Execute all operations in parallel
         const promises: Promise<any>[] = [];
@@ -151,6 +166,11 @@ export class BatchLoggerService {
         // Batch update API key usages
         if (apiKeyUsages.length > 0) {
             promises.push(this.batchUpdateApiKeyUsages(apiKeyUsages));
+        }
+
+        // Batch update Proxy API key usages
+        if (proxyApiKeyUsages.length > 0) {
+            promises.push(this.batchUpdateProxyApiKeyUsages(proxyApiKeyUsages));
         }
 
         // Execute all operations
@@ -186,6 +206,17 @@ export class BatchLoggerService {
                                 responseId: parsedMetadata.responseId,
                                 rawMetadata: parsedMetadata.metadata,
                             };
+
+                            // Add proxy API key usage from the parsed metadata
+                            if (log.proxyKeyId) {
+                                this.addProxyApiKeyUsage({
+                                    proxyApiKeyId: log.proxyKeyId,
+                                    isSuccessful: true,
+                                    promptTokens: usageMetadata.promptTokens,
+                                    completionTokens: usageMetadata.completionTokens,
+                                    totalTokens: usageMetadata.totalTokens,
+                                });
+                            }
                         }
                     } catch (error) {
                         console.warn('Failed to parse usage metadata from response body:', error);
@@ -232,26 +263,171 @@ export class BatchLoggerService {
         const supabase = getSupabaseClient({} as any);
 
         // Group by API key ID for efficient updates
-        const apiKeyGroups = new Map<string, ApiKeyUsageData[]>();
+        const apiKeyGroups = new Map<string, { successCount: number; failureCount: number }>();
         for (const usage of usages) {
             if (!apiKeyGroups.has(usage.apiKeyId)) {
-                apiKeyGroups.set(usage.apiKeyId, []);
+                apiKeyGroups.set(usage.apiKeyId, { successCount: 0, failureCount: 0 });
             }
-            apiKeyGroups.get(usage.apiKeyId)!.push(usage);
+            const group = apiKeyGroups.get(usage.apiKeyId)!;
+            if (usage.isSuccessful) {
+                group.successCount++;
+            } else {
+                group.failureCount++;
+            }
         }
 
         // Update each API key's usage
         const updatePromises = Array.from(apiKeyGroups.entries()).map(
-            async ([apiKeyId, keyUsages]) => {
+            async ([apiKeyId, { successCount, failureCount }]) => {
+                // Fetch the current counts
+                const { data: currentKey, error: fetchError } = await supabase
+                    .from('api_keys')
+                    .select('success_count, failure_count')
+                    .eq('id', apiKeyId)
+                    .single();
+
+                if (fetchError) {
+                    console.error(
+                        `Failed to fetch API key for usage update ${apiKeyId}:`,
+                        fetchError,
+                    );
+                    return;
+                }
+
+                const updateData: any = {
+                    success_count: currentKey.success_count + successCount,
+                    failure_count: currentKey.failure_count + failureCount,
+                    last_used_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+
+                if (failureCount > 0) {
+                    updateData.last_error_at = new Date().toISOString();
+                }
+
                 const { error } = await supabase
                     .from('api_keys')
-                    .update({
-                        updated_at: new Date().toISOString(),
-                    })
+                    .update(updateData)
                     .eq('id', apiKeyId);
 
                 if (error) {
                     console.error(`Failed to update API key usage for ${apiKeyId}:`, error);
+                }
+            },
+        );
+
+        await Promise.all(updatePromises);
+    }
+
+    private static async addProxyApiKeyUsage(data: ProxyApiKeyUsageData): Promise<void> {
+        const operation: BatchLogOperation = {
+            type: 'proxy_api_key_usage',
+            data,
+            timestamp: Date.now(),
+        };
+
+        // This is a simplified addToBatch that doesn't require the request ID,
+        // as it's called from within the batch execution
+        const requestId = 'proxy_api_key_updates';
+        if (!this.batchOperations.has(requestId)) {
+            this.batchOperations.set(requestId, []);
+        }
+        this.batchOperations.get(requestId)!.push(operation);
+
+        // Set a timeout to execute this special batch
+        if (!this.batchTimeout.has(requestId)) {
+            const timeout = setTimeout(async () => {
+                await this.executeBatch(requestId);
+            }, this.BATCH_DELAY_MS);
+            this.batchTimeout.set(requestId, timeout);
+        }
+    }
+
+    private static async batchUpdateProxyApiKeyUsages(
+        usages: ProxyApiKeyUsageData[],
+    ): Promise<void> {
+        const supabase = getSupabaseClient({} as any);
+
+        // Group by Proxy API key ID for efficient updates
+        const proxyApiKeyGroups = new Map<
+            string,
+            {
+                successCount: number;
+                failureCount: number;
+                promptTokens: number;
+                completionTokens: number;
+                totalTokens: number;
+            }
+        >();
+
+        for (const usage of usages) {
+            if (!proxyApiKeyGroups.has(usage.proxyApiKeyId)) {
+                proxyApiKeyGroups.set(usage.proxyApiKeyId, {
+                    successCount: 0,
+                    failureCount: 0,
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    totalTokens: 0,
+                });
+            }
+            const group = proxyApiKeyGroups.get(usage.proxyApiKeyId)!;
+            if (usage.isSuccessful) {
+                group.successCount++;
+            } else {
+                group.failureCount++;
+            }
+            group.promptTokens += usage.promptTokens;
+            group.completionTokens += usage.completionTokens;
+            group.totalTokens += usage.totalTokens;
+        }
+
+        // Update each Proxy API key's usage
+        const updatePromises = Array.from(proxyApiKeyGroups.entries()).map(
+            async ([
+                proxyApiKeyId,
+                { successCount, failureCount, promptTokens, completionTokens, totalTokens },
+            ]) => {
+                // Fetch the current counts
+                const { data: currentKey, error: fetchError } = await supabase
+                    .from('proxy_api_keys')
+                    .select(
+                        'success_count, failure_count, prompt_tokens, completion_tokens, total_tokens',
+                    )
+                    .eq('id', proxyApiKeyId)
+                    .single();
+
+                if (fetchError) {
+                    console.error(
+                        `Failed to fetch Proxy API key for usage update ${proxyApiKeyId}:`,
+                        fetchError,
+                    );
+                    return;
+                }
+
+                const updateData: any = {
+                    success_count: currentKey.success_count + successCount,
+                    failure_count: currentKey.failure_count + failureCount,
+                    prompt_tokens: currentKey.prompt_tokens + promptTokens,
+                    completion_tokens: currentKey.completion_tokens + completionTokens,
+                    total_tokens: currentKey.total_tokens + totalTokens,
+                    last_used_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+
+                if (failureCount > 0) {
+                    updateData.last_error_at = new Date().toISOString();
+                }
+
+                const { error } = await supabase
+                    .from('proxy_api_keys')
+                    .update(updateData)
+                    .eq('id', proxyApiKeyId);
+
+                if (error) {
+                    console.error(
+                        `Failed to update Proxy API key usage for ${proxyApiKeyId}:`,
+                        error,
+                    );
                 }
             },
         );
