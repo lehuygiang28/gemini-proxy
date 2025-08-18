@@ -22,7 +22,7 @@ export const authProviderClient: AuthProvider = {
 
             return {
                 success: true,
-                redirectTo: '/',
+                redirectTo: '/dashboard',
             };
         }
 
@@ -67,7 +67,7 @@ export const authProviderClient: AuthProvider = {
             if (data) {
                 return {
                     success: true,
-                    redirectTo: '/',
+                    redirectTo: '/dashboard',
                 };
             }
         } catch (error: unknown) {

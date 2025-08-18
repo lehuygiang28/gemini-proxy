@@ -1,11 +1,15 @@
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import React, { Suspense } from 'react';
-import { Refine, GitHubBanner } from '@refinedev/core';
-import { DevtoolsProvider } from '@providers/devtools';
-import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
+import { Refine } from '@refinedev/core';
 import { useNotificationProvider } from '@refinedev/antd';
 import routerProvider from '@refinedev/nextjs-router';
+import {
+    DashboardOutlined,
+    KeyOutlined,
+    SafetyCertificateOutlined,
+    FileTextOutlined,
+} from '@ant-design/icons';
 
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import '@refinedev/antd/dist/reset.css';
@@ -34,30 +38,65 @@ export default function RootLayout({
         <html lang="en">
             <body>
                 <Suspense>
-                    <GitHubBanner />
-                    <RefineKbarProvider>
-                        <AntdRegistry>
-                            <ColorModeContextProvider defaultMode={defaultMode}>
-                                <DevtoolsProvider>
-                                    <Refine
-                                        routerProvider={routerProvider}
-                                        authProvider={authProviderClient}
-                                        dataProvider={dataProvider}
-                                        notificationProvider={useNotificationProvider}
-                                        options={{
-                                            syncWithLocation: true,
-                                            warnWhenUnsavedChanges: true,
-                                            useNewQueryKeys: true,
-                                            projectId: 'T9Lqmt-n4uhnL-kmcQSq',
-                                        }}
-                                    >
-                                        {children}
-                                        <RefineKbar />
-                                    </Refine>
-                                </DevtoolsProvider>
-                            </ColorModeContextProvider>
-                        </AntdRegistry>
-                    </RefineKbarProvider>
+                    <AntdRegistry>
+                        <ColorModeContextProvider defaultMode={defaultMode}>
+                            <Refine
+                                routerProvider={routerProvider}
+                                authProvider={authProviderClient}
+                                dataProvider={dataProvider}
+                                notificationProvider={useNotificationProvider}
+                                resources={[
+                                    {
+                                        name: 'dashboard',
+                                        list: '/dashboard',
+                                        meta: {
+                                            label: 'Dashboard',
+                                            icon: <DashboardOutlined />,
+                                        },
+                                    },
+                                    {
+                                        name: 'api_keys',
+                                        list: '/api-keys',
+                                        create: '/api-keys/create',
+                                        edit: '/api-keys/edit/:id',
+                                        show: '/api-keys/show/:id',
+                                        meta: {
+                                            label: 'API Keys',
+                                            icon: <KeyOutlined />,
+                                        },
+                                    },
+                                    {
+                                        name: 'proxy_api_keys',
+                                        list: '/proxy-api-keys',
+                                        create: '/proxy-api-keys/create',
+                                        edit: '/proxy-api-keys/edit/:id',
+                                        show: '/proxy-api-keys/show/:id',
+                                        meta: {
+                                            label: 'Proxy API Keys',
+                                            icon: <SafetyCertificateOutlined />,
+                                        },
+                                    },
+                                    {
+                                        name: 'request_logs',
+                                        list: '/request-logs',
+                                        show: '/request-logs/show/:id',
+                                        meta: {
+                                            label: 'Request Logs',
+                                            icon: <FileTextOutlined />,
+                                        },
+                                    },
+                                ]}
+                                options={{
+                                    syncWithLocation: true,
+                                    warnWhenUnsavedChanges: true,
+                                    useNewQueryKeys: true,
+                                    projectId: 'T9Lqmt-n4uhnL-kmcQSq',
+                                }}
+                            >
+                                {children}
+                            </Refine>
+                        </ColorModeContextProvider>
+                    </AntdRegistry>
                 </Suspense>
             </body>
         </html>

@@ -6,7 +6,7 @@ export default async function ForgotPassword() {
     const data = await getData();
 
     if (data.authenticated) {
-        redirect(data?.redirectTo || '/');
+        redirect(data?.redirectTo || '/dashboard');
     }
 
     return <AuthPage type="forgotPassword" />;
