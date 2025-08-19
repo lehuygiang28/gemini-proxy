@@ -18,17 +18,36 @@ This monorepo contains the applications and packages for the Gemini Proxy servic
 
 ```md
 gemini-proxy/
-├── apps/                   # Main apps
+├── apps/
 │   ├── web/                # Next.js web application with Ant Design
 │   └── api/                # Node.js Hono API server
-├── packages/               # Shared packages
+├── packages/
 │   ├── core/               # Core business logic for Gemini Proxy
-│   └── database/           # Database schema and migrations
-├── package.json            # Root package.json
-├── pnpm-workspace.yaml     # pnpm workspace configuration
-├── turbo.json              # Turborepo configuration
-└── README.md               # This file
+│   ├── database/           # Database schema and migrations
+│   ├── cloudflare/         # Cloudflare Worker adapter
+│   └── vercel/             # Vercel Edge Function adapter
+├── examples/
+│   ├── openai.example.ts
+│   ├── google-genai.example.ts
+│   └── ai-sdk.example.ts
+├── package.json
+├── pnpm-workspace.yaml
+├── turbo.json
+└── README.md
 ```
+
+## ✨ Packages
+
+- `@gemini-proxy/core`: Platform-agnostic core package with all business logic.
+- `@gemini-proxy/database`: Supabase schema, types, and migration scripts.
+- `@gemini-proxy/cloudflare`: Adapter for Cloudflare Workers.
+- `@gemini-proxy/vercel`: Adapter for Vercel Edge Functions.
+
+## 🚀 Deployments
+
+- **Web App**: Deployed on Vercel.
+- **API Server**: Can be deployed on any Node.js environment.
+- **Edge Functions**: Adapters for Cloudflare and Vercel are available.
 
 ## 🛠️ Getting Started
 
@@ -36,13 +55,14 @@ gemini-proxy/
 
 - Node.js 18+
 - pnpm 8+
+- [Supabase Account](https://supabase.com/): A Supabase project is required for the database and authentication.
 
 ### Installation
 
 1. **Clone the repository**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/lehuygiang28/gemini-proxy
     cd gemini-proxy
     ```
 
@@ -52,57 +72,58 @@ gemini-proxy/
     pnpm install
     ```
 
-3. **Set up environment variables**
+3. **Set up Supabase**
 
-    Create a `.env` file in `apps/api` and `apps/web` by copying the `.env.example` files and filling in the required values.
+    1. Go to [supabase.com](https://supabase.com/) and create a new project.
+    2. In your project settings, find your **Project URL**, **anon key**, and **service_role key**.
 
-4. **Start development server**
+4. **Set up environment variables**
+
+    Create a `.env` file in each `apps/*` and `packages/*` directory by copying the `.env.example` files. Fill in the Supabase credentials from the previous step.
+
+5. **Run database migrations**
+
+    ```bash
+    pnpm --filter @gemini-proxy/database db:push
+    ```
+
+6. **Start development server**
 
     ```bash
     pnpm dev
     ```
 
+## 📚 Examples
+
+The `examples` directory contains usage examples for different libraries:
+
+- **OpenAI**: `openai.example.ts`
+- **Google Generative AI**: `google-genai.example.ts`
+- **AI SDK**: `ai-sdk.example.ts`
+
+To run an example:
+
+```bash
+pnpm tsx examples/openai.example.ts
+```
+
 ## 📜 Available Scripts
 
-### Root Level Scripts
-
-- `pnpm dev` - Start all applications in development mode
-- `pnpm build` - Build all applications and packages
-- `pnpm lint` - Run linting across all packages
-- `pnpm test` - Run tests across all packages
-- `pnpm clean` - Clean all build artifacts
-- `pnpm format` - Format all code with Prettier
-- `pnpm format:check` - Check code formatting
-
-## ✨ Core Features
-
-The `@gemini-proxy/core` package contains all the business logic for the Gemini Proxy service:
-
-- **Platform Agnostic**: Works on Node.js, Cloudflare Workers, Netlify, Vercel, and Deno
-- **Database Integration**: Uses Supabase with service role for all database operations
-- **API Key Management**: Intelligent API key selection and rotation
-- **Request Logging**: Comprehensive request tracking and analytics
-- **Usage Parsing**: Extracts usage metadata from both Gemini and OpenAI-compatible responses
-- **Streaming Support**: Handles streaming responses from both API formats
-- **Retry Logic**: Automatic retry with different API keys on failures
-
-See `packages/core/README.md` for detailed documentation.
-
-## 🚀 Deployment
-
-Each app can be deployed independently:
-
-- **Web App**: Deploy to Vercel, Netlify, or any Next.js-compatible platform
-- **API Server**: Deploy to any Node.js compatible environment or serverless platform with Hono support
+- `pnpm dev`: Start all applications in development mode.
+- `pnpm build`: Build all applications and packages.
+- `pnpm lint`: Run linting across all packages.
+- `pnpm test`: Run tests across all packages.
+- `pnpm clean`: Clean all build artifacts.
+- `pnpm format`: Format all code with Prettier.
+- `pnpm format:check`: Check code formatting.
 
 ## 📝 Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Run `pnpm format` to format code
-4. Run `pnpm lint` to check for issues
-5. Submit a pull request
+1. Create a feature branch.
+2. Make your changes.
+3. Run `pnpm format` and `pnpm lint`.
+4. Submit a pull request.
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+MIT License
