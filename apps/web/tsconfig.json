@@ -25,7 +25,6 @@
             "@providers/*": ["./src/providers/*"],
             "@contexts/*": ["./src/contexts/*"],
             "@utils/*": ["./src/utils/*"],
-            "@pages/*": ["./pages/*"],
             "@gemini-proxy/core": ["../../packages/core/src/index.ts"],
             "@gemini-proxy/vercel": ["../../packages/vercel/src/index.ts"],
             "@gemini-proxy/database": ["../../packages/database/index.ts"]

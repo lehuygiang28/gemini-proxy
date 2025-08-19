@@ -21,7 +21,7 @@ export default function ApiKeysCreatePage() {
                     <Input />
                 </Form.Item>
                 <Form.Item label="Provider" name="provider">
-                    <Select allowClear options={[{ label: 'google', value: 'google' }]} />
+                    <Select allowClear options={[{ label: 'Google (Gemini)', value: 'google' }]} />
                 </Form.Item>
                 <Form.Item
                     label="API Key Value"

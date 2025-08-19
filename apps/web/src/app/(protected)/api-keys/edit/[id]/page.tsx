@@ -8,23 +8,16 @@ import type { TablesUpdate } from '@gemini-proxy/database';
 type ApiKeyUpdate = TablesUpdate<'api_keys'>;
 
 export default function ApiKeysEditPage() {
-    const { formProps, saveButtonProps, queryResult } = useForm<ApiKeyUpdate>({});
+    const { formProps, saveButtonProps, query } = useForm<ApiKeyUpdate>({});
 
     return (
         <Edit saveButtonProps={saveButtonProps} title="Edit API Key">
-            <Form layout="vertical" {...formProps} initialValues={queryResult?.data?.data}>
+            <Form layout="vertical" {...formProps} initialValues={query?.data?.data}>
                 <Form.Item label="Name" name="name" rules={[{ required: true }]}>
                     <Input />
                 </Form.Item>
                 <Form.Item label="Provider" name="provider">
-                    <Select
-                        allowClear
-                        options={[
-                            { label: 'google', value: 'google' },
-                            { label: 'openai', value: 'openai' },
-                            { label: 'anthropic', value: 'anthropic' },
-                        ]}
-                    />
+                    <Select allowClear options={[{ label: 'Google (Gemini)', value: 'google' }]} />
                 </Form.Item>
                 <Form.Item label="API Key Value" name="api_key_value">
                     <Input.Password />

@@ -1,7 +1,8 @@
 {
-    "name": "web",
+    "name": "@gemini-proxy/web",
     "version": "0.1.0",
     "private": true,
+    "description": "Gemini Proxy Web Application - API Key Management System",
     "engines": {
         "node": ">=18.0.0"
     },
@@ -17,18 +18,17 @@
     "dependencies": {
         "@ant-design/icons": "^5.5.1",
         "@ant-design/nextjs-registry": "^1.0.0",
+        "@gemini-proxy/core": "workspace:*",
+        "@gemini-proxy/vercel": "workspace:*",
         "@refinedev/antd": "^5.44.0",
         "@refinedev/cli": "^2.16.21",
         "@refinedev/core": "^4.47.1",
-        "@refinedev/devtools": "^1.1.32",
-        "@refinedev/kbar": "^1.3.6",
+        "@refinedev/devtools": "^1.2.17",
+        "@refinedev/kbar": "^1.3.17",
         "@refinedev/nextjs-router": "^6.0.0",
         "@refinedev/supabase": "^5.7.4",
         "@supabase/ssr": "^0.3.0",
         "antd": "^5.17.0",
-        "@gemini-proxy/vercel": "workspace:*",
-        "@gemini-proxy/core": "workspace:*",
-        "graceful-fs": "^4.2.11",
         "js-cookie": "^3.0.5",
         "next": "^14.2.0",
         "react": "^18.0.0",
@@ -45,8 +45,5 @@
         "eslint": "^8",
         "eslint-config-next": "^14.2.31",
         "typescript": "^5.9.2"
-    },
-    "refine": {
-        "projectId": "T9Lqmt-n4uhnL-kmcQSq"
     }
 }

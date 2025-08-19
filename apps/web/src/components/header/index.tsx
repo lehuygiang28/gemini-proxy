@@ -18,7 +18,7 @@ type IUser = {
 export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({ sticky = true }) => {
     const { token } = useToken();
     const { data: user } = useGetIdentity<IUser>();
-    const { mode, setMode } = useContext(ColorModeContext);
+    const { mode, toggleMode } = useContext(ColorModeContext);
 
     const headerStyles: React.CSSProperties = {
         backgroundColor: token.colorBgElevated,
@@ -27,6 +27,7 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({ sticky = tru
         alignItems: 'center',
         padding: '0px 24px',
         height: '64px',
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
     };
 
     if (sticky) {
@@ -41,12 +42,20 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({ sticky = tru
                 <Switch
                     checkedChildren="🌛"
                     unCheckedChildren="🔆"
-                    onChange={() => setMode(mode === 'light' ? 'dark' : 'light')}
-                    defaultChecked={mode === 'dark'}
+                    onChange={toggleMode}
+                    checked={mode === 'dark'}
+                    style={{
+                        backgroundColor:
+                            mode === 'dark' ? token.colorPrimary : token.colorBgContainer,
+                    }}
                 />
                 {(user?.name || user?.avatar) && (
                     <Space style={{ marginLeft: '8px' }} size="middle">
-                        {user?.name && <Text strong>{user.name}</Text>}
+                        {user?.name && (
+                            <Text strong style={{ color: token.colorText }}>
+                                {user.name}
+                            </Text>
+                        )}
                         {user?.avatar && <Avatar src={user?.avatar} alt={user?.name} />}
                     </Space>
                 )}
