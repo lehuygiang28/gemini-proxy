@@ -1,88 +1,57 @@
-# Core Package
+# Gemini Proxy - Core
 
-This package contains the core proxy functionality for the Gemini Proxy service.
+This package contains the core business logic for the Gemini Proxy service. It's designed to be platform-agnostic, allowing it to be used in various environments such as Node.js, Cloudflare Workers, and Vercel Edge Functions.
+
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Middlewares](#middlewares)
+- [Services](#services)
+- [Installation](#installation)
+- [Usage](#usage)
 
 ## Features
 
-### Retry Mechanism
+- **Platform-Agnostic:** Can be deployed to any environment that supports Hono.js.
+- **Middleware-Based:** Uses a chain of middlewares to process requests.
+- **Request Proxying:** Proxies requests to the Google Gemini API.
+- **API Key Validation:** Validates proxy API keys against the Supabase database.
+- **Request Logging:** Logs request and response data.
 
-- **Fast automatic retries**: Failed requests are retried immediately without delays
-- **Smart key selection**: API keys are fetched upfront and rotated on each retry attempt
-- **Configurable retry settings**: Retry behavior can be configured via environment variables
+## Architecture
 
-### Logging System
+The core of the application is a Hono.js app that processes incoming requests through a series of middlewares. Each middleware has a specific responsibility, such as adding a request ID, logging the request, validating the API key, and finally, proxying the request.
 
-- **Comprehensive logging**: All requests, responses, and errors are logged to the database
-- **Batch processing**: Database operations are batched for optimal performance (100ms delay, max 50 ops)
-- **Data sanitization**: Sensitive information (API keys, tokens, headers) is automatically redacted
-- **Performance metrics**: Request duration and retry attempts are tracked
-- **Error tracking**: Detailed error information is captured for debugging
-- **Storage optimization**: Large data is truncated to prevent excessive storage usage
-- **Non-blocking**: All logging operations are asynchronous and don't block request processing
+## Middlewares
 
-### API Key Management
+- **`requestIdMiddleware`:** Adds a unique request ID to each incoming request.
+- **`httpLoggerMiddleware`:** Logs the request and response.
+- **`extractProxyDataMiddleware`:** Extracts proxy data from the request.
+- **`proxyOptionsMiddleware`:** Handles proxy options.
+- **`validateProxyApiKeyMiddleware`:** Validates the proxy API key.
 
-- **Health scoring**: API keys are scored based on error rate, usage patterns, and recency
-- **Smart selection**: Keys are selected based on health score and user preferences
-- **Usage tracking**: Key usage and performance are continuously monitored
+## Services
 
-## Configuration
+- **`ProxyService`:** Handles the actual proxying of the request to the Google Gemini API.
+- **`ApiKeyService`:** Manages API key validation.
+- **`ConfigService`:** Provides access to configuration and environment variables.
+- **`SupabaseService`:** Interacts with the Supabase database.
+- **`BatchLoggerService`:** Batches and sends logs.
 
-### Environment Variables
+## Installation
 
-#### Retry Configuration
-
-- `PROXY_MAX_RETRIES`: Maximum number of retry attempts (default: 3)
-- `PROXY_RETRY_DELAY_MS`: Delay between retries in milliseconds (default: 0 - no delay)
-- `PROXY_BACKOFF_MULTIPLIER`: Backoff multiplier (default: 1 - no backoff)
-
-#### Logging Configuration
-
-- `PROXY_LOGGING_ENABLED`: Enable/disable logging (default: true)
-- `PROXY_LOG_LEVEL`: Log level (debug, info, warn, error) (default: info)
-
-#### Batch Processing
-
-The system uses intelligent batching to optimize database performance:
-
-- **Batch Delay**: 100ms delay to collect operations before executing
-- **Batch Size**: Maximum 50 operations per batch
-- **Parallel Execution**: Multiple batch types executed concurrently
-- **Non-blocking**: Logging operations don't block request processing
-
-#### Data Sanitization
-
-The system automatically sanitizes sensitive data before logging:
-
-- **API Keys**: Redacted as `[REDACTED_API_KEY]`
-- **Tokens**: Redacted as `[REDACTED_TOKEN]`
-- **Sensitive Headers**: Authorization, API keys, cookies, etc.
-- **URL Parameters**: API keys, tokens, passwords in URLs
-- **Data Truncation**: Large strings truncated to 1000 characters
-
-## Error Handling
-
-The system handles various types of errors:
-
-- **Rate Limit Errors (429)**: Automatically retried with different keys immediately
-- **Authentication Errors (401/403)**: Retried with different API keys immediately
-- **Server Errors (5xx)**: Retried immediately with different keys
-- **Network Errors**: Retried immediately with different keys
-- **Client Errors (4xx)**: Not retried (except auth errors)
-
-## Database Schema
-
-The system uses the following tables:
-
-- `api_keys`: Stores API keys and their metadata
-- `proxy_api_keys`: Stores proxy authentication keys
-- `request_logs`: Stores detailed request/response logs
+This is an internal package and is not meant to be installed directly. It's used as a dependency in the `api`, `cloudflare`, and `vercel` packages.
 
 ## Usage
 
-```typescript
-import { ProxyService } from './services/proxy.service';
+The `coreApp` is exported from this package and can be used as a Hono.js app:
 
-// The service automatically handles retries and logging
-const response = await ProxyService.makeApiRequest({ c });
-```
+```typescript
+import { Hono } from 'hono';
+import { coreApp } from '@gemini-proxy/core';
+
+const app = new Hono();
+app.route('/api/gproxy/*', coreApp);
+
+export default app;
