@@ -286,6 +286,7 @@ export class ProxyService {
                 });
 
                 const responseClone = response.clone();
+                const responseCloneForLog = response.clone();
                 const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
 
                 BatchLoggerService.addRequestLog(c, {
@@ -309,7 +310,7 @@ export class ProxyService {
                         duration_ms: attemptDuration,
                         attempt_count: currentAttempt + 1,
                     },
-                    responseBody: responseClone.clone(),
+                    responseBody: responseCloneForLog,
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
                 });
 
