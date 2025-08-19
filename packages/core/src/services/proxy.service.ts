@@ -98,6 +98,12 @@ export class ProxyService {
                     retryAttempts: null,
                 });
 
+                // Ensure batched logs have a chance to complete in serverless
+                const executionCtx = c.executionCtx;
+                if (executionCtx && typeof executionCtx.waitUntil === 'function') {
+                    executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+                }
+
                 return new Response(responseClone.body, {
                     status: responseClone.status,
                     headers: filteredResponseHeaders,
@@ -106,6 +112,15 @@ export class ProxyService {
         }
 
         const firstError = this.createProxyError(firstResponse, firstAttemptDuration);
+        // Capture provider error details for clearer diagnostics
+        const firstErrorClone = firstResponse.clone();
+        let firstProviderBody = '';
+        try {
+            firstProviderBody = await firstErrorClone.text();
+        } catch {
+            firstProviderBody = '';
+        }
+        const firstProviderHeaders = Object.fromEntries(firstResponse.headers.entries());
 
         BatchLoggerService.addApiKeyUsage(c, {
             apiKeyId: firstApiKey.id,
@@ -115,6 +130,9 @@ export class ProxyService {
                 type: firstError.type,
                 status: firstResponse.status,
                 code: firstError.code,
+                provider_status: firstResponse.status,
+                provider_headers: firstProviderHeaders,
+                provider_raw_body: firstProviderBody?.slice(0, 4000),
             },
         });
 
@@ -128,6 +146,11 @@ export class ProxyService {
             proxyApiKeyData,
             proxyRequestDataParsed,
             initialError: firstError,
+            initialProviderError: {
+                status: firstResponse.status,
+                headers: firstProviderHeaders,
+                body: firstProviderBody?.slice(0, 4000),
+            },
             options,
         });
     }
@@ -142,6 +165,7 @@ export class ProxyService {
         proxyApiKeyData: Tables<'proxy_api_keys'>;
         proxyRequestDataParsed: ProxyRequestDataParsed;
         initialError: ProxyError;
+        initialProviderError?: { status: number; headers: Record<string, string>; body: string };
         options?: ProxyRequestOptions;
     }): Promise<Response> {
         const {
@@ -163,9 +187,19 @@ export class ProxyService {
             error: { message: string; type: string; status?: number; code?: string };
             duration_ms: number;
             timestamp: string;
+            provider_error?: {
+                status?: number;
+                headers?: Record<string, string>;
+                raw_body?: string;
+            };
         }> = [];
 
         let lastError: ProxyError = initialError;
+        let lastProviderError: {
+            status?: number;
+            headers?: Record<string, string>;
+            body?: string;
+        } | null = params.initialProviderError ? { ...params.initialProviderError } : null;
         const retriesTimes =
             retryConfig.maxRetries === -1 ? allApiKeys.length : retryConfig.maxRetries;
 
@@ -192,6 +226,15 @@ export class ProxyService {
 
                 if (!response.ok) {
                     const error = this.createProxyError(response, attemptDuration);
+                    // Capture provider error details
+                    const errorClone = response.clone();
+                    let providerBody = '';
+                    try {
+                        providerBody = await errorClone.text();
+                    } catch {
+                        providerBody = '';
+                    }
+                    const providerHeaders = Object.fromEntries(response.headers.entries());
 
                     BatchLoggerService.addApiKeyUsage(c, {
                         apiKeyId: selectedApiKey.id,
@@ -201,6 +244,9 @@ export class ProxyService {
                             type: error.type,
                             status: response.status,
                             code: error.code,
+                            provider_status: response.status,
+                            provider_headers: providerHeaders,
+                            provider_raw_body: providerBody?.slice(0, 4000),
                         },
                     });
 
@@ -216,15 +262,30 @@ export class ProxyService {
                             },
                             duration_ms: attemptDuration,
                             timestamp: new Date().toISOString(),
+                            provider_error: {
+                                status: response.status,
+                                headers: providerHeaders,
+                                raw_body: providerBody?.slice(0, 4000),
+                            },
                         });
                     }
 
                     if (currentAttempt >= retryConfig.maxRetries || !this.shouldRetry(error)) {
                         lastError = error;
+                        lastProviderError = {
+                            status: response.status,
+                            headers: providerHeaders,
+                            body: providerBody?.slice(0, 4000),
+                        };
                         break;
                     }
 
                     lastError = error;
+                    lastProviderError = {
+                        status: response.status,
+                        headers: providerHeaders,
+                        body: providerBody?.slice(0, 4000),
+                    };
                     continue;
                 }
 
@@ -250,6 +311,9 @@ export class ProxyService {
                             type: syntheticError.type,
                             status: response.status,
                             code: syntheticError.code,
+                            provider_status: response.status,
+                            provider_headers: Object.fromEntries(response.headers.entries()),
+                            provider_raw_body: '',
                         },
                     });
 
@@ -265,6 +329,11 @@ export class ProxyService {
                             },
                             duration_ms: attemptDuration,
                             timestamp: new Date().toISOString(),
+                            provider_error: {
+                                status: response.status,
+                                headers: Object.fromEntries(response.headers.entries()),
+                                raw_body: '',
+                            },
                         });
                     }
 
@@ -273,10 +342,20 @@ export class ProxyService {
                         !this.shouldRetry(syntheticError)
                     ) {
                         lastError = syntheticError;
+                        lastProviderError = {
+                            status: response.status,
+                            headers: Object.fromEntries(response.headers.entries()),
+                            body: '',
+                        };
                         break;
                     }
 
                     lastError = syntheticError;
+                    lastProviderError = {
+                        status: response.status,
+                        headers: Object.fromEntries(response.headers.entries()),
+                        body: '',
+                    };
                     continue;
                 }
 
@@ -314,6 +393,12 @@ export class ProxyService {
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
                 });
 
+                // Ensure batched logs have a chance to complete in serverless
+                const executionCtx = c.executionCtx;
+                if (executionCtx && typeof executionCtx.waitUntil === 'function') {
+                    executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+                }
+
                 return new Response(responseClone.body, {
                     status: responseClone.status,
                     headers: filteredResponseHeaders,
@@ -342,6 +427,13 @@ export class ProxyService {
                 method: baseRequest.method,
                 url: proxyRequestDataParsed.urlToProxy,
             },
+            responseData: lastProviderError
+                ? {
+                      status: lastProviderError.status,
+                      headers: lastProviderError.headers,
+                      error_body: lastProviderError.body,
+                  }
+                : undefined,
             isStream: proxyRequestDataParsed.stream,
             isSuccessful: false,
             errorDetails: {
@@ -349,15 +441,58 @@ export class ProxyService {
                 type: lastError.type,
                 status: lastError.status,
                 code: lastError.code,
+                provider_status: lastProviderError?.status,
+                provider_headers: lastProviderError?.headers,
+                provider_raw_body: lastProviderError?.body,
             },
             retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
         });
 
+        // Ensure batched logs have a chance to complete in serverless
+        const executionCtx = c.executionCtx;
+        if (executionCtx && typeof executionCtx.waitUntil === 'function') {
+            executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+        }
+
+        // If we have provider error details, return raw provider body & headers,
+        // and attach gproxy-specific metadata in prefixed headers for SDK compatibility
+        if (lastProviderError) {
+            const providerHeaders = new Headers();
+            if (lastProviderError.headers) {
+                Object.entries(lastProviderError.headers).forEach(([k, v]) => {
+                    providerHeaders.set(k, v);
+                });
+            }
+            const safeHeaders = this.filterResponseHeaders(providerHeaders);
+            safeHeaders.set('x-gproxy-error-type', lastError.type);
+            if (lastError.code) safeHeaders.set('x-gproxy-error-code', lastError.code);
+            safeHeaders.set('x-gproxy-error-message', lastError.message);
+            safeHeaders.set('x-gproxy-request-id', requestId);
+
+            const statusToReturn =
+                (lastProviderError.status as number | undefined) ||
+                (lastError.status as number | undefined) ||
+                500;
+
+            // Ensure batched logs have a chance to complete in serverless
+            const executionCtx2 = c.executionCtx;
+            if (executionCtx2 && typeof executionCtx2.waitUntil === 'function') {
+                executionCtx2.waitUntil(BatchLoggerService.flushAllBatches());
+            }
+
+            return new Response(lastProviderError.body || '', {
+                status: statusToReturn,
+                headers: safeHeaders,
+            });
+        }
+
+        // Fallback: return gproxy JSON error if no provider details available
         return c.json(
             {
                 error: lastError.type,
                 message: lastError.message,
                 code: lastError.code,
+                gproxy_request_id: requestId,
             },
             (lastError.status as any) || 500,
         );
