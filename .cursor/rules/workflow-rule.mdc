@@ -1,0 +1,23 @@
+---
+description: General instructions for how to think and plans
+globs: *
+alwaysApply: true
+---
+
+# Workflow Rule
+
+- When user starts a new conversation:
+  1. Read long_term and all rule files to get the context of the project.
+  2. Generate a workflow name (under 20 words, snake case).
+  3. Then, create file `memory_bank/wf_{workflow_name}`. The content must have the following sections:
+  - Current tasks from user prompt.
+  - Plan (simple): your plan & thoughts to solve task(s).
+  - Steps: break your plan into small steps.
+  - Things done
+  - Things not done yet
+- In a cycle of current conversation:
+  1. Read current `memory_bank/wf_{workflow_name}` file. Don't be lazy, don't omit any content.
+  2. Update plan and steps if needed, based on the current state.
+  3. After you finish a task, update `Things done` and `Things not done yet` to track your work.
+
+  4. If have any `Things not done yet` you must continue to thinking about it, then step to step do it follow this rule.
