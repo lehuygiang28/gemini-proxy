@@ -26,8 +26,17 @@
      * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
      */
     "vars": {
-        "GOOGLE_GEMINI_API_BASE_URL": "https://generativelanguage.googleapis.com/",
-        "GOOGLE_OPENAI_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        // Official Google Gemini API
+        // "GOOGLE_GEMINI_API_BASE_URL": "https://generativelanguage.googleapis.com/",
+        // "GOOGLE_OPENAI_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        /**
+         * Cloudflare AI Gateway
+         * If you prefer to use Cloudflare AI Gateway, you can use the following variables
+         * And you need to provide your own AI Gateway here. Replace {account_id} and {gateway_name} with your own values.
+         * Docs: https://developers.cloudflare.com/ai-gateway/
+         */
+        // "GOOGLE_GEMINI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/",
+        // "GOOGLE_OPENAI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/v1beta/openai/",
     },
     /**
      * Note: Use secrets to store sensitive data.
