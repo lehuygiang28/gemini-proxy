@@ -18,7 +18,9 @@
         "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
     },
     "devDependencies": {
+        "@google/genai": "^1.15.0",
         "@turbo/gen": "^1.12.4",
+        "openai": "^5.12.2",
         "prettier": "^3.2.5",
         "turbo": "^1.12.4",
         "typescript": "^5.9.2"
@@ -27,8 +29,5 @@
     "engines": {
         "node": ">=18.0.0",
         "pnpm": ">=8.0.0"
-    },
-    "dependencies": {
-        "@google/genai": "^1.14.0"
     }
 }
