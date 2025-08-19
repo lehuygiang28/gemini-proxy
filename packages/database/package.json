@@ -4,7 +4,8 @@
     "type": "module",
     "description": "Database schema/types for Gemini Proxy",
     "scripts": {
-        "gen:types": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/gen-types.mjs"
+        "gen:types": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/gen-types.mjs",
+        "db:push": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/db-push.mjs"
     },
     "license": "MIT",
     "devDependencies": {
