@@ -52,8 +52,8 @@ export function FeaturesSection() {
     };
 
     return (
-        <div style={{ padding: '80px 0', background: token.colorBgLayout }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ padding: '80px 24px', background: token.colorBgLayout }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                 <Title
                     level={2}
                     style={{
@@ -66,7 +66,7 @@ export function FeaturesSection() {
                 </Title>
                 <Row gutter={[32, 32]}>
                     {features.map((feature) => (
-                        <Col key={feature.title} xs={24} sm={12} md={6}>
+                        <Col key={feature.title} xs={24} sm={12} md={12} lg={6}>
                             <Card
                                 hoverable
                                 style={cardStyles}

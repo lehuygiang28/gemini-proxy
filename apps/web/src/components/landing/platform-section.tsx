@@ -52,8 +52,8 @@ export function PlatformSection() {
     ];
 
     return (
-        <div style={{ padding: '80px 0', background: token.colorBgContainer }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ padding: '80px 24px', background: token.colorBgContainer }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                 <Title
                     level={2}
                     style={{
@@ -76,9 +76,15 @@ export function PlatformSection() {
                 <Title level={4} style={{ textAlign: 'center', marginBottom: 32 }}>
                     Supported Runtimes
                 </Title>
-                <Row gutter={[64, 32]} justify="center" align="middle">
+                <Row gutter={[32, 32]} justify="center" align="middle">
                     {runtimes.map((runtime) => (
-                        <Col key={runtime.name} style={{ textAlign: 'center' }}>
+                        <Col
+                            key={runtime.name}
+                            xs={12}
+                            sm={8}
+                            md={8}
+                            style={{ textAlign: 'center' }}
+                        >
                             {runtime.icon}
                             <Title level={5} style={{ marginTop: 16 }}>
                                 {runtime.name}
@@ -92,9 +98,15 @@ export function PlatformSection() {
                 <Title level={4} style={{ textAlign: 'center', marginBottom: 32 }}>
                     Deployment Platforms
                 </Title>
-                <Row gutter={[64, 32]} justify="center" align="middle">
+                <Row gutter={[32, 32]} justify="center" align="middle">
                     {platforms.map((platform) => (
-                        <Col key={platform.name} style={{ textAlign: 'center' }}>
+                        <Col
+                            key={platform.name}
+                            xs={12}
+                            sm={8}
+                            md={8}
+                            style={{ textAlign: 'center' }}
+                        >
                             {platform.icon}
                             <Title level={5} style={{ marginTop: 16 }}>
                                 {platform.name}
@@ -115,39 +127,39 @@ export function PlatformSection() {
                     We are constantly working to expand our platform support. If you don&apos;t see
                     your favorite platform, let us know!
                 </Paragraph>
-                <Row gutter={[64, 32]} justify="center" align="middle">
-                    <Col style={{ textAlign: 'center' }}>
+                <Row gutter={[32, 32]} justify="center" align="middle">
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
                         <SiNetlify style={{ fontSize: 48, color: '#00C7B7' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
                             Netlify
                         </Title>
                     </Col>
-                    <Col style={{ textAlign: 'center' }}>
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
                         <SiFastly style={{ fontSize: 48, color: '#FF282D' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
-                            Fastly Compute
+                            Fastly
                         </Title>
                     </Col>
-                    <Col style={{ textAlign: 'center' }}>
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
                         <SiAppwrite style={{ fontSize: 48, color: '#F02E65' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
-                            Appwrite Functions
+                            Appwrite
                         </Title>
                     </Col>
-                    <Col style={{ textAlign: 'center' }}>
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
                         <SiGooglecloud style={{ fontSize: 48, color: '#4285F4' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
-                            Google Cloud Run
+                            Google Cloud
                         </Title>
                     </Col>
-                    <Col style={{ textAlign: 'center' }}>
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
                         <VscAzure style={{ fontSize: 48, color: '#0089D6' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
-                            Azure Functions
+                            Azure
                         </Title>
                     </Col>
-                    <Col style={{ textAlign: 'center' }}>
-                        <FaAws style={{ fontSize: 48, color: token.colorText }} />
+                    <Col xs={12} sm={8} md={4} style={{ textAlign: 'center' }}>
+                        <FaAws style={{ fontSize: 48, color: '#232F3E' }} />
                         <Title level={5} style={{ marginTop: 16 }}>
                             AWS Lambda
                         </Title>

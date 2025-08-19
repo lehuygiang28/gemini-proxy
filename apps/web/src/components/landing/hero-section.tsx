@@ -45,14 +45,18 @@ export function HeroSection() {
             </div>
             <Row
                 justify="center"
-                style={{ position: 'relative', zIndex: 1, maxWidth: '100%', width: '1200px' }}
+                style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    padding: '0 24px',
+                }}
             >
                 <Col span={24}>
                     <LayoutGroup>
                         <motion.h1
                             style={{
                                 color: token.colorTextHeading,
-                                fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+                                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                                 fontWeight: 700,
                                 marginBottom: token.marginMD,
                                 display: 'flex',
@@ -99,10 +103,10 @@ export function HeroSection() {
                         management, comprehensive logging, and seamless streaming support. Deploy
                         anywhere, from serverless to servers.
                     </Paragraph>
-                    <Space size="large" style={{ marginBottom: 48 }}>
+                    <Space size="middle" style={{ marginBottom: 48 }} wrap>
                         <Link href="/dashboard">
                             <Button type="primary" size="large" shape="round">
-                                Get Started for Free
+                                Get Demo
                             </Button>
                         </Link>
                         <Link href="https://github.com/lehuygiang28/gemini-proxy" target="_blank">
@@ -112,7 +116,7 @@ export function HeroSection() {
                         </Link>
                     </Space>
                     <Row justify="center">
-                        <Col span={24}>
+                        <Col sm={24} md={16} lg={16}>
                             <Tabs
                                 defaultActiveKey="1"
                                 centered
