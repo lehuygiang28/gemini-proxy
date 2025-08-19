@@ -5,6 +5,7 @@ import { FeaturesSection } from './features-section';
 import { Footer } from './footer';
 import { HeroSection } from './hero-section';
 import { PlatformSection } from './platform-section';
+import { TechStackSection } from './tech-stack-section';
 
 export function LandingPage() {
     return (
@@ -12,6 +13,7 @@ export function LandingPage() {
             <HeroSection />
             <FeaturesSection />
             <PlatformSection />
+            <TechStackSection />
             <Footer />
         </div>
     );
