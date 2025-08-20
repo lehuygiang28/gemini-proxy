@@ -9,9 +9,12 @@ export default defineConfig({
     clean: true,
     outDir: 'dist',
     target: 'es2020',
-    bundle: false,
+    bundle: true,
+    skipNodeModulesBundle: false,
+    noExternal: [/^.*/],
     minify: false,
     tsconfig: './tsconfig.json',
+    platform: 'node',
     env: {
         NODE_ENV: process.env.NODE_ENV || 'development',
     },

@@ -5,7 +5,12 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "gemini-proxy-cloudflare",
-    "main": "src/index.ts",
+    "main": "dist/index.js",
+    "build": {
+        "command": "pnpm build",
+        "cwd": "./",
+        "watch_dir": ["src", "../core/src"],
+    },
     "compatibility_date": "2025-08-13",
     "observability": {
         "enabled": true,

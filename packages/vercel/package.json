@@ -1,22 +1,36 @@
 {
-    "name": "@gemini-proxy/vercel",
+    "name": "@lehuygiang28/gemini-proxy-vercel",
     "version": "0.0.1",
     "type": "module",
     "description": "Vercel proxy for Gemini Proxy service",
     "scripts": {
         "build": "tsup",
-        "dev": "tsup --watch"
+        "dev": "tsup --watch",
+        "prepublishOnly": "pnpm build"
     },
     "license": "MIT",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
     "peerDependencies": {
         "hono": ">=4.0.0"
-    },
-    "dependencies": {
-        "@gemini-proxy/core": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^20.11.16",
         "tsup": "^8.5.0",
         "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }

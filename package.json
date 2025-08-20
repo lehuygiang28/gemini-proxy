@@ -24,12 +24,13 @@
         "ai": "^5.0.15",
         "openai": "^5.12.2",
         "prettier": "^3.2.5",
+        "tsup": "^8.5.0",
         "turbo": "^1.12.4",
         "typescript": "^5.9.2"
     },
-    "packageManager": "pnpm@8.15.4",
+    "packageManager": "pnpm@10.15.0",
     "engines": {
         "node": ">=18.0.0",
-        "pnpm": ">=8.0.0"
+        "pnpm": ">=10.0.0"
     }
 }

@@ -1,9 +1,9 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts', 'src/route.ts'],
+    entry: ['index.ts'],
     format: ['esm'],
-    dts: true,
+    dts: false,
     splitting: false,
     sourcemap: true,
     clean: true,
@@ -13,7 +13,7 @@ export default defineConfig({
     skipNodeModulesBundle: false,
     noExternal: [/^.*/],
     minify: false,
-    tsconfig: './tsconfig.json',
+    tsconfig: '../../tsconfig.json',
     platform: 'node',
     esbuildOptions(options) {
         options.mainFields = ['module', 'main'];

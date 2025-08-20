@@ -1,9 +1,9 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts', 'src/route.ts'],
+    entry: ['src/index.ts'],
     format: ['esm'],
-    dts: true,
+    dts: false,
     splitting: false,
     sourcemap: true,
     clean: true,
@@ -14,8 +14,9 @@ export default defineConfig({
     noExternal: [/^.*/],
     minify: false,
     tsconfig: './tsconfig.json',
-    platform: 'node',
+    platform: 'browser',
     esbuildOptions(options) {
-        options.mainFields = ['module', 'main'];
+        options.mainFields = ['browser', 'module', 'main'];
+        options.conditions = ['worker', 'browser', 'module', 'import'];
     },
 });

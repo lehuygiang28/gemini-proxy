@@ -4,6 +4,7 @@
     "type": "module",
     "description": "Database schema/types for Gemini Proxy",
     "scripts": {
+        "build": "tsup",
         "gen:types": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/gen-types.mjs",
         "db:push": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/db-push.mjs"
     },
@@ -11,6 +12,7 @@
     "devDependencies": {
         "@supabase/supabase-js": "^2.55.0",
         "cross-env": "^7.0.3",
+        "tsup": "^8.5.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.9.2"
     }

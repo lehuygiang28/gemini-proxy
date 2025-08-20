@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { coreApp, type HonoApp } from '@gemini-proxy/core';
 
-const cloudflareWorkerApp = new Hono<HonoApp>().basePath('/api/gproxy').route('/*', coreApp);
+export const app = new Hono<HonoApp>().basePath('/api/gproxy').route('/*', coreApp);
 
-export default cloudflareWorkerApp;
+// Cloudflare Workers Module Worker entrypoint compatibility
+export const fetch = (request: Request, env: Env, ctx: ExecutionContext) =>
+    app.fetch(request, env as never, ctx as never);
+
+export default app;

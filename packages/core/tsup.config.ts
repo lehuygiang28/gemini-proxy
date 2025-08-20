@@ -15,7 +15,10 @@ export default defineConfig({
     clean: true,
     outDir: 'dist',
     target: 'es2020',
-    bundle: false,
+    bundle: true,
+    skipNodeModulesBundle: false,
+    noExternal: [/^.*/],
+    platform: 'node',
     minify: false,
     tsconfig: './tsconfig.json',
     esbuildOptions(options) {

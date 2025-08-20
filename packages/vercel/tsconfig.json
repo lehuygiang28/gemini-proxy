@@ -6,7 +6,7 @@
         "moduleResolution": "node",
         "strict": true,
         "skipLibCheck": true,
-        "types": ["node"],
+        "types": ["@types/node"],
         "jsx": "react-jsx",
         "jsxImportSource": "hono/jsx",
         "outDir": "./dist",
