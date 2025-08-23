@@ -88,7 +88,6 @@ temp/
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -111,3 +110,8 @@ Desktop.ini
 memory_bank/
 supabase/.temp/*
 .vercel
+examples/
+
+README*.md
+
+.wrangler
