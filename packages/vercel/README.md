@@ -24,10 +24,11 @@ This package provides a Vercel Edge Function for deploying the Gemini Proxy. It'
     - [API Endpoints](#api-endpoints)
       - [Gemini API Format](#gemini-api-format)
       - [OpenAI-Compatible Format](#openai-compatible-format)
+      - [Dynamic Route Support](#dynamic-route-support)
     - [Usage Examples](#usage-examples)
-      - [Using with Google Generative AI SDK](#using-with-google-generative-ai-sdk)
-      - [Using with Vercel AI SDK](#using-with-vercel-ai-sdk)
+      - [Using with Google Generative AI SDK (Gemini Native API)](#using-with-google-generative-ai-sdk-gemini-native-api)
       - [Using with OpenAI-Compatible Clients](#using-with-openai-compatible-clients)
+      - [More Examples](#more-examples)
     - [Error Handling](#error-handling)
     - [Monitoring and Logging](#monitoring-and-logging)
 
@@ -308,23 +309,66 @@ The package automatically handles environment variable fallbacks:
 
 ### API Endpoints
 
-Once deployed, your proxy will be available at the following endpoints:
+The proxy supports **all Gemini API endpoints** by passing through all routes to the underlying Google Gemini API. This means you can use any endpoint that the official Gemini API supports.
 
 #### Gemini API Format
 
-- `POST /api/gproxy/gemini/v1beta/models` - List available models
+The proxy forwards all requests to the Gemini API under the `/api/gproxy/gemini/` path. Here are the most commonly used endpoints:
+
+**Content Generation:**
+
 - `POST /api/gproxy/gemini/v1beta/models/{model}:generateContent` - Generate content
 - `POST /api/gproxy/gemini/v1beta/models/{model}:streamGenerateContent` - Stream content
+- `POST /api/gproxy/gemini/v1beta/models/{model}:countTokens` - Count tokens
+
+**Models and Metadata:**
+
+- `GET /api/gproxy/gemini/v1beta/models` - List available models
+- `GET /api/gproxy/gemini/v1beta/models/{model}` - Get model information
+
+**Embeddings:**
+
+- `POST /api/gproxy/gemini/v1beta/models/{model}:embedContent` - Generate embeddings
+- `POST /api/gproxy/gemini/v1beta/models/{model}:batchEmbedContents` - Batch embeddings
+
+**For the complete list of all available endpoints, see the [official Gemini API documentation](https://ai.google.dev/api/all-methods).**
 
 #### OpenAI-Compatible Format
 
-- `POST /api/gproxy/openai/v1/chat/completions` - Chat completions
-- `POST /api/gproxy/openai/v1/completions` - Text completions
-- `GET /api/gproxy/openai/v1/models` - List models
+The proxy also supports OpenAI-compatible endpoints under `/api/gproxy/openai/`:
+
+**Chat Completions:**
+
+- `POST /api/gproxy/openai/chat/completions` - Chat completions (streaming controlled via request body)
+
+**Text Completions:**
+
+- `POST /api/gproxy/openai/completions` - Text completions (streaming controlled via request body)
+
+**Models:**
+
+- `GET /api/gproxy/openai/models` - List available models
+
+**Embeddings:**
+
+- `POST /api/gproxy/openai/embeddings` - Generate embeddings
+
+**For the complete OpenAI-compatible API reference, see the [official documentation](https://ai.google.dev/gemini-api/docs/openai).**
+
+#### Dynamic Route Support
+
+Since the proxy uses catch-all routes (`[[...slug]]`), it automatically supports:
+
+- **All current Gemini API endpoints** without code changes
+- **Future Gemini API endpoints** as they become available
+- **Custom query parameters** and request bodies
+- **All HTTP methods** (GET, POST, PUT, DELETE, PATCH, etc.)
+
+**Note:** The proxy maintains full compatibility with the official Gemini API, so any endpoint, parameter, or feature available in the official API will work through the proxy without additional configuration.
 
 ### Usage Examples
 
-#### Using with Google Generative AI SDK
+#### Using with Google Generative AI SDK (Gemini Native API)
 
 ```typescript
 import { GoogleGenAI } from '@google/genai';
@@ -336,26 +380,25 @@ const genAi = new GoogleGenAI({
     },
 });
 
-const model = genAi.getGenerativeModel({ model: 'gemini-2.0-flash' });
-const result = await model.generateContent('Hello, world!');
-```
+// 1. List available models
+const response = await genAi.models.list();
+console.log(response.page.map((m) => `${m.name} - ${m.version}`));
 
-#### Using with Vercel AI SDK
-
-```typescript
-import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-
-const google = createGoogleGenerativeAI({
-    apiKey: 'your_proxy_api_key',
-    baseURL: 'https://your-vercel-app.vercel.app/api/gproxy/gemini/v1beta',
+// 2. Generate content
+const result = await genAi.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: 'Explain quantum computing in simple terms.',
 });
+console.log(result.candidates?.[0]?.content?.parts?.[0]?.text);
 
-const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
-    system: 'You are a helpful assistant.',
-    prompt: 'Explain quantum computing in simple terms.',
+// 3. Stream content generation
+const stream = await genAi.models.generateContentStream({
+    model: 'gemini-2.0-flash',
+    contents: 'Write a short story about a robot.',
 });
+for await (const chunk of stream) {
+    console.log(chunk.text);
+}
 ```
 
 #### Using with OpenAI-Compatible Clients
@@ -365,14 +408,50 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({
     apiKey: 'your_proxy_api_key',
-    baseURL: 'https://your-vercel-app.vercel.app/api/gproxy/openai/v1',
+    baseURL: 'https://your-vercel-app.vercel.app/api/gproxy/openai',
 });
 
+// 1. Chat completions with streaming
+const chatCompletion = await openai.chat.completions.create({
+    model: 'gemini-2.5-pro',
+    messages: [{ role: 'user', content: 'Write a 100-word poem.' }],
+    stream: true,
+});
+
+for await (const chunk of chatCompletion) {
+    process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+
+// 2. Regular chat completions
 const completion = await openai.chat.completions.create({
     model: 'gemini-2.0-flash',
-    messages: [{ role: 'user', content: 'Hello!' }],
+    messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'What is the capital of France?' }
+    ],
+    max_completion_tokens: 100,
+    temperature: 0.7,
 });
+console.log(completion.choices[0].message.content);
+
+// 3. Text embeddings
+const embedding = await openai.embeddings.create({
+    model: 'text-embedding-004',
+    input: 'This is a sample text for embedding.',
+    encoding_format: 'float'
+});
+console.log(embedding.data[0].embedding);
 ```
+
+#### More Examples
+
+For more detailed and runnable examples, see the [examples folder](../../examples/) in the repository:
+
+- **`google-genai.example.ts`** - Complete Google Generative AI SDK examples including function calling
+- **`openai.example.ts`** - OpenAI-compatible API examples with streaming
+- **`ai-sdk.example.ts`** - Vercel AI SDK integration examples
+
+These examples show working code patterns and can be run directly to test the proxy functionality.
 
 ### Error Handling
 

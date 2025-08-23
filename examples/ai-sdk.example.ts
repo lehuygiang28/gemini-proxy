@@ -1,6 +1,13 @@
 import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
+/**
+ * With Vercel AI SDK, we must add the extra /v1beta after /gemini
+ * because they don't auto-handle it like the Google GenAI SDK does.
+ *
+ * Google GenAI SDK: /api/gproxy/gemini
+ * Vercel AI SDK:   /api/gproxy/gemini/v1beta
+ */
 const google = createGoogleGenerativeAI({
     apiKey: 'gproxy_test_12345',
     baseURL: 'http://localhost:9090/api/gproxy/gemini/v1beta',
