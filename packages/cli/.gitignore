@@ -3,15 +3,9 @@ node_modules
 .pnp
 .pnp.js
 
-# Testing
-coverage
-*.lcov
-
 # Production builds
 dist
 build
-.next
-out
 
 # Environment variables
 .env
@@ -39,10 +33,6 @@ coverage
 
 # nyc test coverage
 .nyc_output
-
-# Dependency directories
-node_modules/
-jspm_packages/
 
 # TypeScript cache
 *.tsbuildinfo
@@ -72,16 +62,6 @@ jspm_packages/
 .cache
 .parcel-cache
 
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-
-# Storybook build outputs
-.out
-.storybook-out
-
 # Temporary folders
 tmp/
 temp/
@@ -107,10 +87,6 @@ temp/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-.cursor/mcp.json
-memory_bank/
-supabase/.temp/*
-.vercel
 
 # Gemini Proxy CLI configuration
 .gproxy/
