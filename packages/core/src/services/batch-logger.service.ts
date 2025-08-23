@@ -233,7 +233,7 @@ export class BatchLoggerService {
                     request_data: log.requestData,
                     response_data: log.responseData || null,
                     is_successful: log.isSuccessful,
-                    is_stream: log.isStream,
+                    is_stream: Boolean(log.isStream),
                     error_details: log.errorDetails || null,
                     performance_metrics: log.performanceMetrics || null,
                     usage_metadata: usageMetadata

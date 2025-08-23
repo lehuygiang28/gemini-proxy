@@ -71,7 +71,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                 if (rawBodyText) {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
-                    stream = parsedBody?.stream;
+                    stream = Boolean(parsedBody?.stream);
                     bodyData = { data: parsedBody, success: true, type: 'json' };
 
                     // Store both raw text and parsed data for reuse
