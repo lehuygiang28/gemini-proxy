@@ -101,16 +101,18 @@ export class ProxyService {
                     retryAttempts: null,
                 });
 
-                // Ensure batched logs have a chance to complete in serverless
-                const executionCtx = c?.executionCtx;
-                if (executionCtx && typeof executionCtx?.waitUntil === 'function') {
-                    executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
-                } else {
-                    console.log(getRuntimeKey());
+                try {
+                    // Ensure batched logs have a chance to complete in serverless
+                    c?.executionCtx?.waitUntil(BatchLoggerService.flushAllBatches());
+                } catch (error) {
+                    console.log(`Run time key - ${getRuntimeKey()}`);
+                    console.error(`Err when tried to waitUntil with execution context - ${error}`);
                     try {
                         waitUntil(BatchLoggerService.flushAllBatches());
                     } catch (err) {
-                        console.error(err);
+                        console.error(
+                            `Err when tried to waitUntil with vercel functions helper - ${err}`,
+                        );
                     }
                 }
 
