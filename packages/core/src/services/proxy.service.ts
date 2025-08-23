@@ -61,7 +61,7 @@ export class ProxyService {
 
         if (firstResponse.ok) {
             const shouldTreatAsFailure = await this.shouldTreatOkAsFailure({
-                response: firstResponse,
+                response: firstResponse.clone(),
                 apiFormat: proxyRequestDataParsed.apiFormat,
                 options,
             });
@@ -116,14 +116,14 @@ export class ProxyService {
                     }
                 }
 
-                return new Response(responseClone.body, {
-                    status: responseClone.status,
+                return new Response(firstResponse.clone().body, {
+                    status: firstResponse.clone().status,
                     headers: filteredResponseHeaders,
                 });
             }
         }
 
-        const firstError = this.createProxyError(firstResponse, firstAttemptDuration);
+        const firstError = this.createProxyError(firstResponse.clone(), firstAttemptDuration);
         // Capture provider error details for clearer diagnostics
         const firstErrorClone = firstResponse.clone();
         let firstProviderBody = '';
