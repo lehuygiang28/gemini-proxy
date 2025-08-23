@@ -27,19 +27,35 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
         );
     }
 
-    const bodyData = await parseBody(c);
     const envVariables = env(c);
+    let bodyData: any = null;
+    let rawBodyText: string | null = null;
 
+    // For Gemini, we can often determine model and stream from the URL path
     if (apiFormat === 'gemini') {
         model = c.req.path?.split('/')?.pop()?.split(':')?.[0];
-        if (!model) {
-            model = bodyData.data?.model;
-        }
-
         stream =
             c.req.path.includes(':streamGenerateContent') ||
             c.req.path.includes(':stream') ||
             c.req.path.includes('?alt=sse');
+
+        // Only parse body if we couldn't determine model from URL and it's JSON
+        if (!model && c.req.header('content-type')?.includes('application/json')) {
+            try {
+                // Read body as text first to preserve it
+                rawBodyText = await c.req.text();
+                if (rawBodyText) {
+                    const parsedBody = JSON.parse(rawBodyText);
+                    model = parsedBody?.model;
+                    bodyData = { data: parsedBody, success: true, type: 'json' };
+
+                    // Store both raw text and parsed data for reuse
+                    c.set('rawBodyText', rawBodyText);
+                }
+            } catch (error) {
+                console.warn('Failed to parse JSON body for model extraction:', error);
+            }
+        }
 
         urlToProxy = `${resolveUrl(
             envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
@@ -47,8 +63,24 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
             allPathParts.slice(proxyIndex + 1).join('/'),
         )}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
     } else {
-        model = bodyData.data?.model;
-        stream = bodyData.data?.stream;
+        // For OpenAI-compatible APIs, we need to parse the body to get model and stream
+        if (c.req.header('content-type')?.includes('application/json')) {
+            try {
+                // Read body as text first to preserve it
+                rawBodyText = await c.req.text();
+                if (rawBodyText) {
+                    const parsedBody = JSON.parse(rawBodyText);
+                    model = parsedBody?.model;
+                    stream = parsedBody?.stream;
+                    bodyData = { data: parsedBody, success: true, type: 'json' };
+
+                    // Store both raw text and parsed data for reuse
+                    c.set('rawBodyText', rawBodyText);
+                }
+            } catch (error) {
+                console.warn('Failed to parse JSON body for OpenAI format:', error);
+            }
+        }
 
         urlToProxy = `${resolveUrl(
             envVariables?.GOOGLE_OPENAI_API_BASE_URL ??

@@ -1,5 +1,4 @@
 import { Context } from 'hono';
-import { waitUntil } from '@vercel/functions';
 
 import { ApiKeyService } from './api-key.service';
 import { BatchLoggerService } from './batch-logger.service';
@@ -25,7 +24,21 @@ export class ProxyService {
         const proxyRequestDataParsed = c.get('proxyRequestDataParsed');
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
-        const baseRequest = c.req.raw.clone();
+
+        // Safely clone the request, handling cases where body might be consumed
+        let baseRequest: Request;
+        try {
+            baseRequest = c.req.raw.clone();
+        } catch (error) {
+            // If cloning fails, create a new request without body initially
+            // The performAttempt method will reconstruct the body from stored data
+            console.warn('Failed to clone request body, will reconstruct from stored data:', error);
+            baseRequest = new Request(c.req.raw.url, {
+                method: c.req.raw.method,
+                headers: c.req.raw.headers,
+                // Don't include body here - performAttempt will handle it
+            });
+        }
 
         const retryConfigBase = ConfigService.getRetryConfig(c);
         const options = c.get('proxyRequestOptions');
@@ -57,6 +70,7 @@ export class ProxyService {
             apiKeyValue: firstApiKey.api_key_value,
             apiFormat: proxyRequestDataParsed.apiFormat,
             url: proxyRequestDataParsed.urlToProxy,
+            c,
         });
 
         if (firstResponse.ok) {
@@ -108,6 +122,7 @@ export class ProxyService {
                     console.log(`Run time key - ${getRuntimeKey()}`);
                     console.error(`Err when tried to waitUntil with execution context - ${error}`);
                     try {
+                        const { waitUntil } = await import('@vercel/functions');
                         waitUntil(BatchLoggerService.flushAllBatches());
                     } catch (err) {
                         console.error(
@@ -233,6 +248,7 @@ export class ProxyService {
                     apiKeyValue: selectedApiKey.api_key_value,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     url: proxyRequestDataParsed.urlToProxy,
+                    c,
                 });
                 const attemptDuration = Date.now() - attemptStart;
 
@@ -576,10 +592,10 @@ export class ProxyService {
         apiKeyValue: string;
         apiFormat: ProxyRequestDataParsed['apiFormat'];
         url: string;
+        c?: Context<HonoApp>; // Add context to access stored body data
     }): Promise<{ response: Response; durationMs: number; headers: Headers }> {
-        const { baseRequest, apiKeyValue, apiFormat, url } = params;
-        const requestClone = baseRequest.clone();
-        const headers = new Headers(requestClone.headers);
+        const { baseRequest, apiKeyValue, apiFormat, url, c } = params;
+        const headers = new Headers(baseRequest.headers);
 
         // Remove internal control headers so they are not sent to the origin
         headers.forEach((_v, k) => {
@@ -595,12 +611,36 @@ export class ProxyService {
         }
 
         const requestInit: RequestInit = {
-            method: requestClone.method,
+            method: baseRequest.method,
             headers,
         };
 
-        if (requestClone.body) {
-            requestInit.body = requestClone.body;
+        // Try to use stored raw body text first, then fall back to request body
+        let bodyToUse: RequestInit['body'] | null = null;
+        if (c) {
+            const rawBodyText = c.get('rawBodyText');
+            if (rawBodyText) {
+                bodyToUse = rawBodyText;
+            }
+        }
+
+        // If no stored body text, try to use the request body (might fail if consumed)
+        if (!bodyToUse) {
+            try {
+                const requestClone = baseRequest.clone();
+                if (requestClone.body) {
+                    bodyToUse = requestClone.body;
+                }
+            } catch (error) {
+                console.warn(
+                    'Failed to clone request body, using stored raw text or no body:',
+                    error,
+                );
+            }
+        }
+
+        if (bodyToUse) {
+            requestInit.body = bodyToUse;
             if (typeof process !== 'undefined') {
                 (requestInit as any).duplex = 'half';
             }

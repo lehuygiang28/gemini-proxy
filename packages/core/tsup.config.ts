@@ -18,6 +18,7 @@ export default defineConfig({
     bundle: true,
     skipNodeModulesBundle: false,
     noExternal: [/^.*/],
+    external: ['@vercel/functions'],
     platform: 'node',
     minify: false,
     tsconfig: './tsconfig.json',
