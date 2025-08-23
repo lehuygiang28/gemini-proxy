@@ -1,10 +1,10 @@
 packages:
-  - apps/*
-  - packages/*
+    - apps/*
+    - packages/*
 
 onlyBuiltDependencies:
-  - core-js-pure
-  - esbuild
-  - sharp
-  - unrs-resolver
-  - workerd
+    - core-js-pure
+    - esbuild
+    - sharp
+    - unrs-resolver
+    - workerd

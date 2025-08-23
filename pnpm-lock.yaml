@@ -19,7 +19,7 @@ importers:
         version: 1.13.4(@types/node@20.19.11)(typescript@5.9.2)
       ai:
         specifier: ^5.0.15
-        version: 5.0.18(zod@3.25.76)
+        version: 5.0.19(zod@3.25.76)
       openai:
         specifier: ^5.12.2
         version: 5.13.1(ws@8.18.3)(zod@3.25.76)
@@ -75,7 +75,7 @@ importers:
       '@gemini-proxy/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@gemini-proxy/vercel':
+      '@lehuygiang28/gemini-proxy-vercel':
         specifier: workspace:*
         version: link:../../packages/vercel
       '@refinedev/antd':
@@ -169,9 +169,6 @@ importers:
 
   packages/cloudflare:
     dependencies:
-      '@gemini-proxy/core':
-        specifier: workspace:*
-        version: link:../core
       hono:
         specifier: '>=4.0.0'
         version: 4.9.2
@@ -179,6 +176,9 @@ importers:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.8.19
         version: 0.8.65(@vitest/runner@3.2.4)(@vitest/snapshot@3.2.4)(vitest@3.2.4(@types/node@20.19.11)(tsx@4.20.4))
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(postcss@8.5.6)(tsx@4.20.4)(typescript@5.9.2)
       typescript:
         specifier: ^5.5.2
         version: 5.9.2
@@ -225,15 +225,15 @@ importers:
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(postcss@8.5.6)(tsx@4.20.4)(typescript@5.9.2)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
 
   packages/vercel:
     dependencies:
-      '@gemini-proxy/core':
-        specifier: workspace:*
-        version: link:../core
       hono:
         specifier: '>=4.0.0'
         version: 4.9.2
@@ -1912,8 +1912,8 @@ packages:
     resolution: {integrity: sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==}
     engines: {node: '>=8'}
 
-  ai@5.0.18:
-    resolution: {integrity: sha512-fx5RqO0e+wB/dd/pbtCvx2j5WT1UYXSeONyMCgej0s6neCEhh9Wv5OmZHk6yxWKqI0y6WyjEqxCp8VCIqNZTDg==}
+  ai@5.0.19:
+    resolution: {integrity: sha512-I0yQO68Z1DdvjMc9be5scMYdsuBvpNneQDh6TUuUVlFXdCxAIm7yATnOaomfYTE2KaRDsrO+OSRPjJm4FSKioA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -2364,8 +2364,8 @@ packages:
   copy-to-clipboard@3.3.3:
     resolution: {integrity: sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==}
 
-  core-js-pure@3.45.0:
-    resolution: {integrity: sha512-OtwjqcDpY2X/eIIg1ol/n0y/X8A9foliaNt1dSK0gV3J2/zw+89FcNG3mPK+N8YWts4ZFUPxnrAzsxs/lf8yDA==}
+  core-js-pure@3.45.1:
+    resolution: {integrity: sha512-OHnWFKgTUshEU8MK+lOs1H8kC8GkTi9Z1tvNkxrCcw9wl3MJIO7q2ld77wjWn4/xuGrVu2X+nME1iIIPBSdyEQ==}
 
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
@@ -5981,7 +5981,7 @@ snapshots:
 
   '@babel/runtime-corejs3@7.28.3':
     dependencies:
-      core-js-pure: 3.45.0
+      core-js-pure: 3.45.1
 
   '@babel/runtime@7.28.3': {}
 
@@ -7303,7 +7303,7 @@ snapshots:
       clean-stack: 2.2.0
       indent-string: 4.0.0
 
-  ai@5.0.18(zod@3.25.76):
+  ai@5.0.19(zod@3.25.76):
     dependencies:
       '@ai-sdk/gateway': 1.0.9(zod@3.25.76)
       '@ai-sdk/provider': 2.0.0
@@ -7837,7 +7837,7 @@ snapshots:
     dependencies:
       toggle-selection: 1.0.6
 
-  core-js-pure@3.45.0: {}
+  core-js-pure@3.45.1: {}
 
   create-require@1.1.1: {}
 

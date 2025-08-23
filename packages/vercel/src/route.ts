@@ -15,7 +15,7 @@ if (!process.env.SUPABASE_URL) {
     process.env.SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 }
 
-export const vercelApp = new Hono<HonoApp>().basePath('/api/gproxy').route('/*', coreApp);
+const vercelApp = new Hono<HonoApp>().basePath('/api/gproxy').route('/*', coreApp);
 
 export const GET = handle(vercelApp);
 export const POST = handle(vercelApp);
@@ -23,4 +23,3 @@ export const DELETE = handle(vercelApp);
 export const PATCH = handle(vercelApp);
 export const OPTIONS = handle(vercelApp);
 export const HEAD = handle(vercelApp);
-export const ALL = handle(vercelApp);

@@ -9,8 +9,8 @@ import type { Tables } from '@gemini-proxy/database';
 type ApiKey = Tables<'api_keys'>;
 
 export default function ApiKeysShowPage() {
-    const { queryResult } = useShow<ApiKey>();
-    const record = queryResult?.data?.data;
+    const { query } = useShow<ApiKey>();
+    const record = query?.data?.data;
 
     return (
         <Show title={record?.name ?? 'API Key'}>

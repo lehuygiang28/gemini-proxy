@@ -217,3 +217,7 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 ## License
 
 This project is licensed under the MIT License.
+
+$ docker run --name ome -d -e OME_HOST_IP=127.0.0.1 \
+-p 1935:1935 -p 9999:9999/udp -p 9000:9000 -p 3333:3333 -p 3478:3478 -p 10000-10009:10000-10009/udp \
+airensoft/ovenmediaengine:0.19.0

@@ -172,7 +172,7 @@ export const CustomAuthPage: React.FC<CustomAuthPageProps> = ({
                             Forgot your password?
                         </Link>
                         <Text type="secondary">
-                            Don't have an account?{' '}
+                            Don&apos;t have an account?{' '}
                             <Link href="/register" style={{ color: token.colorPrimary }}>
                                 Sign up
                             </Link>
