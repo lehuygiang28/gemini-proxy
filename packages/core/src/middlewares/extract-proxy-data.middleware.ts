@@ -42,7 +42,8 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
             c.req.path.includes('?alt=sse');
 
         urlToProxy = `${resolveUrl(
-            envVariables?.GOOGLE_GEMINI_API_BASE_URL,
+            envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
+                'https://generativelanguage.googleapis.com/',
             allPathParts.slice(proxyIndex + 1).join('/'),
         )}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
     } else {
@@ -50,7 +51,8 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
         stream = bodyData.data?.stream;
 
         urlToProxy = `${resolveUrl(
-            envVariables?.GOOGLE_OPENAI_API_BASE_URL,
+            envVariables?.GOOGLE_OPENAI_API_BASE_URL ??
+                'https://generativelanguage.googleapis.com/v1beta/openai/',
             allPathParts.slice(proxyIndex + 1).join('/'),
         )}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
     }
