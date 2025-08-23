@@ -1,6 +1,6 @@
 {
     "name": "@lehuygiang28/gemini-proxy-vercel",
-    "version": "0.0.1",
+    "version": "0.0.1-beta.0.0.1",
     "type": "module",
     "description": "Vercel proxy for Gemini Proxy service",
     "scripts": {
