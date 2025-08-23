@@ -21,7 +21,7 @@ export class ConfigService {
 
         return {
             retry: {
-                maxRetries: parseInt(envVars.PROXY_MAX_RETRIES || '3'),
+                maxRetries: parseInt(envVars.PROXY_MAX_RETRIES || '-1'),
                 retryDelayMs: parseInt(envVars.PROXY_RETRY_DELAY_MS || '0'), // Default to 0 for fast retries
                 backoffMultiplier: parseFloat(envVars.PROXY_BACKOFF_MULTIPLIER || '1'), // Default to 1 (no backoff)
             },
