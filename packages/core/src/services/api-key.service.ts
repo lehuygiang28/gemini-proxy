@@ -59,7 +59,10 @@ export class ApiKeyService {
             .from('api_keys')
             .select('*')
             .eq('is_active', true)
-            .or(`user_id.is.null, user_id.eq.${params.userId}`);
+            .or(`user_id.is.null, user_id.eq.${params.userId}`)
+            .order('last_used_at', { ascending: true })
+            .order('last_error_at', { ascending: true })
+            .order('failure_count', { ascending: true });
 
         if (error || !apiKeys) {
             throw new Error(`Failed to fetch API keys: ${error?.message}`);
