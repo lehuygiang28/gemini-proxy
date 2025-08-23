@@ -118,14 +118,14 @@ export class ProxyService {
                 try {
                     // Ensure batched logs have a chance to complete in serverless
                     c?.executionCtx?.waitUntil(BatchLoggerService.flushAllBatches());
-                } catch (error) {
-                    console.log(`Run time key - ${getRuntimeKey()}`);
-                    console.error(`Err when tried to waitUntil with execution context - ${error}`);
+                } catch (exCtxError) {
                     try {
                         const { waitUntil } = await import('@vercel/functions');
                         waitUntil(BatchLoggerService.flushAllBatches());
                     } catch (err) {
-                        console.error(
+                        console.warn(`
+                            Err when tried to waitUntil with execution context - ${exCtxError}`);
+                        console.warn(
                             `Err when tried to waitUntil with vercel functions helper - ${err}`,
                         );
                     }
