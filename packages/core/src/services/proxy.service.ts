@@ -1,4 +1,6 @@
 import { Context } from 'hono';
+import { waitUntil } from '@vercel/functions';
+
 import { ApiKeyService } from './api-key.service';
 import { BatchLoggerService } from './batch-logger.service';
 import { ConfigService } from './config.service';
@@ -15,6 +17,7 @@ import {
     ServerError,
     NetworkError,
 } from '../types/error.type';
+import { getRuntimeKey } from 'hono/adapter';
 
 export class ProxyService {
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
@@ -99,9 +102,16 @@ export class ProxyService {
                 });
 
                 // Ensure batched logs have a chance to complete in serverless
-                const executionCtx = c.executionCtx;
-                if (executionCtx && typeof executionCtx.waitUntil === 'function') {
+                const executionCtx = c?.executionCtx;
+                if (executionCtx && typeof executionCtx?.waitUntil === 'function') {
                     executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+                } else {
+                    console.log(getRuntimeKey());
+                    try {
+                        waitUntil(BatchLoggerService.flushAllBatches());
+                    } catch (err) {
+                        console.error(err);
+                    }
                 }
 
                 return new Response(responseClone.body, {
