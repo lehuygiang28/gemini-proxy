@@ -153,17 +153,15 @@ CREATE OR REPLACE FUNCTION insert_sample_proxy_key(
 DECLARE
     proxy_key_id UUID;
 BEGIN
-    INSERT INTO proxy_api_keys (user_id, key_id, name, is_active, usage_stats, metadata)
+    INSERT INTO proxy_api_keys (user_id, key_id, name, is_active, metadata)
     VALUES (
         p_user_id,
         p_key_id,
         p_name,
         true,
         jsonb_build_object(
+            'description', 'Sample proxy key',
             'totalRequests', 0
-        ),
-        jsonb_build_object(
-            'description', 'Sample proxy key'
         )
     ) RETURNING id INTO proxy_key_id;
     
@@ -177,7 +175,7 @@ COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authenti
 COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests';
 
 COMMENT ON COLUMN api_keys.metadata IS 'JSON object containing usage statistics and error tracking';
-COMMENT ON COLUMN proxy_api_keys.usage_stats IS 'JSON object containing request count and last usage';
+COMMENT ON COLUMN proxy_api_keys.metadata IS 'JSON object containing additional metadata and usage information';
 COMMENT ON COLUMN request_logs.request_data IS 'JSON object containing original request details';
 COMMENT ON COLUMN request_logs.response_data IS 'JSON object containing response details (if successful)';
 COMMENT ON COLUMN request_logs.retry_attempts IS 'Array of retry attempts with error details';
