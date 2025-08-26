@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts'],
+    entry: ['src/index.ts', 'src/test-validation.ts', 'src/test-batch-operations.ts'],
     format: ['esm'],
     dts: false,
     splitting: false,
@@ -12,6 +12,7 @@ export default defineConfig({
     bundle: true,
     skipNodeModulesBundle: true,
     noExternal: ['@gemini-proxy/database'],
+    external: [],
     minify: false,
     tsconfig: '../../tsconfig.json',
     platform: 'node',

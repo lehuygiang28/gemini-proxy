@@ -11,7 +11,10 @@
         "build": "tsup",
         "dev": "tsup --watch",
         "start": "node dist/index.js",
-        "clean": "rimraf dist"
+        "clean": "rimraf dist",
+        "test": "node dist/test-validation.js",
+        "test:validation": "tsup src/test-validation.ts --format esm && node dist/test-validation.js",
+        "test:batch": "tsup src/test-batch-operations.ts --format esm && node dist/test-batch-operations.js"
     },
     "keywords": [
         "cli",
@@ -24,18 +27,18 @@
     "license": "MIT",
     "dependencies": {
         "@gemini-proxy/database": "workspace:*",
+        "@inquirer/prompts": "^7.8.3",
         "@supabase/supabase-js": "^2.55.0",
         "commander": "^12.0.0",
-        "chalk": "^5.3.0",
-        "inquirer": "^9.2.15",
+        "dotenv": "^17.2.1",
         "ora": "^8.0.1",
         "uuid": "^10.0.0"
     },
     "devDependencies": {
         "@types/node": "^22.0.0",
         "@types/uuid": "^10.0.0",
-        "tsup": "^8.5.0",
         "rimraf": "^6.0.1",
+        "tsup": "^8.5.0",
         "typescript": "^5.9.2"
     },
     "engines": {

@@ -1,6 +1,7 @@
 import { Command } from 'commander';
-import chalk from 'chalk';
-import { ConfigManager } from '../lib/config.js';
+import { confirm } from '@inquirer/prompts';
+import { colors } from '../lib/colors';
+import { ConfigManager } from '../lib/config';
 
 export function configCommands(program: Command) {
     const config = program
@@ -15,9 +16,9 @@ export function configCommands(program: Command) {
         .action(async () => {
             try {
                 await ConfigManager.getConfig();
-                console.log(chalk.green('\n✓ Configuration setup completed successfully!'));
+                console.log(colors.green('\n✓ Configuration setup completed successfully!'));
             } catch (error) {
-                console.error(chalk.red('Failed to setup configuration:'), error);
+                console.error(colors.red('Failed to setup configuration:'), error);
                 process.exit(1);
             }
         });
@@ -40,7 +41,7 @@ export function configCommands(program: Command) {
             try {
                 await ConfigManager.updateConfig();
             } catch (error) {
-                console.error(chalk.red('Failed to update configuration:'), error);
+                console.error(colors.red('Failed to update configuration:'), error);
                 process.exit(1);
             }
         });
@@ -52,18 +53,13 @@ export function configCommands(program: Command) {
         .option('-f, --force', 'Skip confirmation')
         .action(async (options) => {
             if (!options.force) {
-                const inquirer = await import('inquirer');
-                const { confirm } = await inquirer.default.prompt([
-                    {
-                        type: 'confirm',
-                        name: 'confirm',
-                        message: 'Are you sure you want to clear the saved configuration?',
-                        default: false,
-                    },
-                ]);
+                const confirmed = await confirm({
+                    message: 'Are you sure you want to clear the saved configuration?',
+                    default: false,
+                });
 
-                if (!confirm) {
-                    console.log(chalk.yellow('Operation cancelled'));
+                if (!confirmed) {
+                    console.log(colors.yellow('Operation cancelled'));
                     return;
                 }
             }
@@ -78,11 +74,11 @@ export function configCommands(program: Command) {
         .action(async () => {
             try {
                 const config = await ConfigManager.getConfig();
-                console.log(chalk.blue('🔧 Testing Configuration'));
+                console.log(colors.blue('🔧 Testing Configuration'));
                 console.log('');
 
                 // Test Supabase connection
-                console.log(chalk.gray('Testing Supabase connection...'));
+                console.log(colors.gray('Testing Supabase connection...'));
                 const { createClient } = await import('@supabase/supabase-js');
                 const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
                     auth: {
@@ -95,14 +91,14 @@ export function configCommands(program: Command) {
                 const { data, error } = await supabase.from('api_keys').select('count').limit(1);
 
                 if (error) {
-                    console.log(chalk.red('✗ Connection failed:'), error.message);
+                    console.log(colors.red('✗ Connection failed:'), error.message);
                     process.exit(1);
                 }
 
-                console.log(chalk.green('✓ Configuration is valid and connection successful!'));
-                console.log(chalk.gray('You can now use gproxy commands'));
+                console.log(colors.green('✓ Configuration is valid and connection successful!'));
+                console.log(colors.gray('You can now use gproxy commands'));
             } catch (error) {
-                console.error(chalk.red('✗ Configuration test failed:'), error);
+                console.error(colors.red('✗ Configuration test failed:'), error);
                 process.exit(1);
             }
         });

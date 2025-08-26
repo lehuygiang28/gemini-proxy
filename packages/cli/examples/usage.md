@@ -47,6 +47,8 @@ gproxy api-keys create \
   --key "AIzaSyC..." \
   --provider "gemini" \
   --user-id "user-uuid"
+
+**Note**: Currently only `gemini` provider is supported.
 ```
 
 ### Get API key details
@@ -64,7 +66,8 @@ gproxy api-keys update abc123-def456-ghi789
 # With options
 gproxy api-keys update abc123-def456-ghi789 \
   --name "Updated Key Name" \
-  --key "new-api-key-value"
+  --key "new-api-key-value" \
+  --provider "gemini"
 ```
 
 ### Delete an API key
