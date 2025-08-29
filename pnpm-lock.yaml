@@ -169,9 +169,6 @@ importers:
 
   packages/appwrite:
     dependencies:
-      '@gemini-proxy/core':
-        specifier: workspace:*
-        version: link:../core
       '@supabase/supabase-js':
         specifier: ^2.55.0
         version: 2.55.0
