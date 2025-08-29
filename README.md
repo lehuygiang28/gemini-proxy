@@ -2,218 +2,491 @@
 
 **Gemini Proxy** is a powerful, open-source toolkit for managing and proxying requests to Google's Gemini API. It provides a robust set of features for developers and organizations to monitor, control, and scale their usage of the Gemini API.
 
-## Table of Contents
+## 📋 Table of Contents
 
-- [Gemini Proxy](#gemini-proxy)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Architecture](#architecture)
-  - [Projects](#projects)
-    - [Applications](#applications)
-    - [Packages](#packages)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-  - [Usage Scenarios](#usage-scenarios)
-  - [Deployment](#deployment)
-  - [Cloudflare AI Gateway Integration](#cloudflare-ai-gateway-integration)
-    - [Benefits of Cloudflare AI Gateway Integration](#benefits-of-cloudflare-ai-gateway-integration)
-    - [Recommended Architecture](#recommended-architecture)
-  - [Regional Deployment Considerations](#regional-deployment-considerations)
-    - [Asia-Pacific Deployment Strategy](#asia-pacific-deployment-strategy)
-      - [Cloudflare Deployment Considerations](#cloudflare-deployment-considerations)
-      - [Recommended Approach for Asia-Based Users](#recommended-approach-for-asia-based-users)
-    - [Performance Optimization](#performance-optimization)
-  - [Future Plans](#future-plans)
-  - [Contributing](#contributing)
-  - [License](#license)
+<details>
+<summary><strong>🚀 Quick Start</strong></summary>
 
-## Features
+- [Introduction](#-introduction)
+- [Core Features](#-core-features)
+- [Prerequisites](#-prerequisites)
+- [Quick Start Guide](#-quick-start-guide)
 
-- **API Key Management:** Securely store and manage your Google Gemini API keys.
-- **Proxy Service:** A robust proxy service that can be deployed to various platforms.
-- **Request Logging:** Detailed logging of all requests and responses.
-- **Analytics Dashboard:** A web-based interface to monitor usage and performance.
-- **Platform Agnostic:** The core logic is platform-agnostic and can be deployed anywhere.
-- **Multiple Deployment Options:** Deploy as a standalone Node.js server, a Cloudflare Worker, or a Vercel Edge Function.
-- **API Key Rotation & Load Balancing:** Intelligent distribution of requests across multiple API keys for optimal performance and cost management.
+</details>
 
-## Architecture
+<details>
+<summary><strong>⚙️ Configuration</strong></summary>
 
-The Gemini Proxy is a monorepo built with pnpm workspaces. It's composed of several applications and packages that work together to provide a complete solution.
+- [Environment Variables](#️-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [Usage Examples](#-usage-examples)
 
-- **`apps/web`:** A Next.js web application that provides the user interface for managing API keys and viewing analytics.
-- **`apps/api`:** A standalone Node.js API server built with Hono.js.
-- **`packages/core`:** The core business logic for the proxy service.
-- **`packages/cloudflare`:** A Cloudflare Worker for deploying the proxy to the edge.
-- **`packages/vercel`:** A Vercel Edge Function for serverless deployment.
-- **`packages/database`:** The database schema and management scripts for Supabase.
+</details>
 
-## Projects
+<details>
+<summary><strong>🌐 Platform Support</strong></summary>
 
-### Applications
+- [Deployment Options](#-deployment-options)
+- [Platform-Specific Guides](#️-platform-specific-guides)
 
-- **`apps/api`:** [README](./apps/api/README.md) - A standalone Node.js API server.
-- **`apps/web`:** [README](./apps/web/README.md) - The web interface for managing the proxy.
+</details>
 
-### Packages
+<details>
+<summary><strong>🔧 Technical Details</strong></summary>
 
-- **`packages/cloudflare`:** [README](./packages/cloudflare/README.md) - A Cloudflare Worker for edge deployment.
-- **`packages/core`:** [README](./packages/core/README.md) - The core business logic.
-- **`packages/database`:** [README](./packages/database/README.md) - The database schema and scripts.
-- **`packages/vercel`:** [README](./packages/vercel/README.md) - A Vercel Edge Function for serverless deployment.
+- [Architecture](#️-architecture)
+- [Project Structure](#-project-structure)
+- [Development](#️-development)
 
-## Getting Started
+</details>
 
-### Prerequisites
+<details>
+<summary><strong>📚 References</strong></summary>
 
-- Node.js (v18 or higher)
-- pnpm
-- A [Supabase](https://supabase.com/) account
+- [Contributing](#-contributing)
+- [License](#-license)
 
-### Installation
+</details>
 
-1. **Clone the repository:**
+## 🚀 Introduction
 
-   ```bash
-   git clone https://github.com/lehuygiang28/gemini-proxy.git
-   cd gemini-proxy
-   ```
+Gemini Proxy is a comprehensive solution that allows you to:
 
-2. **Install dependencies:**
+- **🔑 Manage API Keys:** Securely store and rotate multiple Google Gemini API keys
+- **⚡ Load Balance:** Distribute requests across multiple API keys for optimal performance
+- **📊 Monitor Usage:** Track API usage, costs, and performance metrics
+- **🛡️ Control Access:** Manage proxy keys and access permissions
+- **📝 Log Requests:** Detailed logging of all API requests and responses
+- **🌍 Deploy Anywhere:** Support for multiple deployment platforms
 
-   ```bash
-   pnpm install
-   ```
+## ✨ Core Features
 
-3. **Set up environment variables:**
+### 🔑 **API Key Management**
 
-   Each application and package has its own set of environment variables. Please refer to the individual `README.md` files for detailed instructions.
+- Secure storage of multiple Google Gemini API keys
+- Intelligent key rotation and load balancing
+- Usage tracking and analytics per key
+- Enable/disable keys without downtime
 
-## Usage Scenarios
+### ⚡ **Performance & Scalability**
 
-There are several ways to use Gemini Proxy, depending on your needs:
+- Automatic request distribution across API keys
+- Built-in retry mechanisms with exponential backoff
+- Request caching and optimization
+- Support for streaming responses
 
-- **Local Management with Deployed Proxy:** This is the most common usage. Deploy the proxy service to your preferred platform (e.g., Cloudflare, Supabase) and run the `apps/web` application locally to manage your API keys and monitor usage.
-- **All-in-One Fullstack Deployment:** Deploy the `apps/web` application to any platform that supports Next.js (e.g., Vercel, Netlify, or a standalone Node.js server). The Next.js application includes the proxy as an API route, so you don't need to deploy a separate proxy service.
-- **High-Availability Deployment:** For maximum reliability, deploy the `apps/web` application and one or more proxy services to different platforms. This ensures that your service remains available even if one platform is down or blocked.
+### 📊 **Monitoring & Analytics**
 
-## Deployment
+- Real-time request logging and analytics
+- Performance metrics and cost tracking
+- Error monitoring and alerting
+- Usage dashboards and reports
 
-Gemini Proxy is designed to be deployed to a variety of platforms. You can choose the deployment option that best suits your needs:
+### 🛡️ **Security & Access Control**
 
-- **Standalone Server:** Deploy the `apps/api` application to any Node.js hosting provider.
-- **Vercel:** Deploy the `apps/web` application to Vercel, which will also deploy the `packages/vercel` Edge Function.
-- **Cloudflare:** Deploy the `packages/cloudflare` Worker to the Cloudflare edge network.
+- Proxy API key management
+- Request authentication and authorization
+- Rate limiting and abuse prevention
+- Secure environment variable handling
 
-Please refer to the `README.md` file in each project for detailed deployment instructions.
+### 🌍 **Multi-Platform Support**
 
-## Cloudflare AI Gateway Integration
+- **Next.js Fullstack App** (Recommended)
+- **Standalone Node.js API Server**
+- **Vercel Edge Functions**
+- **Cloudflare Workers**
+- **Appwrite Functions**
 
-For enhanced observability, logging, and cost calculation, we recommend integrating with **Cloudflare AI Gateway** ([https://developers.cloudflare.com/ai-gateway/](https://developers.cloudflare.com/ai-gateway/)). This approach provides several benefits:
+## 📋 Prerequisites
 
-### Benefits of Cloudflare AI Gateway Integration
+Before you begin, ensure you have the following installed:
 
-- **Comprehensive Logging:** Access to 100,000 logs total in the free tier plan
-- **Advanced Analytics:** Detailed request/response data analysis
-- **Cost Calculation:** Built-in pricing and usage tracking
-- **Performance Monitoring:** Real-time performance metrics and insights
-- **Global Edge Network:** Low-latency access from anywhere in the world
+### **Required Software**
 
-### Recommended Architecture
+- **Node.js** (v18 or higher)
+- **pnpm** (v8 or higher)
+- **Git**
 
-```md
-Your Application → Gemini Proxy → Cloudflare AI Gateway → Google Gemini API
+### **Required Accounts**
+
+- **Google AI Studio** account for Gemini API keys
+- **Supabase** account for database and authentication
+
+### **Installation Commands**
+
+```bash
+# Install Node.js (if not already installed)
+# Download from: https://nodejs.org/
+
+# Install pnpm
+npm install -g pnpm
+
+# Verify installations
+node --version
+pnpm --version
 ```
 
-This setup allows Gemini Proxy to focus on its core strengths:
+## 🚀 Quick Start Guide
 
-- **API Key Rotation:** Intelligent distribution across multiple API keys
-- **Load Balancing:** Optimal request distribution for performance
-- **Custom Logic:** Application-specific request processing and validation
+### **Recommended: Deploy the Web App (Fastest)**
 
-While Cloudflare AI Gateway handles:
+The fastest way to get started is deploying the Next.js web application:
 
-- **Logging & Analytics:** Comprehensive request/response tracking
-- **Cost Management:** Detailed usage and pricing analytics
-- **Performance Optimization:** Global edge network optimization
+```bash
+# 1. Clone the repository
+git clone https://github.com/lehuygiang28/gemini-proxy.git
+cd gemini-proxy
 
-## Regional Deployment Considerations
+# 2. Install dependencies
+pnpm install
 
-### Asia-Pacific Deployment Strategy
+# 3. Configure environment
+cp apps/web/.env.example apps/web/.env.local
+# Edit apps/web/.env.development with your values
 
-If you're deploying from Asia, consider the following regional factors:
+# 4. Start development server
+cd apps/web
+pnpm dev
 
-#### Cloudflare Deployment Considerations
+# 5. Open the application
+# http://localhost:4040
+```
 
-- **Hong Kong Routing Issues:** Some ISPs in Asia route requests to Cloudflare's Hong Kong (HKG) CDN, which may have restrictions on accessing Google Gemini services
-- **Alternative Regions:** Consider deploying to regions that have better Gemini API support:
-  - Singapore (SIN)
-  - Tokyo (NRT)
-  - Sydney (SYD)
-  - Other regions with confirmed Gemini API access
+### **Alternative: Deploy to Vercel (Recommended for Production)**
 
-> **📋 Reference:** Check the [official Gemini API available regions](https://ai.google.dev/gemini-api/docs/available-regions) for the most up-to-date list of supported countries and territories.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&root-directory=apps/web&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY)
 
-#### Recommended Approach for Asia-Based Users
+**Manual Setup:**
 
-1. **Test Your Route:** Verify which Cloudflare edge location your requests are routed to
+1. **Fork or clone the repository**
+2. **Connect to Vercel:**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Import your GitHub repository
+   - **Do NOT set root directory** (leave as default)
+3. **Configure Build Settings:**
+   - **Build Command:** `pnpm build -F web`
+   - **Output Directory:** `apps/web/.next`
+4. **Configure Environment Variables:**
+   - `SUPABASE_URL` - Your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key
+5. **Deploy automatically on every push**
 
-   ```bash
-   # Check which Cloudflare edge location your requests are routed to
-   curl https://www.cloudflare.com/cdn-cgi/trace
-   ```
+## ⚙️ Environment Variables
 
-   **Understanding the output:**
-   - Look for the `colo=` field in the response
-   - If `colo=HKG` (Hong Kong), your requests will be routed through Hong Kong CDN, which may be blocked by Google
-   - If `colo=SIN`, `colo=NRT`, `colo=SYD`, or other supported regions, your worker will work well
-   - Example output:
+### **Required Environment Variables**
 
-      ```text
-         fl=583f188
-         h=www.cloudflare.com
-         ip=116.96.11.111
-         ts=1755622101.253
-         visit_scheme=https
-         colo=HKG # This is the Cloudflare edge location
-         sliver=none
-         http=http/2
-         loc=VN
-         tls=TLSv1.3
-         sni=plaintext
-         warp=off
-         gateway=off
-         rbi=off
-         kex=X25519MLKEM768
-       ```
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SUPABASE_URL` | Your Supabase project URL | `https://your-project.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
 
-2. **Alternative Platforms:** If Cloudflare routing causes issues, consider:
-   - Vercel Edge Functions (often better routing for Asia)
-   - Regional cloud providers (AWS, GCP, Azure)
-   - Local hosting providers with good international connectivity
-3. **Hybrid Setup:** Use Cloudflare AI Gateway for logging/analytics while deploying the proxy service to alternative platforms
+### **Optional Environment Variables**
 
-### Performance Optimization
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `GOOGLE_GEMINI_API_BASE_URL` | Gemini API base URL | `https://generativelanguage.googleapis.com/` | `https://generativelanguage.googleapis.com/` |
+| `GOOGLE_OPENAI_API_BASE_URL` | OpenAI-compatible API base URL | `https://generativelanguage.googleapis.com/v1beta/openai/` | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `PROXY_MAX_RETRIES` | Maximum retry attempts | `3` | `5` |
+| `PROXY_RETRY_DELAY_MS` | Initial retry delay (ms) | `1000` | `2000` |
+| `PROXY_BACKOFF_MULTIPLIER` | Exponential backoff multiplier | `2` | `1.5` |
+| `PROXY_LOGGING_ENABLED` | Enable request logging | `true` | `false` |
+| `PROXY_LOG_LEVEL` | Logging level | `info` | `debug` |
 
-- **Latency Testing:** Test latency from your target regions before deployment
-- **CDN Selection:** Choose CDN providers with optimal routing for your target audience
-- **Fallback Strategy:** Implement multiple deployment options for high availability
+## 💻 Usage Examples
 
-## Future Plans
+### **Using with Google Generative AI SDK**
 
-We are planning to add support for more deployment platforms for the proxy service:
+```typescript
+import { GoogleGenAI } from '@google/genai';
 
-- Supabase Edge Functions
-- Netlify Edge Functions
-- Fastly Compute@Edge
-- Azure Functions
-- Google Cloud Run
+const genAi = new GoogleGenAI({
+    apiKey: 'your_proxy_api_key',
+    httpOptions: {
+        baseUrl: 'https://your-proxy-endpoint/api/gproxy/gemini',
+    },
+});
 
-## Contributing
+// Generate content
+const result = await genAi.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: 'Explain quantum computing in simple terms.',
+});
+console.log(result.text);
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue.
+// Stream content
+const stream = await genAi.models.generateContentStream({
+    model: 'gemini-2.0-flash',
+    contents: 'Write a short story about a robot.',
+});
+for await (const chunk of stream) {
+    console.log(chunk.text);
+}
+```
 
-## License
+### **Using with OpenAI-Compatible Clients**
 
-This project is licensed under the MIT License.
+```typescript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: 'your_proxy_api_key',
+    baseURL: 'https://your-proxy-endpoint/api/grpoxy/openai',
+});
+
+// Chat completions
+const completion = await openai.chat.completions.create({
+    model: 'gemini-2.0-flash',
+    messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'What is the capital of France?' }
+    ],
+    max_tokens: 100,
+    temperature: 0.7,
+});
+console.log(completion.choices[0].message.content);
+
+// Text embeddings
+const embedding = await openai.embeddings.create({
+    model: 'text-embedding-004',
+    input: 'This is a sample text for embedding.',
+    encoding_format: 'float'
+});
+console.log(embedding.data[0].embedding);
+```
+
+### **Using with Vercel AI SDK**
+
+```typescript
+import { generateText } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
+const google = createGoogleGenerativeAI({
+    apiKey: 'gproxy_test_12345',
+    baseURL: 'https://your-proxy-endpoint/api/gproxy/gemini/v1beta',
+});
+const { text } = await generateText({
+    model: google('gemini-2.5-flash'),
+    system: 'You are a friendly assistant!',
+    prompt: 'Why is the sky blue?',
+});
+console.log(text);
+```
+
+### Health Check
+
+```bash
+# Check service health
+curl https://your-proxy-endpoint/health
+
+# Expected response
+{
+  "status": "ok",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+## 🌐 Deployment Options
+
+### **🎯 Recommended: Next.js Web App (Full-Stack with UI)**
+
+**Best for:** Most users, fastest deployment, full-featured dashboard
+
+- ✅ **Complete Solution:** Web interface + API proxy in one deployment
+- ✅ **User-Friendly Dashboard:** Built-in UI for managing API keys, proxy keys, and monitoring
+- ✅ **Fastest Setup:** Single deployment with all features
+- ✅ **Production Ready:** Enterprise-grade features with visual management
+
+**Deploy to:** Vercel, Netlify, Railway, or any Next.js-compatible platform
+
+### **⚡ Standalone API Server (API-Only)**
+
+**Best for:** API-only deployments, custom integrations, headless services
+
+- ✅ **Lightweight:** Minimal resource usage, API-only service
+- ✅ **Customizable:** Full control over deployment
+- ✅ **Scalable:** Can be deployed anywhere
+- ❌ **No UI:** Requires CLI or external tools for management
+
+**Deploy to:** Docker, Railway, Render, Heroku, or any Node.js platform
+
+### **🚀 Edge Functions (API-Only)**
+
+**Best for:** Global performance, low latency, serverless API
+
+- ✅ **Global CDN:** Deploy to edge locations worldwide
+- ✅ **Low Latency:** Fastest response times
+- ✅ **Auto-scaling:** Handles traffic spikes automatically
+- ❌ **No UI:** API-only service, management via CLI or external tools
+
+**Deploy to:** Vercel Edge Functions, Cloudflare Workers
+
+## 🛠️ Platform-Specific Guides
+
+Choose your preferred deployment platform:
+
+### **🎯 [Next.js Web App](./apps/web/README.md) - Full-Stack with UI**
+
+- Complete fullstack solution with web dashboard
+- **Only option with built-in UI** for managing API keys, proxy keys, and monitoring
+- Recommended for most users
+- Deploy to Vercel, Netlify, or any Next.js platform
+
+### **⚡ [Standalone API Server](./apps/api/README.md) - API-Only**
+
+- Lightweight Node.js API server
+- **No UI** - API-only service
+- Deploy to Docker, Railway, Render, or any Node.js platform
+
+### **🚀 [Vercel Edge Functions](./packages/vercel/README.md) - API-Only**
+
+- Serverless edge functions
+- **No UI** - API-only service
+- Deploy to Vercel's global network
+
+### **🌍 [Cloudflare Workers](./packages/cloudflare/README.md) - API-Only**
+
+- Edge computing platform
+- **No UI** - API-only service
+- Deploy to Cloudflare's global network
+
+### **🔧 [Appwrite Functions](./packages/appwrite/README.md) - API-Only**
+
+- Serverless functions on Appwrite
+- **No UI** - API-only service
+- Deploy to Appwrite cloud
+
+### **🛠️ [CLI Tools](./packages/cli/README.md)**
+
+- Command-line management tools
+- **Required for managing API-only deployments** (API keys, proxy keys, logs)
+- Use with any API-only deployment option
+
+## 🏗️ Architecture
+
+```md
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Your App      │    │  Gemini Proxy   │    │  Google Gemini  │
+│                 │───▶│                 │───▶│      API        │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌─────────────────┐
+                       │    Supabase     │
+                       │   (Database)    │
+                       └─────────────────┘
+```
+
+### Core Components
+
+- **🔑 API Key Service:** Manages and rotates Gemini API keys
+- **⚡ Proxy Service:** Routes requests to appropriate API keys
+- **📊 Logger Service:** Logs all requests and responses
+- **🛡️ Auth Service:** Handles proxy key authentication
+- **📈 Analytics Service:** Tracks usage and performance
+
+## 📁 Project Structure
+
+```md
+gemini-proxy/
+├── apps/                          # Applications
+│   ├── web/                      # Next.js web application (Recommended)
+│   └── api/                      # Standalone Node.js API server
+├── packages/                      # Packages
+│   ├── core/                     # Core business logic
+│   ├── cli/                      # Command-line tools
+│   ├── database/                 # Database schema and types
+│   ├── vercel/                   # Vercel Edge Functions
+│   ├── cloudflare/               # Cloudflare Workers
+│   └── appwrite/                 # Appwrite Functions
+├── examples/                      # Usage examples
+└── README.md                     # This file
+```
+
+### **Key Directories**
+
+- **`apps/web/`** - Next.js fullstack application with dashboard
+- **`apps/api/`** - Standalone Hono.js API server
+- **`packages/core/`** - Shared business logic and services
+- **`packages/cli/`** - Command-line management tools
+- **`examples/`** - Code examples for different SDKs
+
+## 🛠️ Development
+
+### **Local Development**
+
+```bash
+# Clone the repository
+git clone https://github.com/lehuygiang28/gemini-proxy.git
+cd gemini-proxy
+
+# Install dependencies
+pnpm install
+
+# Start development servers
+pnpm dev
+
+# Build all packages
+pnpm build
+
+# Run tests
+pnpm test
+```
+
+### **Development Scripts**
+
+```bash
+# Start all development servers
+pnpm dev
+
+# Build specific package
+pnpm --filter @lehuygiang28/gemini-proxy-core build
+
+# Run CLI commands
+pnpm --filter @lehuygiang28/gemini-proxy-cli start --help
+
+# Deploy specific package
+pnpm --filter @lehuygiang28/gemini-proxy-vercel deploy
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### **How to Contribute**
+
+1. **Fork the repository**
+2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
+3. **Make your changes**
+4. **Add tests if applicable**
+5. **Commit your changes:** `git commit -m 'Add amazing feature'`
+6. **Push to the branch:** `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+### **Development Setup**
+
+```bash
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp apps/web/.env.example apps/web/.env.development
+
+# Start development servers
+pnpm dev
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **📖 Documentation:** [GitHub Wiki](https://github.com/lehuygiang28/gemini-proxy/wiki)
+- **🐛 Issues:** [GitHub Issues](https://github.com/lehuygiang28/gemini-proxy/issues)
+- **💬 Discussions:** [GitHub Discussions](https://github.com/lehuygiang28/gemini-proxy/discussions)
+- **⭐ Star:** [GitHub Repository](https://github.com/lehuygiang28/gemini-proxy)
+
+---
+
+**Made with ❤️ by the Gemini Proxy Team**

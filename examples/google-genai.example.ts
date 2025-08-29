@@ -23,7 +23,7 @@ async function main() {
             contents: 'Count from 1 to 10',
         });
         console.log(response);
-        console.log(response.candidates?.[0]?.content?.parts?.[0]?.text);
+        console.log(response.text);
     } catch (error) {}
 
     try {

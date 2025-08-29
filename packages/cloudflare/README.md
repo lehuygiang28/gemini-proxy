@@ -5,33 +5,28 @@ This package contains a Cloudflare Worker for deploying the Gemini Proxy to the 
 ## Table of Contents
 
 - [Gemini Proxy - Cloudflare Worker](#gemini-proxy---cloudflare-worker)
- 	- [Table of Contents](#table-of-contents)
- 	- [Features](#features)
- 	- [Architecture Overview](#architecture-overview)
-  		- [Recommended Setup](#recommended-setup)
- 	- [Getting Started](#getting-started)
-  		- [Prerequisites](#prerequisites)
-  		- [Installation](#installation)
- 	- [Configuration](#configuration)
-  		- [Environment Variables and Secrets](#environment-variables-and-secrets)
-  		- [Cloudflare AI Gateway Integration](#cloudflare-ai-gateway-integration)
- 	- [Regional Deployment Considerations](#regional-deployment-considerations)
-  		- [Asia-Pacific Deployment Strategy](#asia-pacific-deployment-strategy)
-   			- [Cloudflare Routing Issues](#cloudflare-routing-issues)
-   			- [Recommended Approach for Asia-Based Users](#recommended-approach-for-asia-based-users)
-  		- [Performance Optimization](#performance-optimization)
- 	- [Running Locally](#running-locally)
-  		- [Testing Your Setup](#testing-your-setup)
- 	- [Deployment](#deployment)
-  		- [Basic Deployment](#basic-deployment)
-  		- [Advanced Deployment Options](#advanced-deployment-options)
-  		- [Post-Deployment Verification](#post-deployment-verification)
- 	- [Troubleshooting](#troubleshooting)
-  		- [Common Issues](#common-issues)
-  		- [Debugging](#debugging)
-  		- [Getting Help](#getting-help)
- 	- [Project Structure](#project-structure)
-  		- [Key Files](#key-files)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+    - [Environment Variables and Secrets](#environment-variables-and-secrets)
+    - [Cloudflare AI Gateway Integration](#cloudflare-ai-gateway-integration)
+  - [Deployment](#deployment)
+    - [Basic Deployment](#basic-deployment)
+    - [Advanced Deployment Options](#advanced-deployment-options)
+    - [Post-Deployment Verification](#post-deployment-verification)
+  - [Usage](#usage)
+    - [Endpoint URLs](#endpoint-urls)
+    - [Platform-Specific Examples](#platform-specific-examples)
+  - [Development](#development)
+    - [Local Development](#local-development)
+    - [Testing](#testing)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debugging](#debugging)
+  - [Project Structure](#project-structure)
+  - [References](#references)
 
 ## Features
 
@@ -42,53 +37,49 @@ This package contains a Cloudflare Worker for deploying the Gemini Proxy to the 
 - **Integration with Cloudflare AI Gateway:** Enhanced logging, analytics, and cost management
 - **Global Edge Network:** Low-latency access from anywhere in the world
 
-## Architecture Overview
+## Quick Start
 
-```md
-Your Application → Cloudflare Worker (Gemini Proxy) → Google Gemini API
-                                    ↓
-                        Cloudflare AI Gateway (Optional)
-                                    ↓
-                        Enhanced Logging & Analytics
-```
+1. **Install Wrangler CLI:**
 
-### Recommended Setup
+   ```bash
+   npm install -g wrangler
+   ```
 
-For optimal performance and observability, we recommend using Cloudflare AI Gateway in front of the Gemini Proxy:
+2. **Login to Cloudflare:**
 
-```md
-Your Application → Gemini Proxy → Cloudflare AI Gateway → Google Gemini API
-```
+   ```bash
+   wrangler login
+   ```
 
-This setup provides:
+3. **Deploy the worker:**
 
-- **100,000 logs** in the free tier plan
-- **Advanced analytics** and cost calculation
-- **Performance monitoring** and insights
-- **API key rotation** and load balancing via Gemini Proxy
+   ```bash
+   cd packages/cloudflare
+   pnpm deploy
+   ```
 
-## Getting Started
+4. **Set environment variables:**
 
-### Prerequisites
+   ```bash
+   wrangler secret put SUPABASE_URL
+   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+   ```
 
-- Node.js (v18 or higher)
-- pnpm
-- A [Cloudflare account](https://dash.cloudflare.com/sign-up)
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) installed and configured
+## Installation
 
-### Installation
-
-1. **Clone the repository:**
+1. **Clone and setup the monorepo:**
 
    ```bash
    git clone https://github.com/lehuygiang28/gemini-proxy.git
    cd gemini-proxy
+   pnpm install
+   pnpm build
    ```
 
-2. **Install dependencies from the root of the monorepo:**
+2. **Install Wrangler CLI:**
 
    ```bash
-   pnpm install
+   npm install -g wrangler
    ```
 
 3. **Navigate to the Cloudflare package:**
@@ -99,8 +90,6 @@ This setup provides:
 
 ## Configuration
 
-The Cloudflare Worker is configured using the `wrangler.jsonc` file.
-
 ### Environment Variables and Secrets
 
 Sensitive data, such as API keys, should be stored as secrets.
@@ -108,14 +97,14 @@ Sensitive data, such as API keys, should be stored as secrets.
 1. **Set Supabase secrets:**
 
    ```bash
-   npx wrangler secret put SUPABASE_URL
-   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+   wrangler secret put SUPABASE_URL
+   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
    ```
 
 2. **Set Gemini API key secret:**
 
    ```bash
-   npx wrangler secret put GEMINI_API_KEY
+   wrangler secret put GEMINI_API_KEY
    ```
 
    The value should be a JSON array of your Google Gemini API keys:
@@ -153,86 +142,6 @@ For enhanced observability and cost management, integrate with Cloudflare AI Gat
    - **Performance monitoring** and insights
    - **Rate limiting** and caching capabilities
 
-## Regional Deployment Considerations
-
-### Asia-Pacific Deployment Strategy
-
-If you're deploying from Asia, consider these regional factors:
-
-#### Cloudflare Routing Issues
-
-- **Hong Kong (HKG) CDN:** Some ISPs in Asia route requests to Cloudflare's Hong Kong CDN, which may have restrictions on accessing Google Gemini services
-- **Alternative Regions:** Consider deploying to regions with better Gemini API support:
-  - Singapore (SIN)
-  - Tokyo (NRT)
-  - Sydney (SYD)
-
-> **📋 Reference:** Check the [official Gemini API available regions](https://ai.google.dev/gemini-api/docs/available-regions) for the most up-to-date list of supported countries and territories.
-
-#### Recommended Approach for Asia-Based Users
-
-1. **Test Your Route:**
-
-   ```bash
-   # Check which Cloudflare edge location your requests are routed to
-   curl https://www.cloudflare.com/cdn-cgi/trace
-   ```
-
-   **Understanding the output:**
-   - Look for the `colo=` field in the response
-   - If `colo=HKG` (Hong Kong), your requests will be routed through Hong Kong CDN, which may be blocked by Google
-   - If `colo=SIN`, `colo=NRT`, `colo=SYD`, or other supported regions, your worker will work well
-   - Example output: `fl=354f218 h=www.cloudflare.com ip=98.82.130.157 ts=1755622267.835 visit_scheme=https uag=got colo=IAD sliver=none http=http/1.1 loc=US tls=TLSv1.3 sni=plaintext warp=off gateway=off rbi=off kex=X25519`
-
-2. **Alternative Platforms:** If Cloudflare routing causes issues, consider:
-   - Vercel Edge Functions (often better routing for Asia)
-   - Regional cloud providers (AWS, GCP, Azure)
-   - Local hosting providers with good international connectivity
-
-3. **Hybrid Setup:** Use Cloudflare AI Gateway for logging/analytics while deploying the proxy service to alternative platforms
-
-### Performance Optimization
-
-- **Latency Testing:** Test latency from your target regions before deployment
-- **CDN Selection:** Choose CDN providers with optimal routing for your target audience
-- **Fallback Strategy:** Implement multiple deployment options for high availability
-
-## Running Locally
-
-To develop and test the worker locally:
-
-```bash
-pnpm dev
-```
-
-This will start a local server that simulates the Cloudflare environment.
-
-### Testing Your Setup
-
-1. **Test basic functionality:**
-
-   ```bash
-   curl -X POST http://localhost:8787/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer your-proxy-api-key" \
-     -d '{
-       "model": "gemini-pro",
-       "messages": [{"role": "user", "content": "Hello!"}]
-     }'
-   ```
-
-2. **Test with Cloudflare AI Gateway:**
-
-   ```bash
-   curl -X POST https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/v1beta/openai/chat/completions \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer your-gateway-token" \
-     -d '{
-       "model": "gemini-pro",
-       "messages": [{"role": "user", "content": "Hello!"}]
-     }'
-   ```
-
 ## Deployment
 
 ### Basic Deployment
@@ -249,24 +158,24 @@ pnpm deploy
 
    ```bash
    # Deploy to specific regions (if available)
-   npx wrangler deploy --compatibility-date 2024-01-01
+   wrangler deploy --compatibility-date 2024-01-01
    ```
 
 2. **Custom domain setup:**
 
    ```bash
    # Add custom domain to your worker
-   npx wrangler domain add your-domain.com
+   wrangler domain add your-domain.com
    ```
 
 3. **Environment-specific deployments:**
 
    ```bash
    # Deploy to staging environment
-   npx wrangler deploy --env staging
+   wrangler deploy --env staging
 
    # Deploy to production environment
-   npx wrangler deploy --env production
+   wrangler deploy --env production
    ```
 
 ### Post-Deployment Verification
@@ -274,7 +183,7 @@ pnpm deploy
 1. **Check worker status:**
 
    ```bash
-   npx wrangler tail
+   wrangler tail
    ```
 
 2. **Monitor performance:**
@@ -296,17 +205,96 @@ pnpm deploy
      }'
    ```
 
+## Usage
+
+### Endpoint URLs
+
+Your Cloudflare Worker will be available at:
+
+```
+https://your-worker.your-subdomain.workers.dev/
+```
+
+**Available endpoints:**
+
+- **Health Check:** `GET /health`
+- **Gemini API:** All Gemini API endpoints under `/`
+- **OpenAI-Compatible:** All OpenAI-compatible endpoints under `/openai/v1`
+
+### Platform-Specific Examples
+
+For detailed API endpoints and usage examples, see the [root README](../../README.md#api-endpoints) and [Usage Examples](../../README.md#usage-examples).
+
+**Cloudflare-specific client configuration:**
+
+```typescript
+import { GoogleGenAI } from '@google/genai';
+
+const genAi = new GoogleGenAI({
+    apiKey: 'your_proxy_api_key',
+    httpOptions: {
+        baseUrl: 'https://your-worker.your-subdomain.workers.dev',
+    },
+});
+```
+
+```typescript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: 'your_proxy_api_key',
+    baseURL: 'https://your-worker.your-subdomain.workers.dev/openai/v1',
+});
+```
+
+## Development
+
+### Local Development
+
+To develop and test the worker locally:
+
+```bash
+# Start development server
+pnpm dev
+
+# Test health endpoint
+curl http://localhost:8787/health
+
+# Test proxy endpoint
+curl -X POST http://localhost:8787/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-proxy-api-key" \
+  -d '{
+    "model": "gemini-pro",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+### Testing
+
+```bash
+# Test configuration
+pnpm test:config
+
+# Test build
+pnpm test:build
+
+# Test deployment (dry run)
+wrangler deploy --dry-run
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **CORS Errors:**
-   - Ensure your worker is configured to handle CORS requests
-   - Check that your application is making requests from allowed origins
+1. **Worker Deployment Fails:**
+   - Verify your Wrangler CLI is logged in: `wrangler whoami`
+   - Check your account ID and zone ID in `wrangler.jsonc`
+   - Ensure you have sufficient permissions in your Cloudflare account
 
-2. **API Key Issues:**
-   - Verify that your Gemini API keys are valid and have sufficient quota
-   - Check that the API keys are properly formatted in the secret
+2. **Environment Variables Not Set:**
+   - Use `wrangler secret list` to check current secrets
+   - Set missing secrets: `wrangler secret put SECRET_NAME`
 
 3. **Regional Access Issues:**
    - Test from different regions to identify routing problems
@@ -319,31 +307,28 @@ pnpm deploy
 
 ### Debugging
 
-1. **Enable detailed logging:**
+1. **Check worker logs:**
 
    ```bash
-   npx wrangler tail --format pretty
+   wrangler tail --format pretty
    ```
 
-2. **Check worker logs:**
-   - Visit Cloudflare Dashboard
-   - Navigate to **Workers & Pages**
-   - Select your worker
-   - View **Logs** tab
-
-3. **Test locally with real data:**
+2. **Test worker locally:**
 
    ```bash
-   # Run with production environment variables
-   npx wrangler dev --env production
+   pnpm dev
+   # Test with real environment variables
    ```
 
-### Getting Help
+3. **Verify configuration:**
 
-- **Cloudflare Workers Documentation:** [https://developers.cloudflare.com/workers/](https://developers.cloudflare.com/workers/)
-- **Cloudflare AI Gateway Documentation:** [https://developers.cloudflare.com/ai-gateway/](https://developers.cloudflare.com/ai-gateway/)
-- **Gemini API Documentation:** [https://ai.google.dev/gemini-api/docs](https://ai.google.dev/gemini-api/docs)
-- **GitHub Issues:** [https://github.com/lehuygiang28/gemini-proxy/issues](https://github.com/lehuygiang28/gemini-proxy/issues)
+   ```bash
+   # Check worker configuration
+   wrangler config
+
+   # Check environment variables
+   wrangler secret list
+   ```
 
 ## Project Structure
 
@@ -354,6 +339,7 @@ packages/cloudflare/
 ├── wrangler.jsonc        # Worker configuration
 ├── package.json          # Dependencies and scripts
 ├── tsconfig.json         # TypeScript configuration
+├── tsup.config.ts        # Build configuration
 └── README.md            # This file
 ```
 
@@ -362,4 +348,27 @@ packages/cloudflare/
 - `src/index.ts`: The entry point for the Cloudflare Worker
 - `wrangler.jsonc`: Configuration file for the worker deployment
 - `package.json`: Project dependencies and build scripts
-- `tsconfig.json`: TypeScript compiler configuration
+- `tsup.config.ts`: Build configuration for the function
+
+## References
+
+- **Cloudflare Documentation:**
+  - [Workers](https://developers.cloudflare.com/workers/)
+  - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
+  - [AI Gateway](https://developers.cloudflare.com/ai-gateway/)
+  - [Environment Variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)
+
+- **Gemini API Documentation:**
+  - [Official Gemini API](https://ai.google.dev/gemini-api/docs)
+  - [OpenAI-Compatible API](https://ai.google.dev/gemini-api/docs/openai)
+
+- **Related Packages:**
+  - [Core Package](../core/README.md) - Core business logic
+  - [CLI Package](../cli/README.md) - Command-line management tools
+  - [Database Package](../database/README.md) - Database schema and types
+
+- **Common Information:**
+  - [Environment Variables](../../README.md#environment-variables) - All required and optional variables
+  - [API Endpoints](../../README.md#api-endpoints) - Complete API reference
+  - [Usage Examples](../../README.md#usage-examples) - Code examples for all clients
+  - [Regional Deployment Considerations](../../README.md#regional-deployment-considerations) - Asia-Pacific deployment strategy

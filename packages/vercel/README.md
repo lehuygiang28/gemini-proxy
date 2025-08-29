@@ -7,60 +7,131 @@ This package provides a Vercel Edge Function for deploying the Gemini Proxy. It'
 - [Gemini Proxy - Vercel](#gemini-proxy---vercel)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
+  - [Quick Start](#quick-start)
+  - [Installation](#installation)
   - [Configuration](#configuration)
+    - [Required Environment Variables](#required-environment-variables)
+    - [Optional Environment Variables](#optional-environment-variables)
   - [Deployment](#deployment)
+    - [Deployment Steps](#deployment-steps)
   - [Usage](#usage)
     - [Basic Setup](#basic-setup)
     - [Custom Configuration](#custom-configuration)
-      - [Advanced Customization](#advanced-customization)
-      - [Custom Routes and Middleware](#custom-routes-and-middleware)
-      - [Available Exports](#available-exports)
-      - [Custom Route Paths and Folder Structure](#custom-route-paths-and-folder-structure)
-    - [Configuration Options](#configuration-options)
-      - [Required Environment Variables](#required-environment-variables)
-      - [Environment Variable Priority](#environment-variable-priority)
-    - [API Endpoints](#api-endpoints)
-      - [Gemini API Format](#gemini-api-format)
-      - [OpenAI-Compatible Format](#openai-compatible-format)
-      - [Dynamic Route Support](#dynamic-route-support)
-    - [Usage Examples](#usage-examples)
-      - [Using with Google Generative AI SDK (Gemini Native API)](#using-with-google-generative-ai-sdk-gemini-native-api)
-      - [Using with OpenAI-Compatible Clients](#using-with-openai-compatible-clients)
-      - [More Examples](#more-examples)
-    - [Error Handling](#error-handling)
-    - [Monitoring and Logging](#monitoring-and-logging)
+    - [Custom Route Paths](#custom-route-paths)
+  - [Development](#development)
+    - [Local Development](#local-development)
+    - [Testing](#testing)
+  - [Usage](#usage-1)
+    - [Endpoint URLs](#endpoint-urls)
+    - [Platform-Specific Examples](#platform-specific-examples)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debugging](#debugging)
+  - [Project Structure](#project-structure)
+    - [Key Files](#key-files)
+  - [References](#references)
 
 ## Features
 
-- **Serverless Deployment:** Run the Gemini Proxy as a Vercel Edge Function.
-- **Scalability:** Automatically scales with demand.
-- **Integration with Vercel:** Seamlessly integrates with the Vercel ecosystem.
+- **Serverless Deployment:** Run the Gemini Proxy as a Vercel Edge Function
+- **Scalability:** Automatically scales with demand using Vercel's infrastructure
+- **API Key Rotation:** Intelligent distribution across multiple Gemini API keys
+- **Load Balancing:** Optimal request distribution for performance
+- **Request Logging:** Comprehensive logging of all requests and responses
+- **Type Safety:** Full TypeScript support with strict type checking
+- **Error Handling:** Robust error handling and recovery mechanisms
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
+1. **Install the package:**
 
-- A Vercel account
-- Vercel CLI installed and configured
+   ```bash
+   npm install @lehuygiang28/gemini-proxy-vercel
+   ```
+
+2. **Create API route:**
+
+   ```typescript
+   // src/app/api/gproxy/[[...slug]]/route.ts
+   export const runtime = 'nodejs';
+   export const dynamic = 'force-dynamic';
+   
+   export { GET, POST, DELETE, PATCH, OPTIONS, HEAD } from '@lehuygiang28/gemini-proxy-vercel';
+   ```
+
+3. **Set environment variables in Vercel:**
+
+   ```bash
+   vercel env add SUPABASE_URL
+   vercel env add SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+4. **Deploy to Vercel:**
+
+   ```bash
+   vercel --prod
+   ```
+
+## Installation
+
+1. **Clone and setup the monorepo:**
+
+   ```bash
+   git clone https://github.com/lehuygiang28/gemini-proxy.git
+   cd gemini-proxy
+   pnpm install
+   pnpm build
+   ```
+
+2. **Install the package in your Next.js app:**
+
+   ```bash
+   npm install @lehuygiang28/gemini-proxy-vercel
+   ```
 
 ## Configuration
 
 The Vercel Edge Function is configured using environment variables. You'll need to set the following environment variables in your Vercel project:
 
-- `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL.
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key.
-- `GOOGLE_GEMINI_API_BASE_URL`: The base URL for the Google Gemini API.
-- `GOOGLE_OPENAI_API_BASE_URL`: The base URL for the Google OpenAI-compatible API.
+### Required Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SUPABASE_URL` | Your Supabase project URL | `https://your-project.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+
+### Optional Environment Variables
+
+For all optional environment variables, see the [root README](../../README.md#environment-variables).
 
 ## Deployment
 
-This package is intended to be used within a Next.js application deployed on Vercel, such as the `apps/web` application in this monorepo. The Vercel Edge Function will be automatically deployed when you deploy the Next.js application.
+This package is intended to be used within a Next.js application deployed on Vercel. The Vercel Edge Function will be automatically deployed when you deploy the Next.js application.
+
+### Deployment Steps
+
+1. **Set environment variables in Vercel:**
+
+   ```bash
+   vercel env add SUPABASE_URL
+   vercel env add SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+2. **Deploy your Next.js application:**
+
+   ```bash
+   vercel --prod
+   ```
+
+3. **Verify deployment:**
+
+   ```bash
+   curl https://your-vercel-app.vercel.app/api/gproxy/health
+   ```
 
 ## Usage
 
-The `@lehuygiang28/gemini-proxy-vercel` package provides HTTP method handlers that can be exported from your Next.js API routes. You can use it in two ways: basic setup or custom configuration.
+The `@lehuygiang28/gemini-proxy-vercel` package provides HTTP method handlers that can be exported from your Next.js API routes.
 
 ### Basic Setup
 
@@ -96,106 +167,9 @@ export const OPTIONS = handle(honoVercelApp);
 export const HEAD = handle(honoVercelApp);
 ```
 
-#### Advanced Customization
+### Custom Route Paths
 
-You can create your own Hono app with custom middleware and behavior:
-
-```typescript
-// src/app/api/gproxy/[[...slug]]/route.ts
-import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
-import { honoCoreApp } from '@lehuygiang28/gemini-proxy-vercel';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-// Create custom app with additional middleware
-const customApp = new Hono()
-    .basePath('/api/gproxy')
-    .use('*', async (c, next) => {
-        // Add custom middleware here
-        console.log('Custom middleware executed');
-        
-        // Add custom headers
-        c.header('X-Custom-Header', 'custom-value');
-        
-        // Add request timing
-        const start = Date.now();
-        await next();
-        const duration = Date.now() - start;
-        console.log(`Request took ${duration}ms`);
-    })
-    .use('*', async (c, next) => {
-        // Rate limiting middleware
-        const clientIp = c.req.header('x-forwarded-for') || 'unknown';
-        console.log(`Request from IP: ${clientIp}`);
-        await next();
-    })
-    .route('/*', honoCoreApp);
-
-export const GET = handle(customApp);
-export const POST = handle(customApp);
-export const DELETE = handle(customApp);
-export const PATCH = handle(customApp);
-export const OPTIONS = handle(customApp);
-export const HEAD = handle(customApp);
-```
-
-#### Custom Routes and Middleware
-
-You can add custom routes alongside the proxy functionality:
-
-```typescript
-// src/app/api/gproxy/[[...slug]]/route.ts
-import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
-import { honoCoreApp } from '@lehuygiang28/gemini-proxy-vercel';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-const customApp = new Hono()
-    .basePath('/api/gproxy')
-    .get('/health', (c) => {
-        return c.json({ status: 'healthy', timestamp: new Date().toISOString() });
-    })
-    .get('/stats', async (c) => {
-        // Custom stats endpoint
-        return c.json({
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            version: process.version
-        });
-    })
-    .use('*', async (c, next) => {
-        // Authentication middleware
-        const apiKey = c.req.header('Authorization');
-        if (!apiKey) {
-            return c.json({ error: 'Unauthorized' }, 401);
-        }
-        await next();
-    })
-    .route('/*', honoCoreApp);
-
-export const GET = handle(customApp);
-export const POST = handle(customApp);
-export const DELETE = handle(customApp);
-export const PATCH = handle(customApp);
-export const OPTIONS = handle(customApp);
-export const HEAD = handle(customApp);
-```
-
-#### Available Exports
-
-The package exports the following components for customization:
-
-- `honoCoreApp`: The core Gemini Proxy Hono app without base path configuration
-- `honoVercelApp`: Pre-configured Hono app with `/api/gproxy` base path
-- `GET`, `POST`, `DELETE`, `PATCH`, `OPTIONS`, `HEAD`: Pre-configured HTTP method handlers
-
-#### Custom Route Paths and Folder Structure
-
-If you want to change the route path from the default `/api/gproxy` to a custom path (e.g., `/api/custom-proxy`), you need to:
+If you want to change the route path from the default `/api/gproxy` to a custom path:
 
 1. **Change the file location** to match your desired route
 2. **Update the basePath** in your Hono app configuration
@@ -212,37 +186,8 @@ import { honoCoreApp } from '@lehuygiang28/gemini-proxy-vercel';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Create custom app with custom base path
 const customApp = new Hono()
-    .basePath('/api/custom-proxy') // Changed from /api/gproxy
-    .route('/*', honoCoreApp);
-
-export const GET = handle(customApp);
-export const POST = handle(customApp);
-export const DELETE = handle(customApp);
-export const PATCH = handle(customApp);
-export const OPTIONS = handle(customApp);
-export const HEAD = handle(customApp);
-```
-
-**Example: Change to `/api/ai-proxy`**
-
-```typescript
-// src/app/api/ai-proxy/[[...slug]]/route.ts
-import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
-import { honoCoreApp } from '@lehuygiang28/gemini-proxy-vercel';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-const customApp = new Hono()
-    .basePath('/api/ai-proxy') // Custom base path
-    .use('*', async (c, next) => {
-        // Add custom middleware
-        console.log(`Request to ${c.req.path}`);
-        await next();
-    })
+    .basePath('/api/custom-proxy')
     .route('/*', honoCoreApp);
 
 export const GET = handle(customApp);
@@ -256,119 +201,62 @@ export const HEAD = handle(customApp);
 **Important Notes:**
 
 - **File Location Must Match Route**: The file path must match your desired API route
-  - For `/api/custom-proxy` → place file at `src/app/api/custom-proxy/[[...slug]]/route.ts`
-  - For `/api/ai-proxy` → place file at `src/app/api/ai-proxy/[[...slug]]/route.ts`
-
-- **Use `honoCoreApp` for Custom Paths**: The `honoVercelApp` is pre-configured with `/api/gproxy` base path, so use `honoCoreApp` for custom paths
-
+- **Use `honoCoreApp` for Custom Paths**: The `honoVercelApp` is pre-configured with `/api/gproxy` base path
 - **Update Client Configuration**: Remember to update your client-side code to use the new endpoint URLs
 
-**Updated Client Examples for Custom Paths:**
+## Development
 
-```typescript
-// For /api/custom-proxy
-const genAi = new GoogleGenAI({
-    apiKey: 'your_proxy_api_key',
-    httpOptions: {
-        baseUrl: 'https://your-vercel-app.vercel.app/api/custom-proxy/gemini',
-    },
-});
+### Local Development
 
-// For /api/ai-proxy
-const openai = new OpenAI({
-    apiKey: 'your_proxy_api_key',
-    baseURL: 'https://your-vercel-app.vercel.app/api/ai-proxy/openai/v1',
-});
+To develop and test the function locally:
+
+```bash
+# Start development server
+pnpm dev
+
+# Test health endpoint
+curl http://localhost:3000/api/gproxy/health
+
+# Test proxy endpoint
+curl -X POST http://localhost:3000/api/gproxy/v1beta/models/gemini-2.0-flash:generateContent \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-proxy-api-key" \
+  -d '{
+    "contents": [{"parts": [{"text": "Hello, world!"}]}]
+  }'
 ```
 
-**Default vs Custom Setup:**
+### Testing
 
-| Setup Type | File Location | Base Path | Use Case |
-|------------|---------------|-----------|----------|
-| **Basic Setup** | `src/app/api/gproxy/[[...slug]]/route.ts` | `/api/gproxy` (default) | Quick setup with default path |
-| **Custom Path** | `src/app/api/custom-proxy/[[...slug]]/route.ts` | `/api/custom-proxy` (custom) | Custom route names |
-| **Custom Path** | `src/app/api/ai-proxy/[[...slug]]/route.ts` | `/api/ai-proxy` (custom) | Custom route names |
+```bash
+# Test build
+pnpm build
 
-### Configuration Options
+# Test deployment (dry run)
+vercel --dry-run
+```
 
-The package automatically configures the base path to `/api/gproxy` and routes all requests to the core Gemini Proxy application. The following environment variables are required:
+## Usage
 
-#### Required Environment Variables
+### Endpoint URLs
 
-- `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
-- `GOOGLE_GEMINI_API_BASE_URL`: The base URL for the Google Gemini API
-- `GOOGLE_OPENAI_API_BASE_URL`: The base URL for the Google OpenAI-compatible API
+Your Vercel Function will be available at:
 
-#### Environment Variable Priority
+```
+https://your-vercel-app.vercel.app/api/gproxy/
+```
 
-The package automatically handles environment variable fallbacks:
+**Available endpoints:**
 
-- If `SUPABASE_URL` is not set, it will use `NEXT_PUBLIC_SUPABASE_URL`
-- This allows you to use the same environment variable for both client and server-side code
+- **Health Check:** `GET /health`
+- **Gemini API:** All Gemini API endpoints under `/`
+- **OpenAI-Compatible:** All OpenAI-compatible endpoints under `/openai/v1`
 
-### API Endpoints
+### Platform-Specific Examples
 
-The proxy supports **all Gemini API endpoints** by passing through all routes to the underlying Google Gemini API. This means you can use any endpoint that the official Gemini API supports.
+For detailed API endpoints and usage examples, see the [root README](../../README.md#api-endpoints) and [Usage Examples](../../README.md#usage-examples).
 
-#### Gemini API Format
-
-The proxy forwards all requests to the Gemini API under the `/api/gproxy/gemini/` path. Here are the most commonly used endpoints:
-
-**Content Generation:**
-
-- `POST /api/gproxy/gemini/v1beta/models/{model}:generateContent` - Generate content
-- `POST /api/gproxy/gemini/v1beta/models/{model}:streamGenerateContent` - Stream content
-- `POST /api/gproxy/gemini/v1beta/models/{model}:countTokens` - Count tokens
-
-**Models and Metadata:**
-
-- `GET /api/gproxy/gemini/v1beta/models` - List available models
-- `GET /api/gproxy/gemini/v1beta/models/{model}` - Get model information
-
-**Embeddings:**
-
-- `POST /api/gproxy/gemini/v1beta/models/{model}:embedContent` - Generate embeddings
-- `POST /api/gproxy/gemini/v1beta/models/{model}:batchEmbedContents` - Batch embeddings
-
-**For the complete list of all available endpoints, see the [official Gemini API documentation](https://ai.google.dev/api/all-methods).**
-
-#### OpenAI-Compatible Format
-
-The proxy also supports OpenAI-compatible endpoints under `/api/gproxy/openai/`:
-
-**Chat Completions:**
-
-- `POST /api/gproxy/openai/chat/completions` - Chat completions (streaming controlled via request body)
-
-**Text Completions:**
-
-- `POST /api/gproxy/openai/completions` - Text completions (streaming controlled via request body)
-
-**Models:**
-
-- `GET /api/gproxy/openai/models` - List available models
-
-**Embeddings:**
-
-- `POST /api/gproxy/openai/embeddings` - Generate embeddings
-
-**For the complete OpenAI-compatible API reference, see the [official documentation](https://ai.google.dev/gemini-api/docs/openai).**
-
-#### Dynamic Route Support
-
-Since the proxy uses catch-all routes (`[[...slug]]`), it automatically supports:
-
-- **All current Gemini API endpoints** without code changes
-- **Future Gemini API endpoints** as they become available
-- **Custom query parameters** and request bodies
-- **All HTTP methods** (GET, POST, PUT, DELETE, PATCH, etc.)
-
-**Note:** The proxy maintains full compatibility with the official Gemini API, so any endpoint, parameter, or feature available in the official API will work through the proxy without additional configuration.
-
-### Usage Examples
-
-#### Using with Google Generative AI SDK (Gemini Native API)
+**Vercel-specific client configuration:**
 
 ```typescript
 import { GoogleGenAI } from '@google/genai';
@@ -379,29 +267,7 @@ const genAi = new GoogleGenAI({
         baseUrl: 'https://your-vercel-app.vercel.app/api/gproxy/gemini',
     },
 });
-
-// 1. List available models
-const response = await genAi.models.list();
-console.log(response.page.map((m) => `${m.name} - ${m.version}`));
-
-// 2. Generate content
-const result = await genAi.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: 'Explain quantum computing in simple terms.',
-});
-console.log(result.candidates?.[0]?.content?.parts?.[0]?.text);
-
-// 3. Stream content generation
-const stream = await genAi.models.generateContentStream({
-    model: 'gemini-2.0-flash',
-    contents: 'Write a short story about a robot.',
-});
-for await (const chunk of stream) {
-    console.log(chunk.text);
-}
 ```
-
-#### Using with OpenAI-Compatible Clients
 
 ```typescript
 import OpenAI from 'openai';
@@ -410,64 +276,91 @@ const openai = new OpenAI({
     apiKey: 'your_proxy_api_key',
     baseURL: 'https://your-vercel-app.vercel.app/api/gproxy/openai',
 });
-
-// 1. Chat completions with streaming
-const chatCompletion = await openai.chat.completions.create({
-    model: 'gemini-2.5-pro',
-    messages: [{ role: 'user', content: 'Write a 100-word poem.' }],
-    stream: true,
-});
-
-for await (const chunk of chatCompletion) {
-    process.stdout.write(chunk.choices[0]?.delta?.content || '');
-}
-
-// 2. Regular chat completions
-const completion = await openai.chat.completions.create({
-    model: 'gemini-2.0-flash',
-    messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: 'What is the capital of France?' }
-    ],
-    max_completion_tokens: 100,
-    temperature: 0.7,
-});
-console.log(completion.choices[0].message.content);
-
-// 3. Text embeddings
-const embedding = await openai.embeddings.create({
-    model: 'text-embedding-004',
-    input: 'This is a sample text for embedding.',
-    encoding_format: 'float'
-});
-console.log(embedding.data[0].embedding);
 ```
 
-#### More Examples
+## Troubleshooting
 
-For more detailed and runnable examples, see the [examples folder](../../examples/) in the repository:
+### Common Issues
 
-- **`google-genai.example.ts`** - Complete Google Generative AI SDK examples including function calling
-- **`openai.example.ts`** - OpenAI-compatible API examples with streaming
-- **`ai-sdk.example.ts`** - Vercel AI SDK integration examples
+1. **Function Not Found:**
+   - Ensure the API route file is in the correct location
+   - Check that the file exports the correct HTTP methods
+   - Verify the runtime and dynamic exports are set correctly
 
-These examples show working code patterns and can be run directly to test the proxy functionality.
+2. **Environment Variables Not Set:**
+   - Use `vercel env ls` to check current environment variables
+   - Set missing variables: `vercel env add VARIABLE_NAME`
 
-### Error Handling
+3. **CORS Errors:**
+   - Configure CORS settings in your Vercel project
+   - Ensure your application is making requests from allowed origins
 
-The package includes built-in error handling for common scenarios:
+4. **Function Timeout:**
+   - Vercel Edge Functions have a 30-second timeout limit
+   - Consider optimizing request handling for long-running operations
 
-- Invalid API keys
-- Missing environment variables
-- Malformed requests
-- Network errors
+### Debugging
 
-All errors are logged and returned with appropriate HTTP status codes.
+1. **Check function logs:**
 
-### Monitoring and Logging
+   ```bash
+   vercel logs
+   ```
 
-The package automatically logs all requests and responses. You can monitor your proxy usage through:
+2. **Test function locally:**
 
-- Vercel Analytics
-- Supabase logs (if configured)
-- Application logs in Vercel dashboard
+   ```bash
+   vercel dev
+   # Test with real environment variables
+   ```
+
+3. **Verify configuration:**
+
+   ```bash
+   # Check environment variables
+   vercel env ls
+   
+   # Check deployment status
+   vercel ls
+   ```
+
+## Project Structure
+
+```
+packages/vercel/
+├── src/
+│   ├── index.ts          # Main exports
+│   └── route.ts          # Route handlers
+├── package.json          # Dependencies and scripts
+├── tsconfig.json         # TypeScript configuration
+├── tsup.config.ts        # Build configuration
+└── README.md            # This file
+```
+
+### Key Files
+
+- `src/index.ts`: Main exports for the package
+- `src/route.ts`: Route handlers for Next.js API routes
+- `package.json`: Project dependencies and build scripts
+- `tsup.config.ts`: Build configuration for the package
+
+## References
+
+- **Vercel Documentation:**
+  - [Edge Functions](https://vercel.com/docs/functions/edge-functions)
+  - [Environment Variables](https://vercel.com/docs/projects/environment-variables)
+  - [API Routes](https://nextjs.org/docs/api-routes/introduction)
+
+- **Gemini API Documentation:**
+  - [Official Gemini API](https://ai.google.dev/gemini-api/docs)
+  - [OpenAI-Compatible API](https://ai.google.dev/gemini-api/docs/openai)
+
+- **Related Packages:**
+  - [Core Package](../core/README.md) - Core business logic
+  - [CLI Package](../cli/README.md) - Command-line management tools
+  - [Database Package](../database/README.md) - Database schema and types
+
+- **Common Information:**
+  - [Environment Variables](../../README.md#environment-variables) - All required and optional variables
+  - [API Endpoints](../../README.md#api-endpoints) - Complete API reference
+  - [Usage Examples](../../README.md#usage-examples) - Code examples for all clients
