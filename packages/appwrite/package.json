@@ -1,0 +1,28 @@
+{
+    "name": "@lehuygiang28/gemini-proxy-appwrite",
+    "version": "0.0.1-beta.0.0.1",
+    "description": "Appwrite functions proxy for Gemini Proxy service",
+    "main": "dist/main.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "clean": "rm -rf dist",
+        "deploy": "pnpm run build && npx appwrite-cli push functions"
+    },
+    "peerDependencies": {
+        "node-appwrite": ">=14.2.0"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.55.0",
+        "@vercel/functions": "^2.2.12",
+        "hono": "^4.0.0",
+        "parse-json": "^8.3.0",
+        "uuid": "^11.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.16",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "projectId": "68a3f41c001158c63f48",
+    "endpoint": "https://nyc.cloud.appwrite.io/v1",
+    "projectName": "giaang",
+    "functions": [
+        {
+            "$id": "gemini-proxy-appwrite",
+            "execute": ["any"],
+            "name": "gemini-proxy-appwrite",
+            "enabled": true,
+            "logging": true,
+            "runtime": "node-22",
+            "scopes": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 60,
+            "commands": "pnpm install --prod",
+            "specification": "s-0.5vcpu-512mb",
+            "path": ".",
+            "entrypoint": "dist/main.js"
+        }
+    ]
+}

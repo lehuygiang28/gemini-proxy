@@ -167,6 +167,40 @@ importers:
         specifier: ^5.9.2
         version: 5.9.2
 
+  packages/appwrite:
+    dependencies:
+      '@gemini-proxy/core':
+        specifier: workspace:*
+        version: link:../core
+      '@supabase/supabase-js':
+        specifier: ^2.55.0
+        version: 2.55.0
+      '@vercel/functions':
+        specifier: ^2.2.12
+        version: 2.2.12
+      hono:
+        specifier: ^4.0.0
+        version: 4.9.2
+      node-appwrite:
+        specifier: '>=14.2.0'
+        version: 18.0.0
+      parse-json:
+        specifier: ^8.3.0
+        version: 8.3.0
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.16
+        version: 20.19.11
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(postcss@8.5.6)(tsx@4.20.4)(typescript@5.9.2)
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+
   packages/cli:
     dependencies:
       '@gemini-proxy/database':
@@ -178,9 +212,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.55.0
         version: 2.55.0
-      ansi-regex:
-        specifier: 6.2.0
-        version: 6.2.0
       commander:
         specifier: ^12.0.0
         version: 12.1.0
@@ -4134,6 +4165,9 @@ packages:
   no-case@2.3.2:
     resolution: {integrity: sha512-rmTZ9kz+f3rCvK2TD1Ue/oZlns7OGoIWP4fc3llxxRXlOkHKoWPPWJOfFYpITabSow43QJbRIoHQXtt10VldyQ==}
 
+  node-appwrite@18.0.0:
+    resolution: {integrity: sha512-2S0T17H2Gm5ZcdInCmHk8Pc8P6mKW8cDCoSBNF3PYGxbKjT51V/HY/2n6IPRqk2HrHPySmx3JIMN+V6QBprqAw==}
+
   node-dir@0.1.17:
     resolution: {integrity: sha512-tmPX422rYgofd4epzrNoOXiE8XFZYOcCq1vD7MAXCDO+O+zndlA2ztdKKMa+EeuBG5tHETpr4ml4RGgpqDCCAg==}
     engines: {node: '>= 0.10.5'}
@@ -4145,6 +4179,9 @@ packages:
   node-env-type@0.0.8:
     resolution: {integrity: sha512-EXyxUOlwkuoMm6QHgX3zw06tY6NNpXm3Akf9n1zPUX8UD08FTXBQ9gcS0EWbuSPYqtxMneP72QgdPlLFrn2SpA==}
     engines: {node: '>=6'}
+
+  node-fetch-native-with-agent@1.7.2:
+    resolution: {integrity: sha512-5MaOOCuJEvcckoz7/tjdx1M6OusOY6Xc5f459IaruGStWnKzlI1qpNgaAwmn4LmFYcsSlj+jBMk84wmmRxfk5g==}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -10149,6 +10186,10 @@ snapshots:
     dependencies:
       lower-case: 1.1.4
 
+  node-appwrite@18.0.0:
+    dependencies:
+      node-fetch-native-with-agent: 1.7.2
+
   node-dir@0.1.17:
     dependencies:
       minimatch: 3.1.2
@@ -10161,6 +10202,8 @@ snapshots:
       skin-tone: 2.0.0
 
   node-env-type@0.0.8: {}
+
+  node-fetch-native-with-agent@1.7.2: {}
 
   node-fetch@2.7.0:
     dependencies:
