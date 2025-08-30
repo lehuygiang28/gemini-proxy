@@ -6,17 +6,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Validate required env vars
+const projectId = process.env.SUPABASE_PROJECT_ID;
 const dbPassword = process.env.SUPABASE_DB_PASSWORD;
 
 if (!dbPassword) {
-    console.error('Missing SUPABASE_DB_PASSWORD in environment. Please run "supabase link" first or set the variable.');
+    console.error(
+        'Missing SUPABASE_DB_PASSWORD in environment. Please run "supabase link" first or set the variable.',
+    );
     process.exit(1);
 }
 
-const supabaseArgs = [
-    'db',
-    'push',
-];
+if (!projectId) {
+    console.error(
+        'Missing SUPABASE_PROJECT_ID in environment. Please run "supabase init" first or set the variable.',
+    );
+    process.exit(1);
+}
+
+const supabaseArgs = ['db', 'push'];
 
 console.log('Pushing database schema to Supabase...');
 // Build a cross-platform shell command to avoid Windows spawn EINVAL issues

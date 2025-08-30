@@ -1,90 +1,111 @@
--- Gemini Proxy Database Schema
--- PostgreSQL schema for Supabase
-
--- Enable UUID extension
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- API Keys table - stores Gemini API keys
+-- API Keys table - stores Google AI Studio API keys
 CREATE TABLE IF NOT EXISTS api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     api_key_value TEXT NOT NULL,
-    provider TEXT NOT NULL DEFAULT 'gemini',
+    provider TEXT NOT NULL DEFAULT 'googleaistudio' CHECK (provider IN ('googleaistudio')),
     is_active BOOLEAN NOT NULL DEFAULT true,
-    success_count INT NOT NULL DEFAULT 0,
-    failure_count INT NOT NULL DEFAULT 0,
+    success_count BIGINT NOT NULL DEFAULT 0,
+    failure_count BIGINT NOT NULL DEFAULT 0,
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, name)
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, name),
+    CONSTRAINT api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
+    CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10)
 );
 
--- Proxy API Keys table
+-- Proxy API Keys table - stores proxy access keys
 CREATE TABLE IF NOT EXISTS proxy_api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    key_id TEXT NOT NULL,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    proxy_key_value TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
-    success_count INT NOT NULL DEFAULT 0,
-    failure_count INT NOT NULL DEFAULT 0,
-    prompt_tokens INT NOT NULL DEFAULT 0,
-    completion_tokens INT NOT NULL DEFAULT 0,
-    total_tokens INT NOT NULL DEFAULT 0,
+    success_count BIGINT NOT NULL DEFAULT 0,
+    failure_count BIGINT NOT NULL DEFAULT 0,
+    prompt_tokens BIGINT NOT NULL DEFAULT 0,
+    completion_tokens BIGINT NOT NULL DEFAULT 0,
+    total_tokens BIGINT NOT NULL DEFAULT 0,
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, key_id)
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT proxy_api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
+    CONSTRAINT proxy_api_keys_proxy_key_value_length CHECK (char_length(proxy_key_value) >= 10)
 );
 
--- Request Logs table
+-- Request Logs table - stores detailed request logs
 CREATE TABLE IF NOT EXISTS request_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    proxy_key_id TEXT,
-    api_key_id TEXT NOT NULL,
+    proxy_key_id UUID REFERENCES proxy_api_keys(id) ON DELETE SET NULL,
+    api_key_id UUID REFERENCES api_keys(id) ON DELETE SET NULL,
     request_id TEXT NOT NULL UNIQUE,
-    api_format TEXT NOT NULL DEFAULT 'gemini',
+    api_format TEXT NOT NULL DEFAULT 'gemini' CHECK (api_format IN ('gemini', 'openai')),
     request_data JSONB NOT NULL,
     response_data JSONB,
-    retry_attempts JSONB DEFAULT '[]',
+    retry_attempts JSONB NOT NULL DEFAULT '[]',
     is_successful BOOLEAN NOT NULL DEFAULT false,
     error_details JSONB,
     usage_metadata JSONB,
-    performance_metrics JSONB DEFAULT '{}',
+    performance_metrics JSONB NOT NULL DEFAULT '{}',
     is_stream BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT request_logs_request_id_length CHECK (char_length(request_id) >= 1 AND char_length(request_id) <= 255)
 );
 
 -- Create indexes for better performance
+-- API Keys indexes
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_provider ON api_keys(provider);
 CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active);
+CREATE INDEX IF NOT EXISTS idx_api_keys_last_used_at ON api_keys(last_used_at) WHERE last_used_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_api_keys_created_at ON api_keys(created_at);
 
+-- Proxy API Keys indexes
 CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_user_id ON proxy_api_keys(user_id);
-CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_key_id ON proxy_api_keys(key_id);
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_proxy_key_value ON proxy_api_keys(proxy_key_value);
 CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_active ON proxy_api_keys(is_active);
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_last_used_at ON proxy_api_keys(last_used_at) WHERE last_used_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_created_at ON proxy_api_keys(created_at);
 
+-- Request Logs indexes
 CREATE INDEX IF NOT EXISTS idx_request_logs_user_id ON request_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_request_logs_request_id ON request_logs(request_id);
 CREATE INDEX IF NOT EXISTS idx_request_logs_created_at ON request_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_request_logs_api_key_id ON request_logs(api_key_id);
+CREATE INDEX IF NOT EXISTS idx_request_logs_proxy_key_id ON request_logs(proxy_key_id) WHERE proxy_key_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_request_logs_is_successful ON request_logs(is_successful);
+CREATE INDEX IF NOT EXISTS idx_request_logs_api_format ON request_logs(api_format);
+CREATE INDEX IF NOT EXISTS idx_request_logs_created_at_desc ON request_logs(created_at DESC);
 
--- Create updated_at trigger function
+-- Composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_request_logs_user_created_at ON request_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_request_logs_api_key_created_at ON request_logs(api_key_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_user_active ON proxy_api_keys(user_id, is_active);
+
+-- Updated timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = 'public', pg_catalog
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$;
 
--- Create triggers for updated_at
+-- Triggers for automatic updated_at maintenance
 CREATE TRIGGER update_api_keys_updated_at 
     BEFORE UPDATE ON api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -93,89 +114,64 @@ CREATE TRIGGER update_proxy_api_keys_updated_at
     BEFORE UPDATE ON proxy_api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Row Level Security (RLS) policies
+-- Row Level Security (RLS)
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
 
--- API Keys policies - users can only access their own keys, service role can access all
+-- RLS policies using subqueries to avoid re-evaluation
 CREATE POLICY "Users can manage their own api_keys" ON api_keys
-    FOR ALL USING (auth.uid() = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (
+        user_id = (SELECT auth.uid()) OR 
+        (SELECT auth.role()) = 'service_role'
+    );
 
--- Proxy API Keys policies - users can only access their own proxy keys, service role can access all
 CREATE POLICY "Users can manage their own proxy_api_keys" ON proxy_api_keys
-    FOR ALL USING (auth.uid() = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (
+        user_id = (SELECT auth.uid()) OR 
+        (SELECT auth.role()) = 'service_role'
+    );
 
--- Request Logs policies - users can only access their own logs, service role can access all
 CREATE POLICY "Users can view their own request_logs" ON request_logs
-    FOR SELECT USING (auth.uid() = user_id OR auth.role() = 'service_role');
+    FOR SELECT USING (
+        user_id = (SELECT auth.uid()) OR 
+        (SELECT auth.role()) = 'service_role'
+    );
 
 CREATE POLICY "Service role can insert request_logs" ON request_logs
-    FOR INSERT WITH CHECK (auth.role() = 'service_role');
+    FOR INSERT WITH CHECK ((SELECT auth.role()) = 'service_role');
 
 CREATE POLICY "Service role can update request_logs" ON request_logs
-    FOR UPDATE USING (auth.role() = 'service_role');
+    FOR UPDATE USING ((SELECT auth.role()) = 'service_role');
 
--- Sample data insertion functions (for testing)
-
--- Function to insert a sample API key
-CREATE OR REPLACE FUNCTION insert_sample_api_key(
-    p_user_id UUID,
-    p_name TEXT,
-    p_api_key_value TEXT
-) RETURNS UUID AS $$
+-- Cleanup function for old logs
+CREATE OR REPLACE FUNCTION cleanup_old_request_logs(p_days_to_keep INTEGER DEFAULT 90)
+RETURNS BIGINT 
+LANGUAGE plpgsql
+SET search_path = 'public', pg_catalog
+AS $$
 DECLARE
-    key_id UUID;
+    deleted_count BIGINT;
 BEGIN
-    INSERT INTO api_keys (user_id, name, api_key_value, provider, is_active, metadata)
-    VALUES (
-        p_user_id,
-        p_name,
-        p_api_key_value,
-        'gemini',
-        true,
-        jsonb_build_object(
-            'totalUsage', 0,
-            'errorCount', 0
-        )
-    ) RETURNING id INTO key_id;
+    DELETE FROM request_logs 
+    WHERE created_at < NOW() - INTERVAL '1 day' * p_days_to_keep;
     
-    RETURN key_id;
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Function to insert a sample proxy API key
-CREATE OR REPLACE FUNCTION insert_sample_proxy_key(
-    p_user_id UUID,
-    p_key_id TEXT,
-    p_name TEXT
-) RETURNS UUID AS $$
-DECLARE
-    proxy_key_id UUID;
-BEGIN
-    INSERT INTO proxy_api_keys (user_id, key_id, name, is_active, metadata)
-    VALUES (
-        p_user_id,
-        p_key_id,
-        p_name,
-        true,
-        jsonb_build_object(
-            'description', 'Sample proxy key',
-            'totalRequests', 0
-        )
-    ) RETURNING id INTO proxy_key_id;
-    
-    RETURN proxy_key_id;
-END;
-$$ LANGUAGE plpgsql;
+-- Documentation comments
+COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
+COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
+COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests with performance metrics';
 
--- Comments for documentation
-COMMENT ON TABLE api_keys IS 'Stores Gemini API keys with usage metadata';
-COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication';
-COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests';
-
-COMMENT ON COLUMN api_keys.metadata IS 'JSON object containing usage statistics and error tracking';
+COMMENT ON COLUMN api_keys.provider IS 'API provider: googleaistudio, gemini, or openai';
+COMMENT ON COLUMN api_keys.metadata IS 'JSON object containing usage statistics, error tracking, and custom metadata';
+COMMENT ON COLUMN proxy_api_keys.proxy_key_value IS 'Unique proxy key value used for client authentication';
 COMMENT ON COLUMN proxy_api_keys.metadata IS 'JSON object containing additional metadata and usage information';
+COMMENT ON COLUMN request_logs.proxy_key_id IS 'Reference to proxy_api_keys table (nullable for backward compatibility)';
+COMMENT ON COLUMN request_logs.api_key_id IS 'Reference to api_keys table';
 COMMENT ON COLUMN request_logs.request_data IS 'JSON object containing original request details';
 COMMENT ON COLUMN request_logs.response_data IS 'JSON object containing response details (if successful)';
 COMMENT ON COLUMN request_logs.retry_attempts IS 'Array of retry attempts with error details';

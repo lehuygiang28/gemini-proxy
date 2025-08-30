@@ -11,190 +11,182 @@ export type Database = {
             api_keys: {
                 Row: {
                     api_key_value: string;
-                    created_at: string | null;
+                    created_at: string;
                     failure_count: number;
                     id: string;
                     is_active: boolean;
                     last_error_at: string | null;
                     last_used_at: string | null;
-                    metadata: Json | null;
+                    metadata: Json;
                     name: string;
                     provider: string;
                     success_count: number;
-                    updated_at: string | null;
-                    user_id: string | null;
+                    updated_at: string;
+                    user_id: string;
                 };
                 Insert: {
                     api_key_value: string;
-                    created_at?: string | null;
+                    created_at?: string;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
-                    metadata?: Json | null;
+                    metadata?: Json;
                     name: string;
                     provider?: string;
                     success_count?: number;
-                    updated_at?: string | null;
-                    user_id?: string | null;
+                    updated_at?: string;
+                    user_id: string;
                 };
                 Update: {
                     api_key_value?: string;
-                    created_at?: string | null;
+                    created_at?: string;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
-                    metadata?: Json | null;
+                    metadata?: Json;
                     name?: string;
                     provider?: string;
                     success_count?: number;
-                    updated_at?: string | null;
-                    user_id?: string | null;
+                    updated_at?: string;
+                    user_id?: string;
                 };
                 Relationships: [];
             };
             proxy_api_keys: {
                 Row: {
                     completion_tokens: number;
-                    created_at: string | null;
+                    created_at: string;
                     failure_count: number;
                     id: string;
                     is_active: boolean;
-                    key_id: string;
                     last_error_at: string | null;
                     last_used_at: string | null;
-                    metadata: Json | null;
+                    metadata: Json;
                     name: string;
                     prompt_tokens: number;
+                    proxy_key_value: string;
                     success_count: number;
                     total_tokens: number;
-                    updated_at: string | null;
-                    user_id: string | null;
+                    updated_at: string;
+                    user_id: string;
                 };
                 Insert: {
                     completion_tokens?: number;
-                    created_at?: string | null;
+                    created_at?: string;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
-                    key_id: string;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
-                    metadata?: Json | null;
+                    metadata?: Json;
                     name: string;
                     prompt_tokens?: number;
+                    proxy_key_value: string;
                     success_count?: number;
                     total_tokens?: number;
-                    updated_at?: string | null;
-                    user_id?: string | null;
+                    updated_at?: string;
+                    user_id: string;
                 };
                 Update: {
                     completion_tokens?: number;
-                    created_at?: string | null;
+                    created_at?: string;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
-                    key_id?: string;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
-                    metadata?: Json | null;
+                    metadata?: Json;
                     name?: string;
                     prompt_tokens?: number;
+                    proxy_key_value?: string;
                     success_count?: number;
                     total_tokens?: number;
-                    updated_at?: string | null;
-                    user_id?: string | null;
+                    updated_at?: string;
+                    user_id?: string;
                 };
                 Relationships: [];
             };
             request_logs: {
                 Row: {
                     api_format: string;
-                    api_key_id: string;
-                    created_at: string | null;
+                    api_key_id: string | null;
+                    created_at: string;
                     error_details: Json | null;
                     id: string;
                     is_stream: boolean;
                     is_successful: boolean;
-                    performance_metrics: Json | null;
+                    performance_metrics: Json;
                     proxy_key_id: string | null;
                     request_data: Json;
                     request_id: string;
                     response_data: Json | null;
-                    retry_attempts: Json | null;
+                    retry_attempts: Json;
                     usage_metadata: Json | null;
                     user_id: string | null;
                 };
                 Insert: {
                     api_format?: string;
-                    api_key_id: string;
-                    created_at?: string | null;
+                    api_key_id?: string | null;
+                    created_at?: string;
                     error_details?: Json | null;
                     id?: string;
                     is_stream?: boolean;
                     is_successful?: boolean;
-                    performance_metrics?: Json | null;
+                    performance_metrics?: Json;
                     proxy_key_id?: string | null;
                     request_data: Json;
                     request_id: string;
                     response_data?: Json | null;
-                    retry_attempts?: Json | null;
+                    retry_attempts?: Json;
                     usage_metadata?: Json | null;
                     user_id?: string | null;
                 };
                 Update: {
                     api_format?: string;
-                    api_key_id?: string;
-                    created_at?: string | null;
+                    api_key_id?: string | null;
+                    created_at?: string;
                     error_details?: Json | null;
                     id?: string;
                     is_stream?: boolean;
                     is_successful?: boolean;
-                    performance_metrics?: Json | null;
+                    performance_metrics?: Json;
                     proxy_key_id?: string | null;
                     request_data?: Json;
                     request_id?: string;
                     response_data?: Json | null;
-                    retry_attempts?: Json | null;
+                    retry_attempts?: Json;
                     usage_metadata?: Json | null;
                     user_id?: string | null;
                 };
-                Relationships: [];
+                Relationships: [
+                    {
+                        foreignKeyName: 'request_logs_api_key_id_fkey';
+                        columns: ['api_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'api_keys';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'request_logs_proxy_key_id_fkey';
+                        columns: ['proxy_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'proxy_api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
             };
         };
         Views: {
             [_ in never]: never;
         };
         Functions: {
-            insert_sample_api_key: {
-                Args: { p_api_key_value: string; p_name: string; p_user_id: string };
-                Returns: string;
-            };
-            insert_sample_proxy_key: {
-                Args: { p_key_id: string; p_name: string; p_user_id: string };
-                Returns: string;
-            };
-            update_api_key_usage: {
-                Args: {
-                    p_api_key_id: string;
-                    p_failure_count: number;
-                    p_success_count: number;
-                };
-                Returns: undefined;
-            };
-            update_proxy_api_key_usage: {
-                Args: {
-                    p_completion_tokens: number;
-                    p_failure_count: number;
-                    p_prompt_tokens: number;
-                    p_proxy_api_key_id: string;
-                    p_success_count: number;
-                    p_total_tokens: number;
-                };
-                Returns: undefined;
+            cleanup_old_request_logs: {
+                Args: { p_days_to_keep?: number };
+                Returns: number;
             };
         };
         Enums: {
