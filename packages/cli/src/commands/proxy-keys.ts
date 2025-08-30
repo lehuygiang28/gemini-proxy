@@ -62,7 +62,7 @@ export function proxyKeysCommands(program: Command) {
         .command('create')
         .description('Create a new proxy API key')
         .option('-n, --name <name>', 'Proxy key name')
-        .option('-k, --key-id <keyId>', 'Custom key ID (auto-generated if not provided)')
+        .option('-k, --key-value <keyValue>', 'Custom key value (auto-generated if not provided)')
         .option('-u, --user-id <userId>', 'User ID')
         .option('-q, --quick', 'Quick mode with minimal prompts')
         .action(async (options) => {
@@ -79,16 +79,16 @@ export function proxyKeysCommands(program: Command) {
                 },
             });
 
-            const keyId = await input({
-                message: 'Enter custom key ID (leave empty for auto-generation):',
-                default: options.keyId || ProxyKeysManager.generateKeyId(),
+            const keyValue = await input({
+                message: 'Enter custom key value (leave empty for auto-generation):',
+                default: options.keyValue || ProxyKeysManager.generateKeyId(),
                 validate: (input: string) => {
                     if (!input.trim()) return true; // Auto-generation
                     try {
-                        Validation.validateProxyKeyId(input);
+                        Validation.validateProxyKeyValue(input);
                         return true;
                     } catch (error) {
-                        return error instanceof Error ? error.message : 'Invalid key ID';
+                        return error instanceof Error ? error.message : 'Invalid key value';
                     }
                 },
             });
@@ -114,7 +114,7 @@ export function proxyKeysCommands(program: Command) {
             try {
                 const proxyKey = await ProxyKeysManager.create({
                     name: name,
-                    key_id: keyId,
+                    proxy_key_value: keyValue,
                     user_id: userId || null,
                     is_active: true,
                     success_count: 0,
@@ -128,8 +128,8 @@ export function proxyKeysCommands(program: Command) {
                 console.log('\n' + colors.green('Created Proxy API Key:'));
                 console.log(ProxyKeysManager.formatProxyKey(proxyKey));
                 console.log(
-                    colors.cyan('\nUse this key ID in your API requests:'),
-                    colors.bold(proxyKey.key_id),
+                    colors.cyan('\nUse this key value in your API requests:'),
+                    colors.bold(proxyKey.proxy_key_value),
                 );
             } catch (error) {
                 spinner.fail('Failed to create proxy API key');
@@ -284,7 +284,9 @@ export function proxyKeysCommands(program: Command) {
                 // Find keys to create or update
                 for (const envKey of envKeys) {
                     const existingKey = existingKeys.find(
-                        (dbKey) => dbKey.key_id === envKey.key_id || dbKey.name === envKey.name,
+                        (dbKey) =>
+                            dbKey.proxy_key_value === envKey.proxy_key_value ||
+                            dbKey.name === envKey.name,
                     );
 
                     if (!existingKey) {
@@ -297,7 +299,9 @@ export function proxyKeysCommands(program: Command) {
                 // Find keys to delete
                 for (const dbKey of existingKeys) {
                     const envKey = envKeys.find(
-                        (envKey) => envKey.key_id === dbKey.key_id || envKey.name === dbKey.name,
+                        (envKey) =>
+                            envKey.proxy_key_value === dbKey.proxy_key_value ||
+                            envKey.name === dbKey.name,
                     );
 
                     if (!envKey) {
@@ -345,18 +349,28 @@ export function proxyKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
+                    // Get first user for proxy key assignment
+                    const { UsersManager } = await import('../lib/users');
+                    const firstUser = await UsersManager.getFirstUser();
+                    if (!firstUser) {
+                        throw new Error(
+                            'No users found in the database. Please create a user first.',
+                        );
+                    }
+
                     // Create new keys in batch
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new proxy API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({
                             name: envKey.name,
-                            key_id: envKey.key_id,
+                            proxy_key_value: envKey.proxy_key_value,
                             is_active: true,
                             success_count: 0,
                             failure_count: 0,
                             prompt_tokens: 0,
                             completion_tokens: 0,
                             total_tokens: 0,
+                            user_id: firstUser.id,
                         }));
                         await ProxyKeysManager.bulkCreate(createData);
                     }
@@ -393,13 +407,13 @@ export function proxyKeysCommands(program: Command) {
             }
         });
 
-    // Generate new key ID
+    // Generate new key value
     proxyKeys
-        .command('generate-id')
-        .description('Generate a new key ID')
+        .command('generate-value')
+        .description('Generate a new key value')
         .action(() => {
-            const keyId = ProxyKeysManager.generateKeyId();
-            console.log(colors.green('Generated Key ID:'), colors.bold(keyId));
+            const keyValue = ProxyKeysManager.generateKeyId();
+            console.log(colors.green('Generated Key Value:'), colors.bold(keyValue));
         });
 
     // Legacy commands for backward compatibility
@@ -428,7 +442,7 @@ export function proxyKeysCommands(program: Command) {
         .command('update <id>')
         .description('Update a proxy API key')
         .option('-n, --name <name>', 'New name')
-        .option('-k, --key-id <keyId>', 'New key ID')
+        .option('-k, --key-value <keyValue>', 'New key value')
         .action(async (id, options) => {
             const current = await ProxyKeysManager.getById(id);
             if (!current) {
@@ -440,16 +454,16 @@ export function proxyKeysCommands(program: Command) {
                 default: options.name || current.name,
             });
 
-            const keyId = await input({
-                message: 'Enter new key ID:',
-                default: options.keyId || current.key_id,
+            const keyValue = await input({
+                message: 'Enter new key value:',
+                default: options.keyValue || current.proxy_key_value,
             });
 
             const spinner = ora('Updating proxy API key...').start();
             try {
                 const proxyKey = await ProxyKeysManager.update(id, {
                     name: name,
-                    key_id: keyId,
+                    proxy_key_value: keyValue,
                 });
                 spinner.succeed('Proxy API key updated successfully');
                 console.log('\n' + colors.green('Updated Proxy API Key:'));
@@ -552,16 +566,16 @@ async function editProxyKey(proxyKey: any) {
         default: proxyKey.name,
     });
 
-    const keyId = await input({
-        message: 'Enter new key ID:',
-        default: proxyKey.key_id,
+    const keyValue = await input({
+        message: 'Enter new key value:',
+        default: proxyKey.proxy_key_value,
     });
 
     const spinner = ora('Updating proxy API key...').start();
     try {
         const updatedKey = await ProxyKeysManager.update(proxyKey.id, {
             name: name,
-            key_id: keyId,
+            proxy_key_value: keyValue,
         });
         spinner.succeed('Proxy API key updated successfully');
         console.log('\n' + colors.green('Updated Proxy API Key:'));

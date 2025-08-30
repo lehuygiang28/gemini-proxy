@@ -26,22 +26,22 @@ export class Validation {
     static validateProvider(provider: string): void {
         ErrorHandler.validateRequired(provider, 'Provider');
 
-        const validProviders = ['gemini'];
+        const validProviders = ['googleaistudio'];
         if (!validProviders.includes(provider.toLowerCase())) {
             throw ErrorHandler.createError(`Provider must be: ${validProviders.join(', ')}`);
         }
     }
 
-    static validateProxyKeyId(keyId: string): void {
-        ErrorHandler.validateRequired(keyId, 'Proxy key ID');
+    static validateProxyKeyValue(keyValue: string): void {
+        ErrorHandler.validateRequired(keyValue, 'Proxy key value');
 
-        if (keyId.length < 5 || keyId.length > 50) {
-            throw ErrorHandler.createError('Proxy key ID must be between 5 and 50 characters');
+        if (keyValue.length < 5 || keyValue.length > 50) {
+            throw ErrorHandler.createError('Proxy key value must be between 5 and 50 characters');
         }
 
-        if (!/^[a-zA-Z0-9\-_]+$/.test(keyId)) {
+        if (!/^[a-zA-Z0-9\-_]+$/.test(keyValue)) {
             throw ErrorHandler.createError(
-                'Proxy key ID can only contain letters, numbers, hyphens, and underscores',
+                'Proxy key value can only contain letters, numbers, hyphens, and underscores',
             );
         }
     }

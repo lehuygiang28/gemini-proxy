@@ -14,7 +14,7 @@ export interface ProxyApiKeyExport {
     exported_at: string;
     proxy_api_keys: Array<{
         name: string;
-        key_id: string;
+        proxy_key_value: string;
         is_active: boolean;
         metadata?: any;
     }>;
@@ -135,7 +135,9 @@ export class ProxyKeysManager {
     }
 
     static async bulkCreate(
-        proxyKeysData: Array<Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'>>,
+        proxyKeysData: Array<
+            Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'> & { user_id?: string }
+        >,
     ): Promise<ProxyApiKey[]> {
         if (proxyKeysData.length === 0) return [];
 
@@ -219,7 +221,7 @@ export class ProxyKeysManager {
             exported_at: new Date().toISOString(),
             proxy_api_keys: proxyKeys.map((key) => ({
                 name: key.name,
-                key_id: key.key_id,
+                proxy_key_value: key.proxy_key_value,
                 is_active: key.is_active,
                 metadata: key.metadata,
             })),
@@ -250,6 +252,12 @@ export class ProxyKeysManager {
         const existingKeys = await this.list();
         const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
+        // Get first user for proxy key assignment
+        const firstUser = await UsersManager.getFirstUser();
+        if (!firstUser) {
+            throw new Error('No users found in the database. Please create a user first.');
+        }
+
         // Prepare batch operations
         const keysToCreate: Array<Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
         const keysToUpdate: Array<{ id: string; updates: Partial<ProxyApiKeyUpdate> }> = [];
@@ -257,9 +265,11 @@ export class ProxyKeysManager {
         // Analyze import data
         for (const importKey of importData.proxy_api_keys) {
             try {
-                // Check for existing key by name or key_id
+                // Check for existing key by name or proxy_key_value
                 const existingKey = existingKeys.find(
-                    (key) => key.name === importKey.name || key.key_id === importKey.key_id,
+                    (key) =>
+                        key.name === importKey.name ||
+                        key.proxy_key_value === importKey.proxy_key_value,
                 );
 
                 if (existingKey) {
@@ -274,7 +284,7 @@ export class ProxyKeysManager {
                                 id: existingKey.id,
                                 updates: {
                                     name: importKey.name,
-                                    key_id: importKey.key_id,
+                                    proxy_key_value: importKey.proxy_key_value,
                                     is_active: importKey.is_active,
                                     metadata: importKey.metadata,
                                 },
@@ -288,9 +298,10 @@ export class ProxyKeysManager {
                     if (!options.dryRun) {
                         keysToCreate.push({
                             name: importKey.name,
-                            key_id: importKey.key_id,
+                            proxy_key_value: importKey.proxy_key_value,
                             is_active: importKey.is_active,
                             metadata: importKey.metadata,
+                            user_id: firstUser.id,
                         });
                     }
                     results.created++;
@@ -349,7 +360,7 @@ export class ProxyKeysManager {
         return `
         ${colors.bold(proxyKey.name)} ${status}
   ID: ${proxyKey.id}
-  Key ID: ${proxyKey.key_id}
+  Proxy Key Value: ${proxyKey.proxy_key_value}
   Success: ${proxyKey.success_count} | Failures: ${proxyKey.failure_count}
   Tokens: ${proxyKey.prompt_tokens} prompt + ${proxyKey.completion_tokens} completion = ${proxyKey.total_tokens} total
   Created: ${new Date(proxyKey.created_at!).toLocaleDateString()}
@@ -358,6 +369,6 @@ export class ProxyKeysManager {
 
     static formatProxyKeyCompact(proxyKey: ProxyApiKey): string {
         const status = proxyKey.is_active ? colors.green('●') : colors.red('●');
-        return `${status} ${proxyKey.name} (${proxyKey.key_id})`;
+        return `${status} ${proxyKey.name} (${proxyKey.proxy_key_value})`;
     }
 }

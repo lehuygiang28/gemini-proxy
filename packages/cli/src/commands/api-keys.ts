@@ -10,7 +10,10 @@ import { Logger } from '../lib/logger';
 import { join } from 'node:path';
 
 export function apiKeysCommands(program: Command) {
-    const apiKeys = program.command('api-keys').description('Manage Gemini API keys').alias('ak');
+    const apiKeys = program
+        .command('api-keys')
+        .description('Manage Google AI Studio API keys')
+        .alias('ak');
 
     // Interactive list with selection
     apiKeys
@@ -61,7 +64,7 @@ export function apiKeysCommands(program: Command) {
         .description('Create a new API key')
         .option('-n, --name <name>', 'API key name')
         .option('-k, --key <key>', 'API key value')
-        .option('-p, --provider <provider>', 'Provider (default: gemini)')
+        .option('-p, --provider <provider>', 'Provider (default: googleaistudio)')
         .option('-u, --user-id <userId>', 'User ID')
         .option('-q, --quick', 'Quick mode with minimal prompts')
         .action(async (options) => {
@@ -90,13 +93,13 @@ export function apiKeysCommands(program: Command) {
                 },
             });
 
-            let provider = 'gemini';
+            let provider = 'googleaistudio';
             let userId = options.userId;
 
             if (!options.quick) {
                 provider = await input({
-                    message: 'Enter provider (currently only gemini is supported):',
-                    default: 'gemini',
+                    message: 'Enter provider (currently only googleaistudio is supported):',
+                    default: 'googleaistudio',
                     validate: (input: string) => {
                         try {
                             Validation.validateProvider(input);
@@ -273,7 +276,7 @@ export function apiKeysCommands(program: Command) {
             const spinner = ora('Syncing API keys from .env...').start();
 
             try {
-                const { gemini: envKeys } = EnvParser.getApiKeysFromEnv();
+                const { googleaistudio: envKeys } = EnvParser.getApiKeysFromEnv();
 
                 if (envKeys.length === 0) {
                     spinner.info('No GEMINI_API_KEY found in environment variables');
@@ -352,16 +355,26 @@ export function apiKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
+                    // Get first user for API key assignment
+                    const { UsersManager } = await import('../lib/users');
+                    const firstUser = await UsersManager.getFirstUser();
+                    if (!firstUser) {
+                        throw new Error(
+                            'No users found in the database. Please create a user first.',
+                        );
+                    }
+
                     // Create new keys in batch
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({
                             name: envKey.name,
                             api_key_value: envKey.key,
-                            provider: 'gemini',
+                            provider: 'googleaistudio',
                             is_active: true,
                             success_count: 0,
                             failure_count: 0,
+                            user_id: firstUser.id,
                         }));
                         await ApiKeysManager.bulkCreate(createData);
                     }
@@ -442,8 +455,8 @@ export function apiKeysCommands(program: Command) {
             });
 
             const provider = await input({
-                message: 'Enter new provider (currently only gemini is supported):',
-                default: 'gemini',
+                message: 'Enter new provider (currently only googleaistudio is supported):',
+                default: 'googleaistudio',
             });
 
             const updates: any = {
@@ -564,8 +577,8 @@ async function editApiKey(apiKey: any) {
     });
 
     const provider = await input({
-        message: 'Enter new provider (currently only gemini is supported):',
-        default: 'gemini',
+        message: 'Enter new provider (currently only googleaistudio is supported):',
+        default: 'googleaistudio',
     });
 
     const updates: any = {

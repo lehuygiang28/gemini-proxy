@@ -88,3 +88,7 @@ export type ApiKeyUpdate = Database['public']['Tables']['api_keys']['Update'];
 export type ProxyApiKey = Database['public']['Tables']['proxy_api_keys']['Row'];
 export type ProxyApiKeyInsert = Database['public']['Tables']['proxy_api_keys']['Insert'];
 export type ProxyApiKeyUpdate = Database['public']['Tables']['proxy_api_keys']['Update'];
+
+export type RequestLog = Database['public']['Tables']['request_logs']['Row'];
+export type RequestLogInsert = Database['public']['Tables']['request_logs']['Insert'];
+export type RequestLogUpdate = Database['public']['Tables']['request_logs']['Update'];

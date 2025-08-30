@@ -5,7 +5,7 @@ export interface EnvApiKey {
 
 export interface EnvProxyApiKey {
     name: string;
-    key_id: string;
+    proxy_key_value: string;
 }
 
 export class EnvParser {
@@ -13,7 +13,7 @@ export class EnvParser {
      * Parse GEMINI_API_KEY from environment variable
      * Supports both JSON array format and comma-separated format
      */
-    static parseGeminiApiKeys(envValue: string): EnvApiKey[] {
+    static parseGoogleAIStudioApiKeys(envValue: string): EnvApiKey[] {
         if (!envValue) {
             return [];
         }
@@ -57,7 +57,7 @@ export class EnvParser {
             if (Array.isArray(parsed)) {
                 return parsed.map((item) => ({
                     name: item.name || 'Unnamed Proxy Key',
-                    key_id: item.key,
+                    proxy_key_value: item.key,
                 }));
             }
         } catch (error) {
@@ -68,7 +68,7 @@ export class EnvParser {
                 .filter((key) => key);
             return keys.map((key, index) => ({
                 name: `Proxy Key ${index + 1}`,
-                key_id: key,
+                proxy_key_value: key,
             }));
         }
 
@@ -78,10 +78,12 @@ export class EnvParser {
     /**
      * Get API keys from environment variables
      */
-    static getApiKeysFromEnv(): { gemini: EnvApiKey[]; proxy: EnvProxyApiKey[] } {
-        const geminiKeys = this.parseGeminiApiKeys(process.env.GEMINI_API_KEY || '');
+    static getApiKeysFromEnv(): { googleaistudio: EnvApiKey[]; proxy: EnvProxyApiKey[] } {
+        const googleaistudioKeys = this.parseGoogleAIStudioApiKeys(
+            process.env.GEMINI_API_KEY || '',
+        );
         const proxyKeys = this.parseProxyApiKeys(process.env.PROXY_API_KEY || '');
 
-        return { gemini: geminiKeys, proxy: proxyKeys };
+        return { googleaistudio: googleaistudioKeys, proxy: proxyKeys };
     }
 }

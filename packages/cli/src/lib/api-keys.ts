@@ -132,7 +132,9 @@ export class ApiKeysManager {
     }
 
     static async bulkCreate(
-        apiKeysData: Array<Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>>,
+        apiKeysData: Array<
+            Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'> & { user_id?: string }
+        >,
     ): Promise<ApiKey[]> {
         if (apiKeysData.length === 0) return [];
 
@@ -248,6 +250,12 @@ export class ApiKeysManager {
         const existingKeys = await this.list();
         const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
+        // Get first user for API key assignment
+        const firstUser = await UsersManager.getFirstUser();
+        if (!firstUser) {
+            throw new Error('No users found in the database. Please create a user first.');
+        }
+
         // Prepare batch operations
         const keysToCreate: Array<Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
         const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = [];
@@ -288,6 +296,7 @@ export class ApiKeysManager {
                             provider: importKey.provider,
                             is_active: importKey.is_active,
                             metadata: importKey.metadata,
+                            user_id: firstUser.id,
                         });
                     }
                     results.created++;
