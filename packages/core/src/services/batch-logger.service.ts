@@ -235,7 +235,7 @@ export class BatchLoggerService {
                     is_successful: log.isSuccessful,
                     is_stream: Boolean(log.isStream),
                     error_details: log.errorDetails || null,
-                    performance_metrics: log.performanceMetrics || null,
+                    performance_metrics: log.performanceMetrics || {},
                     usage_metadata: usageMetadata
                         ? {
                               prompt_tokens: usageMetadata.promptTokens,
@@ -246,7 +246,7 @@ export class BatchLoggerService {
                               raw_metadata: usageMetadata.rawMetadata,
                           }
                         : null,
-                    retry_attempts: log.retryAttempts || null,
+                    retry_attempts: log.retryAttempts || [],
                 };
             }),
         );
