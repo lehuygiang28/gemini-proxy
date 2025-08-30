@@ -166,7 +166,7 @@ COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metada
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
 COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests with performance metrics';
 
-COMMENT ON COLUMN api_keys.provider IS 'API provider: googleaistudio, gemini, or openai';
+COMMENT ON COLUMN api_keys.provider IS 'API provider: googleaistudio';
 COMMENT ON COLUMN api_keys.metadata IS 'JSON object containing usage statistics, error tracking, and custom metadata';
 COMMENT ON COLUMN proxy_api_keys.proxy_key_value IS 'Unique proxy key value used for client authentication';
 COMMENT ON COLUMN proxy_api_keys.metadata IS 'JSON object containing additional metadata and usage information';

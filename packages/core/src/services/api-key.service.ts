@@ -13,16 +13,8 @@ export interface ApiKeyParams {
     count?: number;
 }
 
-export interface ApiKeyWithStats {
-    id: string;
-    api_key_value: string;
-    name: string;
-    provider: string;
-    created_at: string | null;
-    is_active: boolean;
-    user_id: string | null;
-    metadata: Tables<'api_keys'>['metadata'];
-    last_used_at: string | null;
+export interface ApiKeyWithStats extends Tables<'api_keys'> {
+    // Additional computed fields
     total_requests: number;
     successful_requests: number;
     error_rate: number;

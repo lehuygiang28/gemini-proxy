@@ -18,7 +18,10 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
 
     const supabase = getSupabaseClient(c);
 
-    const { data, error } = await supabase.from('proxy_api_keys').select('*').eq('key_id', apiKey);
+    const { data, error } = await supabase
+        .from('proxy_api_keys')
+        .select('*')
+        .eq('proxy_key_value', apiKey);
 
     if (error) {
         return c.json({ error: error.message }, 500);
