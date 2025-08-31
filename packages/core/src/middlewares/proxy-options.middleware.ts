@@ -19,8 +19,6 @@ export const proxyOptionsMiddleware = async (c: Context, next: Next) => {
     const h = c.req.header.bind(c.req);
 
     const maxRetries = parseNumber(h('x-gproxy-retry-max'));
-    const retryDelayMs = parseNumber(h('x-gproxy-retry-delay-ms'));
-    const backoffMultiplier = parseNumber(h('x-gproxy-retry-backoff'));
     const retryOnZeroCompletionTokens = parseBoolean(h('x-gproxy-retry-on-zero-completion-tokens'));
 
     const prioritizeNewer = parseBoolean(h('x-gproxy-prioritize-newer'));
@@ -31,14 +29,10 @@ export const proxyOptionsMiddleware = async (c: Context, next: Next) => {
 
     if (
         maxRetries !== undefined ||
-        retryDelayMs !== undefined ||
-        backoffMultiplier !== undefined ||
         retryOnZeroCompletionTokens !== undefined
     ) {
         options.retry = {
             ...(maxRetries !== undefined ? { maxRetries } : {}),
-            ...(retryDelayMs !== undefined ? { retryDelayMs } : {}),
-            ...(backoffMultiplier !== undefined ? { backoffMultiplier } : {}),
             ...(retryOnZeroCompletionTokens !== undefined
                 ? { onZeroCompletionTokens: retryOnZeroCompletionTokens }
                 : {}),

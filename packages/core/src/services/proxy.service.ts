@@ -303,17 +303,19 @@ export class ProxyService {
             headers?: Record<string, string>;
             body?: string;
         } | null = params.initialProviderError ? { ...params.initialProviderError } : null;
+
+        /**
+         * If retryConfig.maxRetries is -1, then we retries all api key or max is 50
+         * Otherwise, we retry the number of times specified in retryConfig.maxRetries
+         */
         const retriesTimes =
             retryConfig.maxRetries === -1
-                ? Math.min(allApiKeys.length, 20) // Cap at 20 retries for safety
-                : Math.min(retryConfig.maxRetries, 20); // Cap at 20 retries for safety
-
-        // Safety check: ensure we don't exceed reasonable limits
-        const maxAttempts = Math.min(retriesTimes, 20);
+                ? Math.min(allApiKeys.length, 50) // Cap at 50 retries for safety
+                : Math.min(retryConfig.maxRetries, 50); // Cap at 50 retries for safety
 
         for (
             let currentAttempt = startAttemptIndex;
-            currentAttempt <= maxAttempts;
+            currentAttempt <= retriesTimes;
             currentAttempt++
         ) {
             let selectedApiKey: ApiKeyWithStats | undefined;

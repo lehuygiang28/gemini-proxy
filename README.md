@@ -186,9 +186,7 @@ pnpm dev
 |----------|-------------|---------|---------|
 | `GOOGLE_GEMINI_API_BASE_URL` | Gemini API base URL | `https://generativelanguage.googleapis.com/` | `https://generativelanguage.googleapis.com/` |
 | `GOOGLE_OPENAI_API_BASE_URL` | OpenAI-compatible API base URL | `https://generativelanguage.googleapis.com/v1beta/openai/` | `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `PROXY_MAX_RETRIES` | Maximum retry attempts | `3` | `5` |
-| `PROXY_RETRY_DELAY_MS` | Initial retry delay (ms) | `1000` | `2000` |
-| `PROXY_BACKOFF_MULTIPLIER` | Exponential backoff multiplier | `2` | `1.5` |
+| `PROXY_MAX_RETRIES` | Maximum retry attempts | `-1` | `5` |
 | `PROXY_LOGGING_ENABLED` | Enable request logging | `true` | `false` |
 | `PROXY_LOG_LEVEL` | Logging level | `info` | `debug` |
 
