@@ -6,5 +6,6 @@ onlyBuiltDependencies:
     - core-js-pure
     - esbuild
     - sharp
+    - supabase
     - unrs-resolver
     - workerd
