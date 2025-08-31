@@ -7,7 +7,7 @@ import { Typography, Card, Row, Col, Tag, Descriptions, theme } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import type { Tables } from '@gemini-proxy/database';
-import { JsonDisplay, DateTimeDisplay } from '@/components/common';
+import { JsonDisplay, DateTimeDisplay, RetryAttemptsDisplay } from '@/components/common';
 import {
     getRequestType,
     getRequestTypeColor,
@@ -211,13 +211,11 @@ export default function RequestLogShowPage({ params }: { params: { id: string } 
                 {record.retry_attempts &&
                     Array.isArray(record.retry_attempts) &&
                     record.retry_attempts.length > 0 && (
-                        <Card title="Retry Attempts" style={{ marginBottom: token.marginLG }}>
-                            <JsonDisplay
-                                data={record.retry_attempts}
-                                title="Retry Information"
-                                collapsible={false}
-                            />
-                        </Card>
+                        <RetryAttemptsDisplay
+                            retryAttempts={record.retry_attempts}
+                            title="Retry Attempts"
+                            collapsible={false}
+                        />
                     )}
             </div>
         </Show>
