@@ -16,7 +16,7 @@ import {
     ServerError,
     NetworkError,
 } from '../types/error.type';
-import { getRuntimeKey } from 'hono/adapter';
+import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 
 export class ProxyService {
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
@@ -80,7 +80,65 @@ export class ProxyService {
                 options,
             });
             if (shouldTreatAsFailure) {
-                // proceed to retry path using a synthetic error
+                // Create synthetic error for zero completion tokens
+                const syntheticError = new ProxyError(
+                    'Zero completion tokens detected',
+                    'server_error',
+                    firstResponse.status,
+                    'zero_completion_tokens',
+                );
+
+                // Create retry attempts array with the first failed attempt
+                const firstRetryAttempt = {
+                    attempt_number: 1,
+                    api_key_id: firstApiKey.id,
+                    error: {
+                        message: syntheticError.message,
+                        type: syntheticError.type,
+                        status: firstResponse.status,
+                        code: syntheticError.code,
+                    },
+                    duration_ms: firstAttemptDuration,
+                    timestamp: new Date().toISOString(),
+                    provider_error: {
+                        status: firstResponse.status,
+                        headers: Object.fromEntries(firstResponse.headers.entries()),
+                        raw_body: '',
+                    },
+                };
+
+                BatchLoggerService.addApiKeyUsage(c, {
+                    apiKeyId: firstApiKey.id,
+                    isSuccessful: false,
+                    errorDetails: {
+                        message: syntheticError.message,
+                        type: syntheticError.type,
+                        status: firstResponse.status,
+                        code: syntheticError.code,
+                        provider_status: firstResponse.status,
+                        provider_headers: Object.fromEntries(firstResponse.headers.entries()),
+                        provider_raw_body: '',
+                    },
+                });
+
+                return this.retryApiRequest({
+                    c,
+                    baseRequest,
+                    allApiKeys,
+                    startAttemptIndex: 1,
+                    retryConfig,
+                    requestId,
+                    proxyApiKeyData,
+                    proxyRequestDataParsed,
+                    initialError: syntheticError,
+                    initialProviderError: {
+                        status: firstResponse.status,
+                        headers: Object.fromEntries(firstResponse.headers.entries()),
+                        body: '',
+                    },
+                    initialRetryAttempt: firstRetryAttempt,
+                    options,
+                });
             } else {
                 BatchLoggerService.addApiKeyUsage(c, {
                     apiKeyId: firstApiKey.id,
@@ -112,7 +170,7 @@ export class ProxyService {
                         attempt_count: 1,
                     },
                     responseBody: responseClone.clone(),
-                    retryAttempts: null,
+                    retryAttempts: [], // Empty array for first attempt success (no retries)
                 });
 
                 try {
@@ -149,6 +207,25 @@ export class ProxyService {
         }
         const firstProviderHeaders = Object.fromEntries(firstResponse.headers.entries());
 
+        // Create retry attempts array with the first failed attempt
+        const firstRetryAttempt = {
+            attempt_number: 1,
+            api_key_id: firstApiKey.id,
+            error: {
+                message: firstError.message,
+                type: firstError.type,
+                status: firstResponse.status,
+                code: firstError.code,
+            },
+            duration_ms: firstAttemptDuration,
+            timestamp: new Date().toISOString(),
+            provider_error: {
+                status: firstResponse.status,
+                headers: firstProviderHeaders,
+                raw_body: firstProviderBody?.slice(0, 4000),
+            },
+        };
+
         BatchLoggerService.addApiKeyUsage(c, {
             apiKeyId: firstApiKey.id,
             isSuccessful: false,
@@ -178,6 +255,7 @@ export class ProxyService {
                 headers: firstProviderHeaders,
                 body: firstProviderBody?.slice(0, 4000),
             },
+            initialRetryAttempt: firstRetryAttempt,
             options,
         });
     }
@@ -193,6 +271,18 @@ export class ProxyService {
         proxyRequestDataParsed: ProxyRequestDataParsed;
         initialError: ProxyError;
         initialProviderError?: { status: number; headers: Record<string, string>; body: string };
+        initialRetryAttempt?: {
+            attempt_number: number;
+            api_key_id: string;
+            error: { message: string; type: string; status?: number; code?: string };
+            duration_ms: number;
+            timestamp: string;
+            provider_error?: {
+                status?: number;
+                headers?: Record<string, string>;
+                raw_body?: string;
+            };
+        };
         options?: ProxyRequestOptions;
     }): Promise<Response> {
         const {
@@ -208,6 +298,15 @@ export class ProxyService {
             options,
         } = params;
 
+        /**
+         * Retry attempts array structure:
+         * - attempt_number: Sequential attempt number starting from 1
+         * - api_key_id: ID of the API key used for this attempt
+         * - error: Error details from the attempt
+         * - duration_ms: Duration of this attempt in milliseconds
+         * - timestamp: ISO timestamp of when this attempt was made
+         * - provider_error: Original provider error details (status, headers, body)
+         */
         let retryAttempts: Array<{
             attempt_number: number;
             api_key_id: string;
@@ -219,7 +318,7 @@ export class ProxyService {
                 headers?: Record<string, string>;
                 raw_body?: string;
             };
-        }> = [];
+        }> = params.initialRetryAttempt ? [params.initialRetryAttempt] : [];
 
         let lastError: ProxyError = initialError;
         let lastProviderError: {
@@ -228,21 +327,50 @@ export class ProxyService {
             body?: string;
         } | null = params.initialProviderError ? { ...params.initialProviderError } : null;
         const retriesTimes =
-            retryConfig.maxRetries === -1 ? allApiKeys.length : retryConfig.maxRetries;
+            retryConfig.maxRetries === -1
+                ? Math.min(allApiKeys.length, 20) // Cap at 20 retries for safety
+                : Math.min(retryConfig.maxRetries, 20); // Cap at 20 retries for safety
+
+        // Safety check: ensure we don't exceed reasonable limits
+        const maxAttempts = Math.min(retriesTimes, 20);
 
         for (
             let currentAttempt = startAttemptIndex;
-            currentAttempt <= retriesTimes;
+            currentAttempt <= maxAttempts;
             currentAttempt++
         ) {
+            let selectedApiKey: ApiKeyWithStats | undefined;
+            let attemptStart: number = Date.now();
+
             try {
                 console.log(`attempt ${currentAttempt} of ${retryConfig.maxRetries}`);
-                const selectedApiKey = allApiKeys[currentAttempt];
+                selectedApiKey = allApiKeys[currentAttempt];
                 if (!selectedApiKey) {
-                    throw new InvalidKeyError('No more API keys available for retry');
+                    const error = new InvalidKeyError('No more API keys available for retry');
+
+                    // Add retry attempt for no more API keys
+                    retryAttempts.push({
+                        attempt_number: currentAttempt + 1,
+                        api_key_id: 'unknown',
+                        error: {
+                            message: error.message,
+                            type: error.type,
+                            status: error.status,
+                            code: error.code,
+                        },
+                        duration_ms: 0,
+                        timestamp: new Date().toISOString(),
+                        provider_error: {
+                            status: undefined,
+                            headers: {},
+                            raw_body: '',
+                        },
+                    });
+
+                    throw error;
                 }
 
-                const attemptStart = Date.now();
+                attemptStart = Date.now();
                 const { response, headers } = await this.performAttempt({
                     baseRequest,
                     apiKeyValue: selectedApiKey.api_key_value,
@@ -278,25 +406,24 @@ export class ProxyService {
                         },
                     });
 
-                    if (currentAttempt > 0) {
-                        retryAttempts.push({
-                            attempt_number: currentAttempt,
-                            api_key_id: selectedApiKey.id,
-                            error: {
-                                message: error.message,
-                                type: error.type,
-                                status: response.status,
-                                code: error.code,
-                            },
-                            duration_ms: attemptDuration,
-                            timestamp: new Date().toISOString(),
-                            provider_error: {
-                                status: response.status,
-                                headers: providerHeaders,
-                                raw_body: providerBody?.slice(0, 4000),
-                            },
-                        });
-                    }
+                    // Add retry attempt (attempt_number should be currentAttempt + 1 since we start from 1)
+                    retryAttempts.push({
+                        attempt_number: currentAttempt + 1,
+                        api_key_id: selectedApiKey.id,
+                        error: {
+                            message: error.message,
+                            type: error.type,
+                            status: response.status,
+                            code: error.code,
+                        },
+                        duration_ms: attemptDuration,
+                        timestamp: new Date().toISOString(),
+                        provider_error: {
+                            status: response.status,
+                            headers: providerHeaders,
+                            raw_body: providerBody?.slice(0, 4000),
+                        },
+                    });
 
                     if (currentAttempt >= retryConfig.maxRetries || !this.shouldRetry(error)) {
                         lastError = error;
@@ -345,25 +472,24 @@ export class ProxyService {
                         },
                     });
 
-                    if (currentAttempt > 0) {
-                        retryAttempts.push({
-                            attempt_number: currentAttempt,
-                            api_key_id: selectedApiKey.id,
-                            error: {
-                                message: syntheticError.message,
-                                type: syntheticError.type,
-                                status: response.status,
-                                code: syntheticError.code,
-                            },
-                            duration_ms: attemptDuration,
-                            timestamp: new Date().toISOString(),
-                            provider_error: {
-                                status: response.status,
-                                headers: Object.fromEntries(response.headers.entries()),
-                                raw_body: '',
-                            },
-                        });
-                    }
+                    // Add retry attempt for synthetic error (zero completion tokens)
+                    retryAttempts.push({
+                        attempt_number: currentAttempt + 1,
+                        api_key_id: selectedApiKey.id,
+                        error: {
+                            message: syntheticError.message,
+                            type: syntheticError.type,
+                            status: response.status,
+                            code: syntheticError.code,
+                        },
+                        duration_ms: attemptDuration,
+                        timestamp: new Date().toISOString(),
+                        provider_error: {
+                            status: response.status,
+                            headers: Object.fromEntries(response.headers.entries()),
+                            raw_body: '',
+                        },
+                    });
 
                     if (
                         currentAttempt >= retryConfig.maxRetries ||
@@ -415,10 +541,10 @@ export class ProxyService {
                     isStream: proxyRequestDataParsed.stream,
                     performanceMetrics: {
                         duration_ms: attemptDuration,
-                        attempt_count: currentAttempt + 1,
+                        attempt_count: retryAttempts.length + 1, // Total attempts = retry attempts + current successful attempt
                     },
                     responseBody: responseCloneForLog,
-                    retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
+                    retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
 
                 // Ensure batched logs have a chance to complete in serverless
@@ -439,6 +565,25 @@ export class ProxyService {
                               error instanceof Error ? error.message : 'Unknown error',
                               'server_error',
                           );
+
+                // Add retry attempt for exception
+                retryAttempts.push({
+                    attempt_number: currentAttempt + 1,
+                    api_key_id: selectedApiKey?.id || 'unknown',
+                    error: {
+                        message: errorObj.message,
+                        type: errorObj.type,
+                        status: errorObj.status,
+                        code: errorObj.code,
+                    },
+                    duration_ms: Date.now() - attemptStart,
+                    timestamp: new Date().toISOString(),
+                    provider_error: {
+                        status: undefined,
+                        headers: {},
+                        raw_body: '',
+                    },
+                });
 
                 lastError = errorObj;
                 break;
@@ -464,6 +609,10 @@ export class ProxyService {
                 : undefined,
             isStream: proxyRequestDataParsed.stream,
             isSuccessful: false,
+            performanceMetrics: {
+                duration_ms: 0, // Will be calculated from retry attempts
+                attempt_count: retryAttempts.length,
+            },
             errorDetails: {
                 message: lastError.message,
                 type: lastError.type,
@@ -473,7 +622,7 @@ export class ProxyService {
                 provider_headers: lastProviderError?.headers,
                 provider_raw_body: lastProviderError?.body,
             },
-            retryAttempts: retryAttempts.length > 0 ? retryAttempts : null,
+            retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
         });
 
         // Ensure batched logs have a chance to complete in serverless
@@ -599,11 +748,15 @@ export class ProxyService {
 
         // Remove internal control headers so they are not sent to the origin
         headers.forEach((_v, k) => {
-            if (k.toLowerCase().startsWith('x-gproxy-')) {
+            if (
+                k.toLowerCase().startsWith('x-gproxy-') ||
+                HEADERS_REMOVE_TO_ORIGIN.includes(k.toLowerCase())
+            ) {
                 headers.delete(k);
             }
         });
 
+        headers.set('origin', url.split('/')[2]);
         if (apiFormat === 'gemini') {
             headers.set('x-goog-api-key', apiKeyValue);
         } else {
