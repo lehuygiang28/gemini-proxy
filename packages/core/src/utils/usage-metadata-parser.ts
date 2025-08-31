@@ -45,7 +45,7 @@ export class UsageMetadataParser {
         try {
             if (apiFormat === 'gemini') {
                 return this.parseGeminiResponse(bodyText);
-            } else if (apiFormat === 'openai-compatible') {
+            } else if (apiFormat === 'openai') {
                 return this.parseOpenAIResponse(bodyText);
             }
         } catch (error) {

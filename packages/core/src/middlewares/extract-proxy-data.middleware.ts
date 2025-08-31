@@ -2,12 +2,11 @@ import { Context, Next } from 'hono';
 import { env } from 'hono/adapter';
 
 import type { ProxyRequestDataParsed } from '../types';
-import { parseBody } from '../utils/body-detector';
 import { resolveUrl } from '../utils/url';
 
 export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
     let model: string | undefined;
-    const apiFormat = c.req.path.includes('/gemini/') ? 'gemini' : 'openai-compatible';
+    const apiFormat = c.req.path.includes('/gemini/') ? 'gemini' : 'openai';
     let stream = false;
     const queryParams = c.req.query();
     let urlToProxy = '';

@@ -2,7 +2,7 @@ import type { Variables as HonoVariables, Bindings as HonoBindings } from 'hono/
 import type { Tables } from '@gemini-proxy/database';
 import type { RetryConfig } from '../services/config.service';
 
-export type ProxyApiFormat = 'gemini' | 'openai-compatible';
+export type ProxyApiFormat = 'gemini' | 'openai';
 
 export type ProxyRequestDataParsed = {
     model?: string;
