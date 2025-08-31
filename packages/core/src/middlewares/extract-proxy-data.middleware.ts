@@ -3,6 +3,7 @@ import { env } from 'hono/adapter';
 
 import type { ProxyRequestDataParsed } from '../types';
 import { resolveUrl } from '../utils/url';
+import { safelyExtractBodyText } from '../utils/body-handler';
 
 export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
     let model: string | undefined;
@@ -41,14 +42,14 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
         // Only parse body if we couldn't determine model from URL and it's JSON
         if (!model && c.req.header('content-type')?.includes('application/json')) {
             try {
-                // Read body as text first to preserve it
-                rawBodyText = await c.req.text();
+                // Try to extract body text for metadata parsing (won't consume original)
+                rawBodyText = await safelyExtractBodyText(c);
                 if (rawBodyText) {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
                     bodyData = { data: parsedBody, success: true, type: 'json' };
 
-                    // Store both raw text and parsed data for reuse
+                    // Store as fallback for retries (original request body takes priority)
                     c.set('rawBodyText', rawBodyText);
                 }
             } catch (error) {
@@ -65,15 +66,15 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
         // For OpenAI-compatible APIs, we need to parse the body to get model and stream
         if (c.req.header('content-type')?.includes('application/json')) {
             try {
-                // Read body as text first to preserve it
-                rawBodyText = await c.req.text();
+                // Try to extract body text for metadata parsing (won't consume original)
+                rawBodyText = await safelyExtractBodyText(c);
                 if (rawBodyText) {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
                     stream = Boolean(parsedBody?.stream);
                     bodyData = { data: parsedBody, success: true, type: 'json' };
 
-                    // Store both raw text and parsed data for reuse
+                    // Store as fallback for retries (original request body takes priority)
                     c.set('rawBodyText', rawBodyText);
                 }
             } catch (error) {

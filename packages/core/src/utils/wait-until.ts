@@ -3,16 +3,29 @@ import { BatchLoggerService } from '../services/batch-logger.service';
 
 export async function flushAllLogBatches(c: Context) {
     try {
-        // Ensure batched logs have a chance to complete in serverless
-        c?.executionCtx?.waitUntil(BatchLoggerService.flushAllBatches());
-    } catch (exCtxError) {
-        try {
-            const { waitUntil } = await import('@vercel/functions');
-            waitUntil(BatchLoggerService.flushAllBatches());
-        } catch (err) {
-            console.warn(`
-                Err when tried to waitUntil with execution context - ${exCtxError}`);
-            console.warn(`Err when tried to waitUntil with vercel functions helper - ${err}`);
+        // Try to use Hono's execution context first
+        if (c?.executionCtx?.waitUntil) {
+            c.executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+            return;
         }
+    } catch (exCtxError) {
+        if (
+            exCtxError instanceof Error &&
+            exCtxError.message.includes('This context has no ExecutionContext')
+        ) {
+            console.warn('This context has no ExecutionContext, trying next...');
+        } else {
+            console.warn('Failed to use Hono execution context:', exCtxError);
+        }
+    }
+
+    try {
+        // Try Vercel's waitUntil as fallback
+        const { waitUntil } = await import('@vercel/functions');
+        waitUntil(BatchLoggerService.flushAllBatches());
+        return;
+    } catch (err) {
+        console.warn('Failed to use Vercel waitUntil:', err);
+        await BatchLoggerService.flushAllBatches();
     }
 }

@@ -18,6 +18,7 @@ import {
 } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { flushAllLogBatches } from '../utils/wait-until';
+import { createRetryRequest } from '../utils/body-handler';
 
 export class ProxyService {
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
@@ -26,20 +27,9 @@ export class ProxyService {
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
 
-        // Safely clone the request, handling cases where body might be consumed
-        let baseRequest: Request;
-        try {
-            baseRequest = c.req.raw.clone();
-        } catch (error) {
-            // If cloning fails, create a new request without body initially
-            // The performAttempt method will reconstruct the body from stored data
-            console.warn('Failed to clone request body, will reconstruct from stored data:', error);
-            baseRequest = new Request(c.req.raw.url, {
-                method: c.req.raw.method,
-                headers: c.req.raw.headers,
-                // Don't include body here - performAttempt will handle it
-            });
-        }
+        // Safely create a request that can be used for retries
+        const rawBodyText = c.get('rawBodyText');
+        const baseRequest = createRetryRequest(c.req.raw, rawBodyText);
 
         const retryConfigBase = ConfigService.getRetryConfig(c);
         const options = c.get('proxyRequestOptions');
@@ -260,7 +250,7 @@ export class ProxyService {
         initialProviderError?: { status: number; headers: Record<string, string>; body: string };
         initialRetryAttempt?: {
             attempt_number: number;
-            api_key_id: string;
+            api_key_id: string | null;
             error: { message: string; type: string; status?: number; code?: string };
             duration_ms: number;
             timestamp: string;
@@ -743,27 +733,25 @@ export class ProxyService {
             headers,
         };
 
-        // Try to use stored raw body text first, then fall back to request body
+        // Pure proxy approach: always try to use the original request body
         let bodyToUse: RequestInit['body'] | null = null;
-        if (c) {
-            const rawBodyText = c.get('rawBodyText');
-            if (rawBodyText) {
-                bodyToUse = rawBodyText;
-            }
-        }
 
-        // If no stored body text, try to use the request body (might fail if consumed)
-        if (!bodyToUse) {
-            try {
-                const requestClone = baseRequest.clone();
-                if (requestClone.body) {
-                    bodyToUse = requestClone.body;
+        try {
+            // Try to clone the original request body
+            const requestClone = baseRequest.clone();
+            if (requestClone.body) {
+                bodyToUse = requestClone.body;
+            }
+        } catch (error) {
+            console.warn('Cannot clone original request body:', error);
+
+            // Only use stored body text as absolute fallback
+            if (c) {
+                const rawBodyText = c.get('rawBodyText');
+                if (rawBodyText) {
+                    console.warn('Using stored body text as fallback (original unavailable)');
+                    bodyToUse = rawBodyText;
                 }
-            } catch (error) {
-                console.warn(
-                    'Failed to clone request body, using stored raw text or no body:',
-                    error,
-                );
             }
         }
 
