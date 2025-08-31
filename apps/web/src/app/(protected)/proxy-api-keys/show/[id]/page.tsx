@@ -17,7 +17,7 @@ export default function ProxyApiKeysShowPage() {
             <Descriptions bordered column={1} size="middle">
                 <Descriptions.Item label="ID">{record?.id}</Descriptions.Item>
                 <Descriptions.Item label="Name">{record?.name}</Descriptions.Item>
-                <Descriptions.Item label="Key ID">{record?.key_id}</Descriptions.Item>
+                <Descriptions.Item label="Proxy Key Value">{record?.proxy_key_value}</Descriptions.Item>
                 <Descriptions.Item label="Active">
                     {record?.is_active ? 'Yes' : 'No'}
                 </Descriptions.Item>

@@ -16,7 +16,7 @@ export default function ProxyApiKeysEditPage() {
                 <Form.Item label="Name" name="name" rules={[{ required: true }]}>
                     <Input />
                 </Form.Item>
-                <Form.Item label="Key ID" name="key_id" rules={[{ required: true }]}>
+                <Form.Item label="Proxy Key Value" name="proxy_key_value" rules={[{ required: true }]}>
                     <Input />
                 </Form.Item>
                 <Form.Item label="Active" name="is_active" valuePropName="checked">
