@@ -14,7 +14,7 @@
             "events": [],
             "schedule": "",
             "timeout": 60,
-            "commands": "pnpm i -g pnpm && pnpm install && pnpm build -F @lehuygiang28/gemini-proxy-appwrite && cd packages/appwrite && npx appwrite-cli push functions",
+            "commands": "pnpm self-update latest-10 && pnpm install && pnpm build -F @lehuygiang28/gemini-proxy-appwrite && cd packages/appwrite && npx appwrite-cli push functions",
             "specification": "s-0.5vcpu-512mb",
             "path": ".",
             "entrypoint": "dist/main.js"
