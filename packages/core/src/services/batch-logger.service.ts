@@ -12,7 +12,7 @@ export interface BatchLogOperation {
 
 export interface RequestLogData {
     requestId: string;
-    apiKeyId: string;
+    apiKeyId: string | null;
     proxyKeyId: string;
     userId: string | null;
     apiFormat: ProxyApiFormat;
@@ -439,7 +439,7 @@ export class BatchLoggerService {
 
     // Force execute all pending batches (useful for cleanup)
     static async flushAllBatches(): Promise<void> {
-        console.log('Flushing all batches...', this?.batchOperations?.size);
+        console.log('Flushing all log batches...', this?.batchOperations?.size);
         const requestIds = Array.from(this.batchOperations.keys());
         const promises = requestIds.map((requestId) => this.executeBatch(requestId));
         await Promise.all(promises);

@@ -17,6 +17,7 @@ import {
     NetworkError,
 } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
+import { flushAllLogBatches } from '../utils/wait-until';
 
 export class ProxyService {
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
@@ -173,21 +174,7 @@ export class ProxyService {
                     retryAttempts: [], // Empty array for first attempt success (no retries)
                 });
 
-                try {
-                    // Ensure batched logs have a chance to complete in serverless
-                    c?.executionCtx?.waitUntil(BatchLoggerService.flushAllBatches());
-                } catch (exCtxError) {
-                    try {
-                        const { waitUntil } = await import('@vercel/functions');
-                        waitUntil(BatchLoggerService.flushAllBatches());
-                    } catch (err) {
-                        console.warn(`
-                            Err when tried to waitUntil with execution context - ${exCtxError}`);
-                        console.warn(
-                            `Err when tried to waitUntil with vercel functions helper - ${err}`,
-                        );
-                    }
-                }
+                flushAllLogBatches(c);
 
                 return new Response(firstResponse.clone().body, {
                     status: firstResponse.clone().status,
@@ -309,7 +296,7 @@ export class ProxyService {
          */
         let retryAttempts: Array<{
             attempt_number: number;
-            api_key_id: string;
+            api_key_id: string | null;
             error: { message: string; type: string; status?: number; code?: string };
             duration_ms: number;
             timestamp: string;
@@ -351,7 +338,7 @@ export class ProxyService {
                     // Add retry attempt for no more API keys
                     retryAttempts.push({
                         attempt_number: currentAttempt + 1,
-                        api_key_id: 'unknown',
+                        api_key_id: null,
                         error: {
                             message: error.message,
                             type: error.type,
@@ -547,11 +534,7 @@ export class ProxyService {
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
 
-                // Ensure batched logs have a chance to complete in serverless
-                const executionCtx = c.executionCtx;
-                if (executionCtx && typeof executionCtx.waitUntil === 'function') {
-                    executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
-                }
+                flushAllLogBatches(c);
 
                 return new Response(responseClone.body, {
                     status: responseClone.status,
@@ -569,7 +552,7 @@ export class ProxyService {
                 // Add retry attempt for exception
                 retryAttempts.push({
                     attempt_number: currentAttempt + 1,
-                    api_key_id: selectedApiKey?.id || 'unknown',
+                    api_key_id: selectedApiKey?.id || null,
                     error: {
                         message: errorObj.message,
                         type: errorObj.type,
@@ -592,7 +575,7 @@ export class ProxyService {
 
         BatchLoggerService.addRequestLog(c, {
             requestId,
-            apiKeyId: 'unknown',
+            apiKeyId: null,
             proxyKeyId: proxyApiKeyData.id,
             userId: proxyApiKeyData.user_id,
             apiFormat: proxyRequestDataParsed.apiFormat,
@@ -625,11 +608,7 @@ export class ProxyService {
             retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
         });
 
-        // Ensure batched logs have a chance to complete in serverless
-        const executionCtx = c.executionCtx;
-        if (executionCtx && typeof executionCtx.waitUntil === 'function') {
-            executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
-        }
+        flushAllLogBatches(c);
 
         // If we have provider error details, return raw provider body & headers,
         // and attach gproxy-specific metadata in prefixed headers for SDK compatibility
@@ -651,11 +630,7 @@ export class ProxyService {
                 (lastError.status as number | undefined) ||
                 500;
 
-            // Ensure batched logs have a chance to complete in serverless
-            const executionCtx2 = c.executionCtx;
-            if (executionCtx2 && typeof executionCtx2.waitUntil === 'function') {
-                executionCtx2.waitUntil(BatchLoggerService.flushAllBatches());
-            }
+            flushAllLogBatches(c);
 
             return new Response(lastProviderError.body || '', {
                 status: statusToReturn,
