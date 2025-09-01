@@ -19,7 +19,7 @@ export class ConfigService {
 
         return {
             retry: {
-                maxRetries: parseInt(envVars.PROXY_MAX_RETRIES || '-1'),
+                maxRetries: parseInt(envVars.PROXY_MAX_RETRIES || '-1'), // -1 means retry all available API keys
             },
             logging: {
                 enabled: envVars.PROXY_LOGGING_ENABLED !== 'false',

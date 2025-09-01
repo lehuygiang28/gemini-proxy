@@ -20,7 +20,29 @@ import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constan
 import { flushAllLogBatches } from '../utils/wait-until';
 import { createRetryRequest } from '../utils/body-handler';
 
+interface RetryAttemptData {
+    attempt_number: number;
+    api_key_id: string | null;
+    error: { message: string; type: string; status?: number; code?: string };
+    duration_ms: number;
+    timestamp: string;
+    provider_error?: {
+        status?: number;
+        headers?: Record<string, string>;
+        raw_body?: string;
+    };
+}
+
+interface ProviderErrorData {
+    status: number;
+    headers: Record<string, string>;
+    body: string;
+}
+
 export class ProxyService {
+    private static readonly MAX_RETRIES_SAFETY_CAP = 50;
+    private static readonly ERROR_BODY_MAX_LENGTH = 4000;
+
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
         const { c } = params;
         const proxyRequestDataParsed = c.get('proxyRequestDataParsed');
@@ -44,12 +66,13 @@ export class ProxyService {
                 options?.apiKeySelection?.prioritizeLeastRecentlyUsed ?? true,
             prioritizeLeastErrors: options?.apiKeySelection?.prioritizeLeastErrors ?? true,
             prioritizeNewer: options?.apiKeySelection?.prioritizeNewer ?? true,
-            count: retryConfig.maxRetries,
         });
 
         if (!allApiKeys || allApiKeys.length === 0) {
             throw new InvalidKeyError('No API key found');
         }
+
+        console.log(`Found ${allApiKeys.length} available API keys for retry`);
 
         const firstApiKey = allApiKeys[0];
         const {
@@ -71,45 +94,20 @@ export class ProxyService {
                 options,
             });
             if (shouldTreatAsFailure) {
-                // Create synthetic error for zero completion tokens
-                const syntheticError = new ProxyError(
-                    'Zero completion tokens detected',
-                    'server_error',
-                    firstResponse.status,
-                    'zero_completion_tokens',
-                );
+                const syntheticError = this.createSyntheticError(firstResponse.status);
+                const firstRetryAttempt = this.createRetryAttempt({
+                    attemptNumber: 1,
+                    apiKeyId: firstApiKey.id,
+                    error: syntheticError,
+                    durationMs: firstAttemptDuration,
+                    providerError: this.extractProviderError(firstResponse),
+                });
 
-                // Create retry attempts array with the first failed attempt
-                const firstRetryAttempt = {
-                    attempt_number: 1,
-                    api_key_id: firstApiKey.id,
-                    error: {
-                        message: syntheticError.message,
-                        type: syntheticError.type,
-                        status: firstResponse.status,
-                        code: syntheticError.code,
-                    },
-                    duration_ms: firstAttemptDuration,
-                    timestamp: new Date().toISOString(),
-                    provider_error: {
-                        status: firstResponse.status,
-                        headers: Object.fromEntries(firstResponse.headers.entries()),
-                        raw_body: '',
-                    },
-                };
-
-                BatchLoggerService.addApiKeyUsage(c, {
+                this.logApiKeyUsage(c, {
                     apiKeyId: firstApiKey.id,
                     isSuccessful: false,
-                    errorDetails: {
-                        message: syntheticError.message,
-                        type: syntheticError.type,
-                        status: firstResponse.status,
-                        code: syntheticError.code,
-                        provider_status: firstResponse.status,
-                        provider_headers: Object.fromEntries(firstResponse.headers.entries()),
-                        provider_raw_body: '',
-                    },
+                    error: syntheticError,
+                    providerError: this.extractProviderError(firstResponse),
                 });
 
                 return this.retryApiRequest({
@@ -122,24 +120,18 @@ export class ProxyService {
                     proxyApiKeyData,
                     proxyRequestDataParsed,
                     initialError: syntheticError,
-                    initialProviderError: {
-                        status: firstResponse.status,
-                        headers: Object.fromEntries(firstResponse.headers.entries()),
-                        body: '',
-                    },
+                    initialProviderError: this.extractProviderError(firstResponse),
                     initialRetryAttempt: firstRetryAttempt,
                     options,
                 });
             } else {
-                BatchLoggerService.addApiKeyUsage(c, {
-                    apiKeyId: firstApiKey.id,
-                    isSuccessful: true,
-                });
+                this.logApiKeyUsage(c, { apiKeyId: firstApiKey.id, isSuccessful: true });
 
                 const responseClone = firstResponse.clone();
                 const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
 
-                BatchLoggerService.addRequestLog(c, {
+                const responseCloneForLog = firstResponse.clone();
+                this.logRequestSuccess(c, {
                     requestId,
                     apiKeyId: firstApiKey.id,
                     proxyKeyId: proxyApiKeyData.id,
@@ -154,14 +146,10 @@ export class ProxyService {
                         status: firstResponse.status,
                         headers: Object.fromEntries(firstResponse.headers.entries()),
                     },
-                    isSuccessful: true,
+                    responseBody: responseCloneForLog,
                     isStream: proxyRequestDataParsed.stream,
-                    performanceMetrics: {
-                        duration_ms: firstAttemptDuration,
-                        attempt_count: 1,
-                    },
-                    responseBody: responseClone.clone(),
-                    retryAttempts: [], // Empty array for first attempt success (no retries)
+                    durationMs: firstAttemptDuration,
+                    retryAttempts: [],
                 });
 
                 flushAllLogBatches(c);
@@ -174,47 +162,20 @@ export class ProxyService {
         }
 
         const firstError = this.createProxyError(firstResponse.clone(), firstAttemptDuration);
-        // Capture provider error details for clearer diagnostics
-        const firstErrorClone = firstResponse.clone();
-        let firstProviderBody = '';
-        try {
-            firstProviderBody = await firstErrorClone.text();
-        } catch {
-            firstProviderBody = '';
-        }
-        const firstProviderHeaders = Object.fromEntries(firstResponse.headers.entries());
+        const firstProviderError = await this.extractProviderErrorWithBody(firstResponse.clone());
+        const firstRetryAttempt = this.createRetryAttempt({
+            attemptNumber: 1,
+            apiKeyId: firstApiKey.id,
+            error: firstError,
+            durationMs: firstAttemptDuration,
+            providerError: firstProviderError,
+        });
 
-        // Create retry attempts array with the first failed attempt
-        const firstRetryAttempt = {
-            attempt_number: 1,
-            api_key_id: firstApiKey.id,
-            error: {
-                message: firstError.message,
-                type: firstError.type,
-                status: firstResponse.status,
-                code: firstError.code,
-            },
-            duration_ms: firstAttemptDuration,
-            timestamp: new Date().toISOString(),
-            provider_error: {
-                status: firstResponse.status,
-                headers: firstProviderHeaders,
-                raw_body: firstProviderBody?.slice(0, 4000),
-            },
-        };
-
-        BatchLoggerService.addApiKeyUsage(c, {
+        this.logApiKeyUsage(c, {
             apiKeyId: firstApiKey.id,
             isSuccessful: false,
-            errorDetails: {
-                message: firstError.message,
-                type: firstError.type,
-                status: firstResponse.status,
-                code: firstError.code,
-                provider_status: firstResponse.status,
-                provider_headers: firstProviderHeaders,
-                provider_raw_body: firstProviderBody?.slice(0, 4000),
-            },
+            error: firstError,
+            providerError: firstProviderError,
         });
 
         return this.retryApiRequest({
@@ -227,11 +188,7 @@ export class ProxyService {
             proxyApiKeyData,
             proxyRequestDataParsed,
             initialError: firstError,
-            initialProviderError: {
-                status: firstResponse.status,
-                headers: firstProviderHeaders,
-                body: firstProviderBody?.slice(0, 4000),
-            },
+            initialProviderError: firstProviderError,
             initialRetryAttempt: firstRetryAttempt,
             options,
         });
@@ -247,19 +204,8 @@ export class ProxyService {
         proxyApiKeyData: Tables<'proxy_api_keys'>;
         proxyRequestDataParsed: ProxyRequestDataParsed;
         initialError: ProxyError;
-        initialProviderError?: { status: number; headers: Record<string, string>; body: string };
-        initialRetryAttempt?: {
-            attempt_number: number;
-            api_key_id: string | null;
-            error: { message: string; type: string; status?: number; code?: string };
-            duration_ms: number;
-            timestamp: string;
-            provider_error?: {
-                status?: number;
-                headers?: Record<string, string>;
-                raw_body?: string;
-            };
-        };
+        initialProviderError?: ProviderErrorData;
+        initialRetryAttempt?: RetryAttemptData;
         options?: ProxyRequestOptions;
     }): Promise<Response> {
         const {
@@ -272,46 +218,35 @@ export class ProxyService {
             proxyApiKeyData,
             proxyRequestDataParsed,
             initialError,
+            initialProviderError,
+            initialRetryAttempt,
             options,
         } = params;
 
-        /**
-         * Retry attempts array structure:
-         * - attempt_number: Sequential attempt number starting from 1
-         * - api_key_id: ID of the API key used for this attempt
-         * - error: Error details from the attempt
-         * - duration_ms: Duration of this attempt in milliseconds
-         * - timestamp: ISO timestamp of when this attempt was made
-         * - provider_error: Original provider error details (status, headers, body)
-         */
-        let retryAttempts: Array<{
-            attempt_number: number;
-            api_key_id: string | null;
-            error: { message: string; type: string; status?: number; code?: string };
-            duration_ms: number;
-            timestamp: string;
-            provider_error?: {
-                status?: number;
-                headers?: Record<string, string>;
-                raw_body?: string;
-            };
-        }> = params.initialRetryAttempt ? [params.initialRetryAttempt] : [];
-
+        let retryAttempts: RetryAttemptData[] = initialRetryAttempt ? [initialRetryAttempt] : [];
         let lastError: ProxyError = initialError;
-        let lastProviderError: {
-            status?: number;
-            headers?: Record<string, string>;
-            body?: string;
-        } | null = params.initialProviderError ? { ...params.initialProviderError } : null;
+        let lastProviderError: ProviderErrorData | null = initialProviderError
+            ? { ...initialProviderError }
+            : null;
 
-        /**
-         * If retryConfig.maxRetries is -1, then we retries all api key or max is 50
-         * Otherwise, we retry the number of times specified in retryConfig.maxRetries
-         */
-        const retriesTimes =
-            retryConfig.maxRetries === -1
-                ? Math.min(allApiKeys.length, 50) // Cap at 50 retries for safety
-                : Math.min(retryConfig.maxRetries, 50); // Cap at 50 retries for safety
+        const retriesTimes = this.calculateRetryAttempts(retryConfig.maxRetries, allApiKeys.length);
+        console.log(
+            `Starting retry process: ${retriesTimes} attempts with ${allApiKeys.length} available API keys (maxRetries: ${retryConfig.maxRetries})`,
+        );
+
+        // If no retries configured, return the initial error
+        if (retriesTimes === 0) {
+            console.log('No retries configured, returning initial error');
+            return this.createErrorResponse(c, {
+                requestId,
+                proxyApiKeyData,
+                proxyRequestDataParsed,
+                baseRequest,
+                lastError,
+                lastProviderError,
+                retryAttempts,
+            });
+        }
 
         for (
             let currentAttempt = startAttemptIndex;
@@ -322,34 +257,30 @@ export class ProxyService {
             let attemptStart: number = Date.now();
 
             try {
-                console.log(`attempt ${currentAttempt} of ${retryConfig.maxRetries}`);
-                selectedApiKey = allApiKeys[currentAttempt];
-                if (!selectedApiKey) {
+                console.log(
+                    `Retry attempt ${currentAttempt} of ${retriesTimes} (${allApiKeys.length} total API keys available)`,
+                );
+
+                // Safety check: ensure we don't try to access API keys beyond what's available
+                if (currentAttempt >= allApiKeys.length) {
+                    console.log(
+                        `No more API keys available (attempt ${currentAttempt} >= ${allApiKeys.length} available keys)`,
+                    );
                     const error = new InvalidKeyError('No more API keys available for retry');
-
-                    // Add retry attempt for no more API keys
-                    retryAttempts.push({
-                        attempt_number: currentAttempt + 1,
-                        api_key_id: null,
-                        error: {
-                            message: error.message,
-                            type: error.type,
-                            status: error.status,
-                            code: error.code,
-                        },
-                        duration_ms: 0,
-                        timestamp: new Date().toISOString(),
-                        provider_error: {
-                            status: undefined,
-                            headers: {},
-                            raw_body: '',
-                        },
+                    const retryAttempt = this.createRetryAttempt({
+                        attemptNumber: currentAttempt + 1,
+                        apiKeyId: null,
+                        error,
+                        durationMs: 0,
+                        providerError: { status: 0, headers: {}, body: '' },
                     });
-
+                    retryAttempts.push(retryAttempt);
                     throw error;
                 }
 
+                selectedApiKey = allApiKeys[currentAttempt];
                 attemptStart = Date.now();
+
                 const { response, headers } = await this.performAttempt({
                     baseRequest,
                     apiKeyValue: selectedApiKey.api_key_value,
@@ -361,65 +292,32 @@ export class ProxyService {
 
                 if (!response.ok) {
                     const error = this.createProxyError(response, attemptDuration);
-                    // Capture provider error details
-                    const errorClone = response.clone();
-                    let providerBody = '';
-                    try {
-                        providerBody = await errorClone.text();
-                    } catch {
-                        providerBody = '';
-                    }
-                    const providerHeaders = Object.fromEntries(response.headers.entries());
+                    const providerError = await this.extractProviderErrorWithBody(response.clone());
 
-                    BatchLoggerService.addApiKeyUsage(c, {
+                    this.logApiKeyUsage(c, {
                         apiKeyId: selectedApiKey.id,
                         isSuccessful: false,
-                        errorDetails: {
-                            message: error.message,
-                            type: error.type,
-                            status: response.status,
-                            code: error.code,
-                            provider_status: response.status,
-                            provider_headers: providerHeaders,
-                            provider_raw_body: providerBody?.slice(0, 4000),
-                        },
+                        error,
+                        providerError,
                     });
 
-                    // Add retry attempt (attempt_number should be currentAttempt + 1 since we start from 1)
-                    retryAttempts.push({
-                        attempt_number: currentAttempt + 1,
-                        api_key_id: selectedApiKey.id,
-                        error: {
-                            message: error.message,
-                            type: error.type,
-                            status: response.status,
-                            code: error.code,
-                        },
-                        duration_ms: attemptDuration,
-                        timestamp: new Date().toISOString(),
-                        provider_error: {
-                            status: response.status,
-                            headers: providerHeaders,
-                            raw_body: providerBody?.slice(0, 4000),
-                        },
+                    const retryAttempt = this.createRetryAttempt({
+                        attemptNumber: currentAttempt + 1,
+                        apiKeyId: selectedApiKey.id,
+                        error,
+                        durationMs: attemptDuration,
+                        providerError,
                     });
+                    retryAttempts.push(retryAttempt);
 
-                    if (currentAttempt >= retryConfig.maxRetries || !this.shouldRetry(error)) {
+                    if (currentAttempt >= retriesTimes || !this.shouldRetry(error)) {
                         lastError = error;
-                        lastProviderError = {
-                            status: response.status,
-                            headers: providerHeaders,
-                            body: providerBody?.slice(0, 4000),
-                        };
+                        lastProviderError = providerError;
                         break;
                     }
 
                     lastError = error;
-                    lastProviderError = {
-                        status: response.status,
-                        headers: providerHeaders,
-                        body: providerBody?.slice(0, 4000),
-                    };
+                    lastProviderError = providerError;
                     continue;
                 }
 
@@ -430,78 +328,43 @@ export class ProxyService {
                     options,
                 });
                 if (treatOkAsFailure) {
-                    const syntheticError = new ProxyError(
-                        'Zero completion tokens detected',
-                        'server_error',
-                        response.status,
-                        'zero_completion_tokens',
-                    );
+                    const syntheticError = this.createSyntheticError(response.status);
+                    const providerError = this.extractProviderError(response);
 
-                    BatchLoggerService.addApiKeyUsage(c, {
+                    this.logApiKeyUsage(c, {
                         apiKeyId: selectedApiKey.id,
                         isSuccessful: false,
-                        errorDetails: {
-                            message: syntheticError.message,
-                            type: syntheticError.type,
-                            status: response.status,
-                            code: syntheticError.code,
-                            provider_status: response.status,
-                            provider_headers: Object.fromEntries(response.headers.entries()),
-                            provider_raw_body: '',
-                        },
+                        error: syntheticError,
+                        providerError,
                     });
 
-                    // Add retry attempt for synthetic error (zero completion tokens)
-                    retryAttempts.push({
-                        attempt_number: currentAttempt + 1,
-                        api_key_id: selectedApiKey.id,
-                        error: {
-                            message: syntheticError.message,
-                            type: syntheticError.type,
-                            status: response.status,
-                            code: syntheticError.code,
-                        },
-                        duration_ms: attemptDuration,
-                        timestamp: new Date().toISOString(),
-                        provider_error: {
-                            status: response.status,
-                            headers: Object.fromEntries(response.headers.entries()),
-                            raw_body: '',
-                        },
+                    const retryAttempt = this.createRetryAttempt({
+                        attemptNumber: currentAttempt + 1,
+                        apiKeyId: selectedApiKey.id,
+                        error: syntheticError,
+                        durationMs: attemptDuration,
+                        providerError,
                     });
+                    retryAttempts.push(retryAttempt);
 
-                    if (
-                        currentAttempt >= retryConfig.maxRetries ||
-                        !this.shouldRetry(syntheticError)
-                    ) {
+                    if (currentAttempt >= retriesTimes || !this.shouldRetry(syntheticError)) {
                         lastError = syntheticError;
-                        lastProviderError = {
-                            status: response.status,
-                            headers: Object.fromEntries(response.headers.entries()),
-                            body: '',
-                        };
+                        lastProviderError = providerError;
                         break;
                     }
 
                     lastError = syntheticError;
-                    lastProviderError = {
-                        status: response.status,
-                        headers: Object.fromEntries(response.headers.entries()),
-                        body: '',
-                    };
+                    lastProviderError = providerError;
                     continue;
                 }
 
-                BatchLoggerService.addApiKeyUsage(c, {
-                    apiKeyId: selectedApiKey.id,
-                    isSuccessful: true,
-                });
+                this.logApiKeyUsage(c, { apiKeyId: selectedApiKey.id, isSuccessful: true });
 
                 const responseClone = response.clone();
                 const responseCloneForLog = response.clone();
                 const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
 
-                BatchLoggerService.addRequestLog(c, {
+                this.logRequestSuccess(c, {
                     requestId,
                     apiKeyId: selectedApiKey.id,
                     proxyKeyId: proxyApiKeyData.id,
@@ -516,13 +379,9 @@ export class ProxyService {
                         status: response.status,
                         headers: Object.fromEntries(response.headers.entries()),
                     },
-                    isSuccessful: true,
-                    isStream: proxyRequestDataParsed.stream,
-                    performanceMetrics: {
-                        duration_ms: attemptDuration,
-                        attempt_count: retryAttempts.length + 1, // Total attempts = retry attempts + current successful attempt
-                    },
                     responseBody: responseCloneForLog,
+                    isStream: proxyRequestDataParsed.stream,
+                    durationMs: attemptDuration,
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
 
@@ -541,29 +400,200 @@ export class ProxyService {
                               'server_error',
                           );
 
-                // Add retry attempt for exception
-                retryAttempts.push({
-                    attempt_number: currentAttempt + 1,
-                    api_key_id: selectedApiKey?.id || null,
-                    error: {
-                        message: errorObj.message,
-                        type: errorObj.type,
-                        status: errorObj.status,
-                        code: errorObj.code,
-                    },
-                    duration_ms: Date.now() - attemptStart,
-                    timestamp: new Date().toISOString(),
-                    provider_error: {
-                        status: undefined,
-                        headers: {},
-                        raw_body: '',
-                    },
+                const retryAttempt = this.createRetryAttempt({
+                    attemptNumber: currentAttempt + 1,
+                    apiKeyId: selectedApiKey?.id || null,
+                    error: errorObj,
+                    durationMs: Date.now() - attemptStart,
+                    providerError: { status: 0, headers: {}, body: '' },
                 });
+                retryAttempts.push(retryAttempt);
 
                 lastError = errorObj;
                 break;
             }
         }
+
+        return this.createErrorResponse(c, {
+            requestId,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            baseRequest,
+            lastError,
+            lastProviderError,
+            retryAttempts,
+        });
+    }
+
+    // Helper methods to reduce code duplication
+    private static calculateRetryAttempts(maxRetries: number, availableApiKeys: number): number {
+        if (maxRetries === -1) {
+            return Math.min(availableApiKeys, this.MAX_RETRIES_SAFETY_CAP);
+        } else if (maxRetries > 0) {
+            return Math.min(maxRetries, availableApiKeys);
+        }
+        return 0;
+    }
+
+    private static createSyntheticError(status: number): ProxyError {
+        return new ProxyError(
+            'Zero completion tokens detected',
+            'server_error',
+            status,
+            'zero_completion_tokens',
+        );
+    }
+
+    private static createRetryAttempt(params: {
+        attemptNumber: number;
+        apiKeyId: string | null;
+        error: ProxyError;
+        durationMs: number;
+        providerError: ProviderErrorData;
+    }): RetryAttemptData {
+        return {
+            attempt_number: params.attemptNumber,
+            api_key_id: params.apiKeyId,
+            error: {
+                message: params.error.message,
+                type: params.error.type,
+                status: params.error.status,
+                code: params.error.code,
+            },
+            duration_ms: params.durationMs,
+            timestamp: new Date().toISOString(),
+            provider_error: {
+                status: params.providerError.status,
+                headers: params.providerError.headers,
+                raw_body: params.providerError.body,
+            },
+        };
+    }
+
+    private static extractProviderError(response: Response): ProviderErrorData {
+        return {
+            status: response.status,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: '',
+        };
+    }
+
+    private static async extractProviderErrorWithBody(
+        response: Response,
+    ): Promise<ProviderErrorData> {
+        let providerBody = '';
+        try {
+            providerBody = await response.text();
+        } catch {
+            providerBody = '';
+        }
+        return {
+            status: response.status,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: providerBody?.slice(0, this.ERROR_BODY_MAX_LENGTH) || '',
+        };
+    }
+
+    private static logApiKeyUsage(
+        c: Context<HonoApp>,
+        params: {
+            apiKeyId: string;
+            isSuccessful: boolean;
+            error?: ProxyError;
+            providerError?: ProviderErrorData;
+        },
+    ): void {
+        const { apiKeyId, isSuccessful, error, providerError } = params;
+
+        if (isSuccessful) {
+            BatchLoggerService.addApiKeyUsage(c, { apiKeyId, isSuccessful: true });
+        } else if (error && providerError) {
+            BatchLoggerService.addApiKeyUsage(c, {
+                apiKeyId,
+                isSuccessful: false,
+                errorDetails: {
+                    message: error.message,
+                    type: error.type,
+                    status: error.status,
+                    code: error.code,
+                    provider_status: providerError.status,
+                    provider_headers: providerError.headers,
+                    provider_raw_body: providerError.body,
+                },
+            });
+        }
+    }
+
+    private static logRequestSuccess(
+        c: Context<HonoApp>,
+        params: {
+            requestId: string;
+            apiKeyId: string;
+            proxyKeyId: string;
+            userId: string | null;
+            apiFormat: ProxyRequestDataParsed['apiFormat'];
+            requestData: any;
+            responseData: any;
+            responseBody: Response;
+            isStream: boolean;
+            durationMs: number;
+            retryAttempts: RetryAttemptData[];
+        },
+    ): void {
+        const {
+            requestId,
+            apiKeyId,
+            proxyKeyId,
+            userId,
+            apiFormat,
+            requestData,
+            responseData,
+            responseBody,
+            isStream,
+            durationMs,
+            retryAttempts,
+        } = params;
+
+        BatchLoggerService.addRequestLog(c, {
+            requestId,
+            apiKeyId,
+            proxyKeyId,
+            userId,
+            apiFormat,
+            requestData,
+            responseData,
+            isSuccessful: true,
+            isStream,
+            performanceMetrics: {
+                duration_ms: durationMs,
+                attempt_count: retryAttempts.length + 1,
+            },
+            responseBody: responseBody,
+            retryAttempts,
+        });
+    }
+
+    private static createErrorResponse(
+        c: Context<HonoApp>,
+        params: {
+            requestId: string;
+            proxyApiKeyData: Tables<'proxy_api_keys'>;
+            proxyRequestDataParsed: ProxyRequestDataParsed;
+            baseRequest: Request;
+            lastError: ProxyError;
+            lastProviderError: ProviderErrorData | null;
+            retryAttempts: RetryAttemptData[];
+        },
+    ): Response {
+        const {
+            requestId,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            baseRequest,
+            lastError,
+            lastProviderError,
+            retryAttempts,
+        } = params;
 
         BatchLoggerService.addRequestLog(c, {
             requestId,
@@ -585,7 +615,7 @@ export class ProxyService {
             isStream: proxyRequestDataParsed.stream,
             isSuccessful: false,
             performanceMetrics: {
-                duration_ms: 0, // Will be calculated from retry attempts
+                duration_ms: 0,
                 attempt_count: retryAttempts.length,
             },
             errorDetails: {
@@ -597,13 +627,12 @@ export class ProxyService {
                 provider_headers: lastProviderError?.headers,
                 provider_raw_body: lastProviderError?.body,
             },
-            retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
+            retryAttempts,
         });
 
         flushAllLogBatches(c);
 
-        // If we have provider error details, return raw provider body & headers,
-        // and attach gproxy-specific metadata in prefixed headers for SDK compatibility
+        // If we have provider error details, return raw provider body & headers
         if (lastProviderError) {
             const providerHeaders = new Headers();
             if (lastProviderError.headers) {
@@ -617,12 +646,7 @@ export class ProxyService {
             safeHeaders.set('x-gproxy-error-message', lastError.message);
             safeHeaders.set('x-gproxy-request-id', requestId);
 
-            const statusToReturn =
-                (lastProviderError.status as number | undefined) ||
-                (lastError.status as number | undefined) ||
-                500;
-
-            flushAllLogBatches(c);
+            const statusToReturn = lastProviderError.status || lastError.status || 500;
 
             return new Response(lastProviderError.body || '', {
                 status: statusToReturn,
@@ -630,7 +654,7 @@ export class ProxyService {
             });
         }
 
-        // Fallback: return gproxy JSON error if no provider details available
+        // Fallback: return gproxy JSON error
         return c.json(
             {
                 error: lastError.type,

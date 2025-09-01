@@ -193,10 +193,19 @@ export class BatchLoggerService {
                 // Parse usage metadata from response body if available and not already parsed
                 if (log.responseBody && !usageMetadata && log.isSuccessful) {
                     try {
-                        const parsedMetadata = await UsageMetadataParser.parseFromResponse(
-                            log.responseBody,
-                            log.apiFormat,
-                        );
+                        // Ensure responseBody is a real Response before cloning
+                        const canClone = typeof (log.responseBody as any)?.clone === 'function';
+                        let parsedMetadata = null;
+
+                        if (canClone) {
+                            parsedMetadata = await UsageMetadataParser.parseFromResponse(
+                                log.responseBody as Response,
+                                log.apiFormat,
+                            );
+                        } else {
+                            // If it's not a Response, skip parsing to avoid noisy errors
+                            parsedMetadata = null;
+                        }
 
                         if (parsedMetadata) {
                             usageMetadata = {
