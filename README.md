@@ -487,4 +487,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by the Gemini Proxy Team**
+**Made with ❤️ by [lehuygiang28](https://github.com/lehuygiang28)**
