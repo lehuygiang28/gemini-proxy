@@ -1,57 +1,90 @@
 # Gemini Proxy - Core
 
-This package contains the core business logic for the Gemini Proxy service. It's designed to be platform-agnostic, allowing it to be used in various environments such as Node.js, Cloudflare Workers, and Vercel Edge Functions.
+[![License](https://img.shields.io/github/license/lehuygiang28/gemini-proxy?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/blob/main/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/pulls)
 
-## Table of Contents
+This internal package contains the core business logic for the **Gemini Proxy** service.
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Middlewares](#middlewares)
-- [Services](#services)
-- [Installation](#installation)
-- [Usage](#usage)
+## 📋 Table of Contents
 
-## Features
+<details>
+<summary><strong>🚀 Overview</strong></summary>
 
-- **Platform-Agnostic:** Can be deployed to any environment that supports Hono.js.
-- **Middleware-Based:** Uses a chain of middlewares to process requests.
-- **Request Proxying:** Proxies requests to the Google Gemini API.
-- **API Key Validation:** Validates proxy API keys against the Supabase database.
-- **Request Logging:** Logs request and response data.
+- [Features](#-features)
+- [Architecture](#️-architecture)
 
-## Architecture
+</details>
 
-The core of the application is a Hono.js app that processes incoming requests through a series of middlewares. Each middleware has a specific responsibility, such as adding a request ID, logging the request, validating the API key, and finally, proxying the request.
+<details>
+<summary><strong>⚙️ Technical Details</strong></summary>
 
-## Middlewares
+- [Middlewares](#️-middlewares)
+- [Services](#️-services)
 
-- **`requestIdMiddleware`:** Adds a unique request ID to each incoming request.
-- **`httpLoggerMiddleware`:** Logs the request and response.
-- **`extractProxyDataMiddleware`:** Extracts proxy data from the request.
-- **`proxyOptionsMiddleware`:** Handles proxy options.
+</details>
+
+<details>
+<summary><strong>💻 Usage</strong></summary>
+
+- [Installation](#-installation)
+- [Usage Example](#-usage-example)
+
+</details>
+
+<details>
+<summary><strong>📚 References</strong></summary>
+
+- [Back to Main README](#-back-to-main-readme)
+
+</details>
+
+## ✨ Features
+
+- ✅ **Platform-Agnostic:** Runs in any environment that supports Hono.js.
+- ✅ **Middleware-Based:** Processes requests through a flexible middleware chain.
+- ✅ **Centralized Logic:** Contains all core functionality for proxying, validation, and logging.
+
+## 🏗️ Architecture
+
+The core of the application is a `Hono.js` app that processes requests through a series of middlewares.
+
+## 🛡️ Middlewares
+
+- **`requestIdMiddleware`:** Adds a unique ID to each request.
+- **`httpLoggerMiddleware`:** Logs requests and responses.
+- **`extractProxyDataMiddleware`:** Extracts relevant data from the request.
+- **`proxyOptionsMiddleware`:** Handles proxy-specific options.
 - **`validateProxyApiKeyMiddleware`:** Validates the proxy API key.
 
-## Services
+## 🛠️ Services
 
-- **`ProxyService`:** Handles the actual proxying of the request to the Google Gemini API.
-- **`ApiKeyService`:** Manages API key validation.
-- **`ConfigService`:** Provides access to configuration and environment variables.
+- **`ProxyService`:** Handles the proxying of requests.
+- **`ApiKeyService`:** Manages API key validation and rotation.
+- **`ConfigService`:** Provides access to configuration.
 - **`SupabaseService`:** Interacts with the Supabase database.
 - **`BatchLoggerService`:** Batches and sends logs.
 
-## Installation
+## 📦 Installation
 
-This is an internal package and is not meant to be installed directly. It's used as a dependency in the `api`, `cloudflare`, and `vercel` packages.
+This is an internal package and is not intended for direct installation.
 
-## Usage
-
-The `coreApp` is exported from this package and can be used as a Hono.js app:
+## 💻 Usage Example
 
 ```typescript
 import { Hono } from 'hono';
 import { coreApp } from '@gemini-proxy/core';
 
 const app = new Hono();
+
 app.route('/api/gproxy/*', coreApp);
 
 export default app;
+```
+
+## 📚 Back to Main README
+
+For a complete overview of the project, please refer to the [**root README.md**](../../README.md).
+
+---
+
+**Made with ❤️ by [lehuygiang28](https://github.com/lehuygiang28)**

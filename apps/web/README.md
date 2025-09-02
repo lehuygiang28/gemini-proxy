@@ -1,56 +1,67 @@
 # Gemini Proxy - Next.js Web App
 
-This is the **recommended** deployment option for Gemini Proxy - a complete Next.js fullstack application that includes both the web dashboard and API proxy in a single deployment.
+[![License](https://img.shields.io/github/license/lehuygiang28/gemini-proxy?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/blob/main/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/pulls)
 
-## 🎯 Why Choose This Option?
-
-- ✅ **Fastest Setup:** Single deployment with all features
-- ✅ **Complete Solution:** Web interface + API proxy in one
-- ✅ **Production Ready:** Enterprise-grade features
-- ✅ **User-Friendly:** Built-in dashboard for management
-- ✅ **Next.js 15:** Latest App Router with full TypeScript support
+This is the **recommended** deployment option for **Gemini Proxy**. It's a full-stack Next.js application that provides a comprehensive web dashboard for managing API keys, monitoring usage, and viewing request logs.
 
 ## 📋 Table of Contents
 
 <details>
-<summary><strong>🚀 Quick Start</strong></summary>
+<summary><strong>🚀 Getting Started</strong></summary>
 
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Configuration](#️-configuration)
 
 </details>
 
 <details>
-<summary><strong>🌐 Deployment</strong></summary>
+<summary><strong>⚙️ Configuration & Deployment</strong></summary>
 
-- [Vercel Deployment](#vercel-deployment-recommended)
-- [Other Platforms](#other-platforms)
-- [Environment Setup](#environment-setup)
-
-</details>
-
-<details>
-<summary><strong>💻 Usage</strong></summary>
-
-- [Web Interface](#web-interface)
-- [API Integration](#api-integration)
-- [Development](#development)
+- [Environment Variables](#️-environment-variables)
+- [Vercel Deployment](#-vercel-deployment-recommended)
+- [Other Deployment Options](#️-other-deployment-options)
 
 </details>
 
 <details>
-<summary><strong>🔧 Technical</strong></summary>
+<summary><strong>💻 Usage & Development</strong></summary>
 
+- [Web Interface](#-web-interface)
+- [API Integration](#-api-integration)
+- [Local Development](#️-local-development)
 - [Project Structure](#-project-structure)
-- [Troubleshooting](#-troubleshooting)
-- [References](#-references)
 
 </details>
+
+<details>
+<summary><strong>📚 References</strong></summary>
+
+- [Troubleshooting](#-troubleshooting)
+- [Back to Main README](#-back-to-main-readme)
+
+</details>
+
+## ✨ Features
+
+- ✅ **All-in-One Solution:** Combines a web dashboard and API proxy in a single deployment.
+- ✅ **User-Friendly Dashboard:** Manage API keys, proxy keys, and monitor usage with ease.
+- ✅ **Fastest Setup:** The quickest way to get started with Gemini Proxy.
+- ✅ **Production Ready:** Built with Next.js 14 for enterprise-grade performance.
+- ✅ **Authentication Included:** Secure user management powered by Supabase.
+
+## 📋 Prerequisites
+
+- **Node.js** (v18 or higher)
+- **pnpm** (v10 or higher)
+- **Git**
+- A **Supabase** account
+- A **Google AI Studio** account for Gemini API keys
 
 ## 🚀 Quick Start
 
-### **1. Clone and Setup**
+### **1. Clone and Install**
 
 ```bash
 git clone https://github.com/lehuygiang28/gemini-proxy.git
@@ -61,375 +72,93 @@ pnpm install
 ### **2. Configure Environment**
 
 ```bash
-cp apps/web/.env.example apps/web/.env.development
-# Edit apps/web/.env.development with your values
+cd apps/web
+cp .env.example .env.development
 ```
 
-### **3. Start Development Server**
+Edit `.env.development` with your Supabase credentials.
+
+### **3. Start the Development Server**
 
 ```bash
-cd apps/web
 pnpm dev
 ```
 
-### **4. Open the Application**
+The application will be available at `http://localhost:4040`.
 
-```sh
-http://localhost:4040
-```
-
-## 📦 Installation
-
-### **Prerequisites**
-
-- Node.js (v18 or higher)
-- pnpm (v8 or higher)
-- Supabase account
-- Google AI Studio account
-
-### **Installation Steps**
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/lehuygiang28/gemini-proxy.git
-   cd gemini-proxy
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **Navigate to the web app:**
-
-   ```bash
-   cd apps/web
-   ```
-
-## ⚙️ Configuration
-
-### **Environment Variables**
-
-Create environment files for different environments:
-
-```bash
-# Development
-cp apps/web/.env.example apps/web/.env.development
-
-# Production
-cp apps/web/.env.example apps/web/.env.production
-```
+## ⚙️ Environment Variables
 
 ### **Required Variables**
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | `https://your-project.supabase.co` |
-| `NEXT_PUBLIC_ANON_SUPABASE_KEY` | Your Supabase anonymous key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+| Variable                        | Description                     |
+| ------------------------------- | ------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Your Supabase project URL.      |
+| `NEXT_PUBLIC_ANON_SUPABASE_KEY` | Your Supabase anonymous key.    |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Your Supabase service role key. |
 
 ### **Optional Variables**
 
-For all optional environment variables, see the [root README](../../README.md#environment-variables).
+For a complete list of optional environment variables, refer to the [**root README**](../../README.md#️-environment-variables).
 
-## 🌐 Deployment
+## 🚀 Vercel Deployment (Recommended)
 
-### **Vercel Deployment (Recommended)**
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&root-directory=apps/web&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=NEXT_PUBLIC_SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,NEXT_PUBLIC_ANON_SUPABASE_KEY)
 
-1. **Connect your repository to Vercel:**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Import your GitHub repository
-   - Set the root directory to `apps/web`
+1. **Connect to Vercel:** Import your forked repository to Vercel.
+2. **Build & Development Settings:**
+   - **Build Command:** `pnpm build -F web`
+   - **Output Directory:** `apps/web/.next`
+   - **Install Command:** `pnpm install --frozen-lockfile`
+   - **Root Directory:** Leave this empty (default).
+3. **Environment Variables:** Add the required environment variables in the Vercel project settings.
+4. **Deploy:** Vercel will automatically build and deploy your application.
 
-2. **Configure environment variables:**
-   - Add all required environment variables in Vercel dashboard
-   - Set `NODE_ENV` to `production`
+## 🛠️ Other Deployment Options
 
-3. **Deploy:**
-   - Vercel will automatically deploy on every push to main branch
+This Next.js application can be deployed to any platform that supports Next.js, such as **[Netlify](https://www.netlify.com/)**, **[Railway](https://railway.app/)**, and **[Render](https://render.com/)**.
 
-### **Other Platforms**
+## 💻 Web Interface
 
-#### **Netlify**
+- **Authentication:** Secure user registration and login.
+- **API Key Management:** Add, view, and manage your Google Gemini API keys.
+- **Proxy Key Management:** Create and control access with proxy keys.
+- **Request Logs:** Detailed logging and filtering of all API requests.
+- **Analytics:** Monitor usage and performance metrics.
 
-```bash
-# Build command
-cd apps/web && pnpm build
+## 🔌 API Integration
 
-# Publish directory
-apps/web/.next
-```
+The web app includes the Gemini Proxy API, available at `/api/gproxy`.
 
-#### **Railway**
+## 🛠️ Local Development
 
-- Connect your GitHub repository
-- Set root directory to `apps/web`
-- Configure environment variables
+- `pnpm dev`: Starts the development server.
+- `pnpm build`: Builds the application for production.
+- `pnpm start`: Starts the production server.
+- `pnpm lint`: Lints the codebase.
 
-#### **Render**
-
-- Deploy as a web service
-- Set build command: `cd apps/web && pnpm install && pnpm build`
-- Set start command: `cd apps/web && pnpm start`
-
-### **Environment Setup**
-
-#### **Development**
-
-```bash
-# Start development server
-pnpm dev
-
-# The app will be available at:
-# http://localhost:4040
-```
-
-#### **Production**
-
-```bash
-# Build the application
-pnpm build
-
-# Start production server
-pnpm start
-
-# The app will be available at:
-# http://localhost:4041
-```
-
-## 💻 Usage
-
-### **Web Interface**
-
-The web application provides a comprehensive interface for managing your Gemini Proxy:
-
-#### **1. Authentication**
-
-- Register a new account or login with existing credentials
-- Secure authentication powered by Supabase
-
-#### **2. API Key Management**
-
-- Create new API keys with custom names and descriptions
-- View usage statistics for each key
-- Enable/disable keys as needed
-- Delete unused keys
-
-#### **3. Proxy Key Management**
-
-- Create proxy keys for client applications
-- Monitor proxy key usage and performance
-- Manage access permissions
-
-#### **4. Request Logs**
-
-- View detailed logs of all API requests
-- Filter logs by date, status, and other criteria
-- Search through logs for specific information
-- Export logs in various formats
-
-#### **5. Analytics Dashboard**
-
-- Monitor overall usage statistics
-- View performance metrics
-- Track cost and usage trends
-
-### **API Integration**
-
-The web application includes the Gemini Proxy API as Next.js API routes:
-
-- **API Routes:** Available under `/api/gproxy/*`
-- **Health Check:** `GET /api/gproxy/health`
-- **Gemini API:** All Gemini API endpoints under `/api/gproxy/*`
-- **OpenAI-Compatible:** All OpenAI-compatible endpoints under `/api/gproxy/openai/v1`
-
-For detailed API endpoints and usage examples, see the [root README](../../README.md#api-endpoints) and [Usage Examples](../../README.md#usage-examples).
-
-### **Client Configuration Examples**
-
-#### **Google Generative AI SDK**
-
-```typescript
-import { GoogleGenAI } from '@google/genai';
-
-const genAi = new GoogleGenAI({
-    apiKey: 'your_proxy_api_key',
-    httpOptions: {
-        baseUrl: 'https://your-vercel-app.vercel.app/api/gproxy',
-    },
-});
-```
-
-#### **OpenAI-Compatible Clients**
-
-```typescript
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-    apiKey: 'your_proxy_api_key',
-    baseURL: 'https://your-vercel-app.vercel.app/api/gproxy/openai/v1',
-});
-```
-
-## 🛠️ Development
-
-### **Local Development**
-
-```bash
-# Start development server
-pnpm dev
-
-# Open the application
-open http://localhost:4040
-
-# Test API endpoints
-curl http://localhost:4040/api/gproxy/health
-```
-
-### **Development Scripts**
-
-```bash
-# Start development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-
-# Run linting
-pnpm lint
-
-# Run type checking
-pnpm type-check
-
-# Run tests
-pnpm test
-```
-
-### **File Structure**
+## 📁 Project Structure
 
 ```md
 apps/web/
 ├── src/
-│   ├── app/              # Next.js app directory
-│   │   ├── (protected)/  # Protected routes
-│   │   ├── api/          # API routes
-│   │   ├── login/        # Authentication pages
-│   │   └── layout.tsx    # Root layout
-│   ├── components/       # React components
-│   ├── contexts/         # React contexts
-│   ├── providers/        # Data providers
-│   └── utils/           # Utility functions
-├── public/              # Static assets
-├── .next/               # Built application (generated)
-├── .env.example         # Environment variables template
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-├── next.config.mjs      # Next.js configuration
-└── README.md           # This file
+│   ├── app/        # Next.js App Router
+│   └── ...
+├── public/         # Static assets
+├── .env.example    # Environment variables template
+├── package.json    # Dependencies and scripts
+└── README.md       # This file
 ```
-
-## 🔧 Project Structure
-
-### **Key Files**
-
-- `src/app/` - Next.js app directory with pages and API routes
-- `src/components/` - Reusable React components
-- `src/contexts/` - React contexts for state management
-- `src/providers/` - Data providers for API integration
-- `.env.example` - Template for environment variables
-- `package.json` - Project dependencies and build scripts
-- `next.config.mjs` - Next.js configuration
-
-### **API Routes**
-
-- `/api/gproxy/[[...slug]]` - Main proxy API route
-- `/api/gproxy/health` - Health check endpoint
 
 ## 🐛 Troubleshooting
 
-### **Common Issues**
+- **Port Conflict:** Change the `PORT` in your `.env.development` file if `4040` is in use.
+- **Missing Environment Variables:** Ensure all `NEXT_PUBLIC_` and `SUPABASE_` variables are set.
+- **Authentication Errors:** Double-check your Supabase URL and keys.
 
-1. **Port Already in Use:**
+## 📚 Back to Main README
 
-   ```bash
-   # Change the PORT environment variable
-   # Or kill the process using the port
-   lsof -ti:4040 | xargs kill -9
-   ```
-
-2. **Environment Variables Not Set:**
-   - Check that all required environment variables are set
-   - Verify the `.env.development` file is in the correct location
-
-3. **Database Connection Issues:**
-   - Verify your Supabase URL and keys
-   - Check your network connection to Supabase
-
-4. **Authentication Issues:**
-   - Ensure Supabase authentication is properly configured
-   - Check that the anonymous key is set correctly
-
-### **Debugging**
-
-1. **Check application logs:**
-
-   ```bash
-   # Development logs
-   pnpm dev
-   
-   # Production logs
-   pnpm start
-   ```
-
-2. **Test database connection:**
-
-   ```bash
-   # Test Supabase connection
-   curl -X GET "https://your-project.supabase.co/rest/v1/" \
-     -H "apikey: your-anon-key" \
-     -H "Authorization: Bearer your-anon-key"
-   ```
-
-3. **Verify configuration:**
-
-   ```bash
-   # Check environment variables
-   node -e "console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)"
-   ```
-
-## 📚 References
-
-### **Next.js Documentation**
-
-- [Getting Started](https://nextjs.org/docs/getting-started)
-- [App Router](https://nextjs.org/docs/app)
-- [API Routes](https://nextjs.org/docs/api-routes/introduction)
-- [Environment Variables](https://nextjs.org/docs/basic-features/environment-variables)
-
-### **Refine Documentation**
-
-- [Getting Started](https://refine.dev/docs/getting-started/overview/)
-- [Data Provider](https://refine.dev/docs/core/providers/data-provider/)
-- [Authentication](https://refine.dev/docs/core/providers/auth-provider/)
-
-### **Supabase Documentation**
-
-- [Getting Started](https://supabase.com/docs/guides/getting-started)
-- [Authentication](https://supabase.com/docs/guides/auth)
-- [Database](https://supabase.com/docs/guides/database)
-
-### **Related Documentation**
-
-- [Root README](../../README.md) - Complete project overview
-- [Environment Variables](../../README.md#environment-variables) - All environment variables
-- [API Endpoints](../../README.md#api-endpoints) - Complete API reference
-- [Usage Examples](../../README.md#usage-examples) - Code examples for all clients
+For a complete overview of the project, please refer to the [**root README.md**](../../README.md).
 
 ---
 
-**🎯 This is the recommended deployment option for most users!**
+**Made with ❤️ by [lehuygiang28](https://github.com/lehuygiang28)**

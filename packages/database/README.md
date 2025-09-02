@@ -1,63 +1,67 @@
 # Gemini Proxy - Database
 
-This package contains the database schema and management scripts for the Gemini Proxy application. It's designed to be used with Supabase, a backend-as-a-service platform that provides a PostgreSQL database, authentication, and more.
+[![License](https://img.shields.io/github/license/lehuygiang28/gemini-proxy?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/blob/main/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/pulls)
 
-## Table of Contents
+This internal package contains the database schema, types, and management scripts for the **Gemini Proxy** application.
 
-- [Schema](#schema)
-  - [Tables](#tables)
-  - [Indexes](#indexes)
-  - [Triggers](#triggers)
-  - [Row-Level Security (RLS)](#row-level-security-rls)
-- [Scripts](#scripts)
-  - [Generating Types](#generating-types)
-  - [Pushing Schema Changes](#pushing-schema-changes)
-- [Usage](#usage)
+## 📋 Table of Contents
 
-## Schema
+<details>
+<summary><strong>🚀 Overview</strong></summary>
 
-The database schema is defined in the `sql/schema.sql` file.
+- [Schema](#️-schema)
+- [Scripts](#️-scripts)
 
-### Tables
+</details>
 
-- **`api_keys`:** Stores the user's Google Gemini API keys.
-- **`proxy_api_keys`:** Stores the proxy API keys that are used to authenticate with the Gemini Proxy.
-- **`request_logs`:** Stores detailed logs of all requests made through the proxy.
+<details>
+<summary><strong>💻 Usage</strong></summary>
 
-### Indexes
+- [Installation](#-installation)
+- [Usage Information](#-usage-information)
 
-Indexes are created on frequently queried columns to improve database performance.
+</details>
 
-### Triggers
+<details>
+<summary><strong>📚 References</strong></summary>
 
-A trigger is used to automatically update the `updated_at` timestamp on the `api_keys` and `proxy_api_keys` tables whenever a row is updated.
+- [Back to Main README](#-back-to-main-readme)
 
-### Row-Level Security (RLS)
+</details>
 
-RLS policies are in place to ensure that users can only access their own data.
+## 🏗️ Schema
 
-## Scripts
+The database schema is defined in `sql/schema.sql` and includes tables for `api_keys`, `proxy_api_keys`, and `request_logs`.
 
-### Generating Types
+## 🛠️ Scripts
 
-To generate TypeScript types from your Supabase schema, run the following command:
+### **Generating Types**
 
 ```bash
 pnpm gen:types
 ```
 
-This will create a `types/database.types.ts` file with the generated types.
-
-### Pushing Schema Changes
-
-To apply the schema defined in `sql/schema.sql` to your Supabase database, run:
+### **Pushing Schema Changes**
 
 ```bash
 pnpm db:push
 ```
 
-**Note:** This command will overwrite the existing schema in your database. Make sure to back up your data before running it.
+**Warning:** This command will overwrite the existing schema in your database.
 
-## Usage
+## 📦 Installation
 
-This is an internal package and is not meant to be used directly. The generated types are used by the `@gemini-proxy/core` package to provide type safety when interacting with the database.
+This is an internal package and is not intended for direct installation.
+
+## 💻 Usage Information
+
+The generated TypeScript types are used by the `@gemini-proxy/core` package.
+
+## 📚 Back to Main README
+
+For a complete overview of the project, please refer to the [**root README.md**](../../README.md).
+
+---
+
+**Made with ❤️ by [lehuygiang28](https://github.com/lehuygiang28)**
