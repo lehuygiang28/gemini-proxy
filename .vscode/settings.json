@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "wrangler.json": "jsonc"
+    },
+    "conventionalCommits.scopes": ["web"],
+    "cSpell.words": ["Appwrite", "googleaistudio", "gproxy", "SUPABASE"]
+}
