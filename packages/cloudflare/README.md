@@ -109,6 +109,21 @@ For a complete list of optional environment variables, refer to the [**root READ
 
 The `pnpm deploy` script will build and deploy the worker to your Cloudflare account.
 
+### 🔄 Git-connected CI/CD (Recommended)
+
+You can fork this repository and connect it directly to Cloudflare for fast deployments and automatic CI/CD from Git.
+
+1. Fork the repo on GitHub.
+2. In Cloudflare dashboard, create a new Worker and connect your Git repository.
+3. Use the following settings:
+
+   - Build command: `pnpm build -F @lehuygiang28/gemini-proxy-cloudflare`
+   - Deploy command: `cd packages/cloudflare && pnpm run deploy`
+   - Path: `/` (root directory)
+
+4. Configure secrets (see Environment Variables section) in your Worker Settings.
+5. Every push to your default branch will trigger build and deploy automatically.
+
 ## 💻 API Integration
 
 Your Cloudflare Worker will be available at the URL provided after deployment.

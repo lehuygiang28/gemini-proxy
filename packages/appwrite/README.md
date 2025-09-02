@@ -113,6 +113,22 @@ For a complete list of optional environment variables, refer to the [**root READ
 
 The `pnpm deploy` script will build and deploy the function to your Appwrite project.
 
+### 🔄 Git-connected CI/CD (Recommended)
+
+You can fork this repository and connect it to Appwrite for faster deployments and automatic CI/CD from Git.
+
+1. Fork the repo on GitHub.
+2. In the Appwrite Console, create a new Function and connect your Git repository.
+3. Configure the function with the following settings:
+
+   - Runtime: Nodejs 22
+   - Entrypoint: `packages/appwrite/dist/main.js`
+   - Root directory: `./` (root)
+   - Build command: `npx pnpm@10 install && npx pnpm@10 build -F @lehuygiang28/gemini-proxy-appwrite`
+
+4. Add required environment variables in Function Settings (see Environment Variables section).
+5. Note: Appwrite does not auto-deploy on new commits. After pushing, manually create a deployment from the new commit in the Appwrite Console.
+
 ## 💻 API Integration
 
 Your Appwrite function will be available at `https://<your-appwrite-endpoint>/functions/v1/<your-function-id>/`.
