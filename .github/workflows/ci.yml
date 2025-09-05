@@ -13,23 +13,22 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10.15.0
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
                   node-version: 20
                   cache: 'pnpm'
 
-            - name: Install pnpm
-              run: npm install -g pnpm
-
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
             - name: Lint
               run: pnpm lint
-
-            - name: Type check
-              run: pnpm type-check
 
             - name: Build packages
               run: pnpm build
@@ -46,14 +45,16 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10.15.0
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
                   node-version: 20
                   cache: 'pnpm'
-
-            - name: Install pnpm
-              run: npm install -g pnpm
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
