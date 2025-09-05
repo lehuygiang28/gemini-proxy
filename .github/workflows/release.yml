@@ -11,6 +11,9 @@ jobs:
         permissions:
             contents: write
             id-token: write
+        env:
+            NEXT_PUBLIC_SUPABASE_URL: https://mock-supabase-url.supabase.co
+            NEXT_PUBLIC_ANON_SUPABASE_KEY: mock-anon-key-for-ci
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
