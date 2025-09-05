@@ -18,7 +18,6 @@ import {
 } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { flushAllLogBatches } from '../utils/wait-until';
-import { createRetryRequest } from '../utils/body-handler';
 
 // ===== INTERFACES =====
 interface RetryAttemptData {
@@ -292,14 +291,26 @@ export class ProxyService {
         const proxyRequestDataParsed = c.get('proxyRequestDataParsed');
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
-        const rawBodyText = c.get('rawBodyText');
-        const baseRequest = createRetryRequest(c.req.raw, rawBodyText);
         const retryConfigBase = ConfigService.getRetryConfig(c);
         const options = c.get('proxyRequestOptions');
         const retryConfig: RetryConfig = {
             ...retryConfigBase,
             ...(options?.retry || {}),
         };
+
+        // Always create a fresh clone of the original request for all retries
+        // This ensures we have a consistent, unmodified request for every attempt
+        let baseRequest: Request;
+        try {
+            baseRequest = c.req.raw.clone();
+        } catch (error) {
+            console.warn('Failed to clone original request, creating fallback:', error);
+            // If cloning fails, create a minimal request without body
+            baseRequest = new Request(c.req.raw.url, {
+                method: c.req.raw.method,
+                headers: c.req.raw.headers,
+            });
+        }
 
         return {
             proxyRequestDataParsed,
@@ -374,6 +385,32 @@ export class ProxyService {
                     undefined,
                     false,
                 );
+            }
+        }
+
+        // Validate content-length header consistency
+        const contentLength = baseRequest.headers.get('content-length');
+        const method = baseRequest.method.toUpperCase();
+
+        if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+            // For methods that typically have bodies, validate content-length
+            if (contentLength) {
+                const length = parseInt(contentLength, 10);
+                if (isNaN(length) || length < 0) {
+                    throw new ProxyError(
+                        'Invalid content-length header',
+                        'validation_error',
+                        400,
+                        'invalid_request',
+                        undefined,
+                        false,
+                    );
+                }
+            }
+        } else if (method === 'GET' || method === 'HEAD' || method === 'DELETE') {
+            // For methods that typically don't have bodies, content-length should be 0 or absent
+            if (contentLength && contentLength !== '0') {
+                console.warn(`Unexpected content-length for ${method} request: ${contentLength}`);
             }
         }
     }
@@ -1156,7 +1193,25 @@ export class ProxyService {
         params: AttemptParams,
     ): Promise<{ response: Response; durationMs: number; headers: Headers }> {
         const { baseRequest, apiKeyValue, apiFormat, url, c } = params;
-        const headers = new Headers(baseRequest.headers);
+
+        // Always create a fresh clone from the original base request for this attempt
+        // This ensures we never consume the original request body
+        let attemptRequest: Request;
+        try {
+            attemptRequest = baseRequest.clone();
+        } catch (error) {
+            console.error('Failed to clone base request for attempt:', error);
+            throw new ProxyError(
+                'Failed to create request for retry attempt',
+                'server_error',
+                500,
+                'request_clone_failed',
+                undefined,
+                true,
+            );
+        }
+
+        const headers = new Headers(attemptRequest.headers);
 
         // Remove internal control headers so they are not sent to the origin
         headers.forEach((_v, k) => {
@@ -1168,43 +1223,33 @@ export class ProxyService {
             }
         });
 
-        headers.set('origin', url.split('/')[2]);
+        // Set origin header properly using URL parsing
+        try {
+            const urlObj = new URL(url);
+            headers.set('origin', `${urlObj.protocol}//${urlObj.host}`);
+        } catch (error) {
+            console.warn('Failed to parse URL for origin header:', error);
+            // Fallback to original behavior
+            headers.set('origin', url.split('/')[2]);
+        }
+
+        // Set API key header based on format
         if (apiFormat === 'gemini') {
             headers.set('x-goog-api-key', apiKeyValue);
         } else {
             headers.set('authorization', `Bearer ${apiKeyValue}`);
         }
 
+        // Use the fresh clone's body directly - no need for complex fallback logic
         const requestInit: RequestInit = {
-            method: baseRequest.method,
+            method: attemptRequest.method,
             headers,
+            body: attemptRequest.body,
         };
 
-        // Pure proxy approach: always try to use the original request body
-        let bodyToUse: RequestInit['body'] | null = null;
-
-        try {
-            const requestClone = baseRequest.clone();
-            if (requestClone.body) {
-                bodyToUse = requestClone.body;
-            }
-        } catch (error) {
-            console.warn('Cannot clone original request body:', error);
-
-            if (c) {
-                const rawBodyText = c.get('rawBodyText');
-                if (rawBodyText) {
-                    console.warn('Using stored body text as fallback (original unavailable)');
-                    bodyToUse = rawBodyText;
-                }
-            }
-        }
-
-        if (bodyToUse) {
-            requestInit.body = bodyToUse;
-            if (typeof process !== 'undefined') {
-                (requestInit as any).duplex = 'half';
-            }
+        // Add duplex mode for Node.js environments if body exists
+        if (attemptRequest.body && typeof process !== 'undefined') {
+            (requestInit as any).duplex = 'half';
         }
 
         const start = Date.now();

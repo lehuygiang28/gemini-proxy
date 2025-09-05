@@ -28,7 +28,6 @@ export interface Variables extends HonoVariables {
     proxyRequestDataParsed: ProxyRequestDataParsed;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestOptions?: ProxyRequestOptions;
-    rawBodyText?: string; // Store raw body text for request reconstruction
 }
 
 export interface Bindings extends HonoBindings {

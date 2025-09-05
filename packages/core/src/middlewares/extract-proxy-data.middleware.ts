@@ -48,9 +48,6 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
                     bodyData = { data: parsedBody, success: true, type: 'json' };
-
-                    // Store as fallback for retries (original request body takes priority)
-                    c.set('rawBodyText', rawBodyText);
                 }
             } catch (error) {
                 console.warn('Failed to parse JSON body for model extraction:', error);
@@ -73,9 +70,6 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                     model = parsedBody?.model;
                     stream = Boolean(parsedBody?.stream);
                     bodyData = { data: parsedBody, success: true, type: 'json' };
-
-                    // Store as fallback for retries (original request body takes priority)
-                    c.set('rawBodyText', rawBodyText);
                 }
             } catch (error) {
                 console.warn('Failed to parse JSON body for OpenAI format:', error);

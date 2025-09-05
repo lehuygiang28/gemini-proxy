@@ -42,57 +42,6 @@ export async function safelyExtractBodyText(c: Context<HonoApp>): Promise<string
 }
 
 /**
- * Create a request for retries - pure proxy approach
- * Always try to clone the original request, fallback to stored text only if absolutely necessary
- */
-export function createRetryRequest(
-    originalRequest: Request,
-    storedBodyText?: string | null,
-): Request {
-    try {
-        // Always try to clone the original request first (pure proxy)
-        return originalRequest.clone();
-    } catch (error) {
-        // If cloning fails, check if we need a body
-        const contentLength = originalRequest.headers.get('content-length');
-        const method = originalRequest.method.toUpperCase();
-
-        // If no body needed, create without body
-        if (
-            !contentLength ||
-            contentLength === '0' ||
-            method === 'GET' ||
-            method === 'HEAD' ||
-            method === 'OPTIONS'
-        ) {
-            return new Request(originalRequest.url, {
-                method: originalRequest.method,
-                headers: originalRequest.headers,
-            });
-        }
-
-        // If we have stored body text, use it as fallback
-        if (storedBodyText) {
-            console.warn(
-                'Using stored body text as fallback for retry (original body unavailable)',
-            );
-            return new Request(originalRequest.url, {
-                method: originalRequest.method,
-                headers: originalRequest.headers,
-                body: storedBodyText,
-            });
-        }
-
-        // Last resort: create without body
-        console.warn('Creating retry request without body (original unavailable, no stored text)');
-        return new Request(originalRequest.url, {
-            method: originalRequest.method,
-            headers: originalRequest.headers,
-        });
-    }
-}
-
-/**
  * Check if a request has a body that can be consumed
  */
 export function hasConsumableBody(request: Request): boolean {
