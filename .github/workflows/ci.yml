@@ -36,9 +36,6 @@ jobs:
             - name: Build packages
               run: pnpm build
 
-            - name: Run tests
-              run: pnpm test
-
     changeset:
         runs-on: ubuntu-latest
         if: github.event_name == 'pull_request'

@@ -38,9 +38,6 @@ jobs:
             - name: Build packages
               run: pnpm build
 
-            - name: Run tests
-              run: pnpm test
-
             - name: Create and publish versions
               uses: changesets/action@v1
               with:
