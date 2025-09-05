@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist",
+        "prepublishOnly": "pnpm build"
     },
     "license": "MIT",
     "peerDependencies": {
@@ -22,5 +23,8 @@
         "@types/node": "^20.11.16",
         "tsup": "^8.5.0",
         "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }

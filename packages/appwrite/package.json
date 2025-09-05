@@ -8,7 +8,8 @@
         "build": "tsup",
         "dev": "tsup --watch",
         "clean": "rm -rf dist",
-        "deploy": "pnpm run build && npx appwrite-cli push functions"
+        "deploy": "pnpm run build && npx appwrite-cli push functions",
+        "prepublishOnly": "pnpm build"
     },
     "peerDependencies": {
         "node-appwrite": ">=14.2.0"
@@ -24,5 +25,8 @@
         "@types/node": "^20.11.16",
         "tsup": "^8.5.0",
         "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }

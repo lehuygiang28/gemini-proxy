@@ -15,10 +15,15 @@
         "test": "turbo run test",
         "clean": "turbo run clean",
         "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+        "changeset": "changeset",
+        "version": "changeset version",
+        "release": "changeset publish"
     },
     "devDependencies": {
         "@ai-sdk/google": "^2.0.6",
+        "@changesets/changelog-github": "^0.5.1",
+        "@changesets/cli": "^2.29.6",
         "@google/genai": "^1.15.0",
         "@turbo/gen": "^1.12.4",
         "ai": "^5.0.15",
