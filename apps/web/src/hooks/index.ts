@@ -6,6 +6,10 @@ export { useApiKeyStatistics } from './use-api-key-statistics';
 export { useProxyKeyStatistics } from './use-proxy-key-statistics';
 export { useRequestLogsStatistics } from './use-request-logs-statistics';
 
+// Advanced filtering hooks
+export { useAdvancedFilters } from './use-advanced-filters';
+export { useServerSideFilters } from './use-server-side-filters';
+
 // Re-export types from database package for convenience
 export type {
     DashboardStatistics,
@@ -15,6 +19,3 @@ export type {
     RequestLogsStatistics,
     User,
 } from '@gemini-proxy/database';
-
-// Legacy hook (deprecated - use useRetryStatisticsRpc instead)
-export { useRetryStatistics } from './use-retry-statistics';
