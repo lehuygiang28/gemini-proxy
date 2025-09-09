@@ -29,6 +29,7 @@
         "@refinedev/supabase": "^5.7.4",
         "@supabase/ssr": "^0.3.0",
         "antd": "^5.17.0",
+        "swr": "^2.2.4",
         "gsap": "^3.13.0",
         "js-cookie": "^3.0.5",
         "motion": "^12.23.12",

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { useList } from '@refinedev/core';
+import React from 'react';
 import { Row, Col, Card, Statistic, Progress, Button, Space, theme } from 'antd';
 import {
     ReloadOutlined,
@@ -10,86 +9,18 @@ import {
     FileTextOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
-import { extractPerformanceMetrics, extractUsageMetadata } from '@/utils/table-helpers';
+import { useDashboardStatistics } from '@/hooks/use-dashboard-statistics';
 
 const { useToken } = theme;
 
 export default function DashboardPage() {
     const { token } = useToken();
 
-    // Fetch API keys data
-    const {
-        data: apiKeysData,
-        isLoading: apiKeysLoading,
-        refetch: refetchApiKeys,
-    } = useList({
-        resource: 'api_keys',
-        pagination: { pageSize: 1000 },
-    });
-
-    // Fetch proxy API keys data
-    const {
-        data: proxyKeysData,
-        isLoading: proxyKeysLoading,
-        refetch: refetchProxyKeys,
-    } = useList({
-        resource: 'proxy_api_keys',
-        pagination: { pageSize: 1000 },
-    });
-
-    // Fetch request logs data (last 24 hours)
-    const {
-        data: requestLogsData,
-        isLoading: requestLogsLoading,
-        refetch: refetchLogs,
-    } = useList({
-        resource: 'request_logs',
-        pagination: { pageSize: 1000 },
-    });
-
-    const statistics = useMemo(() => {
-        // Calculate total tokens used
-        const totalTokens =
-            proxyKeysData?.data?.reduce((sum, key) => sum + (key.total_tokens || 0), 0) || 0;
-
-        // Calculate average response time (if available in performance_metrics)
-        const requestLogs = requestLogsData?.data || [];
-        const avgResponseTime =
-            requestLogs.length > 0
-                ? requestLogs.reduce((sum, log) => {
-                      const metrics = extractPerformanceMetrics(log.performance_metrics);
-                      return sum + (metrics.duration || 0);
-                  }, 0) / requestLogs.length
-                : 0;
-
-        // Calculate success rate
-        const totalRequests = requestLogsData?.total || 0;
-        const successfulRequests = requestLogs.filter((log) => log.is_successful).length;
-        const successRate =
-            totalRequests > 0 ? Math.round((successfulRequests / totalRequests) * 100) : 0;
-
-        return {
-            totalApiKeys: apiKeysData?.total || 0,
-            totalProxyKeys: proxyKeysData?.total || 0,
-            totalRequests: totalRequests,
-            totalTokens: totalTokens,
-            avgResponseTime: Math.round(avgResponseTime || 0),
-            successRate: successRate,
-        };
-    }, [
-        apiKeysData?.total,
-        proxyKeysData?.total,
-        proxyKeysData?.data,
-        requestLogsData?.total,
-        requestLogsData?.data,
-    ]);
-
-    const isLoading = apiKeysLoading || proxyKeysLoading || requestLogsLoading;
+    // Use RPC-based statistics hook
+    const { statistics, isLoading, mutate } = useDashboardStatistics();
 
     const handleRefresh = () => {
-        refetchApiKeys();
-        refetchProxyKeys();
-        refetchLogs();
+        mutate();
     };
 
     return (
@@ -114,7 +45,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Total API Keys"
-                            value={statistics.totalApiKeys}
+                            value={statistics?.total_api_keys || 0}
                             valueStyle={{ color: token.colorPrimary }}
                         />
                     </Card>
@@ -123,7 +54,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Total Proxy Keys"
-                            value={statistics.totalProxyKeys}
+                            value={statistics?.total_proxy_keys || 0}
                             valueStyle={{ color: token.colorInfo }}
                         />
                     </Card>
@@ -132,7 +63,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Total Requests"
-                            value={statistics.totalRequests}
+                            value={statistics?.total_requests || 0}
                             valueStyle={{ color: token.colorWarning }}
                         />
                     </Card>
@@ -141,18 +72,18 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Success Rate"
-                            value={statistics.successRate}
+                            value={statistics?.success_rate || 0}
                             suffix="%"
                             valueStyle={{ color: token.colorSuccess }}
                         />
                         <Progress
-                            percent={statistics.successRate}
+                            percent={statistics?.success_rate || 0}
                             size="small"
                             showInfo={false}
                             strokeColor={
-                                statistics.successRate > 90
+                                (statistics?.success_rate || 0) > 90
                                     ? token.colorSuccess
-                                    : statistics.successRate > 70
+                                    : (statistics?.success_rate || 0) > 70
                                       ? token.colorWarning
                                       : token.colorError
                             }
@@ -167,7 +98,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Total Tokens Used"
-                            value={statistics.totalTokens.toLocaleString()}
+                            value={(statistics?.total_tokens || 0).toLocaleString()}
                             valueStyle={{ color: token.colorInfo }}
                         />
                     </Card>
@@ -176,7 +107,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Avg Response Time"
-                            value={statistics.avgResponseTime}
+                            value={statistics?.avg_response_time_ms || 0}
                             suffix="ms"
                             valueStyle={{ color: token.colorWarning }}
                         />
@@ -186,7 +117,7 @@ export default function DashboardPage() {
                     <Card>
                         <Statistic
                             title="Active Keys"
-                            value={statistics.totalApiKeys + statistics.totalProxyKeys}
+                            value={statistics?.active_keys || 0}
                             valueStyle={{ color: token.colorSuccess }}
                         />
                     </Card>

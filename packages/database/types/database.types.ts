@@ -188,6 +188,26 @@ export type Database = {
                 Args: { p_days_to_keep?: number };
                 Returns: number;
             };
+            get_api_key_statistics: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_dashboard_statistics: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_proxy_key_statistics: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_request_logs_statistics: {
+                Args: { p_days_back?: number; p_user_id?: string };
+                Returns: Json;
+            };
+            get_retry_statistics: {
+                Args: { p_days_back?: number; p_user_id?: string };
+                Returns: Json;
+            };
         };
         Enums: {
             [_ in never]: never;

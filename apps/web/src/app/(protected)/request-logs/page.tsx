@@ -7,7 +7,7 @@ import { Table, Space, Tag, Button, Input, Select, Card, Row, Col, Tooltip, them
 import { ReloadOutlined } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay, JsonDisplay, RetryAttemptsBadge } from '@/components/common';
-import { useRetryStatistics } from '@/hooks/use-retry-statistics';
+import { useRetryStatisticsRpc } from '@/hooks/use-retry-statistics-rpc';
 import {
     getRequestType,
     getRequestTypeColor,
@@ -74,8 +74,8 @@ export default function RequestLogsListPage() {
         sorters: { initial: [{ field: 'created_at', order: 'desc' }] },
     });
 
-    // Get retry statistics using custom hook
-    const { statistics: retryStats, isLoading: statsLoading } = useRetryStatistics();
+    // Get retry statistics using RPC function
+    const { statistics: retryStats, isLoading: statsLoading } = useRetryStatisticsRpc(30);
 
     const getStatusColor = (isSuccessful: boolean) => {
         return isSuccessful ? 'green' : 'red';
@@ -107,7 +107,7 @@ export default function RequestLogsListPage() {
                                     color: token.colorText,
                                 }}
                             >
-                                {retryStats.totalRequests}
+                                {retryStats?.total_requests || 0}
                             </div>
                             <div
                                 style={{
@@ -128,7 +128,7 @@ export default function RequestLogsListPage() {
                                     color: token.colorWarning,
                                 }}
                             >
-                                {retryStats.requestsWithRetries}
+                                {retryStats?.requests_with_retries || 0}
                             </div>
                             <div
                                 style={{
@@ -149,7 +149,7 @@ export default function RequestLogsListPage() {
                                     color: token.colorError,
                                 }}
                             >
-                                {retryStats.totalRetryAttempts}
+                                {retryStats?.total_retry_attempts || 0}
                             </div>
                             <div
                                 style={{
@@ -170,7 +170,7 @@ export default function RequestLogsListPage() {
                                     color: token.colorInfo,
                                 }}
                             >
-                                {retryStats.retryRate}%
+                                {retryStats?.retry_rate || 0}%
                             </div>
                             <div
                                 style={{

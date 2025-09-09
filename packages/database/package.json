@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsup",
         "gen:types": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/gen-types.mjs",
-        "db:push": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/db-push.mjs"
+        "db:push": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/db-push.mjs",
+        "apply:stats": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/apply-statistics-functions.mjs"
     },
     "license": "MIT",
     "devDependencies": {

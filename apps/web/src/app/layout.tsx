@@ -18,6 +18,7 @@ import { authProviderClient } from '@providers/auth-provider/auth-provider.clien
 import { dataProvider } from '@providers/data-provider';
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { useNotificationProvider } from '@providers/notification-provider';
+import { SWRProvider } from '@providers/swr-provider';
 
 export const metadata: Metadata = {
     title: 'Gemini Proxy - API Key Management',
@@ -52,7 +53,6 @@ export const metadata: Metadata = {
         description:
             'Production-ready admin for managing Gemini API keys, proxy keys, and request logs built with Ant Design and Supabase',
         type: 'website',
-        
     },
 };
 
@@ -80,68 +80,70 @@ export default function RootLayout({
                 <Suspense>
                     <AntdRegistry>
                         <ColorModeContextProvider defaultMode={defaultMode}>
-                            <RefineKbarProvider>
-                                <Refine
-                                    routerProvider={routerProvider}
-                                    authProvider={authProviderClient}
-                                    dataProvider={dataProvider}
-                                    notificationProvider={useNotificationProvider}
-                                    resources={[
-                                        {
-                                            name: 'dashboard',
-                                            list: '/dashboard',
-                                            meta: {
-                                                label: 'Dashboard',
-                                                icon: <DashboardOutlined />,
+                            <SWRProvider>
+                                <RefineKbarProvider>
+                                    <Refine
+                                        routerProvider={routerProvider}
+                                        authProvider={authProviderClient}
+                                        dataProvider={dataProvider}
+                                        notificationProvider={useNotificationProvider}
+                                        resources={[
+                                            {
+                                                name: 'dashboard',
+                                                list: '/dashboard',
+                                                meta: {
+                                                    label: 'Dashboard',
+                                                    icon: <DashboardOutlined />,
+                                                },
                                             },
-                                        },
-                                        {
-                                            name: 'api_keys',
-                                            list: '/api-keys',
-                                            create: '/api-keys/create',
-                                            edit: '/api-keys/edit/:id',
-                                            show: '/api-keys/show/:id',
-                                            meta: {
-                                                label: 'API Keys',
-                                                icon: <KeyOutlined />,
+                                            {
+                                                name: 'api_keys',
+                                                list: '/api-keys',
+                                                create: '/api-keys/create',
+                                                edit: '/api-keys/edit/:id',
+                                                show: '/api-keys/show/:id',
+                                                meta: {
+                                                    label: 'API Keys',
+                                                    icon: <KeyOutlined />,
+                                                },
                                             },
-                                        },
-                                        {
-                                            name: 'proxy_api_keys',
-                                            list: '/proxy-api-keys',
-                                            create: '/proxy-api-keys/create',
-                                            edit: '/proxy-api-keys/edit/:id',
-                                            show: '/proxy-api-keys/show/:id',
-                                            meta: {
-                                                label: 'Proxy API Keys',
-                                                icon: <SafetyCertificateOutlined />,
+                                            {
+                                                name: 'proxy_api_keys',
+                                                list: '/proxy-api-keys',
+                                                create: '/proxy-api-keys/create',
+                                                edit: '/proxy-api-keys/edit/:id',
+                                                show: '/proxy-api-keys/show/:id',
+                                                meta: {
+                                                    label: 'Proxy API Keys',
+                                                    icon: <SafetyCertificateOutlined />,
+                                                },
                                             },
-                                        },
-                                        {
-                                            name: 'request_logs',
-                                            list: '/request-logs',
-                                            show: '/request-logs/show/:id',
-                                            meta: {
-                                                label: 'Request Logs',
-                                                icon: <FileTextOutlined />,
+                                            {
+                                                name: 'request_logs',
+                                                list: '/request-logs',
+                                                show: '/request-logs/show/:id',
+                                                meta: {
+                                                    label: 'Request Logs',
+                                                    icon: <FileTextOutlined />,
+                                                },
                                             },
-                                        },
-                                    ]}
-                                    options={{
-                                        syncWithLocation: true,
-                                        warnWhenUnsavedChanges: true,
-                                        useNewQueryKeys: true,
-                                        // Disable Refine branding
-                                        disableTelemetry: true,
-                                    }}
-                                >
-                                    {children}
-                                    <RefineKbar />
-                                </Refine>
-                                <DevtoolsProvider>
-                                    <DevtoolsPanel />
-                                </DevtoolsProvider>
-                            </RefineKbarProvider>
+                                        ]}
+                                        options={{
+                                            syncWithLocation: true,
+                                            warnWhenUnsavedChanges: true,
+                                            useNewQueryKeys: true,
+                                            // Disable Refine branding
+                                            disableTelemetry: true,
+                                        }}
+                                    >
+                                        {children}
+                                        <RefineKbar />
+                                    </Refine>
+                                    <DevtoolsProvider>
+                                        <DevtoolsPanel />
+                                    </DevtoolsProvider>
+                                </RefineKbarProvider>
+                            </SWRProvider>
                         </ColorModeContextProvider>
                     </AntdRegistry>
                 </Suspense>

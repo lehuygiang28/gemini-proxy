@@ -34,6 +34,14 @@ This internal package contains the database schema, types, and management script
 
 The database schema is defined in `sql/schema.sql` and includes tables for `api_keys`, `proxy_api_keys`, and `request_logs`.
 
+## 📊 Types Architecture
+
+This package provides centralized TypeScript types for the entire monorepo:
+
+- **Database Schema Types**: Auto-generated from Supabase schema
+- **Statistics Types**: Manual interfaces for RPC function returns
+- **User Types**: Shared authentication types
+
 ## 🛠️ Scripts
 
 ### **Generating Types**

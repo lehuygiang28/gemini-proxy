@@ -177,3 +177,6 @@ COMMENT ON COLUMN request_logs.response_data IS 'JSON object containing response
 COMMENT ON COLUMN request_logs.retry_attempts IS 'Array of retry attempts with error details';
 COMMENT ON COLUMN request_logs.usage_metadata IS 'JSON object containing token usage metadata';
 COMMENT ON COLUMN request_logs.performance_metrics IS 'JSON object containing timing and performance metrics';
+
+-- Include statistics functions
+\i sql/statistics-functions.sql
