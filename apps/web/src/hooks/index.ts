@@ -9,6 +9,7 @@ export { useRequestLogsStatistics } from './use-request-logs-statistics';
 // Advanced filtering hooks
 export { useAdvancedFilters } from './use-advanced-filters';
 export { useServerSideFilters } from './use-server-side-filters';
+export { useDebouncedSearch } from './use-debounced-search';
 
 // Re-export types from database package for convenience
 export type {

@@ -184,6 +184,7 @@ export default function RequestLogShowPage({ params }: { params: { id: string } 
                         data={record.request_data}
                         title="Request Details"
                         collapsible={false}
+                        type="request"
                     />
                 </Card>
 
@@ -193,6 +194,7 @@ export default function RequestLogShowPage({ params }: { params: { id: string } 
                         data={record.response_data}
                         title="Response Details"
                         collapsible={false}
+                        type="response"
                     />
                 </Card>
 
@@ -203,6 +205,7 @@ export default function RequestLogShowPage({ params }: { params: { id: string } 
                             data={record.error_details}
                             title="Error Information"
                             collapsible={false}
+                            type="error"
                         />
                     </Card>
                 )}

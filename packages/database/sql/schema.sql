@@ -180,3 +180,6 @@ COMMENT ON COLUMN request_logs.performance_metrics IS 'JSON object containing ti
 
 -- Include statistics functions
 \i sql/statistics-functions.sql
+
+-- Include filter options functions
+\i sql/filter-options-functions.sql

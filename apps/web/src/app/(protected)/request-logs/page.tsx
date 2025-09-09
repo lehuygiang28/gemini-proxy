@@ -1,13 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { List, ShowButton } from '@refinedev/antd';
-import { useTable } from '@refinedev/antd';
-import { Table, Space, Tag, Button, Input, Select, Card, Row, Col, Tooltip, theme } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import {
+    Table,
+    Space,
+    Tag,
+    Card,
+    Row,
+    Col,
+    Tooltip,
+    theme,
+    Statistic,
+    Progress,
+    Typography,
+} from 'antd';
+import { ThunderboltOutlined, BugOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
-import { DateTimeDisplay, JsonDisplay, RetryAttemptsBadge } from '@/components/common';
-import { useRetryStatisticsRpc } from '@/hooks/use-retry-statistics-rpc';
+import {
+    DateTimeDisplay,
+    JsonActionsDropdown,
+    StatusDisplay,
+    AdvancedFilters,
+} from '@/components/common';
+import { useRetryStatisticsRpc, useServerSideFilters } from '@/hooks';
 import {
     getRequestType,
     getRequestTypeColor,
@@ -17,9 +33,8 @@ import {
     formatTokenCount,
 } from '@/utils/table-helpers';
 
-const { Search } = Input;
-const { Option } = Select;
 const { useToken } = theme;
+const { Text } = Typography;
 
 type RequestLog = Tables<'request_logs'>;
 
@@ -63,329 +78,221 @@ const getAttemptCountSeverity = (attemptCount: number): string => {
 
 export default function RequestLogsListPage() {
     const { token } = useToken();
-    const [searchText, setSearchText] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-    const [formatFilter, setFormatFilter] = useState<string>('all');
-    const [retryFilter, setRetryFilter] = useState<string>('all');
 
-    const { tableProps, searchFormProps } = useTable<RequestLog>({
-        syncWithLocation: true,
-        pagination: { pageSize: 20 },
-        sorters: { initial: [{ field: 'created_at', order: 'desc' }] },
-    });
+    // Use server-side filtering hook
+    const { tableProps, filters, setFilters, resetFilters, isLoading, totalCount, filterOptions } =
+        useServerSideFilters();
 
     // Get retry statistics using RPC function
     const { statistics: retryStats, isLoading: statsLoading } = useRetryStatisticsRpc(30);
-
-    const getStatusColor = (isSuccessful: boolean) => {
-        return isSuccessful ? 'green' : 'red';
-    };
-
-    const getStatusText = (isSuccessful: boolean) => {
-        return isSuccessful ? 'Success' : 'Failed';
-    };
 
     const getFormatColor = (apiFormat: string) => {
         return getRequestTypeColor(apiFormat);
     };
 
+    const handleFiltersChange = (newFilters: typeof filters) => {
+        setFilters(newFilters);
+    };
+
+    const handleReset = () => {
+        resetFilters();
+    };
+
     return (
-        <List title="Request Logs">
-            {/* Retry Statistics */}
+        <List
+            title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: token.marginMD }}>
+                    <span>Request Logs</span>
+                    {totalCount > 0 && (
+                        <Tag color="blue" style={{ marginLeft: 'auto' }}>
+                            {totalCount} filtered results
+                        </Tag>
+                    )}
+                </div>
+            }
+        >
+            {/* Enhanced Statistics Dashboard */}
             <Card
-                style={{ marginBottom: token.marginMD }}
-                bodyStyle={{ padding: token.paddingMD }}
+                style={{
+                    marginBottom: token.marginLG,
+                    borderRadius: token.borderRadiusLG,
+                    boxShadow: token.boxShadowSecondary,
+                }}
+                bodyStyle={{
+                    padding: token.paddingLG,
+                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
+                }}
                 loading={statsLoading}
             >
-                <Row gutter={[token.marginLG, token.marginMD]}>
-                    <Col xs={24} sm={6}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div
+                <div style={{ marginBottom: token.marginMD }}>
+                    <Text
+                        strong
+                        style={{
+                            fontSize: token.fontSizeLG,
+                            marginBottom: token.marginMD,
+                            display: 'block',
+                        }}
+                    >
+                        📊 Request Statistics
+                    </Text>
+                    <Row gutter={[token.marginLG, token.marginMD]}>
+                        <Col xs={24} sm={6}>
+                            <Card
+                                size="small"
                                 style={{
-                                    fontSize: token.fontSizeHeading3,
-                                    fontWeight: 'bold',
-                                    color: token.colorText,
+                                    borderRadius: token.borderRadiusLG,
+                                    boxShadow: token.boxShadowTertiary,
+                                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
                                 }}
+                                bodyStyle={{ padding: token.paddingMD }}
                             >
-                                {retryStats?.total_requests || 0}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeSM,
-                                    color: token.colorTextSecondary,
-                                }}
-                            >
-                                Total Requests
-                            </div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeHeading3,
-                                    fontWeight: 'bold',
-                                    color: token.colorWarning,
-                                }}
-                            >
-                                {retryStats?.requests_with_retries || 0}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeSM,
-                                    color: token.colorTextSecondary,
-                                }}
-                            >
-                                With Retries
-                            </div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeHeading3,
-                                    fontWeight: 'bold',
-                                    color: token.colorError,
-                                }}
-                            >
-                                {retryStats?.total_retry_attempts || 0}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeSM,
-                                    color: token.colorTextSecondary,
-                                }}
-                            >
-                                Total Retry Attempts
-                            </div>
-                        </div>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeHeading3,
-                                    fontWeight: 'bold',
-                                    color: token.colorInfo,
-                                }}
-                            >
-                                {retryStats?.retry_rate || 0}%
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: token.fontSizeSM,
-                                    color: token.colorTextSecondary,
-                                }}
-                            >
-                                Retry Rate
-                            </div>
-                        </div>
-                    </Col>
-                </Row>
-            </Card>
-
-            {/* Filters */}
-            <Card style={{ marginBottom: token.marginMD }} bodyStyle={{ padding: token.paddingMD }}>
-                <Row gutter={[token.marginMD, token.marginMD]} align="middle">
-                    <Col xs={24} sm={8}>
-                        <Search
-                            placeholder="Search by request ID..."
-                            allowClear
-                            onSearch={(value) => {
-                                setSearchText(value);
-                                searchFormProps.form?.setFieldsValue({ request_id: value });
-                                searchFormProps.form?.submit();
-                            }}
-                            style={{ width: '100%' }}
-                        />
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Select
-                            placeholder="Filter by status"
-                            value={statusFilter}
-                            onChange={setStatusFilter}
-                            style={{ width: '100%' }}
-                        >
-                            <Option value="all">All Status</Option>
-                            <Option value="success">Success</Option>
-                            <Option value="failed">Failed</Option>
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Select
-                            placeholder="Filter by format"
-                            value={formatFilter}
-                            onChange={setFormatFilter}
-                            style={{ width: '100%' }}
-                        >
-                            <Option value="all">All Formats</Option>
-                            <Option value="gemini">Gemini</Option>
-                            <Option value="openai">OpenAI</Option>
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Select
-                            placeholder="Filter by retries"
-                            value={retryFilter}
-                            onChange={setRetryFilter}
-                            style={{ width: '100%' }}
-                        >
-                            <Option value="all">All Requests</Option>
-                            <Option value="with_retries">With Retries</Option>
-                            <Option value="no_retries">No Retries</Option>
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={() => {
-                                searchFormProps.form?.resetFields();
-                                setSearchText('');
-                                setStatusFilter('all');
-                                setFormatFilter('all');
-                                setRetryFilter('all');
-                            }}
-                            style={{ width: '100%' }}
-                        >
-                            Reset
-                        </Button>
-                    </Col>
-                </Row>
-            </Card>
-
-            <Table<RequestLog>
-                {...tableProps}
-                rowKey="id"
-                columns={[
-                    {
-                        title: 'Request ID',
-                        dataIndex: 'request_id',
-                        render: (value: string, record: RequestLog) => (
-                            <div>
-                                <div style={{ fontWeight: 500, color: token.colorText }}>
-                                    {value.slice(0, 12)}...
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: token.fontSizeSM,
-                                        color: token.colorTextSecondary,
+                                <Statistic
+                                    title="📈 Total Requests"
+                                    value={retryStats?.total_requests || 0}
+                                    valueStyle={{
+                                        color: token.colorText,
+                                        fontSize: token.fontSizeXL,
                                     }}
-                                >
-                                    ID: {record.id.slice(0, 8)}...
-                                </div>
-                            </div>
-                        ),
-                    },
-                    {
-                        title: 'Type',
-                        dataIndex: 'api_format',
-                        render: (value: string) => (
-                            <Tag color={getFormatColor(value)}>{getRequestType(value)}</Tag>
-                        ),
-                        sorter: true,
-                        filters: [
-                            { text: 'Gemini', value: 'gemini' },
-                            { text: 'OpenAI', value: 'openai' },
-                        ],
-                    },
-                    {
-                        title: 'Status',
-                        dataIndex: 'is_successful',
-                        render: (value: boolean, record: RequestLog) => {
-                            const retryCount = Array.isArray(record.retry_attempts)
-                                ? record.retry_attempts.length
-                                : 0;
-                            const hasRetries = retryCount > 0;
+                                    prefix={
+                                        <ClockCircleOutlined
+                                            style={{ color: token.colorPrimary }}
+                                        />
+                                    }
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={6}>
+                            <Card
+                                size="small"
+                                style={{
+                                    borderRadius: token.borderRadiusLG,
+                                    boxShadow: token.boxShadowTertiary,
+                                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
+                                }}
+                                bodyStyle={{ padding: token.paddingMD }}
+                            >
+                                <Statistic
+                                    title="🔄 With Retries"
+                                    value={retryStats?.requests_with_retries || 0}
+                                    valueStyle={{
+                                        color: token.colorWarning,
+                                        fontSize: token.fontSizeXL,
+                                    }}
+                                    prefix={<BugOutlined style={{ color: token.colorWarning }} />}
+                                />
+                                <Progress
+                                    percent={
+                                        retryStats?.total_requests
+                                            ? Math.round(
+                                                  (retryStats.requests_with_retries /
+                                                      retryStats.total_requests) *
+                                                      100,
+                                              )
+                                            : 0
+                                    }
+                                    size="small"
+                                    showInfo={false}
+                                    strokeColor={token.colorWarning}
+                                    style={{ marginTop: token.marginXS }}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={6}>
+                            <Card
+                                size="small"
+                                style={{
+                                    borderRadius: token.borderRadiusLG,
+                                    boxShadow: token.boxShadowTertiary,
+                                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
+                                }}
+                                bodyStyle={{ padding: token.paddingMD }}
+                            >
+                                <Statistic
+                                    title="⚡ Total Retry Attempts"
+                                    value={retryStats?.total_retry_attempts || 0}
+                                    valueStyle={{
+                                        color: token.colorError,
+                                        fontSize: token.fontSizeXL,
+                                    }}
+                                    prefix={
+                                        <ThunderboltOutlined style={{ color: token.colorError }} />
+                                    }
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} sm={6}>
+                            <Card
+                                size="small"
+                                style={{
+                                    borderRadius: token.borderRadiusLG,
+                                    boxShadow: token.boxShadowTertiary,
+                                    background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
+                                }}
+                                bodyStyle={{ padding: token.paddingMD }}
+                            >
+                                <Statistic
+                                    title="📊 Retry Rate"
+                                    value={retryStats?.retry_rate || 0}
+                                    suffix="%"
+                                    valueStyle={{
+                                        color: token.colorInfo,
+                                        fontSize: token.fontSizeXL,
+                                    }}
+                                />
+                                <Progress
+                                    percent={retryStats?.retry_rate || 0}
+                                    size="small"
+                                    showInfo={false}
+                                    strokeColor={
+                                        (retryStats?.retry_rate || 0) > 20
+                                            ? token.colorError
+                                            : (retryStats?.retry_rate || 0) > 10
+                                              ? token.colorWarning
+                                              : token.colorSuccess
+                                    }
+                                    style={{ marginTop: token.marginXS }}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+                </div>
+            </Card>
 
-                            return (
-                                <div>
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: token.marginXS,
-                                        }}
-                                    >
-                                        <Tag color={getStatusColor(value)}>
-                                            {getStatusText(value)}
-                                        </Tag>
-                                        {hasRetries && (
-                                            <RetryAttemptsBadge
-                                                retryAttempts={record.retry_attempts as any[]}
-                                            />
-                                        )}
-                                    </div>
-                                    {hasRetries && (
-                                        <div
-                                            style={{
-                                                fontSize: token.fontSizeSM,
-                                                color: token.colorTextSecondary,
-                                                marginTop: token.marginXXS,
-                                            }}
-                                        >
-                                            {value
-                                                ? 'Succeeded after retries'
-                                                : 'Failed after retries'}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        },
-                        sorter: true,
-                    },
-                    {
-                        title: 'Performance',
-                        render: (_: unknown, record: RequestLog) => {
-                            const metrics = extractPerformanceMetrics(record.performance_metrics);
-                            const retryCount = Array.isArray(record.retry_attempts)
-                                ? record.retry_attempts.length
-                                : 0;
-                            const hasRetries = retryCount > 0;
-                            const totalAttempts = metrics.attemptCount;
-                            const attemptColor = getAttemptCountColor(totalAttempts);
-                            const attemptSeverity = getAttemptCountSeverity(totalAttempts);
+            {/* Advanced Filters */}
+            <AdvancedFilters
+                onFiltersChange={handleFiltersChange}
+                onReset={handleReset}
+                loading={isLoading}
+                initialFilters={filters}
+                filterOptions={filterOptions}
+            />
 
-                            return (
+            <div style={{ marginTop: token.marginLG }}>
+                <Text
+                    strong
+                    style={{
+                        fontSize: token.fontSizeLG,
+                        marginBottom: token.marginMD,
+                        display: 'block',
+                    }}
+                >
+                    📋 Request Logs
+                </Text>
+                <Table<RequestLog>
+                    {...tableProps}
+                    rowKey="id"
+                    style={{
+                        borderRadius: token.borderRadiusLG,
+                        boxShadow: token.boxShadowSecondary,
+                    }}
+                    columns={[
+                        {
+                            title: 'Request ID',
+                            dataIndex: 'request_id',
+                            render: (value: string, record: RequestLog) => (
                                 <div>
-                                    <div style={{ fontSize: token.fontSizeSM }}>
-                                        <span style={{ color: token.colorInfo }}>
-                                            Duration: {formatDuration(metrics.duration)}
-                                        </span>
-                                    </div>
-                                    <div style={{ fontSize: token.fontSizeSM }}>
-                                        <Tooltip title={`Severity: ${attemptSeverity}`}>
-                                            <span style={{ color: token.colorTextSecondary }}>
-                                                Attempts:{' '}
-                                                <Tag color={attemptColor}>{totalAttempts}</Tag>
-                                            </span>
-                                        </Tooltip>
-                                    </div>
-                                    {hasRetries && (
-                                        <div
-                                            style={{
-                                                fontSize: token.fontSizeSM,
-                                                color: token.colorError,
-                                                fontWeight: 500,
-                                            }}
-                                        >
-                                            {retryCount} Retry Attempt{retryCount > 1 ? 's' : ''}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        },
-                    },
-                    {
-                        title: 'Token Usage',
-                        render: (_: unknown, record: RequestLog) => {
-                            const usage = extractUsageMetadata(record.usage_metadata);
-                            return (
-                                <div>
-                                    <div style={{ fontSize: token.fontSizeSM }}>
-                                        <span style={{ color: token.colorInfo }}>
-                                            Total: {formatTokenCount(usage.totalTokens)}
-                                        </span>
+                                    <div style={{ fontWeight: 500, color: token.colorText }}>
+                                        {value.slice(0, 12)}...
                                     </div>
                                     <div
                                         style={{
@@ -393,84 +300,201 @@ export default function RequestLogsListPage() {
                                             color: token.colorTextSecondary,
                                         }}
                                     >
-                                        <span>Prompt: {formatTokenCount(usage.promptTokens)}</span>
-                                        {' | '}
-                                        <span>
-                                            Completion: {formatTokenCount(usage.completionTokens)}
-                                        </span>
+                                        ID: {record.id.slice(0, 8)}...
                                     </div>
-                                    {usage.model && (
+                                </div>
+                            ),
+                        },
+                        {
+                            title: 'Type',
+                            dataIndex: 'api_format',
+                            render: (value: string) => (
+                                <Tag color={getFormatColor(value)}>{getRequestType(value)}</Tag>
+                            ),
+                            sorter: true,
+                            filters: [
+                                { text: 'Gemini', value: 'gemini' },
+                                { text: 'OpenAI', value: 'openai' },
+                            ],
+                        },
+                        {
+                            title: 'Stream',
+                            dataIndex: 'is_stream',
+                            render: (value: boolean) => (
+                                <Tag
+                                    color={value ? 'blue' : 'default'}
+                                    style={{ fontSize: '11px' }}
+                                >
+                                    {value ? 'Yes' : 'No'}
+                                </Tag>
+                            ),
+                            sorter: true,
+                            filters: [
+                                { text: 'Streaming', value: true },
+                                { text: 'Non-streaming', value: false },
+                            ],
+                        },
+                        {
+                            title: 'Status',
+                            dataIndex: 'is_successful',
+                            render: (_: unknown, record: RequestLog) => (
+                                <StatusDisplay record={record} showDetails={true} />
+                            ),
+                            sorter: true,
+                        },
+                        {
+                            title: 'Performance',
+                            render: (_: unknown, record: RequestLog) => {
+                                const metrics = extractPerformanceMetrics(
+                                    record.performance_metrics,
+                                );
+                                const retryCount = Array.isArray(record.retry_attempts)
+                                    ? record.retry_attempts.length
+                                    : 0;
+                                const hasRetries = retryCount > 0;
+                                const totalAttempts = metrics.attemptCount;
+                                const attemptColor = getAttemptCountColor(totalAttempts);
+                                const attemptSeverity = getAttemptCountSeverity(totalAttempts);
+
+                                return (
+                                    <div>
+                                        <div style={{ fontSize: token.fontSizeSM }}>
+                                            <span style={{ color: token.colorInfo }}>
+                                                Duration: {formatDuration(metrics.duration)}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: token.fontSizeSM }}>
+                                            <Tooltip title={`Severity: ${attemptSeverity}`}>
+                                                <span style={{ color: token.colorTextSecondary }}>
+                                                    Attempts:{' '}
+                                                    <Tag color={attemptColor}>{totalAttempts}</Tag>
+                                                </span>
+                                            </Tooltip>
+                                        </div>
+                                        {hasRetries && (
+                                            <div
+                                                style={{
+                                                    fontSize: token.fontSizeSM,
+                                                    color: token.colorError,
+                                                    fontWeight: 500,
+                                                }}
+                                            >
+                                                {retryCount} Retry Attempt
+                                                {retryCount > 1 ? 's' : ''}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            },
+                        },
+                        {
+                            title: 'Token Usage',
+                            render: (_: unknown, record: RequestLog) => {
+                                const usage = extractUsageMetadata(record.usage_metadata);
+                                return (
+                                    <div>
+                                        <div style={{ fontSize: token.fontSizeSM }}>
+                                            <span style={{ color: token.colorInfo }}>
+                                                Total: {formatTokenCount(usage.totalTokens)}
+                                            </span>
+                                        </div>
                                         <div
                                             style={{
                                                 fontSize: token.fontSizeSM,
                                                 color: token.colorTextSecondary,
                                             }}
                                         >
-                                            Model: {usage.model}
+                                            <span>
+                                                Prompt: {formatTokenCount(usage.promptTokens)}
+                                            </span>
+                                            {' | '}
+                                            <span>
+                                                Completion:{' '}
+                                                {formatTokenCount(usage.completionTokens)}
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
-                            );
+                                        {usage.model && (
+                                            <div
+                                                style={{
+                                                    fontSize: token.fontSizeSM,
+                                                    color: token.colorTextSecondary,
+                                                }}
+                                            >
+                                                Model: {usage.model}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            },
                         },
-                    },
-                    {
-                        title: 'Request Data',
-                        dataIndex: 'request_data',
-                        render: (value: any) => (
-                            <JsonDisplay
-                                data={value}
-                                title="Request"
-                                maxPreviewLength={50}
-                                collapsible={true}
-                            />
-                        ),
-                    },
-                    {
-                        title: 'Response Data',
-                        dataIndex: 'response_data',
-                        render: (value: any) => (
-                            <JsonDisplay
-                                data={value}
-                                title="Response"
-                                maxPreviewLength={50}
-                                collapsible={true}
-                            />
-                        ),
-                    },
-                    {
-                        title: 'Error Details',
-                        dataIndex: 'error_details',
-                        render: (value: any) =>
-                            value ? (
-                                <JsonDisplay
-                                    data={value}
-                                    title="Error"
-                                    maxPreviewLength={50}
-                                    collapsible={true}
-                                />
-                            ) : (
-                                <span style={{ color: token.colorTextDisabled }}>No errors</span>
+                        {
+                            title: 'User ID',
+                            dataIndex: 'user_id',
+                            render: (value: string | null) => (
+                                <span
+                                    style={{
+                                        fontSize: token.fontSizeSM,
+                                        color: token.colorTextSecondary,
+                                    }}
+                                >
+                                    {value ? `${value.slice(0, 8)}...` : 'N/A'}
+                                </span>
                             ),
-                    },
-                    {
-                        title: 'Created',
-                        dataIndex: 'created_at',
-                        sorter: true,
-                        render: (value: string | null) => <DateTimeDisplay dateString={value} />,
-                    },
-                    {
-                        title: 'Actions',
-                        dataIndex: 'actions',
-                        render: (_: unknown, record: RequestLog) => (
-                            <Space>
-                                <Tooltip title="View Details">
-                                    <ShowButton hideText recordItemId={record.id} />
-                                </Tooltip>
-                            </Space>
-                        ),
-                    },
-                ]}
-            />
+                            sorter: true,
+                        },
+                        {
+                            title: 'Proxy Key',
+                            dataIndex: 'proxy_key_id',
+                            render: (value: string | null) => (
+                                <span
+                                    style={{
+                                        fontSize: token.fontSizeSM,
+                                        color: token.colorTextSecondary,
+                                    }}
+                                >
+                                    {value ? `${value.slice(0, 8)}...` : 'N/A'}
+                                </span>
+                            ),
+                            sorter: true,
+                        },
+                        {
+                            title: 'API Key',
+                            dataIndex: 'api_key_id',
+                            render: (value: string | null) => (
+                                <span
+                                    style={{
+                                        fontSize: token.fontSizeSM,
+                                        color: token.colorTextSecondary,
+                                    }}
+                                >
+                                    {value ? `${value.slice(0, 8)}...` : 'N/A'}
+                                </span>
+                            ),
+                            sorter: true,
+                        },
+                        {
+                            title: 'Created',
+                            dataIndex: 'created_at',
+                            sorter: true,
+                            render: (value: string | null) => (
+                                <DateTimeDisplay dateString={value} />
+                            ),
+                        },
+                        {
+                            title: 'Actions',
+                            dataIndex: 'actions',
+                            render: (_: unknown, record: RequestLog) => (
+                                <Space size="small">
+                                    <Tooltip title="View Details">
+                                        <ShowButton hideText recordItemId={record.id} />
+                                    </Tooltip>
+                                    <JsonActionsDropdown record={record} />
+                                </Space>
+                            ),
+                        },
+                    ]}
+                />
+            </div>
         </List>
     );
 }

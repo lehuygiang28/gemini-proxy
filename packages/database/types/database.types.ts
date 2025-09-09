@@ -196,6 +196,38 @@ export type Database = {
                 Args: { p_user_id?: string };
                 Returns: Json;
             };
+            get_filter_options_all: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_api_formats: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_api_key_ids: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_error_types: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_models: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_proxy_key_ids: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_status_codes: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
+            get_filter_options_user_ids: {
+                Args: { p_user_id?: string };
+                Returns: Json;
+            };
             get_proxy_key_statistics: {
                 Args: { p_user_id?: string };
                 Returns: Json;
