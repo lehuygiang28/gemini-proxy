@@ -11,6 +11,8 @@ export type ProxyRequestDataParsed = {
     urlToProxy: string;
 };
 
+export type LoadBalanceStrategy = 'round_robin' | 'sticky_until_error';
+
 export interface ProxyRequestOptions {
     retry?: Partial<RetryConfig> & {
         onZeroCompletionTokens?: boolean;
@@ -19,6 +21,9 @@ export interface ProxyRequestOptions {
         prioritizeNewer?: boolean;
         prioritizeLeastErrors?: boolean;
         prioritizeLeastRecentlyUsed?: boolean;
+    };
+    loadbalance?: {
+        strategy?: LoadBalanceStrategy;
     };
 }
 

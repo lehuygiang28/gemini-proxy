@@ -4,7 +4,7 @@ import { ApiKeyService } from './api-key.service';
 import { BatchLoggerService } from './batch-logger.service';
 import { ConfigService } from './config.service';
 import { HonoApp } from '../types';
-import type { ProxyRequestDataParsed, ProxyRequestOptions } from '../types';
+import type { ProxyRequestDataParsed, ProxyRequestOptions, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
 import type { ApiKeyWithStats } from './api-key.service';
 import type { Tables } from '@gemini-proxy/database';
@@ -18,6 +18,7 @@ import {
 } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { flushAllLogBatches } from '../utils/wait-until';
+import { getSupabaseClient } from './supabase.service';
 
 // ===== INTERFACES =====
 interface RetryAttemptData {
@@ -55,9 +56,13 @@ interface RequestValidationParams {
 }
 
 interface ApiKeySelectionParams {
+    c: Context<HonoApp>;
     allApiKeys: ApiKeyWithStats[];
     currentAttempt: number;
     options?: ProxyRequestOptions;
+    proxyKeyId: string;
+    apiFormat: ProxyRequestDataParsed['apiFormat'];
+    model?: string;
 }
 
 interface AttemptParams {
@@ -221,7 +226,15 @@ export class ProxyService {
             url: proxyRequestDataParsed.urlToProxy,
         });
 
-        const firstApiKey = allApiKeys[0];
+        const firstApiKey = await this.selectOptimalApiKey({
+            c,
+            allApiKeys,
+            currentAttempt: 0,
+            options,
+            proxyKeyId: proxyApiKeyData.id,
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            model: proxyRequestDataParsed.model,
+        });
         const attemptResult = await this.performAttempt({
             baseRequest,
             apiKeyValue: firstApiKey.api_key_value,
@@ -642,7 +655,15 @@ export class ProxyService {
                     throw error;
                 }
 
-                selectedApiKey = this.selectOptimalApiKey({ allApiKeys, currentAttempt, options });
+                selectedApiKey = await this.selectOptimalApiKey({
+                    c,
+                    allApiKeys,
+                    currentAttempt,
+                    options,
+                    proxyKeyId: proxyApiKeyData.id,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    model: proxyRequestDataParsed.model,
+                });
                 attemptStart = Date.now();
 
                 const { response, headers } = await this.performAttempt({
@@ -1176,16 +1197,140 @@ export class ProxyService {
     }
 
     // ===== API KEY SELECTION =====
-    private static selectOptimalApiKey(params: ApiKeySelectionParams): ApiKeyWithStats {
-        const { allApiKeys, currentAttempt } = params;
+    private static async selectOptimalApiKey(
+        params: ApiKeySelectionParams,
+    ): Promise<ApiKeyWithStats> {
+        const { c, allApiKeys, currentAttempt, options, proxyKeyId, apiFormat, model } = params;
+
+        const strategy = this.getLoadBalanceStrategy(c, options);
+
+        if (strategy === 'sticky_until_error') {
+            try {
+                const lastGoodApiKeyId = await this.getLastSuccessfulApiKeyIdForProxyKey(c, {
+                    proxyKeyId,
+                    apiFormat,
+                    model,
+                });
+
+                if (lastGoodApiKeyId) {
+                    const candidate = allApiKeys.find((k) => k.id === lastGoodApiKeyId);
+                    if (candidate) {
+                        const hasRecentError = this.hasRecentError(candidate);
+                        if (!hasRecentError) {
+                            console.log(
+                                `Sticky strategy: reusing API key ${candidate.id} (no recent error)`,
+                            );
+                            return candidate;
+                        } else {
+                            console.log(
+                                `Sticky strategy: last key ${candidate.id} had recent error, selecting next`,
+                            );
+                            const next = this.findNextEligibleKey(allApiKeys, candidate);
+                            if (next) return next;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Sticky selection lookup failed, falling back:', error);
+            }
+
+            // Fallback for sticky: pick least recently used eligible key (ApiKeyService already sorted)
+            const fallback = this.findNextEligibleKey(allApiKeys) || allApiKeys[0];
+            console.log(`Sticky strategy fallback selected key ${fallback.id}`);
+            return fallback;
+        }
+
+        // Default round-robin
         const index = currentAttempt % allApiKeys.length;
         const selectedKey = allApiKeys[index];
-
         console.log(
-            `Selected API key ${index + 1}/${allApiKeys.length} for attempt ${currentAttempt + 1}`,
+            `Round-robin: selected API key ${index + 1}/${allApiKeys.length} for attempt ${
+                currentAttempt + 1
+            }`,
         );
-
         return selectedKey;
+    }
+
+    private static getLoadBalanceStrategy(
+        c: Context<HonoApp>,
+        options?: ProxyRequestOptions,
+    ): LoadBalanceStrategy {
+        return options?.loadbalance?.strategy || ConfigService.getLoadBalanceStrategy(c);
+    }
+
+    private static hasRecentError(apiKey: ApiKeyWithStats): boolean {
+        if (!apiKey.last_error_at) return false;
+        const errorAt = new Date(apiKey.last_error_at as any).getTime();
+        const lastUsedAt = apiKey.last_used_at ? new Date(apiKey.last_used_at as any).getTime() : 0;
+        // Consider "recent" if the last error happened after or at the last usage
+        return errorAt >= lastUsedAt;
+    }
+
+    private static findNextEligibleKey(
+        allApiKeys: ApiKeyWithStats[],
+        afterKey?: ApiKeyWithStats,
+    ): ApiKeyWithStats | null {
+        if (!allApiKeys || allApiKeys.length === 0) return null;
+        const startIndex = afterKey
+            ? Math.max(0, allApiKeys.findIndex((k) => k.id === afterKey.id) + 1)
+            : 0;
+
+        for (let i = 0; i < allApiKeys.length; i++) {
+            const idx = (startIndex + i) % allApiKeys.length;
+            const key = allApiKeys[idx];
+            if (!this.hasRecentError(key)) return key;
+        }
+        return allApiKeys[0] || null;
+    }
+
+    private static async getLastSuccessfulApiKeyIdForProxyKey(
+        c: Context<HonoApp>,
+        params: {
+            proxyKeyId: string;
+            apiFormat: ProxyRequestDataParsed['apiFormat'];
+            model?: string;
+        },
+    ): Promise<string | null> {
+        const supabase = getSupabaseClient(c);
+
+        // Build filters: match proxy key, api format, successful, and optionally model
+        const { data, error } = await supabase
+            .from('request_logs')
+            .select('api_key_id, usage_metadata, created_at')
+            .eq('proxy_key_id', params.proxyKeyId)
+            .eq('is_successful', true)
+            .eq('api_format', params.apiFormat)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.warn('Failed to query last successful api_key_id for proxy key:', error);
+            return null;
+        }
+        if (!data || data.length === 0) {
+            return null;
+        }
+
+        if (!params.model) {
+            const first = data.find((r: any) => r.api_key_id);
+            return first?.api_key_id || null;
+        }
+
+        // Try to find last success for the same model
+        try {
+            for (const row of data) {
+                const modelValue = (row.usage_metadata as any)?.model;
+                if (row.api_key_id && modelValue && modelValue === params.model) {
+                    return row.api_key_id;
+                }
+            }
+        } catch {
+            // ignore and fallback below
+        }
+
+        // Fallback to any successful api_key_id if none matched model
+        const fallback = data.find((r: any) => r.api_key_id)?.api_key_id || null;
+        return fallback;
     }
 
     // ===== REQUEST PROCESSING =====

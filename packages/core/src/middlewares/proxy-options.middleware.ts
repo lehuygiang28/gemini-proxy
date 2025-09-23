@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-import type { ProxyRequestOptions } from '../types';
+import type { LoadBalanceStrategy, ProxyRequestOptions } from '../types';
 
 const parseBoolean = (value: string | null | undefined): boolean | undefined => {
     if (value == null) return undefined;
@@ -15,6 +15,16 @@ const parseNumber = (value: string | null | undefined): number | undefined => {
     return Number.isFinite(n) ? n : undefined;
 };
 
+const parseLoadBalanceStrategy = (
+    value: string | null | undefined,
+): LoadBalanceStrategy | undefined => {
+    if (!value) return undefined;
+    const v = value.trim().toLowerCase();
+    if (v === 'sticky_until_error') return 'sticky_until_error';
+    if (v === 'round_robin') return 'round_robin';
+    return undefined;
+};
+
 export const proxyOptionsMiddleware = async (c: Context, next: Next) => {
     const h = c.req.header.bind(c.req);
 
@@ -25,12 +35,11 @@ export const proxyOptionsMiddleware = async (c: Context, next: Next) => {
     const prioritizeLeastErrors = parseBoolean(h('x-gproxy-prioritize-least-errors'));
     const prioritizeLeastRecentlyUsed = parseBoolean(h('x-gproxy-prioritize-least-recently-used'));
 
+    const loadbalanceStrategy = parseLoadBalanceStrategy(h('x-gproxy-loadbalance'));
+
     const options: ProxyRequestOptions = {};
 
-    if (
-        maxRetries !== undefined ||
-        retryOnZeroCompletionTokens !== undefined
-    ) {
+    if (maxRetries !== undefined || retryOnZeroCompletionTokens !== undefined) {
         options.retry = {
             ...(maxRetries !== undefined ? { maxRetries } : {}),
             ...(retryOnZeroCompletionTokens !== undefined
@@ -51,7 +60,11 @@ export const proxyOptionsMiddleware = async (c: Context, next: Next) => {
         };
     }
 
-    if (options.retry || options.apiKeySelection) {
+    if (loadbalanceStrategy) {
+        options.loadbalance = { strategy: loadbalanceStrategy };
+    }
+
+    if (options.retry || options.apiKeySelection || options.loadbalance) {
         c.set('proxyRequestOptions', options);
     }
 
