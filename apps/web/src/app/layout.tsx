@@ -1,17 +1,19 @@
-import { DevtoolsProvider } from '@providers/devtools';
-import { useNotificationProvider } from '@refinedev/antd';
-import { GitHubBanner, Refine } from '@refinedev/core';
-import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
-import routerProvider from '@refinedev/nextjs-router';
+import '@ant-design/v5-patch-for-react-19';
+import '@refinedev/antd/dist/reset.css';
+
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import React, { Suspense } from 'react';
-
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { useNotificationProvider } from '@refinedev/antd';
+import { Refine } from '@refinedev/core';
+import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
+import routerProvider from '@refinedev/nextjs-router';
+
+import { DevtoolsProvider } from '@providers/devtools';
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { authProviderClient } from '@providers/auth-provider/auth-provider.client';
 import { dataProvider } from '@providers/data-provider';
-import '@refinedev/antd/dist/reset.css';
 
 export const metadata: Metadata = {
     title: 'Refine',
@@ -28,13 +30,12 @@ export default async function RootLayout({
 }>) {
     const cookieStore = await cookies();
     const theme = cookieStore.get('theme');
-    const defaultMode = theme?.value === 'dark' ? 'dark' : 'light';
+    const defaultMode = theme?.value === 'light' ? 'light' : 'dark';
 
     return (
         <html lang="en">
             <body>
                 <Suspense>
-                    <GitHubBanner />
                     <RefineKbarProvider>
                         <AntdRegistry>
                             <ColorModeContextProvider defaultMode={defaultMode}>
@@ -48,6 +49,7 @@ export default async function RootLayout({
                                             syncWithLocation: true,
                                             warnWhenUnsavedChanges: true,
                                             projectId: '64BVSR-vqtbDM-0z7Jfd',
+                                            disableTelemetry: true,
                                         }}
                                     >
                                         {children}

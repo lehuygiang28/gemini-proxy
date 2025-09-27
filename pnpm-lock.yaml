@@ -72,6 +72,9 @@ importers:
       '@ant-design/nextjs-registry':
         specifier: ^1.1.0
         version: 1.1.0(@ant-design/cssinjs@1.24.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(antd@5.27.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(next@15.5.4(@babel/core@7.28.3)(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@ant-design/v5-patch-for-react-19':
+        specifier: ^1.0.3
+        version: 1.0.3(antd@5.27.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@refinedev/antd':
         specifier: ^6.0.1
         version: 6.0.2(@refinedev/core@5.0.2(@tanstack/react-query@5.90.2(react@19.1.1))(@types/react-dom@19.1.9(@types/react@19.1.14))(@types/react@19.1.14)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@types/react-dom@19.1.9(@types/react@19.1.14))(@types/react@19.1.14)(antd@5.27.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(dayjs@1.11.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -495,6 +498,14 @@ packages:
     resolution: {integrity: sha512-EzlvzE6xQUBrZuuhSAFTdsr4P2bBBHGZwKFemEfq8gIGyIQCxalYfZW/T2ORbtQx5rU69o+WycP3exY/7T1hGA==}
     peerDependencies:
       react: '>=16.9.0'
+
+  '@ant-design/v5-patch-for-react-19@1.0.3':
+    resolution: {integrity: sha512-iWfZuSUl5kuhqLUw7jJXUQFMMkM7XpW7apmKzQBQHU0cpifYW4A79xIBt9YVO5IBajKpPG5UKP87Ft7Yrw1p/w==}
+    engines: {node: '>=12.x'}
+    peerDependencies:
+      antd: '>=5.22.6'
+      react: '>=19.0.0'
+      react-dom: '>=19.0.0'
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -6666,6 +6677,12 @@ snapshots:
       react: 19.1.1
       resize-observer-polyfill: 1.5.1
       throttle-debounce: 5.0.2
+
+  '@ant-design/v5-patch-for-react-19@1.0.3(antd@5.27.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      antd: 5.27.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   '@babel/code-frame@7.27.1':
     dependencies:
