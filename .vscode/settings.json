@@ -3,5 +3,14 @@
         "wrangler.json": "jsonc"
     },
     "conventionalCommits.scopes": ["web"],
-    "cSpell.words": ["Appwrite", "googleaistudio", "gproxy", "Kbar", "Sider", "SUPABASE"]
+    "cSpell.words": [
+        "Appwrite",
+        "googleaistudio",
+        "gproxy",
+        "Kbar",
+        "Popconfirm",
+        "refinedev",
+        "Sider",
+        "SUPABASE"
+    ]
 }
