@@ -18,7 +18,7 @@ type IUser = {
 export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true }) => {
     const { token } = useToken();
     const { data: user } = useGetIdentity<IUser>();
-    const { mode, setMode } = useContext(ColorModeContext);
+    const { mode, setColorMode } = useContext(ColorModeContext);
 
     const headerStyles: React.CSSProperties = {
         backgroundColor: token.colorBgElevated,
@@ -41,7 +41,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
                 <Switch
                     checkedChildren="🌛"
                     unCheckedChildren="🔆"
-                    onChange={() => setMode(mode === 'light' ? 'dark' : 'light')}
+                    onChange={() => setColorMode(mode === 'light' ? 'dark' : 'light')}
                     defaultChecked={mode === 'dark'}
                 />
                 {(user?.name || user?.avatar) && (
