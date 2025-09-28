@@ -5,6 +5,12 @@ import React, { Suspense } from 'react';
 import { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import {
+    DashboardOutlined,
+    SafetyCertificateOutlined,
+    KeyOutlined,
+    FileTextOutlined,
+} from '@ant-design/icons';
 import { useNotificationProvider } from '@refinedev/antd';
 import { Refine } from '@refinedev/core';
 import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
@@ -89,6 +95,47 @@ export default async function RootLayout({
                                             projectId: '64BVSR-vqtbDM-0z7Jfd',
                                             disableTelemetry: true,
                                         }}
+                                        resources={[
+                                            {
+                                                name: 'dashboard',
+                                                list: '/dashboard',
+                                                meta: {
+                                                    label: 'Dashboard',
+                                                    icon: <DashboardOutlined />,
+                                                },
+                                            },
+                                            {
+                                                name: 'api_keys',
+                                                list: '/api-keys',
+                                                create: '/api-keys/create',
+                                                edit: '/api-keys/edit/:id',
+                                                show: '/api-keys/show/:id',
+                                                meta: {
+                                                    label: 'API Keys',
+                                                    icon: <KeyOutlined />,
+                                                },
+                                            },
+                                            {
+                                                name: 'proxy_api_keys',
+                                                list: '/proxy-api-keys',
+                                                create: '/proxy-api-keys/create',
+                                                edit: '/proxy-api-keys/edit/:id',
+                                                show: '/proxy-api-keys/show/:id',
+                                                meta: {
+                                                    label: 'Proxy API Keys',
+                                                    icon: <SafetyCertificateOutlined />,
+                                                },
+                                            },
+                                            {
+                                                name: 'request_logs',
+                                                list: '/request-logs',
+                                                show: '/request-logs/show/:id',
+                                                meta: {
+                                                    label: 'Request Logs',
+                                                    icon: <FileTextOutlined />,
+                                                },
+                                            },
+                                        ]}
                                     >
                                         {children}
                                         <RefineKbar />
