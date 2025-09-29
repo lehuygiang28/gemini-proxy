@@ -208,7 +208,13 @@ export default function RequestLogsListPage() {
 
     const handleViewDetails = useCallback(
         (record: RequestLog) => {
-            go({ to: `/request-logs/show/${record.id}` });
+            go({
+                to: {
+                    resource: 'request_logs',
+                    action: 'show',
+                    id: record.id,
+                },
+            });
         },
         [go],
     );
