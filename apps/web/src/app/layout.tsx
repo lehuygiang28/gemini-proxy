@@ -1,5 +1,6 @@
 import '@ant-design/v5-patch-for-react-19';
 import '@refinedev/antd/dist/reset.css';
+import './globals.css';
 
 import React, { Suspense } from 'react';
 import { Metadata, Viewport } from 'next';
@@ -78,7 +79,7 @@ export default async function RootLayout({
 
     return (
         <html lang="en" data-theme={defaultMode}>
-            <body>
+            <body className="gp-scrollable-root">
                 <Suspense>
                     <RefineKbarProvider>
                         <AntdRegistry>
