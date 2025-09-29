@@ -42,11 +42,13 @@ export default function RequestLogDetailsModal() {
                 footer={null}
                 width={1400}
                 style={{ top: 10 }}
-                bodyStyle={{
-                    maxHeight: '90vh',
-                    overflow: 'hidden',
-                    padding: token.paddingMD,
-                    background: token.colorBgContainer,
+                styles={{
+                    body: {
+                        maxHeight: '90vh',
+                        overflowX: 'hidden',
+                        padding: token.paddingMD,
+                        background: token.colorBgContainer,
+                    },
                 }}
             >
                 <div
@@ -103,11 +105,13 @@ export default function RequestLogDetailsModal() {
             footer={null}
             width={1400}
             style={{ top: 10 }}
-            bodyStyle={{
-                maxHeight: '90vh',
-                overflow: 'hidden',
-                padding: token.paddingMD,
-                background: token.colorBgContainer,
+            styles={{
+                body: {
+                    maxHeight: '90vh',
+                    overflowX: 'hidden',
+                    padding: token.paddingMD,
+                    background: token.colorBgContainer,
+                },
             }}
         >
             <RequestLogDetails requestLog={log} isModal={true} />

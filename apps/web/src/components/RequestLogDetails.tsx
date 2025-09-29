@@ -17,7 +17,6 @@ import { DateTimeDisplay } from '@/components/common';
 import { useNotification } from '@refinedev/core';
 
 const { Text } = Typography;
-const { Panel } = Collapse;
 const { useToken } = theme;
 
 type RequestLog = Tables<'request_logs'>;
@@ -76,9 +75,12 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
         <div
             style={{
                 height: isModal ? 'calc(90vh - 120px)' : 'auto',
-                overflow: isModal ? 'auto' : 'visible',
+                overflowY: isModal ? 'auto' : 'visible',
+                overflowX: 'hidden',
                 padding: isModal ? '0' : '0',
+                width: '100%',
             }}
+            className={isModal ? 'gp-scrollable' : undefined}
         >
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 {/* Status Overview */}
@@ -90,7 +92,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                     }}
                 >
                     <Row gutter={[token.marginLG, token.marginMD]}>
-                        <Col xs={24} sm={6}>
+                        <Col xs={24} sm={6} style={{ minWidth: 0 }}>
                             <Space direction="vertical" size="small">
                                 <Text strong style={{ color: token.colorText }}>
                                     Status
@@ -109,7 +111,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                                 </Tag>
                             </Space>
                         </Col>
-                        <Col xs={24} sm={6}>
+                        <Col xs={24} sm={6} style={{ minWidth: 0 }}>
                             <Space direction="vertical" size="small">
                                 <Text strong style={{ color: token.colorText }}>
                                     API Format
@@ -117,7 +119,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                                 <Tag color="processing">{requestLog.api_format}</Tag>
                             </Space>
                         </Col>
-                        <Col xs={24} sm={6}>
+                        <Col xs={24} sm={6} style={{ minWidth: 0 }}>
                             <Space direction="vertical" size="small">
                                 <Text strong style={{ color: token.colorText }}>
                                     Stream
@@ -127,7 +129,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                                 </Tag>
                             </Space>
                         </Col>
-                        <Col xs={24} sm={6}>
+                        <Col xs={24} sm={6} style={{ minWidth: 0 }}>
                             <Space direction="vertical" size="small">
                                 <Text strong style={{ color: token.colorText }}>
                                     Created At
@@ -140,7 +142,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
 
                 {/* Request & Response Details */}
                 <Row gutter={[16, 16]}>
-                    <Col xs={24} lg={12}>
+                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
                         <RequestDetailsCard
                             requestLog={requestLog}
                             requestData={requestData}
@@ -148,7 +150,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                             isModal={isModal}
                         />
                     </Col>
-                    <Col xs={24} lg={12}>
+                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
                         <ResponseDetailsCard
                             requestLog={requestLog}
                             responseData={responseData}
@@ -268,7 +270,11 @@ function RequestDetailsCard({
                                 color: token.colorText,
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-word',
+                                overflowWrap: 'anywhere',
+                                maxWidth: '100%',
+                                boxSizing: 'border-box',
                             }}
+                            className="gp-scrollable"
                         >
                             {JSON.stringify(requestData, null, 2)}
                         </pre>
@@ -363,7 +369,11 @@ function ResponseDetailsCard({
                                         color: token.colorText,
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
                                     }}
+                                    className="gp-scrollable"
                                 >
                                     {JSON.stringify(responseData, null, 2)}
                                 </pre>
@@ -392,7 +402,11 @@ function ResponseDetailsCard({
                                         color: token.colorError,
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
                                     }}
+                                    className="gp-scrollable"
                                 >
                                     {JSON.stringify(errorDetails, null, 2)}
                                 </pre>
@@ -442,110 +456,122 @@ function PerformanceMetricsCard({
             <Collapse
                 defaultActiveKey={isModal ? ['performance'] : ['performance', 'usage']}
                 size={isModal ? 'small' : 'middle'}
-            >
-                <Panel header="Performance Metrics" key="performance">
-                    {performanceMetrics ? (
-                        <div>
-                            <Space style={{ marginBottom: '8px' }}>
-                                <Tooltip title="Copy Performance Data">
-                                    <Button
-                                        type="text"
-                                        icon={<CopyOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onCopy(
-                                                JSON.stringify(performanceMetrics, null, 2),
-                                                'Performance Metrics',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                                <Tooltip title="Download Performance Data">
-                                    <Button
-                                        type="text"
-                                        icon={<DownloadOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onDownload(
-                                                performanceMetrics,
-                                                'performance-metrics.json',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                            </Space>
-                            <pre
-                                style={{
-                                    background: token.colorFillQuaternary,
-                                    padding: isModal ? token.paddingXS : token.paddingSM,
-                                    borderRadius: token.borderRadius,
-                                    fontSize: isModal ? token.fontSizeSM : token.fontSize,
-                                    overflow: 'auto',
-                                    maxHeight: isModal ? '120px' : '180px',
-                                    border: `1px solid ${token.colorBorder}`,
-                                    color: token.colorText,
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                }}
-                            >
-                                {JSON.stringify(performanceMetrics, null, 2)}
-                            </pre>
-                        </div>
-                    ) : (
-                        <Text type="secondary">No performance data</Text>
-                    )}
-                </Panel>
-
-                <Panel header="Usage Metadata" key="usage">
-                    {usageMetadata ? (
-                        <div>
-                            <Space style={{ marginBottom: '8px' }}>
-                                <Tooltip title="Copy Usage Data">
-                                    <Button
-                                        type="text"
-                                        icon={<CopyOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onCopy(
-                                                JSON.stringify(usageMetadata, null, 2),
-                                                'Usage Metadata',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                                <Tooltip title="Download Usage Data">
-                                    <Button
-                                        type="text"
-                                        icon={<DownloadOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onDownload(usageMetadata, 'usage-metadata.json')
-                                        }
-                                    />
-                                </Tooltip>
-                            </Space>
-                            <pre
-                                style={{
-                                    background: token.colorFillQuaternary,
-                                    padding: isModal ? token.paddingXS : token.paddingSM,
-                                    borderRadius: token.borderRadius,
-                                    fontSize: isModal ? token.fontSizeSM : token.fontSize,
-                                    overflow: 'auto',
-                                    maxHeight: isModal ? '120px' : '180px',
-                                    border: `1px solid ${token.colorBorder}`,
-                                    color: token.colorText,
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                }}
-                            >
-                                {JSON.stringify(usageMetadata, null, 2)}
-                            </pre>
-                        </div>
-                    ) : (
-                        <Text type="secondary">No usage data</Text>
-                    )}
-                </Panel>
-            </Collapse>
+                items={[
+                    {
+                        key: 'performance',
+                        label: 'Performance Metrics',
+                        children: performanceMetrics ? (
+                            <div>
+                                <Space style={{ marginBottom: '8px' }}>
+                                    <Tooltip title="Copy Performance Data">
+                                        <Button
+                                            type="text"
+                                            icon={<CopyOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                                onCopy(
+                                                    JSON.stringify(performanceMetrics, null, 2),
+                                                    'Performance Metrics',
+                                                )
+                                            }
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Download Performance Data">
+                                        <Button
+                                            type="text"
+                                            icon={<DownloadOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                                onDownload(
+                                                    performanceMetrics,
+                                                    'performance-metrics.json',
+                                                )
+                                            }
+                                        />
+                                    </Tooltip>
+                                </Space>
+                                <pre
+                                    style={{
+                                        background: token.colorFillQuaternary,
+                                        padding: isModal ? token.paddingXS : token.paddingSM,
+                                        borderRadius: token.borderRadius,
+                                        fontSize: isModal ? token.fontSizeSM : token.fontSize,
+                                        overflow: 'auto',
+                                        maxHeight: isModal ? '120px' : '180px',
+                                        border: `1px solid ${token.colorBorder}`,
+                                        color: token.colorText,
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
+                                    }}
+                                    className="gp-scrollable"
+                                >
+                                    {JSON.stringify(performanceMetrics, null, 2)}
+                                </pre>
+                            </div>
+                        ) : (
+                            <Text type="secondary">No performance data</Text>
+                        ),
+                    },
+                    {
+                        key: 'usage',
+                        label: 'Usage Metadata',
+                        children: usageMetadata ? (
+                            <div>
+                                <Space style={{ marginBottom: '8px' }}>
+                                    <Tooltip title="Copy Usage Data">
+                                        <Button
+                                            type="text"
+                                            icon={<CopyOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                                onCopy(
+                                                    JSON.stringify(usageMetadata, null, 2),
+                                                    'Usage Metadata',
+                                                )
+                                            }
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Download Usage Data">
+                                        <Button
+                                            type="text"
+                                            icon={<DownloadOutlined />}
+                                            size="small"
+                                            onClick={() =>
+                                                onDownload(usageMetadata, 'usage-metadata.json')
+                                            }
+                                        />
+                                    </Tooltip>
+                                </Space>
+                                <pre
+                                    style={{
+                                        background: token.colorFillQuaternary,
+                                        padding: isModal ? token.paddingXS : token.paddingSM,
+                                        borderRadius: token.borderRadius,
+                                        fontSize: isModal ? token.fontSizeSM : token.fontSize,
+                                        overflow: 'auto',
+                                        maxHeight: isModal ? '120px' : '180px',
+                                        border: `1px solid ${token.colorBorder}`,
+                                        color: token.colorText,
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
+                                    }}
+                                    className="gp-scrollable"
+                                >
+                                    {JSON.stringify(usageMetadata, null, 2)}
+                                </pre>
+                            </div>
+                        ) : (
+                            <Text type="secondary">No usage data</Text>
+                        ),
+                    },
+                ]}
+            />
         </Card>
     );
 }
@@ -585,6 +611,7 @@ function RetryAttemptsCard({
                         background: token.colorFillQuaternary,
                         borderRadius: token.borderRadius,
                     }}
+                    className="gp-scrollable"
                 >
                     <Space
                         direction="vertical"
