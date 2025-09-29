@@ -70,10 +70,10 @@ export const authProviderClient: AuthProvider = {
                     redirectTo: '/',
                 };
             }
-        } catch (error: any) {
+        } catch (error) {
             return {
                 success: false,
-                error,
+                error: error as Error,
             };
         }
 
