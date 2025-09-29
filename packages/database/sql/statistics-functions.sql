@@ -297,7 +297,7 @@ BEGIN
         WHERE (p_user_id IS NULL OR user_id = p_user_id)
         AND created_at >= NOW() - INTERVAL '24 hours'
         GROUP BY EXTRACT(HOUR FROM created_at)
-        ORDER BY hour_bucket::INTEGER
+        ORDER BY EXTRACT(HOUR FROM created_at)
     ) hour_stats;
     
     -- Build result JSON

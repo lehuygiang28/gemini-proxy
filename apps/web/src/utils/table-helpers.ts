@@ -1,4 +1,6 @@
-import { message } from 'antd';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { PresetStatusColorType } from 'antd/es/_util/colors';
+import { PROVIDERS } from '@/constants/providers';
 
 // Token formatting utilities
 export const formatTokenCount = (count: number): string => {
@@ -19,8 +21,8 @@ export const formatDuration = (durationMs: number): string => {
 };
 
 // Status utilities
-export const getStatusColor = (isActive: boolean): string => {
-    return isActive ? 'green' : 'red';
+export const getStatusValue = (isActive: boolean): PresetStatusColorType => {
+    return isActive ? 'success' : 'error';
 };
 
 export const getStatusText = (isActive: boolean): string => {
@@ -29,21 +31,11 @@ export const getStatusText = (isActive: boolean): string => {
 
 // Provider utilities
 export const getProviderColor = (provider: string): string => {
-    switch (provider) {
-        case 'googleaistudio':
-            return 'blue';
-        default:
-            return 'default';
-    }
+    return PROVIDERS[provider]?.color || 'default';
 };
 
 export const getProviderText = (provider: string): string => {
-    switch (provider) {
-        case 'googleaistudio':
-            return 'Google AI Studio';
-        default:
-            return provider;
-    }
+    return PROVIDERS[provider]?.label || provider;
 };
 
 // Request type utilities
@@ -76,15 +68,13 @@ export const calculateSuccessRate = (successCount: number, failureCount: number)
 };
 
 // Clipboard utilities
-export const copyToClipboard = (text: string): void => {
-    navigator.clipboard
-        .writeText(text)
-        .then(() => {
-            message.success('Copied to clipboard');
-        })
-        .catch(() => {
-            message.error('Failed to copy');
-        });
+export const copyToClipboard = (text: string): boolean => {
+    try {
+        navigator?.clipboard?.writeText(text);
+        return true;
+    } catch {
+        return false;
+    }
 };
 
 // Key masking utilities
@@ -148,9 +138,9 @@ export const extractPerformanceMetrics = (
     }
 
     return {
-        duration: metrics.duration_ms || metrics.duration || 0,
-        attemptCount: metrics.attempt_count || metrics.attempts || 0,
-        responseTime: metrics.response_time || 0,
+        duration: metrics?.duration_ms || metrics?.duration || 0,
+        attemptCount: metrics?.attempt_count || metrics?.attempts || 0,
+        responseTime: metrics?.response_time || 0,
     };
 };
 
@@ -168,9 +158,9 @@ export const extractUsageMetadata = (
     }
 
     return {
-        totalTokens: metadata.total_tokens || metadata.totalTokenCount || 0,
-        promptTokens: metadata.prompt_tokens || metadata.promptTokenCount || 0,
-        completionTokens: metadata.completion_tokens || metadata.candidatesTokenCount || 0,
-        model: metadata.model,
+        totalTokens: metadata?.total_tokens || metadata?.totalTokenCount || 0,
+        promptTokens: metadata?.prompt_tokens || metadata?.promptTokenCount || 0,
+        completionTokens: metadata?.completion_tokens || metadata?.candidatesTokenCount || 0,
+        model: metadata?.model,
     };
 };

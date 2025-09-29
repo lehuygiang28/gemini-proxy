@@ -1,27 +1,30 @@
 'use client';
 
 import React, { type PropsWithChildren, createContext, useEffect, useState } from 'react';
-import { ConfigProvider, App as AntdApp, theme } from 'antd';
-import Cookies from 'js-cookie';
+import { ConfigProvider, App as AntdApp, theme, type ThemeConfig } from 'antd';
 import { RefineThemes } from '@refinedev/antd';
+import Cookies from 'js-cookie';
+import { THEME_COOKIE_NAME } from '@constants';
+
+export type ColorMode = 'dark' | 'light';
 
 type ColorModeContextType = {
-    mode: string;
-    setMode: (mode: string) => void;
-    toggleMode: () => void;
+    mode: ColorMode;
+    setColorMode: (mode: ColorMode) => void;
+    toggleColorMode: () => void;
 };
 
 export const ColorModeContext = createContext<ColorModeContextType>({} as ColorModeContextType);
 
 type ColorModeContextProviderProps = {
-    defaultMode?: string;
+    defaultMode?: ColorMode;
 };
 
 export const ColorModeContextProvider: React.FC<
     PropsWithChildren<ColorModeContextProviderProps>
 > = ({ children, defaultMode }) => {
     const [isMounted, setIsMounted] = useState(false);
-    const [mode, setModeState] = useState(defaultMode || 'light');
+    const [mode, setModeState] = useState(defaultMode || 'dark');
 
     useEffect(() => {
         setIsMounted(true);
@@ -29,26 +32,32 @@ export const ColorModeContextProvider: React.FC<
 
     useEffect(() => {
         if (isMounted) {
-            const theme = Cookies.get('theme') || 'light';
+            const theme = Cookies.get(THEME_COOKIE_NAME) === 'light' ? 'light' : 'dark';
             setModeState(theme);
         }
     }, [isMounted]);
 
-    const setMode = (newMode: string) => {
+    const setColorMode = (newMode: ColorMode) => {
         setModeState(newMode);
-        Cookies.set('theme', newMode);
+        Cookies.set(THEME_COOKIE_NAME, newMode);
     };
 
-    const toggleMode = () => {
+    const toggleColorMode = () => {
         const newMode = mode === 'light' ? 'dark' : 'light';
-        setMode(newMode);
+        setColorMode(newMode);
     };
 
     const { darkAlgorithm, defaultAlgorithm } = theme;
 
-    // Enhanced theme configuration
-    const themeConfig = {
+    /**
+     * Custom pre-define theme
+     * @param selected Theme A selected theme from Refine pre-define
+     * @returns ThemeConfig custom-ed
+     */
+    const themeConfig = (selectedTheme: ThemeConfig) => ({
+        algorithm: mode === 'light' ? defaultAlgorithm : darkAlgorithm,
         token: {
+            ...selectedTheme?.token,
             colorPrimary: '#1890ff',
             colorSuccess: '#52c41a',
             colorWarning: '#faad14',
@@ -73,14 +82,16 @@ export const ColorModeContextProvider: React.FC<
             boxShadowTertiary:
                 '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
         },
-        algorithm: mode === 'light' ? defaultAlgorithm : darkAlgorithm,
         components: {
+            ...selectedTheme?.components,
             Layout: {
+                ...selectedTheme?.components?.Layout,
                 bodyBg: mode === 'light' ? '#f5f5f5' : '#141414',
                 headerBg: mode === 'light' ? '#ffffff' : '#1f1f1f',
                 siderBg: mode === 'light' ? '#ffffff' : '#1f1f1f',
             },
             Card: {
+                ...selectedTheme?.components?.Card,
                 borderRadiusLG: 8,
                 boxShadowTertiary:
                     mode === 'light'
@@ -88,33 +99,34 @@ export const ColorModeContextProvider: React.FC<
                         : '0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px 0 rgba(0, 0, 0, 0.2)',
             },
             Button: {
+                ...selectedTheme?.components?.Button,
                 borderRadius: 6,
                 controlHeight: 40,
                 controlHeightLG: 48,
                 controlHeightSM: 32,
             },
             Input: {
+                ...selectedTheme?.components?.Input,
                 borderRadius: 6,
                 controlHeight: 40,
                 controlHeightLG: 48,
                 controlHeightSM: 32,
             },
         },
-    };
+    });
 
     return (
         <ColorModeContext.Provider
             value={{
-                setMode,
                 mode,
-                toggleMode,
+                setColorMode,
+                toggleColorMode,
             }}
         >
             <ConfigProvider
-                theme={{
-                    ...RefineThemes.Blue,
-                    ...themeConfig,
-                    algorithm: mode === 'light' ? defaultAlgorithm : darkAlgorithm,
+                theme={themeConfig(RefineThemes.Blue)}
+                warning={{
+                    strict: false,
                 }}
             >
                 <AntdApp>{children}</AntdApp>

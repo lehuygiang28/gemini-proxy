@@ -1,13 +1,7 @@
-/**
- * @type {import('next').NextConfig}
- */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
     transpilePackages: ['@refinedev/antd'],
-    output: undefined,
+    output: 'standalone',
 };
-
-/**
- * read more issue https://github.com/vercel/next.js/discussions/35437
- */
 
 export default nextConfig;

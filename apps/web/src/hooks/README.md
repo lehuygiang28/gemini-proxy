@@ -1,286 +1,228 @@
-# Statistics Hooks with SWR + Supabase RPC
+# Type-Safe RPC Hooks
 
-This directory contains production-grade React hooks that use SWR for data fetching with Supabase RPC functions. These hooks replace frontend calculations with optimized database-side computations.
+This directory contains the consolidated, type-safe RPC hooks system for the Gemini Proxy application.
 
-## 🚀 **Key Features**
+## Overview
 
-- **SWR Integration**: Automatic caching, revalidation, and error handling
-- **Type Safety**: Full TypeScript support with generated database types
-- **Production Ready**: Error retry, deduplication, and performance optimizations
-- **User Isolation**: Proper cache isolation per user
-- **Real-time Updates**: Automatic background refresh and focus revalidation
+The RPC hooks system provides:
 
-## 📊 **Available Hooks**
+- **Single Source of Truth**: All RPC hooks in one file (`useRpc.ts`)
+- **Type Safety**: Full TypeScript support with IntelliSense
+- **Runtime Validation**: Parameter and response validation
+- **Clean Architecture**: No code duplication, maintainable structure
+- **Production Ready**: Robust error handling and performance optimization
 
-### `useDashboardStatistics()`
+## File Structure
 
-Comprehensive dashboard metrics including API keys, proxy keys, requests, and performance data.
+```
+apps/web/src/hooks/
+├── useRpc.ts                    # Main RPC hooks (consolidated)
+└── README.md                    # This documentation
 
-```typescript
-const { statistics, isLoading, error, mutate } = useDashboardStatistics();
-
-// Access data
-console.log(statistics?.total_api_keys);
-console.log(statistics?.success_rate);
+apps/web/src/types/
+├── rpc.types.ts                 # Type definitions and validators
+└── README.md                    # Type system documentation
 ```
 
-### `useRetryStatisticsRpc(daysBack?: number)`
+## Usage
 
-Retry attempt analytics for request logs within specified time period.
+### Basic Statistics Hooks
 
 ```typescript
-const { statistics, isLoading, error, mutate } = useRetryStatisticsRpc(30);
+import { 
+    useDashboardStatistics, 
+    useApiKeyStatistics, 
+    useProxyKeyStatistics 
+} from '@/hooks/useRpc';
 
-// Access retry data
-console.log(statistics?.total_requests);
-console.log(statistics?.retry_rate);
+// Type-safe usage
+const { data: dashboardStats } = useDashboardStatistics();
+const { data: apiKeyStats } = useApiKeyStatistics();
+const { data: proxyKeyStats } = useProxyKeyStatistics();
 ```
 
-### `useApiKeyStatistics()`
-
-API key usage statistics including success/failure rates.
+### Statistics Hooks with Parameters
 
 ```typescript
-const { statistics, isLoading, error, mutate } = useApiKeyStatistics();
+import { useRetryStatistics, useRequestLogsStatistics } from '@/hooks/useRpc';
 
-// Access API key metrics
-console.log(statistics?.total_keys);
-console.log(statistics?.success_rate);
+// With default parameters
+const { data: retryStats } = useRetryStatistics(); // p_days_back: 30
+const { data: requestLogsStats } = useRequestLogsStatistics(); // p_days_back: 7
+
+// With custom parameters
+const { data: customRetryStats } = useRetryStatistics({ p_days_back: 14 });
+const { data: customRequestLogsStats } = useRequestLogsStatistics({ p_days_back: 30 });
 ```
 
-### `useProxyKeyStatistics()`
-
-Proxy key usage statistics including token usage and success rates.
+### Filter Options Hooks
 
 ```typescript
-const { statistics, isLoading, error, mutate } = useProxyKeyStatistics();
+import { 
+    useFilterOptionsModels, 
+    useFilterOptionsAll 
+} from '@/hooks/useRpc';
 
-// Access proxy key metrics
-console.log(statistics?.total_tokens);
-console.log(statistics?.active_keys);
-```
+// Individual filter options
+const { data: models } = useFilterOptionsModels();
+const { data: errorTypes } = useFilterOptionsErrorTypes();
 
-### `useRequestLogsStatistics(daysBack?: number)`
-
-Detailed request logs statistics with format breakdown and hourly distribution.
-
-```typescript
-const { statistics, isLoading, error, mutate } = useRequestLogsStatistics(7);
-
-// Access request logs data
-console.log(statistics?.requests_by_format);
-console.log(statistics?.requests_by_hour);
-```
-
-## ⚙️ **Configuration**
-
-### SWR Settings
-
-Each hook is configured with production-grade settings:
-
-- **Refresh Intervals**:
-  - Dashboard: 5 minutes
-  - Retry Statistics: 2 minutes  
-  - API/Proxy Keys: 3 minutes
-  - Request Logs: 1 minute
-- **Error Retry**: 3 attempts with 5-second intervals
-- **Deduplication**: 2-second window
-- **Focus Revalidation**: Enabled
-- **Previous Data**: Kept during revalidation
-
-### Cache Keys
-
-SWR keys include user ID for proper isolation:
-
-- `dashboard-statistics-${userId}`
-- `retry-statistics-${userId}-${daysBack}`
-- `api-key-statistics-${userId}`
-- etc.
-
-## 🔧 **Usage Examples**
-
-### Basic Usage
-
-```typescript
-import { useDashboardStatistics } from '@/hooks';
-
-function Dashboard() {
-    const { statistics, isLoading, error } = useDashboardStatistics();
-    
-    if (isLoading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error.message}</div>;
-    
-    return (
-        <div>
-            <h2>Total API Keys: {statistics?.total_api_keys}</h2>
-            <p>Success Rate: {statistics?.success_rate}%</p>
-        </div>
-    );
-}
-```
-
-### Manual Refresh
-
-```typescript
-function Dashboard() {
-    const { statistics, isLoading, mutate } = useDashboardStatistics();
-    
-    const handleRefresh = () => {
-        mutate(); // Trigger manual refresh
-    };
-    
-    return (
-        <div>
-            <button onClick={handleRefresh} disabled={isLoading}>
-                Refresh Data
-            </button>
-            {/* ... rest of component */}
-        </div>
-    );
-}
+// All filter options in one call
+const { data: allFilters } = useFilterOptionsAll();
 ```
 
 ### Error Handling
 
 ```typescript
-function Dashboard() {
-    const { statistics, isLoading, error } = useDashboardStatistics();
-    
-    useEffect(() => {
-        if (error) {
-            // Handle error (e.g., show notification, log to service)
-            console.error('Dashboard statistics error:', error);
-        }
-    }, [error]);
-    
-    // ... rest of component
-}
+const {
+    query: { isLoading, isError },
+    result: data
+} = useDashboardStatistics();
+
+if (isLoading) return <Loading />;
+if (isError) return <Error />;
+
+const stats = data?.data;
 ```
 
-## 🏗️ **Architecture**
+## Available Hooks
 
-### Data Flow
+### Statistics Hooks
 
-1. **Hook Initialization**: SWR key generated with user context
-2. **Authentication**: User ID retrieved via `useGetIdentity()`
-3. **RPC Call**: Supabase client calls database function
-4. **Caching**: SWR caches result with configured TTL
-5. **Revalidation**: Automatic background refresh based on interval
+- `useDashboardStatistics()` - Overall dashboard statistics
+- `useRetryStatistics(params?)` - Retry attempt statistics
+- `useApiKeyStatistics()` - API key usage statistics
+- `useProxyKeyStatistics()` - Proxy key usage statistics
+- `useRequestLogsStatistics(params?)` - Request logs statistics
 
-### Production Error Handling
+### Filter Options Hooks
 
-- **Network Errors**: Automatic retry with exponential backoff
-- **Authentication Errors**: Handled by Supabase client
-- **Database Errors**: Wrapped in descriptive error messages
-- **Type Safety**: Full TypeScript coverage prevents runtime errors
+- `useFilterOptionsModels()` - Available models
+- `useFilterOptionsErrorTypes()` - Error types
+- `useFilterOptionsStatusCodes()` - Status codes
+- `useFilterOptionsApiFormats()` - API formats
+- `useFilterOptionsUserIds()` - User IDs (admin)
+- `useFilterOptionsProxyKeyIds()` - Proxy key IDs (admin)
+- `useFilterOptionsApiKeyIds()` - API key IDs (admin)
+- `useFilterOptionsAll()` - All filter options
 
-### Performance Optimizations
+## Type Safety
 
-- **Request Deduplication**: Multiple components can use same hook without duplicate requests
-- **Background Refresh**: Data stays fresh without user interaction
-- **Previous Data**: UI doesn't flash during revalidation
-- **Cache Isolation**: User-specific caching prevents data leaks
-
-## 🔒 **Security**
-
-- **Row Level Security**: Database functions respect RLS policies
-- **User Isolation**: All queries filtered by authenticated user ID
-- **Type Safety**: Prevents SQL injection through typed parameters
-- **Authentication**: Requires valid user session for all operations
-
-## 📈 **Monitoring**
-
-### Performance Metrics
-
-Monitor hook performance through SWR's built-in metrics:
+All hooks provide full type safety:
 
 ```typescript
-import { useSWRConfig } from 'swr';
+// Return types are fully typed
+const { data: stats } = useDashboardStatistics();
+const dashboardStats: DashboardStatistics = stats; // Fully typed
 
-function DebugPanel() {
-    const { cache } = useSWRConfig();
-    
-    // Access cache statistics
-    console.log('Cache size:', cache.size);
-    console.log('Cache keys:', Array.from(cache.keys()));
-}
+// Parameters are type-safe
+const { data: retryStats } = useRetryStatistics({ p_days_back: 30 }); // ✅
+const { data: invalid } = useRetryStatistics({ p_days_back: "30" }); // ❌ TypeScript error
 ```
 
-### Error Tracking
+## Advanced Usage
 
-Errors are automatically logged and can be extended with external services:
-
-```typescript
-// In swr-config.ts
-onError: (error, key) => {
-    // Send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
-        errorTracking.captureException(error, { key });
-    }
-}
-```
-
-## 🚀 **Migration from Legacy Hooks**
-
-### Before (Frontend Calculations)
+### Custom RPC Hook Creation
 
 ```typescript
-// OLD: Frontend calculation with large data fetch
-const { data, isLoading } = useList({
-    resource: 'request_logs',
-    pagination: { pageSize: 1000 }, // ❌ Fetches large dataset
+import { createRpcHook, createRpcHookWithDefaults } from '@/hooks/useRpc';
+
+// Create a custom hook for any RPC function
+const useCustomRpc = createRpcHook('get_dashboard_statistics');
+
+// Create a custom hook with default parameters
+const useCustomRpcWithDefaults = createRpcHookWithDefaults('get_retry_statistics', {
+    p_days_back: 14
 });
-
-const statistics = useMemo(() => {
-    // ❌ Heavy frontend processing
-    const totalRequests = data?.data?.length || 0;
-    const requestsWithRetries = data?.data?.filter(/* ... */).length;
-    // ... more calculations
-}, [data?.data]);
 ```
 
-### After (Database RPC + SWR)
+## Benefits
+
+### 1. **Consolidated Architecture**
+
+- Single file for all RPC hooks
+- No code duplication
+- Easy to maintain and extend
+
+### 2. **Type Safety**
+
+- Full TypeScript support
+- IntelliSense autocomplete
+- Compile-time error detection
+
+### 3. **Runtime Safety**
+
+- Parameter validation
+- Response validation
+- Comprehensive error handling
+
+### 4. **Performance**
+
+- Efficient RPC calls
+- Proper caching
+- Optimized data fetching
+
+### 5. **Developer Experience**
+
+- Clean, consistent API
+- Easy to use and understand
+- Comprehensive documentation
+
+## Migration from Old System
+
+If you were using the old separate files:
 
 ```typescript
-// NEW: Database-side calculation with caching
-const { statistics, isLoading } = useRetryStatisticsRpc(30);
+// Old (deprecated)
+import { useDashboardStatistics } from '@/hooks/useRpcStatistics';
+import { useFilterOptionsModels } from '@/hooks/useRpcFilters';
 
-// ✅ Pre-calculated results
-// ✅ Automatic caching
-// ✅ Background refresh
-// ✅ Error handling
+// New (recommended)
+import { useDashboardStatistics, useFilterOptionsModels } from '@/hooks/useRpc';
 ```
 
-## 🛠️ **Development**
+## Best Practices
 
-### Adding New Statistics Hooks
-
-1. Create RPC function in database
-2. Update database types
-3. Add method to `SupabaseRpcClient`
-4. Create hook with SWR integration
-5. Export from hooks index
-
-### Testing
+### 1. **Use Type-Safe Hooks**
 
 ```typescript
-// Mock SWR for testing
-import { SWRConfig } from 'swr';
+// ✅ Good
+const { data: stats } = useDashboardStatistics();
 
-function TestWrapper({ children }) {
-    return (
-        <SWRConfig value={{ provider: () => new Map() }}>
-            {children}
-        </SWRConfig>
-    );
-}
+// ❌ Avoid direct RPC calls
+const { data } = useCustom({ url: 'rpc/get_dashboard_statistics' });
 ```
 
-## 📚 **Dependencies**
+### 2. **Handle Loading and Error States**
 
-- **SWR**: Data fetching and caching
-- **Supabase**: Database client and RPC calls  
-- **RefineDev**: Authentication and UI framework
-- **TypeScript**: Type safety and developer experience
+```typescript
+const {
+    query: { isLoading, isError },
+    result: data
+} = useDashboardStatistics();
 
-This implementation provides a robust, scalable foundation for statistics in the Gemini Proxy application with production-grade error handling, caching, and performance optimizations.
+if (isLoading) return <Loading />;
+if (isError) return <Error />;
+```
+
+### 3. **Use Proper Parameter Types**
+
+```typescript
+// ✅ Good
+const { data } = useRetryStatistics({ p_days_back: 30 });
+
+// ❌ Avoid any types
+const { data } = useRetryStatistics({ p_days_back: "30" as any });
+```
+
+## Future Enhancements
+
+1. **Database Schema Integration**: Full integration with database types
+2. **Code Generation**: Auto-generate hooks from database schema
+3. **Caching**: Advanced caching strategies
+4. **Optimization**: Query optimization and batching
+5. **Monitoring**: Performance monitoring and analytics
+
+## Conclusion
+
+The consolidated RPC hooks system provides a clean, maintainable, and type-safe solution for PostgreSQL RPC function integration. It eliminates code duplication while providing excellent developer experience and production-ready reliability.

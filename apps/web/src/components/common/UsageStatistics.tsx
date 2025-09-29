@@ -1,7 +1,9 @@
 import React from 'react';
-import { theme } from 'antd';
+import { Typography, Space, Statistic, Row, Col, theme } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { calculateSuccessRate } from '@/utils/table-helpers';
 
+const { Text } = Typography;
 const { useToken } = theme;
 
 interface UsageStatisticsProps {
@@ -14,20 +16,26 @@ export const UsageStatistics: React.FC<UsageStatisticsProps> = ({ successCount, 
     const successRate = calculateSuccessRate(successCount, failureCount);
 
     return (
-        <div>
-            <div style={{ fontSize: token.fontSizeSM }}>
-                <span style={{ color: token.colorSuccess }}>✓ {successCount}</span>
-                {' | '}
-                <span style={{ color: token.colorError }}>✗ {failureCount}</span>
-            </div>
-            <div
-                style={{
-                    fontSize: token.fontSizeSM,
-                    color: token.colorTextSecondary,
-                }}
-            >
+        <Space direction="vertical" size="small">
+            <Row gutter={16}>
+                <Col>
+                    <Statistic
+                        value={successCount}
+                        prefix={<CheckCircleOutlined style={{ color: token.colorSuccess }} />}
+                        valueStyle={{ fontSize: token.fontSize }}
+                    />
+                </Col>
+                <Col>
+                    <Statistic
+                        value={failureCount}
+                        prefix={<CloseCircleOutlined style={{ color: token.colorError }} />}
+                        valueStyle={{ fontSize: token.fontSize }}
+                    />
+                </Col>
+            </Row>
+            <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                 Success Rate: {successRate}%
-            </div>
-        </div>
+            </Text>
+        </Space>
     );
 };

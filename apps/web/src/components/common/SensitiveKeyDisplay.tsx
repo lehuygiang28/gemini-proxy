@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Tooltip, Space, theme } from 'antd';
+import { Button, Tooltip, Space, Input, theme } from 'antd';
+import { useNotification } from '@refinedev/core';
 import { EyeOutlined, EyeInvisibleOutlined, CopyOutlined } from '@ant-design/icons';
 import { maskSensitiveKey, copyToClipboard } from '@/utils/table-helpers';
 
@@ -18,49 +19,48 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
     onToggleVisibility,
     showCopyButton = true,
 }) => {
+    const notification = useNotification();
     const { token } = useToken();
 
+    const actions = [
+        <Tooltip key="toggle" title={isRevealed ? 'Hide Key' : 'Reveal Key'}>
+            <Button
+                type="text"
+                size="small"
+                icon={isRevealed ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                onClick={onToggleVisibility}
+            />
+        </Tooltip>,
+    ];
+
+    const copyHandler = () => {
+        if (copyToClipboard(value)) {
+            notification.open({
+                type: 'success',
+                message: 'Copied to clipboard',
+            });
+        } else {
+            notification.open({
+                type: 'error',
+                message: 'Failed to copy, try again later',
+            });
+        }
+    };
+
+    if (showCopyButton) {
+        actions.push(
+            <Tooltip key="copy" title="Copy to clipboard">
+                <Button type="text" size="small" icon={<CopyOutlined />} onClick={copyHandler} />
+            </Tooltip>,
+        );
+    }
+
     return (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: token.marginSM,
-            }}
-        >
-            <code
-                style={{
-                    fontFamily: 'monospace',
-                    fontSize: token.fontSizeSM,
-                    backgroundColor: token.colorBgTextHover,
-                    padding: `${token.paddingXS} ${token.paddingSM}`,
-                    borderRadius: token.borderRadius,
-                    flex: 1,
-                    color: token.colorText,
-                }}
-            >
-                {maskSensitiveKey(value, isRevealed)}
-            </code>
-            <Space size="small">
-                <Tooltip title={isRevealed ? 'Hide Key' : 'Reveal Key'}>
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={isRevealed ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                        onClick={onToggleVisibility}
-                    />
-                </Tooltip>
-                {showCopyButton && (
-                    <Tooltip title="Copy to clipboard">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<CopyOutlined />}
-                            onClick={() => copyToClipboard(value)}
-                        />
-                    </Tooltip>
-                )}
-            </Space>
-        </div>
+        <Input
+            value={maskSensitiveKey(value, isRevealed)}
+            readOnly
+            addonAfter={<Space size="small">{actions}</Space>}
+            style={{ fontFamily: 'monospace', fontSize: token.fontSizeSM }}
+        />
     );
 };

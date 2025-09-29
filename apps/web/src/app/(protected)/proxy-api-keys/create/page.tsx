@@ -1,111 +1,160 @@
 'use client';
 
+import React from 'react';
 import { Create } from '@refinedev/antd';
 import { useForm } from '@refinedev/antd';
-import { Card, Form, Input, Alert, Typography, theme } from 'antd';
-import { EyeOutlined, EyeInvisibleOutlined, KeyOutlined } from '@ant-design/icons';
-import type { TablesInsert } from '@gemini-proxy/database';
+import { useGetIdentity, useNotification } from '@refinedev/core';
+import {
+    Card,
+    Form,
+    Input,
+    Alert,
+    Typography,
+    theme,
+    Row,
+    Col,
+    Divider,
+    Button,
+    Switch,
+    Steps,
+} from 'antd';
+import { KeyOutlined, InfoCircleOutlined, SettingOutlined } from '@ant-design/icons';
+import type { TablesInsert, User } from '@gemini-proxy/database';
 
-const { Title, Text } = Typography;
+const { Title, Paragraph } = Typography;
 const { useToken } = theme;
 
 type ProxyApiKeyInsert = TablesInsert<'proxy_api_keys'>;
 
 export default function ProxyApiKeyCreatePage() {
     const { token } = useToken();
+    const notification = useNotification();
+    const { data: user, isPending: isUserLoading } = useGetIdentity<User>();
 
     const { formProps, saveButtonProps } = useForm<ProxyApiKeyInsert>({
         resource: 'proxy_api_keys',
         action: 'create',
+        redirect: 'list',
     });
-    const generateProxyKey = () => {
-        // Generate a random proxy key (this is just for demo purposes)
+
+    // Handle form submission with user_id injection
+    const handleFormFinish = (values: Record<string, unknown>) => {
+        if (!user?.id) {
+            notification.open({
+                type: 'error',
+                message: 'Authentication Required',
+                description: 'Please log in to create proxy API keys.',
+            });
+            return;
+        }
+
+        // Transform form data to include user_id
+        const dataWithUserId = {
+            ...values,
+            user_id: user.id,
+        } as ProxyApiKeyInsert;
+
+        // Submit the form with the transformed data
+        formProps.onFinish?.(dataWithUserId);
+    };
+
+    const generateProxyApiKey = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        for (let i = 0; i < 32; i++) {
+        let result = 'pk-';
+        for (let i = 0; i < 48; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         formProps.form?.setFieldsValue({ proxy_key_value: result });
     };
 
     return (
-        <Create saveButtonProps={saveButtonProps}>
-            <Card
-                style={{
-                    maxWidth: 800,
-                    margin: '0 auto',
-                    background: token.colorBgContainer,
-                }}
-            >
-                <div style={{ marginBottom: token.marginLG }}>
-                    <Title level={3} style={{ margin: 0, color: token.colorText }}>
-                        Create New Proxy Key
-                    </Title>
-                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                        Add a new proxy key to your account for client applications
-                    </Text>
-                </div>
-
-                <Alert
-                    message="Security Notice"
-                    description="Proxy keys are used by client applications to authenticate with your proxy service. Keep them secure and rotate them regularly."
-                    type="warning"
-                    showIcon
-                    style={{ marginBottom: token.marginLG }}
-                />
-
-                <Form {...formProps} layout="vertical">
-                    <Form.Item
-                        label="Name"
-                        name="name"
-                        rules={[
-                            { required: true, message: 'Please enter a name for this proxy key' },
-                            { min: 2, message: 'Name must be at least 2 characters' },
-                            { max: 100, message: 'Name must be less than 100 characters' },
-                        ]}
-                        extra="Choose a descriptive name to identify this proxy key"
-                    >
-                        <Input placeholder="e.g., Mobile App Proxy Key" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Proxy Key Value"
-                        name="proxy_key_value"
-                        rules={[
-                            { required: true, message: 'Please enter the proxy key value' },
-                            { min: 10, message: 'Proxy key must be at least 10 characters' },
-                        ]}
-                        extra="Enter a secure proxy key or generate one automatically"
-                    >
-                        <Input.Password
-                            placeholder="Enter your proxy key"
-                            iconRender={(visible) =>
-                                visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
-                            }
-                            addonAfter={
-                                <KeyOutlined
-                                    style={{ cursor: 'pointer', color: token.colorPrimary }}
-                                    onClick={generateProxyKey}
-                                    title="Generate random key"
-                                />
-                            }
-                        />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Description"
-                        name="description"
-                        extra="Optional description for this proxy key"
-                    >
-                        <Input.TextArea
-                            placeholder="Describe what this proxy key is used for..."
-                            rows={3}
-                            maxLength={500}
-                            showCount
-                        />
-                    </Form.Item>
-                </Form>
-            </Card>
+        <Create
+            saveButtonProps={{
+                ...saveButtonProps,
+                loading: isUserLoading,
+                disabled: !user?.id,
+            }}
+        >
+            <Row gutter={12}>
+                <Col xs={24} lg={8}>
+                    <Card variant="borderless">
+                        <Title level={5}>Create Proxy API Key</Title>
+                        <Paragraph type="secondary">
+                            Follow the steps to create a new proxy API key for your application.
+                        </Paragraph>
+                        <Steps direction="vertical" size="small" current={3}>
+                            <Steps.Step
+                                title="Name"
+                                description="Give your key a descriptive name."
+                            />
+                            <Steps.Step
+                                title="Generate Key"
+                                description="Create a secure and unique proxy API key."
+                            />
+                            <Steps.Step
+                                title="Set Status"
+                                description="Decide if the key should be active immediately."
+                            />
+                        </Steps>
+                    </Card>
+                </Col>
+                <Col xs={24} lg={16}>
+                    <Card variant="borderless">
+                        <Form {...formProps} onFinish={handleFormFinish} layout="vertical">
+                            <Divider orientation="left">
+                                <InfoCircleOutlined /> Basic Information
+                            </Divider>
+                            <Form.Item
+                                label="Name"
+                                name="name"
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Please enter a name',
+                                    },
+                                ]}
+                            >
+                                <Input placeholder="e.g., My App Key" />
+                            </Form.Item>
+                            <Divider orientation="left">
+                                <KeyOutlined /> Proxy API Key
+                            </Divider>
+                            <Form.Item
+                                label="Proxy API Key Value"
+                                name="proxy_key_value"
+                                rules={[
+                                    { required: true, message: 'Please generate a proxy API key' },
+                                ]}
+                            >
+                                <Input readOnly placeholder="Click generate to create a key" />
+                            </Form.Item>
+                            <Button
+                                icon={<KeyOutlined />}
+                                onClick={generateProxyApiKey}
+                                style={{ marginBottom: token.marginMD }}
+                            >
+                                Generate Secure Key
+                            </Button>
+                            <Alert
+                                message="Please copy this key and store it securely. You will not be able to see it again."
+                                type="info"
+                                showIcon
+                            />
+                            <Divider orientation="left">
+                                <SettingOutlined /> Settings
+                            </Divider>
+                            <Form.Item
+                                label="Status"
+                                name="is_active"
+                                valuePropName="checked"
+                                initialValue={true}
+                            >
+                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                            </Form.Item>
+                        </Form>
+                    </Card>
+                </Col>
+            </Row>
         </Create>
     );
 }

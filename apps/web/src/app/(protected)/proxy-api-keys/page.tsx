@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { List, CreateButton, EditButton, ShowButton, DeleteButton } from '@refinedev/antd';
-import { useTable } from '@refinedev/antd';
-import { useUpdate } from '@refinedev/core';
+import React, { useState, useCallback } from 'react';
+import {
+    List,
+    CreateButton,
+    EditButton,
+    ShowButton,
+    DeleteButton,
+    useTable,
+} from '@refinedev/antd';
+import { useDelete, useUpdate } from '@refinedev/core';
 import {
     Table,
     Space,
@@ -15,230 +21,313 @@ import {
     Col,
     Tooltip,
     Popconfirm,
-    message,
     theme,
+    Form,
+    Empty,
+    Typography,
 } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import {
     SensitiveKeyDisplay,
     StatusToggle,
     UsageStatistics,
-    TokenUsage,
     DateTimeDisplay,
 } from '@/components/common';
 
 const { Search } = Input;
-const { Option } = Select;
 const { useToken } = theme;
+const { Text } = Typography;
+
+const PROXY_API_KEYS_RESOURCE = 'proxy_api_keys';
 
 type ProxyApiKey = Tables<'proxy_api_keys'>;
+interface IProxyApiKeySearch {
+    name: string;
+    is_active: boolean;
+}
 
 export default function ProxyApiKeysListPage() {
     const { token } = useToken();
-    const [searchText, setSearchText] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
-    const { mutate: updateProxyKey } = useUpdate();
+    const { mutate: updateProxyApiKey } = useUpdate();
+    const { mutate: deleteProxyApiKey } = useDelete();
 
     const { tableProps, searchFormProps } = useTable<ProxyApiKey>({
         syncWithLocation: true,
-        pagination: { pageSize: 10 },
-        sorters: { initial: [{ field: 'created_at', order: 'desc' }] },
-        filters: {
-            initial: [],
+        resource: PROXY_API_KEYS_RESOURCE,
+        pagination: {
+            pageSize: 20,
+        },
+        sorters: {
+            initial: [{ field: 'created_at', order: 'desc' }],
+        },
+        onSearch: (data) => {
+            const values = data as IProxyApiKeySearch;
+            const filters: Array<{
+                field: string;
+                operator: 'contains' | 'eq';
+                value: unknown;
+            }> = [];
+
+            if (values.name) {
+                filters.push({
+                    field: 'name',
+                    operator: 'contains',
+                    value: values.name,
+                });
+            }
+
+            if (values.is_active !== undefined) {
+                filters.push({
+                    field: 'is_active',
+                    operator: 'eq',
+                    value: values.is_active,
+                });
+            }
+
+            return filters;
         },
     });
 
-    const toggleKeyVisibility = (keyId: string) => {
-        const newRevealedKeys = new Set(revealedKeys);
-        if (newRevealedKeys.has(keyId)) {
-            newRevealedKeys.delete(keyId);
-        } else {
-            newRevealedKeys.add(keyId);
-        }
-        setRevealedKeys(newRevealedKeys);
-    };
+    const toggleKeyVisibility = useCallback((keyId: string) => {
+        setRevealedKeys((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(keyId)) {
+                newSet.delete(keyId);
+            } else {
+                newSet.add(keyId);
+            }
+            return newSet;
+        });
+    }, []);
 
-    const handleToggleActive = async (record: ProxyApiKey, checked: boolean) => {
-        try {
-            await updateProxyKey({
-                resource: 'proxy_api_keys',
+    const handleToggleActive = useCallback(
+        (record: ProxyApiKey, checked: boolean) => {
+            updateProxyApiKey({
+                resource: PROXY_API_KEYS_RESOURCE,
                 id: record.id,
                 values: {
                     is_active: checked,
                 },
+                successNotification: {
+                    type: 'success',
+                    message: 'Status Updated',
+                    description: `Proxy API key "${record.name}" ${checked ? 'enabled' : 'disabled'} successfully`,
+                },
+                errorNotification: {
+                    type: 'error',
+                    message: 'Update Failed',
+                    description: 'Failed to update proxy API key status',
+                },
             });
+        },
+        [updateProxyApiKey],
+    );
 
-            message.success(
-                `Proxy key "${record.name}" ${checked ? 'enabled' : 'disabled'} successfully`,
-            );
-        } catch (error) {
-            message.error('Failed to update proxy key status');
-            console.error('Error updating proxy key:', error);
-        }
-    };
+    const handleDelete = useCallback(
+        (record: ProxyApiKey) => {
+            deleteProxyApiKey({
+                resource: PROXY_API_KEYS_RESOURCE,
+                id: record.id,
+                successNotification: {
+                    type: 'success',
+                    message: 'Proxy API Key Deleted',
+                    description: `Proxy API key "${record.name}" has been deleted successfully`,
+                },
+                errorNotification: {
+                    type: 'error',
+                    message: 'Delete Failed',
+                    description: 'Failed to delete proxy API key',
+                },
+            });
+        },
+        [deleteProxyApiKey],
+    );
 
     return (
-        <List headerButtons={<CreateButton />} title="Proxy API Keys Management">
-            {/* Filters */}
-            <Card style={{ marginBottom: token.marginMD }} bodyStyle={{ padding: token.paddingMD }}>
-                <Row gutter={[token.marginMD, token.marginMD]} align="middle">
-                    <Col xs={24} sm={8}>
-                        <Search
-                            placeholder="Search by name..."
-                            allowClear
-                            onSearch={(value) => {
-                                setSearchText(value);
-                                searchFormProps.form?.setFieldsValue({ name: value });
-                                searchFormProps.form?.submit();
-                            }}
-                            style={{ width: '100%' }}
-                        />
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Select
-                            placeholder="Filter by status"
-                            value={statusFilter}
-                            onChange={setStatusFilter}
-                            style={{ width: '100%' }}
-                        >
-                            <Option value="all">All Status</Option>
-                            <Option value="active">Active</Option>
-                            <Option value="inactive">Inactive</Option>
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Select placeholder="Sort by usage" allowClear style={{ width: '100%' }}>
-                            <Option value="total_tokens_desc">Most Used</Option>
-                            <Option value="total_tokens_asc">Least Used</Option>
-                            <Option value="last_used_desc">Recently Used</Option>
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={4}>
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={() => {
-                                searchFormProps.form?.resetFields();
-                                setSearchText('');
-                                setStatusFilter('all');
-                            }}
-                            style={{ width: '100%' }}
-                        >
-                            Reset
-                        </Button>
-                    </Col>
-                </Row>
+        <List headerButtons={<CreateButton />} title="Proxy API Keys Management" breadcrumb={false}>
+            <Card
+                styles={{
+                    cover: {
+                        marginBottom: token.marginMD,
+                    },
+                    body: {
+                        padding: token.paddingMD,
+                    },
+                }}
+                title={
+                    <Space>
+                        <FilterOutlined />
+                        <Text strong>Filters & Search</Text>
+                    </Space>
+                }
+                extra={
+                    <Button
+                        icon={<ReloadOutlined />}
+                        onClick={() => {
+                            searchFormProps.form?.resetFields();
+                            searchFormProps.form?.submit();
+                        }}
+                        size="small"
+                    >
+                        Reset
+                    </Button>
+                }
+            >
+                <Form {...searchFormProps} layout="vertical">
+                    <Row gutter={12}>
+                        <Col xs={24} sm={12}>
+                            <Form.Item name="name" label="Search by Name">
+                                <Search
+                                    placeholder="Search proxy API key names..."
+                                    allowClear
+                                    enterButton={<SearchOutlined />}
+                                    onSearch={() => searchFormProps.form?.submit()}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} sm={12}>
+                            <Form.Item name="is_active" label="Status">
+                                <Select placeholder="All Status" allowClear>
+                                    <Select.Option value={true}>Active</Select.Option>
+                                    <Select.Option value={false}>Inactive</Select.Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
             </Card>
 
-            <Table<ProxyApiKey>
-                {...tableProps}
-                rowKey="id"
-                columns={[
-                    {
-                        title: 'Name',
-                        dataIndex: 'name',
-                        sorter: true,
-                        render: (value: string, record: ProxyApiKey) => (
-                            <div>
-                                <div style={{ fontWeight: 500, color: token.colorText }}>
-                                    {value}
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: token.fontSizeSM,
-                                        color: token.colorTextSecondary,
-                                    }}
-                                >
-                                    ID: {record.id.slice(0, 8)}...
-                                </div>
-                            </div>
-                        ),
-                    },
-                    {
-                        title: 'Proxy Key',
-                        dataIndex: 'proxy_key_value',
-                        render: (value: string, record: ProxyApiKey) => (
-                            <SensitiveKeyDisplay
-                                value={value}
-                                isRevealed={revealedKeys.has(record.id)}
-                                onToggleVisibility={() => toggleKeyVisibility(record.id)}
+            <Card>
+                <Table
+                    {...tableProps}
+                    rowKey="id"
+                    loading={tableProps.loading}
+                    scroll={{ x: 1200 }}
+                    size="middle"
+                    columns={[
+                        {
+                            title: 'Proxy API Key Details',
+                            dataIndex: 'name',
+                            sorter: true,
+                            width: 200,
+                            fixed: 'left',
+                            render: (value: string, record: ProxyApiKey) => (
+                                <Space direction="vertical" size={4}>
+                                    <Text strong style={{ fontSize: token.fontSize }}>
+                                        {value}
+                                    </Text>
+                                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                                        ID: {record.id.slice(0, 8)}...
+                                    </Text>
+                                </Space>
+                            ),
+                        },
+                        {
+                            title: 'Proxy API Key',
+                            dataIndex: 'proxy_key_value',
+                            width: 300,
+                            render: (value: string, record: ProxyApiKey) => (
+                                <SensitiveKeyDisplay
+                                    value={value}
+                                    isRevealed={revealedKeys.has(record.id)}
+                                    onToggleVisibility={() => toggleKeyVisibility(record.id)}
+                                />
+                            ),
+                        },
+                        {
+                            title: 'Status',
+                            dataIndex: 'is_active',
+                            width: 120,
+                            render: (value: boolean, record: ProxyApiKey) => (
+                                <StatusToggle
+                                    isActive={value}
+                                    onToggle={(checked) => handleToggleActive(record, checked)}
+                                />
+                            ),
+                            sorter: true,
+                        },
+                        {
+                            title: 'Usage Statistics',
+                            width: 150,
+                            render: (_: unknown, record: ProxyApiKey) => (
+                                <UsageStatistics
+                                    successCount={record.success_count}
+                                    failureCount={record.failure_count}
+                                />
+                            ),
+                        },
+                        {
+                            title: 'Last Used',
+                            dataIndex: 'last_used_at',
+                            width: 140,
+                            sorter: true,
+                            render: (value: string | null) => (
+                                <DateTimeDisplay dateString={value} />
+                            ),
+                        },
+                        {
+                            title: 'Created',
+                            dataIndex: 'created_at',
+                            width: 140,
+                            sorter: true,
+                            render: (value: string | null) => (
+                                <DateTimeDisplay dateString={value} />
+                            ),
+                        },
+                        {
+                            title: 'Actions',
+                            dataIndex: 'actions',
+                            width: 120,
+                            fixed: 'right',
+                            render: (_: unknown, record: ProxyApiKey) => (
+                                <Space size="small">
+                                    <Tooltip title="Edit Proxy API Key">
+                                        <EditButton
+                                            hideText
+                                            recordItemId={record.id}
+                                            size="small"
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="View Details">
+                                        <ShowButton
+                                            hideText
+                                            recordItemId={record.id}
+                                            size="small"
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Delete Proxy API Key">
+                                        <Popconfirm
+                                            title="Delete Proxy API Key"
+                                            description="Are you sure you want to delete this proxy API key? This action cannot be undone."
+                                            onConfirm={() => handleDelete(record)}
+                                            okText="Yes, Delete"
+                                            cancelText="Cancel"
+                                            okType="danger"
+                                        >
+                                            <DeleteButton
+                                                hideText
+                                                recordItemId={record.id}
+                                                size="small"
+                                            />
+                                        </Popconfirm>
+                                    </Tooltip>
+                                </Space>
+                            ),
+                        },
+                    ]}
+                    locale={{
+                        emptyText: (
+                            <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description="No proxy API keys found"
                             />
                         ),
-                    },
-                    {
-                        title: 'Status',
-                        dataIndex: 'is_active',
-                        render: (value: boolean, record: ProxyApiKey) => (
-                            <StatusToggle
-                                isActive={value}
-                                onToggle={(checked) => handleToggleActive(record, checked)}
-                            />
-                        ),
-                        sorter: true,
-                    },
-                    {
-                        title: 'Token Usage',
-                        render: (_: unknown, record: ProxyApiKey) => (
-                            <TokenUsage
-                                totalTokens={record.total_tokens || 0}
-                                promptTokens={record.prompt_tokens || 0}
-                                completionTokens={record.completion_tokens || 0}
-                            />
-                        ),
-                    },
-                    {
-                        title: 'Usage Statistics',
-                        render: (_: unknown, record: ProxyApiKey) => (
-                            <UsageStatistics
-                                successCount={record.success_count}
-                                failureCount={record.failure_count}
-                            />
-                        ),
-                    },
-                    {
-                        title: 'Last Used',
-                        dataIndex: 'last_used_at',
-                        sorter: true,
-                        render: (value: string | null) => <DateTimeDisplay dateString={value} />,
-                    },
-                    {
-                        title: 'Created',
-                        dataIndex: 'created_at',
-                        sorter: true,
-                        render: (value: string | null) => <DateTimeDisplay dateString={value} />,
-                    },
-                    {
-                        title: 'Actions',
-                        dataIndex: 'actions',
-                        render: (_: unknown, record: ProxyApiKey) => (
-                            <Space>
-                                <Tooltip title="Edit Proxy Key">
-                                    <EditButton hideText recordItemId={record.id} />
-                                </Tooltip>
-                                <Tooltip title="View Details">
-                                    <ShowButton hideText recordItemId={record.id} />
-                                </Tooltip>
-                                <Tooltip title="Delete Proxy Key">
-                                    <Popconfirm
-                                        title="Are you sure you want to delete this proxy key?"
-                                        description="This action cannot be undone."
-                                        onConfirm={() => {
-                                            // Handle delete
-                                            message.success('Proxy key deleted successfully');
-                                        }}
-                                        okText="Yes"
-                                        cancelText="No"
-                                    >
-                                        <DeleteButton hideText recordItemId={record.id} />
-                                    </Popconfirm>
-                                </Tooltip>
-                            </Space>
-                        ),
-                    },
-                ]}
-            />
+                    }}
+                />
+            </Card>
         </List>
     );
 }

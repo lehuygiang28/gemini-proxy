@@ -1,7 +1,8 @@
 import React from 'react';
-import { theme } from 'antd';
+import { Typography, Space, theme } from 'antd';
 import { formatDate, formatTime } from '@/utils/table-helpers';
 
+const { Text } = Typography;
 const { useToken } = theme;
 
 interface DateTimeDisplayProps {
@@ -16,22 +17,17 @@ export const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({
     const { token } = useToken();
 
     if (!dateString) {
-        return <span style={{ color: token.colorTextDisabled }}>Never</span>;
+        return <Text type="secondary">Never</Text>;
     }
 
     return (
-        <div>
-            <div style={{ color: token.colorText }}>{formatDate(dateString)}</div>
+        <Space direction="vertical" size={0}>
+            <Text>{formatDate(dateString)}</Text>
             {showTime && (
-                <div
-                    style={{
-                        fontSize: token.fontSizeSM,
-                        color: token.colorTextSecondary,
-                    }}
-                >
+                <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                     {formatTime(dateString)}
-                </div>
+                </Text>
             )}
-        </div>
+        </Space>
     );
 };

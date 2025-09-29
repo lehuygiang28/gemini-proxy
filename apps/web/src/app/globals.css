@@ -1,0 +1,42 @@
+/* Global scrollbar styling using Ant Design CSS variables */
+.gp-scrollable-root,
+.gp-scrollable,
+pre.gp-scrollable,
+div.gp-scrollable {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: var(--ant-color-border) var(--ant-color-fill-quaternary);
+}
+
+.gp-scrollable-root::-webkit-scrollbar,
+.gp-scrollable::-webkit-scrollbar,
+pre.gp-scrollable::-webkit-scrollbar,
+div.gp-scrollable::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.gp-scrollable-root::-webkit-scrollbar-track,
+.gp-scrollable::-webkit-scrollbar-track,
+pre.gp-scrollable::-webkit-scrollbar-track,
+div.gp-scrollable::-webkit-scrollbar-track {
+    background: var(--ant-color-fill-quaternary);
+    border-radius: var(--ant-border-radius);
+}
+
+.gp-scrollable-root::-webkit-scrollbar-thumb,
+.gp-scrollable::-webkit-scrollbar-thumb,
+pre.gp-scrollable::-webkit-scrollbar-thumb,
+div.gp-scrollable::-webkit-scrollbar-thumb {
+    background: var(--ant-color-border);
+    border-radius: var(--ant-border-radius);
+    border: 2px solid var(--ant-color-fill-quaternary);
+}
+
+.gp-scrollable-root::-webkit-scrollbar-thumb:hover,
+.gp-scrollable::-webkit-scrollbar-thumb:hover,
+pre.gp-scrollable::-webkit-scrollbar-thumb:hover,
+div.gp-scrollable::-webkit-scrollbar-thumb:hover {
+    background: var(--ant-color-primary);
+    border-color: var(--ant-color-fill-quaternary);
+}

@@ -1,24 +1,27 @@
+import '@ant-design/v5-patch-for-react-19';
+import '@refinedev/antd/dist/reset.css';
+import './globals.css';
+
+import React, { Suspense } from 'react';
 import { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
-import React, { Suspense } from 'react';
-import { Refine } from '@refinedev/core';
-import routerProvider from '@refinedev/nextjs-router';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import {
     DashboardOutlined,
-    KeyOutlined,
     SafetyCertificateOutlined,
+    KeyOutlined,
     FileTextOutlined,
 } from '@ant-design/icons';
-
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import '@refinedev/antd/dist/reset.css';
-import { DevtoolsPanel, DevtoolsProvider } from '@refinedev/devtools';
+import { useNotificationProvider } from '@refinedev/antd';
+import { Refine } from '@refinedev/core';
 import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
+import routerProvider from '@refinedev/nextjs-router';
+
+import { ColorModeContextProvider } from '@contexts/color-mode';
+import { DevtoolsProvider } from '@providers/devtools';
 import { authProviderClient } from '@providers/auth-provider/auth-provider.client';
 import { dataProvider } from '@providers/data-provider';
-import { ColorModeContextProvider } from '@contexts/color-mode';
-import { useNotificationProvider } from '@providers/notification-provider';
-import { SWRProvider } from '@providers/swr-provider';
+import { THEME_COOKIE_NAME } from '@constants';
 
 export const metadata: Metadata = {
     title: 'Gemini Proxy - API Key Management',
@@ -65,28 +68,34 @@ export const viewport: Viewport = {
     themeColor: 'black',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const cookieStore = cookies();
-    const theme = cookieStore.get('theme');
+    const cookieStore = await cookies();
+    const theme = cookieStore.get(THEME_COOKIE_NAME);
     const defaultMode = theme?.value === 'light' ? 'light' : 'dark';
 
     return (
         <html lang="en" data-theme={defaultMode}>
-            <body>
+            <body className="gp-scrollable-root">
                 <Suspense>
-                    <AntdRegistry>
-                        <ColorModeContextProvider defaultMode={defaultMode}>
-                            <SWRProvider>
-                                <RefineKbarProvider>
+                    <RefineKbarProvider>
+                        <AntdRegistry>
+                            <ColorModeContextProvider defaultMode={defaultMode}>
+                                <DevtoolsProvider>
                                     <Refine
                                         routerProvider={routerProvider}
                                         authProvider={authProviderClient}
                                         dataProvider={dataProvider}
                                         notificationProvider={useNotificationProvider}
+                                        options={{
+                                            syncWithLocation: true,
+                                            warnWhenUnsavedChanges: true,
+                                            projectId: '64BVSR-vqtbDM-0z7Jfd',
+                                            disableTelemetry: true,
+                                        }}
                                         resources={[
                                             {
                                                 name: 'dashboard',
@@ -128,24 +137,14 @@ export default function RootLayout({
                                                 },
                                             },
                                         ]}
-                                        options={{
-                                            syncWithLocation: true,
-                                            warnWhenUnsavedChanges: true,
-                                            useNewQueryKeys: true,
-                                            // Disable Refine branding
-                                            disableTelemetry: true,
-                                        }}
                                     >
                                         {children}
                                         <RefineKbar />
                                     </Refine>
-                                    <DevtoolsProvider>
-                                        <DevtoolsPanel />
-                                    </DevtoolsProvider>
-                                </RefineKbarProvider>
-                            </SWRProvider>
-                        </ColorModeContextProvider>
-                    </AntdRegistry>
+                                </DevtoolsProvider>
+                            </ColorModeContextProvider>
+                        </AntdRegistry>
+                    </RefineKbarProvider>
                 </Suspense>
             </body>
         </html>
