@@ -23,6 +23,16 @@ export interface ApiKeyWithStats extends Tables<'api_keys'> {
     health_score: number;
 }
 
+type ApiKeyComputedStats = {
+    last_used_at: string | null;
+    total_requests: number;
+    successful_requests: number;
+    error_rate: number;
+    hours_since_creation: number;
+    hours_since_last_use: number;
+    health_score: number;
+};
+
 export class ApiKeyService {
     /**
      * Get the proxy API key from the request, this not api use for GOOGLE, this is our system api key.
@@ -74,7 +84,7 @@ export class ApiKeyService {
         supabase: SupabaseClient,
         apiKeyId: string,
         apiKeyCreatedAt: string | null,
-    ) {
+    ): Promise<ApiKeyComputedStats> {
         const now = new Date();
         const createdAt = apiKeyCreatedAt ? new Date(apiKeyCreatedAt) : now;
 
@@ -155,7 +165,7 @@ export class ApiKeyService {
         return params.count && params.count > 0 ? sortedKeys.slice(0, params.count) : sortedKeys;
     }
 
-    private static getDefaultStats() {
+    private static getDefaultStats(): ApiKeyComputedStats {
         return {
             last_used_at: null,
             total_requests: 0,
