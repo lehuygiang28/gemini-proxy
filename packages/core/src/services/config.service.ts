@@ -31,7 +31,8 @@ export class ConfigService {
             },
             logging: {
                 enabled: envVars.PROXY_LOGGING_ENABLED !== 'false',
-                logLevel: (envVars.PROXY_LOG_LEVEL as any) || 'info',
+                logLevel:
+                    (envVars.PROXY_LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info',
             },
             loadbalance: {
                 strategy,

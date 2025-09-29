@@ -57,12 +57,12 @@ interface RequestValidationParams {
 
 interface ApiKeySelectionParams {
     c: Context<HonoApp>;
-    allApiKeys: ApiKeyWithStats[];
     currentAttempt: number;
     options?: ProxyRequestOptions;
     proxyKeyId: string;
     apiFormat: ProxyRequestDataParsed['apiFormat'];
     model?: string;
+    excludeIds?: string[];
 }
 
 interface AttemptParams {
@@ -124,12 +124,12 @@ interface SyntheticFailureParams {
     firstApiKey: ApiKeyWithStats;
     firstAttemptDuration: number;
     baseRequest: Request;
-    allApiKeys: ApiKeyWithStats[];
     retryConfig: RetryConfig;
     requestId: string;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
     options?: ProxyRequestOptions;
+    usedApiKeyIds: string[];
 }
 
 interface SuccessfulResponseParams {
@@ -150,12 +150,12 @@ interface InitialFailureParams {
     firstApiKey: ApiKeyWithStats;
     firstAttemptDuration: number;
     baseRequest: Request;
-    allApiKeys: ApiKeyWithStats[];
     retryConfig: RetryConfig;
     requestId: string;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
     options?: ProxyRequestOptions;
+    usedApiKeyIds: string[];
 }
 
 export class ProxyService {
@@ -219,22 +219,23 @@ export class ProxyService {
             options,
         } = context;
 
-        const allApiKeys = await this.fetchApiKeys(c, proxyApiKeyData, options);
         this.validateRequest({
             baseRequest,
             apiFormat: proxyRequestDataParsed.apiFormat,
             url: proxyRequestDataParsed.urlToProxy,
         });
 
+        const usedApiKeyIds: string[] = [];
         const firstApiKey = await this.selectOptimalApiKey({
             c,
-            allApiKeys,
             currentAttempt: 0,
             options,
             proxyKeyId: proxyApiKeyData.id,
             apiFormat: proxyRequestDataParsed.apiFormat,
             model: proxyRequestDataParsed.model,
+            excludeIds: usedApiKeyIds,
         });
+        usedApiKeyIds.push(firstApiKey.id);
         const attemptResult = await this.performAttempt({
             baseRequest,
             apiKeyValue: firstApiKey.api_key_value,
@@ -262,12 +263,12 @@ export class ProxyService {
                     firstApiKey,
                     firstAttemptDuration,
                     baseRequest,
-                    allApiKeys,
                     retryConfig,
                     requestId,
                     proxyApiKeyData,
                     proxyRequestDataParsed,
                     options,
+                    usedApiKeyIds,
                 });
             } else {
                 return this.handleSuccessfulResponse({
@@ -290,12 +291,12 @@ export class ProxyService {
             firstApiKey,
             firstAttemptDuration,
             baseRequest,
-            allApiKeys,
             retryConfig,
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
             options,
+            usedApiKeyIds,
         });
     }
 
@@ -318,11 +319,24 @@ export class ProxyService {
             baseRequest = c.req.raw.clone();
         } catch (error) {
             console.warn('Failed to clone original request, creating fallback:', error);
-            // If cloning fails, create a minimal request without body
-            baseRequest = new Request(c.req.raw.url, {
-                method: c.req.raw.method,
-                headers: c.req.raw.headers,
-            });
+            // Build a fresh Request using the original stream if still usable
+            try {
+                const raw = c.req.raw;
+                const headers = new Headers(raw.headers);
+                const body = raw.bodyUsed ? undefined : raw.body;
+                baseRequest = new Request(raw.url, {
+                    method: raw.method,
+                    headers,
+                    body,
+                });
+            } catch (innerErr) {
+                // Final minimal fallback without body
+                const raw = c.req.raw;
+                baseRequest = new Request(raw.url, {
+                    method: raw.method,
+                    headers: raw.headers,
+                });
+            }
         }
 
         return {
@@ -336,26 +350,6 @@ export class ProxyService {
     }
 
     // ===== API KEY MANAGEMENT =====
-    private static async fetchApiKeys(
-        c: Context<HonoApp>,
-        proxyApiKeyData: Tables<'proxy_api_keys'>,
-        options?: ProxyRequestOptions,
-    ): Promise<ApiKeyWithStats[]> {
-        const allApiKeys = await ApiKeyService.getSmartApiKeys(c, {
-            userId: proxyApiKeyData.user_id,
-            prioritizeLeastRecentlyUsed:
-                options?.apiKeySelection?.prioritizeLeastRecentlyUsed ?? true,
-            prioritizeLeastErrors: options?.apiKeySelection?.prioritizeLeastErrors ?? true,
-            prioritizeNewer: options?.apiKeySelection?.prioritizeNewer ?? true,
-        });
-
-        if (!allApiKeys || allApiKeys.length === 0) {
-            throw new InvalidKeyError('No API key found');
-        }
-
-        console.log(`Found ${allApiKeys.length} available API keys for retry`);
-        return allApiKeys;
-    }
 
     // ===== REQUEST VALIDATION =====
     private static validateRequest(params: RequestValidationParams): void {
@@ -436,7 +430,6 @@ export class ProxyService {
             firstApiKey,
             firstAttemptDuration,
             baseRequest,
-            allApiKeys,
             retryConfig,
             requestId,
             proxyApiKeyData,
@@ -463,7 +456,6 @@ export class ProxyService {
         return this.retryApiRequest({
             c,
             baseRequest,
-            allApiKeys,
             startAttemptIndex: 1,
             retryConfig,
             requestId,
@@ -531,7 +523,6 @@ export class ProxyService {
             firstApiKey,
             firstAttemptDuration,
             baseRequest,
-            allApiKeys,
             retryConfig,
             requestId,
             proxyApiKeyData,
@@ -559,7 +550,6 @@ export class ProxyService {
         return this.retryApiRequest({
             c,
             baseRequest,
-            allApiKeys,
             startAttemptIndex: 1,
             retryConfig,
             requestId,
@@ -576,7 +566,6 @@ export class ProxyService {
     private static async retryApiRequest(params: {
         c: Context<HonoApp>;
         baseRequest: Request;
-        allApiKeys: ApiKeyWithStats[];
         startAttemptIndex: number;
         retryConfig: RetryConfig;
         requestId: string;
@@ -590,7 +579,6 @@ export class ProxyService {
         const {
             c,
             baseRequest,
-            allApiKeys,
             startAttemptIndex,
             retryConfig,
             requestId,
@@ -608,9 +596,16 @@ export class ProxyService {
             ? { ...initialProviderError }
             : null;
 
-        const retriesTimes = this.calculateRetryAttempts(retryConfig.maxRetries, allApiKeys.length);
+        // Bound retries by dynamically available API keys for this user (including global keys)
+        let availableKeys = 0;
+        try {
+            availableKeys = await ApiKeyService.countAvailableApiKeys(c, proxyApiKeyData.user_id);
+        } catch (err) {
+            availableKeys = 0;
+        }
+        const retriesTimes = this.calculateRetryAttempts(retryConfig.maxRetries, availableKeys);
         console.log(
-            `Starting retry process: ${retriesTimes} attempts with ${allApiKeys.length} available API keys (maxRetries: ${retryConfig.maxRetries})`,
+            `Starting retry process: ${retriesTimes} attempts (maxRetries: ${retryConfig.maxRetries}, availableKeys: ${availableKeys})`,
         );
 
         if (retriesTimes === 0) {
@@ -626,6 +621,7 @@ export class ProxyService {
             });
         }
 
+        const usedApiKeyIds: string[] = [];
         for (
             let currentAttempt = startAttemptIndex;
             currentAttempt <= retriesTimes;
@@ -635,35 +631,18 @@ export class ProxyService {
             let attemptStart: number = Date.now();
 
             try {
-                console.log(
-                    `Retry attempt ${currentAttempt} of ${retriesTimes} (${allApiKeys.length} total API keys available)`,
-                );
-
-                if (currentAttempt >= allApiKeys.length) {
-                    console.log(
-                        `No more API keys available (attempt ${currentAttempt} >= ${allApiKeys.length} available keys)`,
-                    );
-                    const error = new InvalidKeyError('No more API keys available for retry');
-                    const retryAttempt = this.createRetryAttempt({
-                        attemptNumber: currentAttempt + 1,
-                        apiKeyId: null,
-                        error,
-                        durationMs: 0,
-                        providerError: { status: 0, headers: {}, body: '' },
-                    });
-                    retryAttempts.push(retryAttempt);
-                    throw error;
-                }
+                console.log(`Retry attempt ${currentAttempt} of ${retriesTimes}`);
 
                 selectedApiKey = await this.selectOptimalApiKey({
                     c,
-                    allApiKeys,
                     currentAttempt,
                     options,
                     proxyKeyId: proxyApiKeyData.id,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     model: proxyRequestDataParsed.model,
+                    excludeIds: usedApiKeyIds,
                 });
+                usedApiKeyIds.push(selectedApiKey.id);
                 attemptStart = Date.now();
 
                 const { response, headers } = await this.performAttempt({
@@ -685,6 +664,8 @@ export class ProxyService {
                         error,
                         providerError,
                     });
+                    // Touch error timestamp to avoid immediate reuse by other requests
+                    ApiKeyService.touchLastError(c, selectedApiKey.id).catch(() => {});
 
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
@@ -721,6 +702,7 @@ export class ProxyService {
                         error: syntheticError,
                         providerError,
                     });
+                    ApiKeyService.touchLastError(c, selectedApiKey.id).catch(() => {});
 
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
@@ -997,15 +979,17 @@ export class ProxyService {
             });
         }
 
-        return c.json(
-            {
-                error: lastError.type,
-                message: lastError.message,
-                code: lastError.code,
-                gproxy_request_id: requestId,
-            },
-            (lastError.status as any) || 500,
-        );
+        const statusCode = typeof lastError.status === 'number' ? lastError.status : 500;
+        const jsonBody = {
+            error: lastError.type,
+            message: lastError.message,
+            code: lastError.code,
+            gproxy_request_id: requestId,
+        };
+        return new Response(JSON.stringify(jsonBody), {
+            status: statusCode,
+            headers: { 'content-type': 'application/json' },
+        });
     }
 
     // ===== ERROR HANDLING =====
@@ -1200,55 +1184,49 @@ export class ProxyService {
     private static async selectOptimalApiKey(
         params: ApiKeySelectionParams,
     ): Promise<ApiKeyWithStats> {
-        const { c, allApiKeys, currentAttempt, options, proxyKeyId, apiFormat, model } = params;
+        const { c, currentAttempt, options, proxyKeyId, apiFormat, model, excludeIds } = params;
 
         const strategy = this.getLoadBalanceStrategy(c, options);
 
+        let preferKeyId: string | null = null;
         if (strategy === 'sticky_until_error') {
             try {
-                const lastGoodApiKeyId = await this.getLastSuccessfulApiKeyIdForProxyKey(c, {
+                preferKeyId = await this.getLastSuccessfulApiKeyIdForProxyKey(c, {
                     proxyKeyId,
                     apiFormat,
                     model,
                 });
-
-                if (lastGoodApiKeyId) {
-                    const candidate = allApiKeys.find((k) => k.id === lastGoodApiKeyId);
-                    if (candidate) {
-                        const hasRecentError = this.hasRecentError(candidate);
-                        if (!hasRecentError) {
-                            console.log(
-                                `Sticky strategy: reusing API key ${candidate.id} (no recent error)`,
-                            );
-                            return candidate;
-                        } else {
-                            console.log(
-                                `Sticky strategy: last key ${candidate.id} had recent error, selecting next`,
-                            );
-                            const next = this.findNextEligibleKey(allApiKeys, candidate);
-                            if (next) return next;
-                        }
-                    }
-                }
             } catch (error) {
                 console.warn('Sticky selection lookup failed, falling back:', error);
             }
-
-            // Fallback for sticky: pick least recently used eligible key (ApiKeyService already sorted)
-            const fallback = this.findNextEligibleKey(allApiKeys) || allApiKeys[0];
-            console.log(`Sticky strategy fallback selected key ${fallback.id}`);
-            return fallback;
         }
 
-        // Default round-robin
-        const index = currentAttempt % allApiKeys.length;
-        const selectedKey = allApiKeys[index];
-        console.log(
-            `Round-robin: selected API key ${index + 1}/${allApiKeys.length} for attempt ${
-                currentAttempt + 1
-            }`,
-        );
-        return selectedKey;
+        const proxyApiKeyData = c.get('proxyApiKeyData');
+        const selected = await ApiKeyService.reserveNextApiKey(c, {
+            userId: proxyApiKeyData?.user_id ?? null,
+            prioritizeLeastRecentlyUsed:
+                options?.apiKeySelection?.prioritizeLeastRecentlyUsed ?? true,
+            prioritizeLeastErrors: options?.apiKeySelection?.prioritizeLeastErrors ?? true,
+            prioritizeNewer: options?.apiKeySelection?.prioritizeNewer ?? true,
+            excludeIds: excludeIds || [],
+            preferKeyId: preferKeyId,
+        });
+
+        if (!selected) {
+            throw new InvalidKeyError('No API key found');
+        }
+
+        console.log(`${strategy} selection: reserved API key for attempt ${currentAttempt + 1}`);
+
+        // Adapt to ApiKeyWithStats minimal shape used by the rest of the service
+        return {
+            id: selected.id,
+            api_key_value: selected.api_key_value,
+            created_at: selected.created_at,
+            last_used_at: selected.last_used_at,
+            last_error_at: selected.last_error_at,
+            failure_count: selected.failure_count,
+        } as unknown as ApiKeyWithStats;
     }
 
     private static getLoadBalanceStrategy(
@@ -1260,8 +1238,10 @@ export class ProxyService {
 
     private static hasRecentError(apiKey: ApiKeyWithStats): boolean {
         if (!apiKey.last_error_at) return false;
-        const errorAt = new Date(apiKey.last_error_at as any).getTime();
-        const lastUsedAt = apiKey.last_used_at ? new Date(apiKey.last_used_at as any).getTime() : 0;
+        const errorAt = new Date(apiKey.last_error_at as string).getTime();
+        const lastUsedAt = apiKey.last_used_at
+            ? new Date(apiKey.last_used_at as string).getTime()
+            : 0;
         // Consider "recent" if the last error happened after or at the last usage
         return errorAt >= lastUsedAt;
     }
@@ -1319,7 +1299,11 @@ export class ProxyService {
         // Try to find last success for the same model
         try {
             for (const row of data) {
-                const modelValue = (row.usage_metadata as any)?.model;
+                const meta = row.usage_metadata as unknown;
+                const modelValue =
+                    meta && typeof meta === 'object' && 'model' in (meta as Record<string, unknown>)
+                        ? (meta as { model?: string }).model
+                        : undefined;
                 if (row.api_key_id && modelValue && modelValue === params.model) {
                     return row.api_key_id;
                 }
@@ -1345,15 +1329,27 @@ export class ProxyService {
         try {
             attemptRequest = baseRequest.clone();
         } catch (error) {
-            console.error('Failed to clone base request for attempt:', error);
-            throw new ProxyError(
-                'Failed to create request for retry attempt',
-                'server_error',
-                500,
-                'request_clone_failed',
-                undefined,
-                true,
-            );
+            console.warn('Failed to clone base request for attempt, creating safe copy:', error);
+            try {
+                const headersCopy = new Headers(baseRequest.headers);
+                const body = (baseRequest as unknown as { bodyUsed?: boolean }).bodyUsed
+                    ? undefined
+                    : baseRequest.body;
+                attemptRequest = new Request(baseRequest.url, {
+                    method: baseRequest.method,
+                    headers: headersCopy,
+                    body,
+                });
+            } catch (innerErr) {
+                throw new ProxyError(
+                    'Failed to create request for retry attempt',
+                    'server_error',
+                    500,
+                    'request_clone_failed',
+                    undefined,
+                    true,
+                );
+            }
         }
 
         const headers = new Headers(attemptRequest.headers);
@@ -1394,7 +1390,7 @@ export class ProxyService {
 
         // Add duplex mode for Node.js environments if body exists
         if (attemptRequest.body && typeof process !== 'undefined') {
-            (requestInit as any).duplex = 'half';
+            (requestInit as RequestInit & { duplex?: 'half' }).duplex = 'half';
         }
 
         const start = Date.now();

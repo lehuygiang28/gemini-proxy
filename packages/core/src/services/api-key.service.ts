@@ -23,6 +23,15 @@ export interface ApiKeyWithStats extends Tables<'api_keys'> {
     health_score: number;
 }
 
+export interface SelectedApiKey {
+    id: string;
+    api_key_value: string;
+    last_used_at: string | null;
+    last_error_at: string | null;
+    created_at: string | null;
+    failure_count: number;
+}
+
 type ApiKeyComputedStats = {
     last_used_at: string | null;
     total_requests: number;
@@ -183,5 +192,124 @@ export class ApiKeyService {
     ): Promise<ApiKeyWithStats | null> {
         const apiKeys = await this.getSmartApiKeys(c, { ...params, count: 1 });
         return apiKeys.length > 0 ? apiKeys[0] : null;
+    }
+
+    /** Count available API keys for a user (including global keys with user_id null). */
+    static async countAvailableApiKeys(
+        c: Context<HonoApp>,
+        userId: string | null,
+    ): Promise<number> {
+        const supabase = getSupabaseClient(c);
+        const { count, error } = await supabase
+            .from('api_keys')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_active', true)
+            .or(`user_id.is.null, user_id.eq.${userId}`);
+        if (error) {
+            throw new Error(`Failed to count API keys: ${error.message}`);
+        }
+        return count || 0;
+    }
+
+    /**
+     * Reserve the next best API key according to selection criteria, excluding used IDs.
+     * It immediately updates last_used_at to reduce race conditions across concurrent requests.
+     */
+    static async reserveNextApiKey(
+        c: Context<HonoApp>,
+        params: ApiKeyParams & { excludeIds?: string[]; preferKeyId?: string | null },
+    ): Promise<SelectedApiKey | null> {
+        const supabase = getSupabaseClient(c);
+
+        // Helper to fetch one key with applied ordering and optional exclusion
+        const fetchOne = async () => {
+            let query = supabase
+                .from('api_keys')
+                .select('id, api_key_value, last_used_at, last_error_at, created_at, failure_count')
+                .eq('is_active', true)
+                .or(`user_id.is.null, user_id.eq.${params.userId}`);
+
+            const excludeIds =
+                params.excludeIds && params.excludeIds.length > 0 ? params.excludeIds : [];
+            if (excludeIds.length > 0) {
+                // Supabase uses PostgREST 'in' filter syntax with parentheses
+                const inList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
+                query = query.not('id', 'in', inList);
+            }
+
+            // Round-robin: pick the oldest by last_used_at then oldest by last_error_at
+            query = query
+                .order('last_used_at', { ascending: true, nullsFirst: true })
+                .order('last_error_at', { ascending: true, nullsFirst: true });
+
+            // Apply preferences
+            if (params.prioritizeLeastErrors) {
+                query = query.order('failure_count', { ascending: true, nullsFirst: true });
+            }
+            if (params.prioritizeNewer) {
+                query = query.order('created_at', { ascending: false, nullsFirst: true });
+            }
+
+            // Limit 1 for single-key selection
+            const { data, error } = await query.limit(1);
+            if (error || !data || data.length === 0) return null;
+
+            const key = data[0] as unknown as SelectedApiKey;
+            return key;
+        };
+
+        // Sticky try: prefer a specific key id if provided and not excluded
+        if (params.preferKeyId && !(params.excludeIds || []).includes(params.preferKeyId)) {
+            const { data: preferred, error: preferErr } = await getSupabaseClient(c)
+                .from('api_keys')
+                .select(
+                    'id, api_key_value, last_used_at, last_error_at, created_at, failure_count, is_active',
+                )
+                .eq('id', params.preferKeyId)
+                .single();
+            if (!preferErr && preferred && preferred.is_active) {
+                const selected: SelectedApiKey = {
+                    id: preferred.id,
+                    api_key_value: preferred.api_key_value,
+                    last_used_at: preferred.last_used_at,
+                    last_error_at: preferred.last_error_at,
+                    created_at: preferred.created_at,
+                    failure_count: preferred.failure_count,
+                };
+                await this.touchLastUsed(c, selected.id);
+                return selected;
+            }
+        }
+
+        const candidate = await fetchOne();
+        if (!candidate) return null;
+
+        // Immediately mark as used to reduce contention
+        await this.touchLastUsed(c, candidate.id);
+        return candidate;
+    }
+
+    /** Update last_used_at to now without touching counters. */
+    static async touchLastUsed(c: Context, apiKeyId: string): Promise<void> {
+        const supabase = getSupabaseClient(c);
+        await supabase
+            .from('api_keys')
+            .update({
+                last_used_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', apiKeyId);
+    }
+
+    /** Update last_error_at to now without changing counters (counters are handled elsewhere). */
+    static async touchLastError(c: Context, apiKeyId: string): Promise<void> {
+        const supabase = getSupabaseClient(c);
+        await supabase
+            .from('api_keys')
+            .update({
+                last_error_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', apiKeyId);
     }
 }

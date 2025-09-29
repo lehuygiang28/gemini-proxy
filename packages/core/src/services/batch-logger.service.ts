@@ -183,7 +183,7 @@ export class BatchLoggerService {
     }
 
     private static async batchInsertRequestLogs(logs: RequestLogData[]): Promise<void> {
-        const supabase = getSupabaseClient({} as any); // We need to pass context, but for now using empty object
+        const supabase = getSupabaseClient({} as unknown as Context);
 
         // Process logs with async parsing
         const processedLogs = await Promise.all(
@@ -194,7 +194,8 @@ export class BatchLoggerService {
                 if (log.responseBody && !usageMetadata && log.isSuccessful) {
                     try {
                         // Ensure responseBody is a real Response before cloning
-                        const canClone = typeof (log.responseBody as any)?.clone === 'function';
+                        const canClone =
+                            typeof (log.responseBody as Response | undefined)?.clone === 'function';
                         let parsedMetadata = null;
 
                         if (canClone) {
@@ -271,7 +272,7 @@ export class BatchLoggerService {
     }
 
     private static async batchUpdateApiKeyUsages(usages: ApiKeyUsageData[]): Promise<void> {
-        const supabase = getSupabaseClient({} as any);
+        const supabase = getSupabaseClient({} as unknown as Context);
 
         // Group by API key ID for efficient updates
         const apiKeyGroups = new Map<string, { successCount: number; failureCount: number }>();
@@ -357,7 +358,7 @@ export class BatchLoggerService {
     private static async batchUpdateProxyApiKeyUsages(
         usages: ProxyApiKeyUsageData[],
     ): Promise<void> {
-        const supabase = getSupabaseClient({} as any);
+        const supabase = getSupabaseClient({} as unknown as Context);
 
         // Group by Proxy API key ID for efficient updates
         const proxyApiKeyGroups = new Map<
