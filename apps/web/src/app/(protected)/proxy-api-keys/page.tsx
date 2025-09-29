@@ -269,8 +269,8 @@ export default function ProxyApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Created',
-                            dataIndex: 'created_at',
+                            title: 'Last Error',
+                            dataIndex: 'last_error_at',
                             width: 140,
                             sorter: true,
                             render: (value: string | null) => (

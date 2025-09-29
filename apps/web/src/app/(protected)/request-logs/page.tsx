@@ -37,13 +37,17 @@ import {
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay } from '@/components/common';
 import { useRetryStatistics } from '@/hooks/useRpc';
+// no side-effect fetching; use Refine meta select instead
 
 const { useToken } = theme;
 const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Search } = Input;
 
-type RequestLog = Tables<'request_logs'>;
+type RequestLog = Tables<'request_logs'> & {
+    api_keys?: { id: string; name: string } | null;
+    proxy_api_keys?: { id: string; name: string } | null;
+};
 
 interface RequestLogSearch {
     request_id?: string;
@@ -135,6 +139,9 @@ export default function RequestLogsListPage() {
     const { tableProps, searchFormProps } = useTable<RequestLog>({
         syncWithLocation: true,
         resource: 'request_logs',
+        meta: {
+            select: 'id, request_id, api_format, is_stream, is_successful, performance_metrics, usage_metadata, user_id, created_at, api_key_id, proxy_key_id, api_keys(id,name), proxy_api_keys(id,name)',
+        },
         pagination: {
             pageSize: 20,
         },
@@ -409,6 +416,41 @@ export default function RequestLogsListPage() {
                     <Tag color={value ? 'success' : 'error'}>{value ? 'Success' : 'Failed'}</Tag>
                 ),
                 sorter: true,
+            },
+            {
+                title: 'Keys',
+                key: 'keys',
+                render: (_: unknown, record: RequestLog) => {
+                    const apiName = record.api_keys?.name;
+                    const apiId = record.api_key_id;
+                    const proxyName = record.proxy_api_keys?.name;
+                    const proxyId = record.proxy_key_id;
+
+                    return (
+                        <Space size={4} direction="vertical">
+                            <div>
+                                <Tag color="geekblue" style={{ marginRight: 6 }}>
+                                    API
+                                </Tag>
+                                <span
+                                    style={{ fontSize: token.fontSizeSM, color: token.colorText }}
+                                >
+                                    {apiName || (apiId ? `${apiId.slice(0, 8)}...` : 'N/A')}
+                                </span>
+                            </div>
+                            <div>
+                                <Tag color="purple" style={{ marginRight: 6 }}>
+                                    Proxy
+                                </Tag>
+                                <span
+                                    style={{ fontSize: token.fontSizeSM, color: token.colorText }}
+                                >
+                                    {proxyName || (proxyId ? `${proxyId.slice(0, 8)}...` : 'N/A')}
+                                </span>
+                            </div>
+                        </Space>
+                    );
+                },
             },
             {
                 title: 'Performance',
