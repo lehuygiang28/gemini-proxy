@@ -3,6 +3,7 @@
 import React from 'react';
 import { Create } from '@refinedev/antd';
 import { useForm } from '@refinedev/antd';
+import { useGetIdentity, useNotification } from '@refinedev/core';
 import {
     Card,
     Form,
@@ -18,7 +19,7 @@ import {
     Steps,
 } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, SettingOutlined } from '@ant-design/icons';
-import type { TablesInsert } from '@gemini-proxy/database';
+import type { TablesInsert, User } from '@gemini-proxy/database';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -27,12 +28,35 @@ type ProxyApiKeyInsert = TablesInsert<'proxy_api_keys'>;
 
 export default function ProxyApiKeyCreatePage() {
     const { token } = useToken();
+    const notification = useNotification();
+    const { data: user, isPending: isUserLoading } = useGetIdentity<User>();
 
     const { formProps, saveButtonProps } = useForm<ProxyApiKeyInsert>({
         resource: 'proxy_api_keys',
         action: 'create',
         redirect: 'list',
     });
+
+    // Handle form submission with user_id injection
+    const handleFormFinish = (values: Record<string, unknown>) => {
+        if (!user?.id) {
+            notification.open({
+                type: 'error',
+                message: 'Authentication Required',
+                description: 'Please log in to create proxy API keys.',
+            });
+            return;
+        }
+
+        // Transform form data to include user_id
+        const dataWithUserId = {
+            ...values,
+            user_id: user.id,
+        } as ProxyApiKeyInsert;
+
+        // Submit the form with the transformed data
+        formProps.onFinish?.(dataWithUserId);
+    };
 
     const generateProxyApiKey = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -44,7 +68,13 @@ export default function ProxyApiKeyCreatePage() {
     };
 
     return (
-        <Create saveButtonProps={saveButtonProps}>
+        <Create
+            saveButtonProps={{
+                ...saveButtonProps,
+                loading: isUserLoading,
+                disabled: !user?.id,
+            }}
+        >
             <Row gutter={12}>
                 <Col xs={24} lg={8}>
                     <Card variant="borderless">
@@ -70,7 +100,7 @@ export default function ProxyApiKeyCreatePage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} layout="vertical">
+                        <Form {...formProps} onFinish={handleFormFinish} layout="vertical">
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> Basic Information
                             </Divider>
