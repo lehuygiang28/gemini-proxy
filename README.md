@@ -158,6 +158,7 @@ For manual setup, please refer to the [**apps/web/README.md**](./apps/web/README
 | `PROXY_MAX_RETRIES` | Maximum retry attempts. | `-1` |
 | `PROXY_LOGGING_ENABLED` | Enable request logging. | `true` |
 | `PROXY_LOG_LEVEL` | Logging level. | `info` |
+| `PROXY_LOADBALANCE_STRATEGY` | Proxy load balance strategy. (`round_robin` or `sticky_until_error`) | `round_robin` |
 
 ## 💻 Usage Examples
 
