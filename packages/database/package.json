@@ -1,15 +1,34 @@
 {
-    "name": "@gemini-proxy/database",
+    "name": "@lehuygiang28/gemini-proxy-db",
     "version": "0.0.1",
     "type": "module",
     "description": "Database schema/types for Gemini Proxy",
+    "files": [
+        "sql",
+        "types"
+    ],
+    "keywords": [
+        "gemini",
+        "proxy",
+        "api-keys",
+        "supabase"
+    ],
+    "author": "Lê Huy Giang <lehuygiang28@gmail.com>",
+    "maintainers": [
+        "lehuygiang28"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lehuygiang28/gemini-proxy.git"
+    },
+    "homepage": "https://github.com/lehuygiang28/gemini-proxy",
+    "license": "MIT",
     "scripts": {
         "build": "tsup",
         "gen:types": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/gen-types.mjs",
         "db:push": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/db-push.mjs",
         "apply:stats": "npx @dotenvx/dotenvx run -f ./.env -- node ./scripts/apply-statistics-functions.mjs"
     },
-    "license": "MIT",
     "devDependencies": {
         "@supabase/supabase-js": "^2.55.0",
         "cross-env": "^7.0.3",
