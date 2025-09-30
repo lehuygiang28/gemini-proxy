@@ -7,6 +7,9 @@
     "bin": {
         "gproxy": "./dist/index.js"
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
@@ -24,9 +27,16 @@
         "supabase"
     ],
     "author": "Lê Huy Giang <lehuygiang28@gmail.com>",
+    "maintainers": [
+        "lehuygiang28"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lehuygiang28/gemini-proxy.git"
+    },
+    "homepage": "https://github.com/lehuygiang28/gemini-proxy",
     "license": "MIT",
     "dependencies": {
-        "@gemini-proxy/database": "workspace:*",
         "@inquirer/prompts": "^7.8.3",
         "@supabase/supabase-js": "^2.55.0",
         "commander": "^12.0.0",
