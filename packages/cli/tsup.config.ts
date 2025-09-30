@@ -11,8 +11,8 @@ export default defineConfig({
     target: 'es2022',
     bundle: true,
     skipNodeModulesBundle: true,
-    noExternal: ['@gemini-proxy/database'],
-    external: [],
+    // Keep database package external so its SQL assets remain available at runtime
+    external: ['@lehuygiang28/gemini-proxy-db'],
     minify: false,
     tsconfig: '../../tsconfig.json',
     platform: 'node',
