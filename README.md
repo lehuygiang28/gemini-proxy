@@ -15,6 +15,8 @@
 - [Core Features](#-core-features)
 - [Prerequisites](#-prerequisites)
 - [Quick Start Guide](#-quick-start-guide)
+- [Illustrated Setup Guide](./docs/getting-started.md)
+- [Quick Usage (CLI)](./docs/quick-usage.md)
 
 </details>
 
