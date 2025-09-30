@@ -186,8 +186,8 @@ importers:
         specifier: ^7.8.3
         version: 7.8.3(@types/node@22.17.2)
       '@lehuygiang28/gemini-proxy-db':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.0.2
+        version: 0.0.2
       '@supabase/supabase-js':
         specifier: ^2.55.0
         version: 2.55.0
@@ -1417,8 +1417,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@lehuygiang28/gemini-proxy-db@0.0.1':
-    resolution: {integrity: sha512-MDXPJdjS8UEN4su2nmwcZAHwSiJba7lqvYvEIZ2nENvrd+G/I13lU51JSBrCyQPcDLgGak/mYQ30KQl+5Bso1A==}
+  '@lehuygiang28/gemini-proxy-db@0.0.2':
+    resolution: {integrity: sha512-ZxZxpJlbBlwS5Tmp4QCcZeDmEhkxapok9a0HWT0yCtfGfrl7mRZDtw9EQJZHUKot1aq6xNtzRq6CY5JQORHaFQ==}
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
@@ -7056,7 +7056,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@lehuygiang28/gemini-proxy-db@0.0.1': {}
+  '@lehuygiang28/gemini-proxy-db@0.0.2': {}
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
