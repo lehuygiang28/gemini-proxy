@@ -6,6 +6,7 @@ import { apiKeysCommands } from './commands/api-keys';
 import { proxyKeysCommands } from './commands/proxy-keys';
 import { configCommands } from './commands/config';
 import { logsCommands } from './commands/logs';
+import { dbCommands } from './commands/db';
 import { ErrorHandler } from './lib/error-handler';
 import { Logger } from './lib/logger';
 import packageJson from '../package.json' assert { type: 'json' };
@@ -33,6 +34,9 @@ proxyKeysCommands(program);
 
 // Add logs commands
 logsCommands(program);
+
+// Add db commands
+dbCommands(program);
 
 async function main(): Promise<void> {
     try {
