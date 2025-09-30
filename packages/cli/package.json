@@ -37,7 +37,7 @@
     "homepage": "https://github.com/lehuygiang28/gemini-proxy",
     "license": "MIT",
     "dependencies": {
-        "@lehuygiang28/gemini-proxy-db": "^0.0.1",
+        "@lehuygiang28/gemini-proxy-db": "^0.0.2",
         "@inquirer/prompts": "^7.8.3",
         "@supabase/supabase-js": "^2.55.0",
         "commander": "^12.0.0",
