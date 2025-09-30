@@ -269,15 +269,6 @@ export default function ProxyApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Last Error',
-                            dataIndex: 'last_error_at',
-                            width: 140,
-                            sorter: true,
-                            render: (value: string | null) => (
-                                <DateTimeDisplay dateString={value} />
-                            ),
-                        },
-                        {
                             title: 'Actions',
                             dataIndex: 'actions',
                             width: 120,
