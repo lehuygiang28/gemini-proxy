@@ -12,6 +12,7 @@ const { useToken } = theme;
 export const CodeExamplesSection: React.FC = () => {
     const { token } = useToken();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<string>('google-genai');
 
     const SectionCard: React.FC<
         React.PropsWithChildren<{ title: React.ReactNode; extra?: React.ReactNode }>
@@ -200,6 +201,8 @@ console.log(text);`,
                     >
                         <Tabs
                             size="large"
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
                             items={codeExamples.map((example) => ({
                                 key: example.key,
                                 label: example.label,
