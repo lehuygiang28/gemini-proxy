@@ -185,10 +185,11 @@ CREATE OR REPLACE FUNCTION get_dashboard_statistics(
 )
 RETURNS JSON
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSON;
+    effective_user_id UUID;
     total_api_keys BIGINT;
     total_proxy_keys BIGINT;
     total_requests BIGINT;
@@ -197,16 +198,22 @@ DECLARE
     avg_response_time_ms NUMERIC;
     success_rate NUMERIC;
 BEGIN
+    -- Determine effective user scope
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
     -- Get API keys count
     SELECT COUNT(*) INTO total_api_keys
     FROM api_keys
-    WHERE (p_user_id IS NULL OR user_id = p_user_id)
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND is_active = true;
     
     -- Get proxy keys count
     SELECT COUNT(*) INTO total_proxy_keys
     FROM proxy_api_keys
-    WHERE (p_user_id IS NULL OR user_id = p_user_id)
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND is_active = true;
     
     -- Get request logs statistics
@@ -216,12 +223,12 @@ BEGIN
         COALESCE(SUM((performance_metrics->>'duration')::NUMERIC), 0) / NULLIF(COUNT(*), 0) as avg_response_time
     INTO total_requests, successful_requests, avg_response_time_ms
     FROM request_logs
-    WHERE (p_user_id IS NULL OR user_id = p_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
     
     -- Get total tokens from proxy keys
     SELECT COALESCE(SUM(total_tokens), 0) INTO total_tokens_sum
     FROM proxy_api_keys
-    WHERE (p_user_id IS NULL OR user_id = p_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
     
     -- Calculate success rate
     success_rate := CASE 
@@ -253,16 +260,23 @@ CREATE OR REPLACE FUNCTION get_retry_statistics(
 )
 RETURNS JSON
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSON;
+    effective_user_id UUID;
     total_requests BIGINT;
     requests_with_retries BIGINT;
     total_retry_attempts BIGINT;
     retry_rate NUMERIC;
     cutoff_date TIMESTAMP WITH TIME ZONE;
 BEGIN
+    -- Determine effective user scope
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
     -- Calculate cutoff date
     cutoff_date := NOW() - INTERVAL '1 day' * p_days_back;
     
@@ -273,7 +287,7 @@ BEGIN
         COALESCE(SUM(jsonb_array_length(retry_attempts)), 0) as total_attempts
     INTO total_requests, requests_with_retries, total_retry_attempts
     FROM request_logs
-    WHERE (p_user_id IS NULL OR user_id = p_user_id)
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
     
     -- Calculate retry rate
@@ -302,10 +316,11 @@ CREATE OR REPLACE FUNCTION get_api_key_statistics(
 )
 RETURNS JSON
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSON;
+    effective_user_id UUID;
     total_keys BIGINT;
     active_keys BIGINT;
     total_success_count BIGINT;
@@ -313,6 +328,12 @@ DECLARE
     total_usage_count BIGINT;
     success_rate NUMERIC;
 BEGIN
+    -- Determine effective user scope
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
     -- Get API key statistics
     SELECT 
         COUNT(*) as total_count,
@@ -321,7 +342,7 @@ BEGIN
         COALESCE(SUM(failure_count), 0) as total_failure
     INTO total_keys, active_keys, total_success_count, total_failure_count
     FROM api_keys
-    WHERE (p_user_id IS NULL OR user_id = p_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
     
     -- Calculate totals and success rate
     total_usage_count := total_success_count + total_failure_count;
@@ -352,10 +373,11 @@ CREATE OR REPLACE FUNCTION get_proxy_key_statistics(
 )
 RETURNS JSON
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSON;
+    effective_user_id UUID;
     total_keys BIGINT;
     active_keys BIGINT;
     total_success_count BIGINT;
@@ -365,6 +387,12 @@ DECLARE
     total_completion_tokens BIGINT;
     success_rate NUMERIC;
 BEGIN
+    -- Determine effective user scope
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
     -- Get proxy key statistics
     SELECT 
         COUNT(*) as total_count,
@@ -377,7 +405,7 @@ BEGIN
     INTO total_keys, active_keys, total_success_count, total_failure_count, 
          total_tokens_sum, total_prompt_tokens, total_completion_tokens
     FROM proxy_api_keys
-    WHERE (p_user_id IS NULL OR user_id = p_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
     
     -- Calculate success rate
     success_rate := CASE 
@@ -410,10 +438,11 @@ CREATE OR REPLACE FUNCTION get_request_logs_statistics(
 )
 RETURNS JSON
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
     result JSON;
+    effective_user_id UUID;
     cutoff_date TIMESTAMP WITH TIME ZONE;
     total_requests BIGINT;
     successful_requests BIGINT;
@@ -424,6 +453,12 @@ DECLARE
     requests_by_format JSON;
     requests_by_hour JSON;
 BEGIN
+    -- Determine effective user scope
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
     -- Calculate cutoff date
     cutoff_date := NOW() - INTERVAL '1 day' * p_days_back;
     
@@ -435,14 +470,14 @@ BEGIN
         COALESCE(SUM((performance_metrics->>'duration')::NUMERIC), 0) / NULLIF(COUNT(*), 0) as avg_response_time
     INTO total_requests, successful_requests, failed_requests, avg_response_time_ms
     FROM request_logs
-    WHERE (p_user_id IS NULL OR user_id = p_user_id)
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
     
     -- Get total tokens from usage_metadata
     SELECT COALESCE(SUM((usage_metadata->>'total_tokens')::BIGINT), 0)
     INTO total_tokens_sum
     FROM request_logs
-    WHERE (p_user_id IS NULL OR user_id = p_user_id)
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date
     AND usage_metadata IS NOT NULL;
     
@@ -459,7 +494,7 @@ BEGIN
     FROM (
         SELECT api_format, COUNT(*) as format_count
         FROM request_logs
-        WHERE (p_user_id IS NULL OR user_id = p_user_id)
+        WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
         AND created_at >= cutoff_date
         GROUP BY api_format
     ) format_stats;
@@ -472,7 +507,7 @@ BEGIN
             EXTRACT(HOUR FROM created_at)::TEXT as hour_bucket,
             COUNT(*) as hour_count
         FROM request_logs
-        WHERE (p_user_id IS NULL OR user_id = p_user_id)
+        WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
         AND created_at >= NOW() - INTERVAL '24 hours'
         GROUP BY EXTRACT(HOUR FROM created_at)
         ORDER BY EXTRACT(HOUR FROM created_at)
@@ -509,8 +544,3 @@ COMMENT ON FUNCTION get_api_key_statistics(UUID) IS 'Returns usage statistics fo
 COMMENT ON FUNCTION get_proxy_key_statistics(UUID) IS 'Returns usage statistics for proxy keys including token usage and success rates';
 COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS 'Returns detailed request logs statistics including format breakdown and hourly distribution';
 
--- ===================================
-
-
-
--- Add comments for documentation
