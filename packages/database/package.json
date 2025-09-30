@@ -1,6 +1,6 @@
 {
     "name": "@lehuygiang28/gemini-proxy-db",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "type": "module",
     "description": "Database schema/types for Gemini Proxy",
     "files": [
