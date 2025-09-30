@@ -1,6 +1,6 @@
 {
     "name": "@lehuygiang28/gemini-proxy-cli",
-    "version": "0.0.1-beta.0.0.1",
+    "version": "0.0.1",
     "description": "CLI tool for managing Gemini Proxy API keys and proxy keys",
     "main": "dist/index.js",
     "type": "module",
