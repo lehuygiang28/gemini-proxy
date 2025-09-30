@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@gemini-proxy/database';
+import type { Database } from '@lehuygiang28/gemini-proxy-db/types';
 import { ConfigManager } from './config';
 import { ErrorHandler } from './error-handler';
 import { Logger } from './logger';

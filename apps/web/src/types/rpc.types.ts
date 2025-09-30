@@ -36,18 +36,6 @@ export const validateRpcParams = <T extends RpcFunctionName>(
         case 'get_dashboard_statistics':
         case 'get_api_key_statistics':
         case 'get_proxy_key_statistics':
-        case 'get_filter_options_models':
-        case 'get_filter_options_error_types':
-        case 'get_filter_options_status_codes':
-        case 'get_filter_options_api_formats':
-        case 'get_filter_options_user_ids':
-        case 'get_filter_options_proxy_key_ids':
-        case 'get_filter_options_api_key_ids':
-        case 'get_filter_options_all':
-            return (
-                'p_user_id' in paramObj &&
-                (paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string')
-            );
         case 'get_retry_statistics':
         case 'get_request_logs_statistics':
             return (
@@ -88,19 +76,6 @@ export const validateRpcResponse = <T extends RpcFunctionName>(
             return 'total_keys' in response && 'total_tokens' in response;
         case 'get_request_logs_statistics':
             return 'total_requests' in response && 'success_rate' in response;
-        case 'get_filter_options_models':
-        case 'get_filter_options_error_types':
-        case 'get_filter_options_api_formats':
-        case 'get_filter_options_user_ids':
-        case 'get_filter_options_proxy_key_ids':
-        case 'get_filter_options_api_key_ids':
-            return Array.isArray(response);
-        case 'get_filter_options_status_codes':
-            return Array.isArray(response) && response.every((item) => typeof item === 'number');
-        case 'get_filter_options_all':
-            return 'models' in response && 'error_types' in response;
-        case 'cleanup_old_request_logs':
-            return typeof response === 'number';
         default:
             return false;
     }
