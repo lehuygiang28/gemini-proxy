@@ -220,7 +220,16 @@ BEGIN
     SELECT 
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
-        COALESCE(SUM((performance_metrics->>'duration')::NUMERIC), 0) / NULLIF(COUNT(*), 0) as avg_response_time
+        COALESCE(
+            SUM(
+                CASE 
+                    WHEN (performance_metrics->>'duration') ~ '^[0-9]+(\.[0-9]+)?$' 
+                    THEN (performance_metrics->>'duration')::NUMERIC 
+                    ELSE 0
+                END
+            ),
+            0
+        ) / NULLIF(COUNT(*), 0) as avg_response_time
     INTO total_requests, successful_requests, avg_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
@@ -467,14 +476,32 @@ BEGIN
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
         COUNT(*) FILTER (WHERE is_successful = false) as failed_count,
-        COALESCE(SUM((performance_metrics->>'duration')::NUMERIC), 0) / NULLIF(COUNT(*), 0) as avg_response_time
+        COALESCE(
+            SUM(
+                CASE 
+                    WHEN (performance_metrics->>'duration') ~ '^[0-9]+(\.[0-9]+)?$' 
+                    THEN (performance_metrics->>'duration')::NUMERIC 
+                    ELSE 0
+                END
+            ),
+            0
+        ) / NULLIF(COUNT(*), 0) as avg_response_time
     INTO total_requests, successful_requests, failed_requests, avg_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
     
     -- Get total tokens from usage_metadata
-    SELECT COALESCE(SUM((usage_metadata->>'total_tokens')::BIGINT), 0)
+    SELECT COALESCE(
+        SUM(
+            CASE 
+                WHEN (usage_metadata->>'total_tokens') ~ '^[0-9]+$' 
+                THEN (usage_metadata->>'total_tokens')::BIGINT 
+                ELSE 0
+            END
+        ),
+        0
+    )
     INTO total_tokens_sum
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
