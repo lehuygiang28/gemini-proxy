@@ -429,16 +429,6 @@ export default function RequestLogsListPage() {
                     return (
                         <Space size={4} direction="vertical">
                             <div>
-                                <Tag color="geekblue" style={{ marginRight: 6 }}>
-                                    API
-                                </Tag>
-                                <span
-                                    style={{ fontSize: token.fontSizeSM, color: token.colorText }}
-                                >
-                                    {apiName || (apiId ? `${apiId.slice(0, 8)}...` : 'N/A')}
-                                </span>
-                            </div>
-                            <div>
                                 <Tag color="purple" style={{ marginRight: 6 }}>
                                     Proxy
                                 </Tag>
@@ -446,6 +436,16 @@ export default function RequestLogsListPage() {
                                     style={{ fontSize: token.fontSizeSM, color: token.colorText }}
                                 >
                                     {proxyName || (proxyId ? `${proxyId.slice(0, 8)}...` : 'N/A')}
+                                </span>
+                            </div>
+                            <div>
+                                <Tag color="geekblue" style={{ marginRight: 6 }}>
+                                    API
+                                </Tag>
+                                <span
+                                    style={{ fontSize: token.fontSizeSM, color: token.colorText }}
+                                >
+                                    {apiName || (apiId ? `${apiId.slice(0, 8)}...` : 'N/A')}
                                 </span>
                             </div>
                         </Space>
