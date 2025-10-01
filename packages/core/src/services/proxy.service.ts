@@ -1267,23 +1267,6 @@ export class ProxyService {
         return errorAt >= lastUsedAt;
     }
 
-    private static findNextEligibleKey(
-        allApiKeys: ApiKeyWithStats[],
-        afterKey?: ApiKeyWithStats,
-    ): ApiKeyWithStats | null {
-        if (!allApiKeys || allApiKeys.length === 0) return null;
-        const startIndex = afterKey
-            ? Math.max(0, allApiKeys.findIndex((k) => k.id === afterKey.id) + 1)
-            : 0;
-
-        for (let i = 0; i < allApiKeys.length; i++) {
-            const idx = (startIndex + i) % allApiKeys.length;
-            const key = allApiKeys[idx];
-            if (!this.hasRecentError(key)) return key;
-        }
-        return allApiKeys[0] || null;
-    }
-
     private static async getLastSuccessfulApiKeyIdForProxyKey(
         c: Context<HonoApp>,
         params: {
@@ -1312,30 +1295,52 @@ export class ProxyService {
             return null;
         }
 
-        if (!params.model) {
-            const first = data.find((r: any) => r.api_key_id);
-            return first?.api_key_id || null;
-        }
+        // Prefer same-model sticky if provided and still healthy; otherwise fallback to any healthy recent key
+        const pickHealthy = async (apiKeyId: string | null) => {
+            if (!apiKeyId) return null;
+            const { data: key } = await supabase
+                .from('api_keys')
+                .select('id, is_active, last_used_at, last_error_at')
+                .eq('id', apiKeyId)
+                .single();
+            if (!key || key.is_active === false) return null;
+            const errAt = key.last_error_at ? new Date(key.last_error_at).getTime() : null;
+            const usedAt = key.last_used_at ? new Date(key.last_used_at).getTime() : null;
+            // Healthy if no error or last error before last use
+            if (!errAt) return key.id as string;
+            if (usedAt && errAt < usedAt) return key.id as string;
+            return null;
+        };
 
-        // Try to find last success for the same model
-        try {
-            for (const row of data) {
-                const meta = row.usage_metadata as unknown;
-                const modelValue =
-                    meta && typeof meta === 'object' && 'model' in (meta as Record<string, unknown>)
-                        ? (meta as { model?: string }).model
-                        : undefined;
-                if (row.api_key_id && modelValue && modelValue === params.model) {
-                    return row.api_key_id;
+        // 1) Try exact model match first
+        if (params.model) {
+            try {
+                for (const row of data) {
+                    const meta = row.usage_metadata as unknown;
+                    const modelValue =
+                        meta &&
+                        typeof meta === 'object' &&
+                        'model' in (meta as Record<string, unknown>)
+                            ? (meta as { model?: string }).model
+                            : undefined;
+                    if (row.api_key_id && modelValue && modelValue === params.model) {
+                        const healthy = await pickHealthy(row.api_key_id);
+                        if (healthy) return healthy;
+                    }
                 }
+            } catch {
+                // continue to fallback
             }
-        } catch {
-            // ignore and fallback below
         }
 
-        // Fallback to any successful api_key_id if none matched model
-        const fallback = data.find((r: any) => r.api_key_id)?.api_key_id || null;
-        return fallback;
+        // 2) Fallback to any recent healthy key from the history
+        for (const row of data) {
+            if (!row.api_key_id) continue;
+            const healthy = await pickHealthy(row.api_key_id);
+            if (healthy) return healthy;
+        }
+
+        return null;
     }
 
     // ===== REQUEST PROCESSING =====
