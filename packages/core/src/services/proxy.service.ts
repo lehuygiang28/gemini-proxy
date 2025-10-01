@@ -98,7 +98,8 @@ interface RequestSuccessParams {
     responseData: any;
     responseBody: Response;
     isStream: boolean;
-    durationMs: number;
+    durationMs: number; // Individual API call duration
+    totalResponseTimeMs: number; // Total response time from start to finish
     retryAttempts: RetryAttemptData[];
 }
 
@@ -209,6 +210,8 @@ export class ProxyService {
     // ===== MAIN ENTRY POINT =====
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
         const { c } = params;
+        const requestStartTime = Date.now(); // Track full request duration
+        c.set('requestStartTime', requestStartTime); // Store in context for later use
         const context = this.extractRequestContext(c);
         const {
             proxyRequestDataParsed,
@@ -487,6 +490,10 @@ export class ProxyService {
         const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
         const responseCloneForLog = firstResponse.clone();
 
+        // Calculate total response time from start to finish
+        const requestStartTime = c.get('requestStartTime') as number | undefined;
+        const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
+
         this.logRequestSuccess(c, {
             requestId,
             apiKeyId: firstApiKey.id,
@@ -505,6 +512,7 @@ export class ProxyService {
             responseBody: responseCloneForLog,
             isStream: proxyRequestDataParsed.stream,
             durationMs: firstAttemptDuration,
+            totalResponseTimeMs,
             retryAttempts: [],
         });
 
@@ -730,6 +738,10 @@ export class ProxyService {
                 const responseCloneForLog = response.clone();
                 const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
 
+                // Calculate total response time from start to finish
+                const requestStartTime = c.get('requestStartTime') as number | undefined;
+                const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
+
                 this.logRequestSuccess(c, {
                     requestId,
                     apiKeyId: selectedApiKey.id,
@@ -748,6 +760,7 @@ export class ProxyService {
                     responseBody: responseCloneForLog,
                     isStream: proxyRequestDataParsed.stream,
                     durationMs: attemptDuration,
+                    totalResponseTimeMs,
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
 
@@ -903,10 +916,12 @@ export class ProxyService {
             isStream,
             performanceMetrics: {
                 duration_ms: durationMs,
+                total_response_time_ms: params.totalResponseTimeMs,
                 attempt_count: retryAttempts.length + 1,
             },
             responseBody: responseBody,
             retryAttempts,
+            totalResponseTimeMs: params.totalResponseTimeMs,
         });
     }
 
@@ -920,6 +935,10 @@ export class ProxyService {
             lastProviderError,
             retryAttempts,
         } = params;
+
+        // Calculate total response time from start to finish
+        const requestStartTime = c.get('requestStartTime') as number | undefined;
+        const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
 
         BatchLoggerService.addRequestLog(c, {
             requestId,
@@ -942,6 +961,7 @@ export class ProxyService {
             isSuccessful: false,
             performanceMetrics: {
                 duration_ms: 0,
+                total_response_time_ms: totalResponseTimeMs,
                 attempt_count: retryAttempts.length,
             },
             errorDetails: {
@@ -954,6 +974,7 @@ export class ProxyService {
                 provider_raw_body: lastProviderError?.body,
             },
             retryAttempts,
+            totalResponseTimeMs,
         });
 
         flushAllLogBatches(c);

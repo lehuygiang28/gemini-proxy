@@ -33,6 +33,7 @@ export interface Variables extends HonoVariables {
     proxyRequestDataParsed: ProxyRequestDataParsed;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestOptions?: ProxyRequestOptions;
+    requestStartTime?: number;
 }
 
 export interface Bindings extends HonoBindings {

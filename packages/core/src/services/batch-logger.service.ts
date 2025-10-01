@@ -32,6 +32,7 @@ export interface RequestLogData {
     } | null;
     responseBody?: Response; // Response object for async parsing
     retryAttempts?: any;
+    totalResponseTimeMs?: number; // Total response time from start to finish
 }
 
 export interface ApiKeyUsageData {
