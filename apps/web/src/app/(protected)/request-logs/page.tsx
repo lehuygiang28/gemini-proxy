@@ -37,7 +37,16 @@ import {
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay } from '@/components/common';
 import { useRetryStatistics } from '@/hooks/useRpc';
-// no side-effect fetching; use Refine meta select instead
+import {
+    extractPerformanceMetrics,
+    extractUsageMetadata,
+    formatDuration,
+    formatTokenCount,
+    getAttemptCountColor,
+    getAttemptCountSeverity,
+    getRequestTypeColor,
+    getRequestType,
+} from '@/utils/table-helpers';
 
 const { useToken } = theme;
 const { Text, Title } = Typography;
@@ -57,72 +66,6 @@ interface RequestLogSearch {
     user_id?: string;
     date_range?: [string, string];
 }
-
-// Utility functions for better performance
-const getRequestType = (apiFormat: string): string => {
-    return apiFormat === 'gemini' ? 'Gemini' : 'OpenAI';
-};
-
-const getRequestTypeColor = (apiFormat: string): string => {
-    return apiFormat === 'gemini' ? 'blue' : 'green';
-};
-
-const formatDuration = (duration: number): string => {
-    if (duration < 1000) return `${duration}ms`;
-    return `${(duration / 1000).toFixed(2)}s`;
-};
-
-const formatTokenCount = (count: number): string => {
-    if (count < 1000) return count.toString();
-    if (count < 1000000) return `${(count / 1000).toFixed(1)}K`;
-    return `${(count / 1000000).toFixed(1)}M`;
-};
-
-const extractPerformanceMetrics = (metrics: unknown) => {
-    if (!metrics || typeof metrics !== 'object' || metrics === null) {
-        return { duration: 0, attemptCount: 1 };
-    }
-
-    const metricsObj = metrics as Record<string, unknown>;
-    return {
-        duration: (metricsObj.duration as number) || 0,
-        attemptCount: (metricsObj.attemptCount as number) || 1,
-    };
-};
-
-const extractUsageMetadata = (usage: unknown) => {
-    if (!usage || typeof usage !== 'object' || usage === null) {
-        return { totalTokens: 0, promptTokens: 0, completionTokens: 0, model: null };
-    }
-
-    const usageObj = usage as Record<string, unknown>;
-    return {
-        totalTokens: (usageObj.total_tokens as number) || 0,
-        promptTokens: (usageObj.prompt_tokens as number) || 0,
-        completionTokens: (usageObj.completion_tokens as number) || 0,
-        model: (usageObj.model as string) || null,
-    };
-};
-
-const getAttemptCountColor = (attemptCount: number): string => {
-    if (attemptCount === 1) return 'success';
-    if (attemptCount <= 2) return 'warning';
-    if (attemptCount <= 4) return 'orange';
-    if (attemptCount <= 5) return 'volcano';
-    if (attemptCount <= 10) return 'red';
-    if (attemptCount <= 20) return 'magenta';
-    return 'purple';
-};
-
-const getAttemptCountSeverity = (attemptCount: number): string => {
-    if (attemptCount === 1) return 'Success';
-    if (attemptCount <= 2) return 'Minor Issue';
-    if (attemptCount <= 4) return 'Moderate Issue';
-    if (attemptCount <= 5) return 'High Issue';
-    if (attemptCount <= 10) return 'Critical Issue';
-    if (attemptCount <= 20) return 'Severe Issue';
-    return 'Extreme Issue';
-};
 
 export default function RequestLogsListPage() {
     const { token } = useToken();
@@ -461,7 +404,7 @@ export default function RequestLogsListPage() {
                         ? record.retry_attempts.length
                         : 0;
                     const hasRetries = retryCount > 0;
-                    const totalAttempts = metrics.attemptCount;
+                    const totalAttempts = metrics.attempt_count;
                     const attemptColor = getAttemptCountColor(totalAttempts);
                     const attemptSeverity = getAttemptCountSeverity(totalAttempts);
 
@@ -469,7 +412,12 @@ export default function RequestLogsListPage() {
                         <div>
                             <div style={{ fontSize: token.fontSizeSM }}>
                                 <span style={{ color: token.colorInfo }}>
-                                    Duration: {formatDuration(metrics.duration)}
+                                    API Call: {formatDuration(metrics.duration_ms)}
+                                </span>
+                            </div>
+                            <div style={{ fontSize: token.fontSizeSM }}>
+                                <span style={{ color: token.colorSuccess }}>
+                                    Response Time: {formatDuration(metrics.total_response_time_ms)}
                                 </span>
                             </div>
                             <div style={{ fontSize: token.fontSizeSM }}>
@@ -503,7 +451,7 @@ export default function RequestLogsListPage() {
                         <div>
                             <div style={{ fontSize: token.fontSizeSM }}>
                                 <span style={{ color: token.colorInfo }}>
-                                    Total: {formatTokenCount(usage.totalTokens)}
+                                    Total: {formatTokenCount(usage.total_tokens)}
                                 </span>
                             </div>
                             <div
@@ -512,9 +460,9 @@ export default function RequestLogsListPage() {
                                     color: token.colorTextSecondary,
                                 }}
                             >
-                                <span>Prompt: {formatTokenCount(usage.promptTokens)}</span>
+                                <span>Prompt: {formatTokenCount(usage.prompt_tokens)}</span>
                                 {' | '}
-                                <span>Completion: {formatTokenCount(usage.completionTokens)}</span>
+                                <span>Completion: {formatTokenCount(usage.completion_tokens)}</span>
                             </div>
                             {usage.model && (
                                 <div

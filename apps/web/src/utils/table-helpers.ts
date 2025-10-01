@@ -1,9 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PresetStatusColorType } from 'antd/es/_util/colors';
 import { PROVIDERS } from '@/constants/providers';
+import type { PerformanceMetrics, UsageMetadata } from '@gemini-proxy/database';
 
 // Token formatting utilities
-export const formatTokenCount = (count: number): string => {
+export const formatTokenCount = (count?: number): string => {
+    if (count === null || count === undefined) {
+        return `N/A`;
+    }
     if (count >= 1000000) {
         return `${(count / 1000000).toFixed(1)}M`;
     }
@@ -13,7 +16,10 @@ export const formatTokenCount = (count: number): string => {
     return count.toString();
 };
 
-export const formatDuration = (durationMs: number): string => {
+export const formatDuration = (durationMs?: number): string => {
+    if (durationMs === null || durationMs === undefined) {
+        return `N/A`;
+    }
     if (durationMs < 1000) {
         return `${durationMs}ms`;
     }
@@ -100,7 +106,7 @@ export const formatTime = (dateString: string | null | undefined): string => {
 };
 
 // JSON display utilities
-export const formatJsonDisplay = (data: any): string => {
+export const formatJsonDisplay = (data: unknown): string => {
     if (!data) return '';
 
     if (typeof data === 'string') {
@@ -112,7 +118,7 @@ export const formatJsonDisplay = (data: any): string => {
         }
     }
 
-    if (typeof data === 'object') {
+    if (typeof data === 'object' && data !== null) {
         return JSON.stringify(data, null, 2);
     }
 
@@ -125,42 +131,56 @@ export const truncateText = (text: string, maxLength: number = 50): string => {
     return text.substring(0, maxLength) + '...';
 };
 
+// Attempt count utilities
+export const getAttemptCountColor = (attemptCount: number): string => {
+    if (attemptCount === 1) return 'success';
+    if (attemptCount <= 2) return 'warning';
+    if (attemptCount <= 4) return 'orange';
+    if (attemptCount <= 5) return 'volcano';
+    if (attemptCount <= 10) return 'red';
+    if (attemptCount <= 20) return 'magenta';
+    return 'purple';
+};
+
+export const getAttemptCountSeverity = (attemptCount: number): string => {
+    if (attemptCount === 1) return 'Success';
+    if (attemptCount <= 2) return 'Minor Issue';
+    if (attemptCount <= 4) return 'Moderate Issue';
+    if (attemptCount <= 5) return 'High Issue';
+    if (attemptCount <= 10) return 'Critical Issue';
+    if (attemptCount <= 20) return 'Severe Issue';
+    return 'Extreme Issue';
+};
+
 // Performance metrics utilities
-export const extractPerformanceMetrics = (
-    metrics: any,
-): {
-    duration: number;
-    attemptCount: number;
-    responseTime?: number;
-} => {
-    if (!metrics || typeof metrics !== 'object') {
-        return { duration: 0, attemptCount: 0 };
+export const extractPerformanceMetrics = (metrics: unknown): PerformanceMetrics => {
+    if (!metrics || typeof metrics !== 'object' || metrics === null) {
+        return { duration_ms: 0, total_response_time_ms: 0, attempt_count: 1 };
     }
 
+    const metricsObj = metrics as Record<string, unknown>;
     return {
-        duration: metrics?.duration_ms || metrics?.duration || 0,
-        attemptCount: metrics?.attempt_count || metrics?.attempts || 0,
-        responseTime: metrics?.response_time || 0,
+        duration_ms: (metricsObj?.duration_ms as number) || 0,
+        total_response_time_ms: (metricsObj?.total_response_time_ms as number) || 0,
+        attempt_count: (metricsObj?.attempt_count as number) || 1,
     };
 };
 
 // Usage metadata utilities
-export const extractUsageMetadata = (
-    metadata: any,
-): {
-    totalTokens: number;
-    promptTokens: number;
-    completionTokens: number;
-    model?: string;
-} => {
-    if (!metadata || typeof metadata !== 'object') {
-        return { totalTokens: 0, promptTokens: 0, completionTokens: 0 };
+export const extractUsageMetadata = (metadata: unknown): UsageMetadata => {
+    if (!metadata || typeof metadata !== 'object' || metadata === null) {
+        return { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0, model: null };
     }
 
+    const metadataObj = metadata as Record<string, unknown>;
     return {
-        totalTokens: metadata?.total_tokens || metadata?.totalTokenCount || 0,
-        promptTokens: metadata?.prompt_tokens || metadata?.promptTokenCount || 0,
-        completionTokens: metadata?.completion_tokens || metadata?.candidatesTokenCount || 0,
-        model: metadata?.model,
+        total_tokens: (metadataObj?.total_tokens as number) || 0,
+        prompt_tokens: (metadataObj?.prompt_tokens as number) || 0,
+        completion_tokens: (metadataObj?.completion_tokens as number) || 0,
+        model: (metadataObj?.model as string) || null,
+        response_id: (metadataObj?.response_id as string) || undefined,
+        created: (metadataObj?.created as number) || undefined,
+        id: (metadataObj?.id as string) || undefined,
+        object: (metadataObj?.object as string) || undefined,
     };
 };

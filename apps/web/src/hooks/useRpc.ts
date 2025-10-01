@@ -4,58 +4,13 @@ import { useCustom } from '@refinedev/core';
 import { useGetIdentity } from '@refinedev/core';
 import type { BaseRecord } from '@refinedev/core';
 import type { RpcFunctionName, RpcFunctionParams } from '@/types/rpc.types';
-
-// Specific return types for better type safety (extending from database Json types)
-export interface TypedRpcFunctionReturns {
-    get_dashboard_statistics: {
-        total_api_keys: number;
-        total_proxy_keys: number;
-        total_requests: number;
-        successful_requests: number;
-        total_tokens: number;
-        avg_response_time_ms: number;
-        success_rate: number;
-        active_keys: number;
-    };
-    get_retry_statistics: {
-        total_requests: number;
-        requests_with_retries: number;
-        total_retry_attempts: number;
-        retry_rate: number;
-        period_days: number;
-    };
-    get_api_key_statistics: {
-        total_keys: number;
-        active_keys: number;
-        inactive_keys: number;
-        total_success_count: number;
-        total_failure_count: number;
-        total_usage_count: number;
-        success_rate: number;
-    };
-    get_proxy_key_statistics: {
-        total_keys: number;
-        active_keys: number;
-        inactive_keys: number;
-        total_success_count: number;
-        total_failure_count: number;
-        total_tokens: number;
-        total_prompt_tokens: number;
-        total_completion_tokens: number;
-        success_rate: number;
-    };
-    get_request_logs_statistics: {
-        total_requests: number;
-        successful_requests: number;
-        failed_requests: number;
-        total_tokens: number;
-        avg_response_time_ms: number;
-        success_rate: number;
-        requests_by_format: Record<string, number>;
-        requests_by_hour: Record<string, number>;
-        period_days: number;
-    };
-}
+import type {
+    DashboardStatistics,
+    RetryStatistics,
+    ApiKeyStatistics,
+    ProxyKeyStatistics,
+    RequestLogsStatistics,
+} from '@gemini-proxy/database';
 
 // Type that extends BaseRecord for useCustom compatibility
 type RpcFunctionReturn = BaseRecord;
@@ -133,12 +88,14 @@ export const useRequestLogsStatistics = createRpcHookWithDefaults('get_request_l
     p_days_back: 7,
 });
 
-// Type-safe return types for better IDE support (extending from database types)
-export type DashboardStatistics = TypedRpcFunctionReturns['get_dashboard_statistics'];
-export type RetryStatistics = TypedRpcFunctionReturns['get_retry_statistics'];
-export type ApiKeyStatistics = TypedRpcFunctionReturns['get_api_key_statistics'];
-export type ProxyKeyStatistics = TypedRpcFunctionReturns['get_proxy_key_statistics'];
-export type RequestLogsStatistics = TypedRpcFunctionReturns['get_request_logs_statistics'];
+// Re-export types from database package for convenience
+export type {
+    DashboardStatistics,
+    RetryStatistics,
+    ApiKeyStatistics,
+    ProxyKeyStatistics,
+    RequestLogsStatistics,
+};
 
 // Export the factory functions for advanced usage
 export { createRpcHook, createRpcHookWithDefaults };
