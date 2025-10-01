@@ -186,6 +186,7 @@ CREATE OR REPLACE FUNCTION get_dashboard_statistics(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     result JSON;
@@ -282,6 +283,7 @@ CREATE OR REPLACE FUNCTION get_retry_statistics(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     result JSON;
@@ -338,6 +340,7 @@ CREATE OR REPLACE FUNCTION get_api_key_statistics(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     result JSON;
@@ -395,6 +398,7 @@ CREATE OR REPLACE FUNCTION get_proxy_key_statistics(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     result JSON;
@@ -460,6 +464,7 @@ CREATE OR REPLACE FUNCTION get_request_logs_statistics(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     result JSON;
