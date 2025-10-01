@@ -87,6 +87,31 @@ CREATE INDEX IF NOT EXISTS idx_request_logs_is_successful ON request_logs(is_suc
 CREATE INDEX IF NOT EXISTS idx_request_logs_api_format ON request_logs(api_format);
 CREATE INDEX IF NOT EXISTS idx_request_logs_created_at_desc ON request_logs(created_at DESC);
 
+-- Targeted performance indexes for hot paths
+-- 1) API key reservation query: filter (is_active AND (user_id IS NULL OR user_id = ?))
+--    then order by last_used_at ASC NULLS FIRST, last_error_at ASC NULLS FIRST,
+--    optionally failure_count ASC NULLS FIRST, created_at DESC
+--    Include id and api_key_value to enable index-only scans
+CREATE INDEX IF NOT EXISTS idx_api_keys_selection
+ON api_keys (
+    is_active,
+    user_id,
+    last_used_at ASC NULLS FIRST,
+    last_error_at ASC NULLS FIRST,
+    failure_count ASC NULLS FIRST,
+    created_at DESC
+) INCLUDE (id, api_key_value);
+
+-- 2) Sticky lookup from request_logs: by (proxy_key_id, api_format) recent first, only successful
+--    Include (api_key_id, usage_metadata) for index-only scans during lookup
+CREATE INDEX IF NOT EXISTS idx_request_logs_sticky_lookup
+ON request_logs (
+    proxy_key_id,
+    api_format,
+    created_at DESC
+) INCLUDE (api_key_id, usage_metadata)
+WHERE is_successful = true;
+
 -- Composite indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_request_logs_user_created_at ON request_logs(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_request_logs_api_key_created_at ON request_logs(api_key_id, created_at DESC);
