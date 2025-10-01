@@ -20,14 +20,16 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
 
     const { data, error } = await supabase
         .from('proxy_api_keys')
-        .select('*')
-        .eq('proxy_key_value', apiKey);
+        .select('id, user_id, name, is_active')
+        .eq('proxy_key_value', apiKey)
+        .limit(1)
+        .single();
 
     if (error) {
         return c.json({ error: error.message }, 500);
     }
 
-    if (!data || data?.length === 0) {
+    if (!data) {
         return c.json(
             {
                 error: 'Unauthorized',
@@ -37,6 +39,16 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
         );
     }
 
-    c.set('proxyApiKeyData', data[0]);
+    if (!data.is_active) {
+        return c.json(
+            {
+                error: 'Unauthorized',
+                message: 'Provided proxy API key is not active',
+            },
+            401,
+        );
+    }
+
+    c.set('proxyApiKeyData', data as unknown as any);
     await next();
 };
