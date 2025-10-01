@@ -8,6 +8,7 @@ export interface DashboardStatistics {
     successful_requests: number;
     total_tokens: number;
     avg_response_time_ms: number;
+    avg_total_response_time_ms: number;
     success_rate: number;
     active_keys: number;
 }
@@ -48,8 +49,28 @@ export interface RequestLogsStatistics {
     failed_requests: number;
     total_tokens: number;
     avg_response_time_ms: number;
+    avg_total_response_time_ms: number;
     success_rate: number;
     requests_by_format: Record<string, number>;
     requests_by_hour: Record<string, number>;
     period_days: number;
+}
+
+// Performance metrics types for request logs
+export interface PerformanceMetrics {
+    duration_ms: number;
+    total_response_time_ms: number;
+    attempt_count: number;
+}
+
+// Usage metadata types for request logs
+export interface UsageMetadata {
+    total_tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    model: string | null;
+    response_id?: string;
+    created?: number;
+    id?: string;
+    object?: string;
 }

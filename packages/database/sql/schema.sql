@@ -196,6 +196,7 @@ DECLARE
     successful_requests BIGINT;
     total_tokens_sum BIGINT;
     avg_response_time_ms NUMERIC;
+    avg_total_response_time_ms NUMERIC;
     success_rate NUMERIC;
 BEGIN
     -- Determine effective user scope
@@ -223,14 +224,24 @@ BEGIN
         COALESCE(
             SUM(
                 CASE 
-                    WHEN (performance_metrics->>'duration') ~ '^[0-9]+(\.[0-9]+)?$' 
-                    THEN (performance_metrics->>'duration')::NUMERIC 
+                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$' 
+                    THEN (performance_metrics->>'duration_ms')::NUMERIC 
                     ELSE 0
                 END
             ),
             0
-        ) / NULLIF(COUNT(*), 0) as avg_response_time
-    INTO total_requests, successful_requests, avg_response_time_ms
+        ) / NULLIF(COUNT(*), 0) as avg_response_time,
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                        THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
+                        ELSE 0
+                    END
+                ),
+                0
+            ) / NULLIF(COUNT(*), 0) as avg_total_response_time
+    INTO total_requests, successful_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
     
@@ -254,6 +265,7 @@ BEGIN
         'successful_requests', successful_requests,
         'total_tokens', total_tokens_sum,
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
+        'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
         'active_keys', total_api_keys + total_proxy_keys
     );
@@ -458,6 +470,7 @@ DECLARE
     failed_requests BIGINT;
     total_tokens_sum BIGINT;
     avg_response_time_ms NUMERIC;
+    avg_total_response_time_ms NUMERIC;
     success_rate NUMERIC;
     requests_by_format JSON;
     requests_by_hour JSON;
@@ -479,14 +492,24 @@ BEGIN
         COALESCE(
             SUM(
                 CASE 
-                    WHEN (performance_metrics->>'duration') ~ '^[0-9]+(\.[0-9]+)?$' 
-                    THEN (performance_metrics->>'duration')::NUMERIC 
+                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$' 
+                    THEN (performance_metrics->>'duration_ms')::NUMERIC 
                     ELSE 0
                 END
             ),
             0
-        ) / NULLIF(COUNT(*), 0) as avg_response_time
-    INTO total_requests, successful_requests, failed_requests, avg_response_time_ms
+        ) / NULLIF(COUNT(*), 0) as avg_response_time,
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                        THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
+                        ELSE 0
+                    END
+                ),
+                0
+            ) / NULLIF(COUNT(*), 0) as avg_total_response_time
+    INTO total_requests, successful_requests, failed_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
@@ -547,6 +570,7 @@ BEGIN
         'failed_requests', failed_requests,
         'total_tokens', total_tokens_sum,
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
+        'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
         'requests_by_format', COALESCE(requests_by_format, '{}'::json),
         'requests_by_hour', COALESCE(requests_by_hour, '{}'::json),
