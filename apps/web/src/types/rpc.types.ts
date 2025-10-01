@@ -31,25 +31,27 @@ export const validateRpcParams = <T extends RpcFunctionName>(
 
     const paramObj = params as Record<string, unknown>;
 
-    // Validate based on function name
+    // Validate based on function name and their actual parameter requirements
     switch (functionName) {
         case 'get_dashboard_statistics':
         case 'get_api_key_statistics':
         case 'get_proxy_key_statistics':
+            // These functions only need p_user_id (optional)
+            return paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string';
+
         case 'get_retry_statistics':
         case 'get_request_logs_statistics':
+            // These functions need p_user_id (optional) and p_days_back (optional)
             return (
-                'p_user_id' in paramObj &&
-                'p_days_back' in paramObj &&
                 (paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string') &&
                 (paramObj.p_days_back === undefined || typeof paramObj.p_days_back === 'number')
             );
+
         case 'cleanup_old_request_logs':
             return (
-                'p_days_to_keep' in paramObj &&
-                (paramObj.p_days_to_keep === undefined ||
-                    typeof paramObj.p_days_to_keep === 'number')
+                paramObj.p_days_to_keep === undefined || typeof paramObj.p_days_to_keep === 'number'
             );
+
         default:
             return false;
     }
@@ -68,14 +70,22 @@ export const validateRpcResponse = <T extends RpcFunctionName>(
     switch (functionName) {
         case 'get_dashboard_statistics':
             return 'total_api_keys' in response && 'total_proxy_keys' in response;
+
         case 'get_retry_statistics':
             return 'total_requests' in response && 'retry_rate' in response;
+
         case 'get_api_key_statistics':
             return 'total_keys' in response && 'success_rate' in response;
+
         case 'get_proxy_key_statistics':
             return 'total_keys' in response && 'total_tokens' in response;
+
         case 'get_request_logs_statistics':
             return 'total_requests' in response && 'success_rate' in response;
+
+        case 'cleanup_old_request_logs':
+            return typeof response === 'number';
+
         default:
             return false;
     }
