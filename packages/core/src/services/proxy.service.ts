@@ -17,7 +17,6 @@ import {
     NetworkError,
 } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
-import { flushAllLogBatches } from '../utils/wait-until';
 import { getSupabaseClient } from './supabase.service';
 
 // ===== INTERFACES =====
@@ -516,8 +515,6 @@ export class ProxyService {
             retryAttempts: [],
         });
 
-        flushAllLogBatches(c);
-
         return new Response(firstResponse.clone().body, {
             status: firstResponse.clone().status,
             headers: filteredResponseHeaders,
@@ -764,8 +761,6 @@ export class ProxyService {
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
 
-                flushAllLogBatches(c);
-
                 return new Response(responseClone.body, {
                     status: responseClone.status,
                     headers: filteredResponseHeaders,
@@ -976,8 +971,6 @@ export class ProxyService {
             retryAttempts,
             totalResponseTimeMs,
         });
-
-        flushAllLogBatches(c);
 
         if (lastProviderError) {
             const providerHeaders = new Headers();

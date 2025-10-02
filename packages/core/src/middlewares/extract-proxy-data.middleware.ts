@@ -6,8 +6,9 @@ import { resolveUrl } from '../utils/url';
 import { safelyExtractBodyText } from '../utils/body-handler';
 
 export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
-    let model: string | undefined;
     const apiFormat = c.req.path.includes('/gemini/') ? 'gemini' : 'openai';
+
+    let model: string | undefined;
     let stream = false;
     const queryParams = c.req.query();
     let urlToProxy = '';
@@ -28,7 +29,6 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
     }
 
     const envVariables = env(c);
-    let bodyData: any = null;
     let rawBodyText: string | null = null;
 
     // For Gemini, we can often determine model and stream from the URL path
@@ -47,7 +47,6 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                 if (rawBodyText) {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
-                    bodyData = { data: parsedBody, success: true, type: 'json' };
                 }
             } catch (error) {
                 console.warn('Failed to parse JSON body for model extraction:', error);
@@ -69,7 +68,6 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                     const parsedBody = JSON.parse(rawBodyText);
                     model = parsedBody?.model;
                     stream = Boolean(parsedBody?.stream);
-                    bodyData = { data: parsedBody, success: true, type: 'json' };
                 }
             } catch (error) {
                 console.warn('Failed to parse JSON body for OpenAI format:', error);

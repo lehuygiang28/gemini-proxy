@@ -9,6 +9,7 @@ import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
 import { extractProxyDataMiddleware } from './middlewares/extract-proxy-data.middleware';
 import { proxyOptionsMiddleware } from './middlewares/proxy-options.middleware';
 import { ProxyService } from './services/proxy.service';
+import { flushAllLogBatches } from './utils/wait-until';
 
 export const coreApp = new Hono<HonoApp>()
     .use(timing())
@@ -25,12 +26,12 @@ export const coreApp = new Hono<HonoApp>()
             404,
         ),
     )
-    .use('/*', extractProxyDataMiddleware)
-    .use('/*', proxyOptionsMiddleware)
     .use('/*', validateProxyApiKeyMiddleware)
+    .use('/*', proxyOptionsMiddleware)
+    .use('/*', extractProxyDataMiddleware)
     // Main handler route for all requests
     .use('/*', async (c) => {
         const response = await ProxyService.makeApiRequest({ c });
-        // Return the response directly to preserve streaming
+        flushAllLogBatches(c);
         return response;
     });

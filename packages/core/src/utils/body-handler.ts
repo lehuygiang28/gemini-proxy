@@ -40,16 +40,3 @@ export async function safelyExtractBodyText(c: Context<HonoApp>): Promise<string
         return null;
     }
 }
-
-/**
- * Check if a request has a body that can be consumed
- */
-export function hasConsumableBody(request: Request): boolean {
-    try {
-        // Try to clone to check if body is available
-        request.clone();
-        return true;
-    } catch {
-        return false;
-    }
-}
