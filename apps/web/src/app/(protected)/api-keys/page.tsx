@@ -35,7 +35,7 @@ import {
     UsageStatistics,
     DateTimeDisplay,
 } from '@/components/common';
-import { getProviderColor, getProviderText } from '@/utils/table-helpers';
+import { getProviderColor, getProviderText, formatTokenCount } from '@/utils/table-helpers';
 import { PROVIDER_OPTIONS } from '@/constants/providers';
 
 const { Search } = Input;
@@ -287,6 +287,8 @@ export default function ApiKeysListPage() {
                         },
                         {
                             title: 'Usage Statistics',
+                            dataIndex: 'success_count',
+                            sorter: true,
                             width: 150,
                             render: (_: unknown, record: ApiKey) => (
                                 <UsageStatistics
@@ -294,6 +296,39 @@ export default function ApiKeysListPage() {
                                     failureCount={record.failure_count}
                                 />
                             ),
+                        },
+                        {
+                            title: 'Token Usage',
+                            key: 'token_usage',
+                            dataIndex: 'total_tokens',
+                            sorter: true,
+                            width: 200,
+                            render: (_: unknown, record: ApiKey) => {
+                                return (
+                                    <div>
+                                        <div style={{ fontSize: token.fontSizeSM }}>
+                                            <span style={{ color: token.colorInfo }}>
+                                                Total: {formatTokenCount(record.total_tokens)}
+                                            </span>
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: token.fontSizeSM,
+                                                color: token.colorTextSecondary,
+                                            }}
+                                        >
+                                            <span>
+                                                Prompt: {formatTokenCount(record.prompt_tokens)}
+                                            </span>
+                                            {' | '}
+                                            <span>
+                                                Completion:{' '}
+                                                {formatTokenCount(record.completion_tokens)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            },
                         },
                         {
                             title: 'Last Used',

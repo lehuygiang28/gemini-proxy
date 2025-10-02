@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Descriptions, Tag, Card, Row, Col, Typography, Space, Spin, Empty } from 'antd';
+import { Descriptions, Tag, Card, Row, Col, Typography, Space, Spin, Empty, theme } from 'antd';
 import { Show } from '@refinedev/antd';
 import { useShow } from '@refinedev/core';
 import {
@@ -10,18 +10,21 @@ import {
     BarChartOutlined,
     ClockCircleOutlined,
     CodeOutlined,
+    ThunderboltOutlined,
 } from '@ant-design/icons';
 
 import type { Tables } from '@gemini-proxy/database';
 import { SensitiveKeyDisplay, UsageStatistics, DateTimeDisplay } from '@/components/common';
-import { getProviderColor, getProviderText } from '@/utils/table-helpers';
+import { getProviderColor, getProviderText, formatTokenCount } from '@/utils/table-helpers';
 import { formatJsonDisplay } from '@/utils/table-helpers';
 
 const { Title, Text } = Typography;
+const { useToken } = theme;
 
 type ApiKey = Tables<'api_keys'>;
 
 export default function ApiKeysShowPage() {
+    const { token } = useToken();
     const { query } = useShow<ApiKey>();
     const { data, isLoading } = query;
     const record = data?.data;
@@ -109,6 +112,30 @@ export default function ApiKeysShowPage() {
                             successCount={record.success_count}
                             failureCount={record.failure_count}
                         />
+                    </Card>
+                </Col>
+                <Col xs={24} md={12}>
+                    <Card
+                        title={
+                            <Space>
+                                <ThunderboltOutlined /> Token Usage
+                            </Space>
+                        }
+                        variant="borderless"
+                    >
+                        <Descriptions bordered column={1} size="middle">
+                            <Descriptions.Item label="Total Tokens">
+                                <Text strong style={{ color: token.colorInfo }}>
+                                    {formatTokenCount(record.total_tokens)}
+                                </Text>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Prompt Tokens">
+                                <Text>{formatTokenCount(record.prompt_tokens)}</Text>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Completion Tokens">
+                                <Text>{formatTokenCount(record.completion_tokens)}</Text>
+                            </Descriptions.Item>
+                        </Descriptions>
                     </Card>
                 </Col>
                 <Col xs={24} md={12}>
