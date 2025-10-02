@@ -49,7 +49,7 @@ export class ApiKeyService {
      * @param c - The Hono context
      * @returns The proxy API key
      */
-    static getProxyApiKey(c: Context<HonoApp>): string {
+    static getProxyApiKeyFromHeader(c: Context<HonoApp>): string {
         const path = c.req.path;
         if (path.includes('/gemini/')) {
             return c.req.header('x-goog-api-key') || '';
@@ -345,7 +345,7 @@ export class ApiKeyService {
     }
 
     /** Update last_used_at to now without touching counters. */
-    static async touchLastUsed(c: Context, apiKeyId: string): Promise<void> {
+    static async touchApiKeyLastUsed(c: Context, apiKeyId: string): Promise<void> {
         const supabase = getSupabaseClient(c);
         await supabase
             .from('api_keys')
@@ -357,7 +357,7 @@ export class ApiKeyService {
     }
 
     /** Update last_error_at to now without changing counters (counters are handled elsewhere). */
-    static async touchLastError(c: Context, apiKeyId: string): Promise<void> {
+    static async touchApiKeyLastError(c: Context, apiKeyId: string): Promise<void> {
         const supabase = getSupabaseClient(c);
         await supabase
             .from('api_keys')
@@ -366,5 +366,29 @@ export class ApiKeyService {
                 updated_at: new Date().toISOString(),
             })
             .eq('id', apiKeyId);
+    }
+
+    /** Update last_used_at for proxy API key without changing counters (counters are handled elsewhere). */
+    static async touchProxyApiKeyLastUsed(c: Context, proxyApiKeyId: string): Promise<void> {
+        const supabase = getSupabaseClient(c);
+        await supabase
+            .from('proxy_api_keys')
+            .update({
+                last_used_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', proxyApiKeyId);
+    }
+
+    /** Update last_error_at for proxy API key without changing counters (counters are handled elsewhere). */
+    static async touchProxyApiKeyLastError(c: Context, proxyApiKeyId: string): Promise<void> {
+        const supabase = getSupabaseClient(c);
+        await supabase
+            .from('proxy_api_keys')
+            .update({
+                last_error_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', proxyApiKeyId);
     }
 }

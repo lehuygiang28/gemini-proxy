@@ -1,12 +1,17 @@
 import { Context } from 'hono';
 import { getRuntimeKey } from 'hono/adapter';
-import { BatchLoggerService } from '../services/batch-logger.service';
+import { waitUntil as vercelWaitUntil } from '@vercel/functions';
 
-export async function flushAllLogBatches(c: Context) {
+/**
+ * Execute operation with proper wait-until fallback handling
+ * This ensures operations complete before serverless function shutdown
+ */
+export async function executeWithWaitUntil(c: Context, operation: Promise<void>): Promise<void> {
     try {
-        // Try to use Hono's execution context first
-        if (c?.executionCtx?.waitUntil) {
-            c.executionCtx.waitUntil(BatchLoggerService.flushAllBatches());
+        // Try Hono's execution context first
+        const { waitUntil } = c.executionCtx || {};
+        if (waitUntil) {
+            waitUntil(operation);
             return;
         }
     } catch (exCtxError) {
@@ -24,11 +29,16 @@ export async function flushAllLogBatches(c: Context) {
 
     try {
         // Try Vercel's waitUntil as fallback
-        const { waitUntil } = await import('@vercel/functions');
-        waitUntil(BatchLoggerService.flushAllBatches());
+        vercelWaitUntil(operation);
         return;
-    } catch (err) {
-        console.warn('Failed to use Vercel waitUntil:', err);
-        await BatchLoggerService.flushAllBatches();
+    } catch (vercelError) {
+        console.warn('Failed to use Vercel waitUntil:', vercelError);
+    }
+
+    // Final fallback: execute immediately
+    try {
+        await operation;
+    } catch (error) {
+        console.error('Operation execution failed:', error);
     }
 }

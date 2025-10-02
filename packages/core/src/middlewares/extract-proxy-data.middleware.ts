@@ -33,7 +33,11 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
 
     // For Gemini, we can often determine model and stream from the URL path
     if (apiFormat === 'gemini') {
-        model = c.req.path?.split('/')?.pop()?.split(':')?.[0];
+        const pathParts = c.req.path?.split('/');
+        const lastPart = pathParts?.pop();
+        model = lastPart?.split(':')?.[0];
+        console.log(`Model extraction: path=${c.req.path}, lastPart=${lastPart}, model=${model}`);
+
         stream =
             c.req.path.includes(':streamGenerateContent') ||
             c.req.path.includes(':stream') ||

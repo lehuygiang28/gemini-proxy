@@ -9,7 +9,8 @@ import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
 import { extractProxyDataMiddleware } from './middlewares/extract-proxy-data.middleware';
 import { proxyOptionsMiddleware } from './middlewares/proxy-options.middleware';
 import { ProxyService } from './services/proxy.service';
-import { flushAllLogBatches } from './utils/wait-until';
+import { BackgroundService } from './services/background.service';
+import { executeWithWaitUntil } from './utils/wait-until';
 
 export const coreApp = new Hono<HonoApp>()
     .use(timing())
@@ -31,7 +32,13 @@ export const coreApp = new Hono<HonoApp>()
     .use('/*', extractProxyDataMiddleware)
     // Main handler route for all requests
     .use('/*', async (c) => {
+        // Get response immediately - background operations are collected
         const response = await ProxyService.makeApiRequest({ c });
-        flushAllLogBatches(c);
+
+        // Execute all collected background operations with wait-until
+        // This ensures operations complete before serverless function shutdown
+        const requestId = c.get('proxyRequestId');
+        executeWithWaitUntil(c, BackgroundService.executeAllOperations(c, requestId));
+
         return response;
     });
