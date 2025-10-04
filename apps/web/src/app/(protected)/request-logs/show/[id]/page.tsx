@@ -23,6 +23,38 @@ export default function RequestLogShowPage() {
     } = useOne<RequestLog>({
         resource: 'request_logs',
         id: requestId,
+        meta: {
+            select: `
+                *,
+                api_keys!api_key_id(
+                    id,
+                    name,
+                    provider,
+                    is_active,
+                    user_id,
+                    created_at,
+                    last_used_at,
+                    success_count,
+                    failure_count,
+                    total_tokens,
+                    prompt_tokens,
+                    completion_tokens
+                ),
+                proxy_api_keys!proxy_key_id(
+                    id,
+                    name,
+                    is_active,
+                    user_id,
+                    created_at,
+                    last_used_at,
+                    success_count,
+                    failure_count,
+                    total_tokens,
+                    prompt_tokens,
+                    completion_tokens
+                )
+            `,
+        },
     });
 
     if (isLoading) {
