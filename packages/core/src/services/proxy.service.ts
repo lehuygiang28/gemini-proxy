@@ -1,8 +1,8 @@
 import { Context } from 'hono';
 
 import { ApiKeyService } from './api-key.service';
-import { BatchLoggerService } from './batch-logger.service';
 import { ConfigService } from './config.service';
+import { ResponseHandlerService } from './response-handler.service';
 import { HonoApp } from '../types';
 import type { ProxyRequestDataParsed, ProxyRequestOptions, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
@@ -448,13 +448,6 @@ export class ProxyService {
             providerError: this.extractProviderError(firstResponse),
         });
 
-        this.logApiKeyUsage(c, {
-            apiKeyId: firstApiKey.id,
-            isSuccessful: false,
-            error: syntheticError,
-            providerError: this.extractProviderError(firstResponse),
-        });
-
         return this.retryApiRequest({
             c,
             baseRequest,
@@ -467,10 +460,13 @@ export class ProxyService {
             initialProviderError: this.extractProviderError(firstResponse),
             initialRetryAttempt: firstRetryAttempt,
             options,
+            usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
         });
     }
 
-    private static handleSuccessfulResponse(params: SuccessfulResponseParams): Response {
+    private static async handleSuccessfulResponse(
+        params: SuccessfulResponseParams,
+    ): Promise<Response> {
         const {
             c,
             firstResponse,
@@ -483,41 +479,17 @@ export class ProxyService {
             requestId,
         } = params;
 
-        this.logApiKeyUsage(c, { apiKeyId: firstApiKey.id, isSuccessful: true });
-
-        const responseClone = firstResponse.clone();
-        const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
-        const responseCloneForLog = firstResponse.clone();
-
-        // Calculate total response time from start to finish
-        const requestStartTime = c.get('requestStartTime') as number | undefined;
-        const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
-
-        this.logRequestSuccess(c, {
+        return ResponseHandlerService.handleSuccess({
+            c,
+            response: firstResponse,
             requestId,
             apiKeyId: firstApiKey.id,
-            proxyKeyId: proxyApiKeyData.id,
-            userId: proxyApiKeyData.user_id,
-            apiFormat: proxyRequestDataParsed.apiFormat,
-            requestData: {
-                method: baseRequest.method,
-                url: proxyRequestDataParsed.urlToProxy,
-                headers: Object.fromEntries(firstHeaders.entries()),
-            },
-            responseData: {
-                status: firstResponse.status,
-                headers: Object.fromEntries(firstResponse.headers.entries()),
-            },
-            responseBody: responseCloneForLog,
-            isStream: proxyRequestDataParsed.stream,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            baseRequest,
+            headers: firstHeaders,
             durationMs: firstAttemptDuration,
-            totalResponseTimeMs,
             retryAttempts: [],
-        });
-
-        return new Response(firstResponse.clone().body, {
-            status: firstResponse.clone().status,
-            headers: filteredResponseHeaders,
         });
     }
 
@@ -545,13 +517,6 @@ export class ProxyService {
             providerError: firstProviderError,
         });
 
-        this.logApiKeyUsage(c, {
-            apiKeyId: firstApiKey.id,
-            isSuccessful: false,
-            error: firstError,
-            providerError: firstProviderError,
-        });
-
         return this.retryApiRequest({
             c,
             baseRequest,
@@ -564,6 +529,7 @@ export class ProxyService {
             initialProviderError: firstProviderError,
             initialRetryAttempt: firstRetryAttempt,
             options,
+            usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
         });
     }
 
@@ -580,6 +546,7 @@ export class ProxyService {
         initialProviderError?: ProviderErrorData;
         initialRetryAttempt?: RetryAttemptData;
         options?: ProxyRequestOptions;
+        usedApiKeyIds?: string[];
     }): Promise<Response> {
         const {
             c,
@@ -593,6 +560,7 @@ export class ProxyService {
             initialProviderError,
             initialRetryAttempt,
             options,
+            usedApiKeyIds: initialUsedApiKeyIds = [],
         } = params;
 
         let retryAttempts: RetryAttemptData[] = initialRetryAttempt ? [initialRetryAttempt] : [];
@@ -626,7 +594,7 @@ export class ProxyService {
             });
         }
 
-        const usedApiKeyIds: string[] = [];
+        const usedApiKeyIds: string[] = [...initialUsedApiKeyIds];
         for (
             let currentAttempt = startAttemptIndex;
             currentAttempt <= retriesTimes;
@@ -663,15 +631,6 @@ export class ProxyService {
                     const error = this.createProxyError(response, attemptDuration);
                     const providerError = await this.extractProviderErrorWithBody(response.clone());
 
-                    this.logApiKeyUsage(c, {
-                        apiKeyId: selectedApiKey.id,
-                        isSuccessful: false,
-                        error,
-                        providerError,
-                    });
-                    // Touch error timestamp to avoid immediate reuse by other requests
-                    ApiKeyService.touchLastError(c, selectedApiKey.id).catch(() => {});
-
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
                         apiKeyId: selectedApiKey.id,
@@ -701,14 +660,6 @@ export class ProxyService {
                     const syntheticError = this.createSyntheticError(response.status);
                     const providerError = this.extractProviderError(response);
 
-                    this.logApiKeyUsage(c, {
-                        apiKeyId: selectedApiKey.id,
-                        isSuccessful: false,
-                        error: syntheticError,
-                        providerError,
-                    });
-                    ApiKeyService.touchLastError(c, selectedApiKey.id).catch(() => {});
-
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
                         apiKeyId: selectedApiKey.id,
@@ -729,41 +680,17 @@ export class ProxyService {
                     continue;
                 }
 
-                this.logApiKeyUsage(c, { apiKeyId: selectedApiKey.id, isSuccessful: true });
-
-                const responseClone = response.clone();
-                const responseCloneForLog = response.clone();
-                const filteredResponseHeaders = this.filterResponseHeaders(responseClone.headers);
-
-                // Calculate total response time from start to finish
-                const requestStartTime = c.get('requestStartTime') as number | undefined;
-                const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
-
-                this.logRequestSuccess(c, {
+                return ResponseHandlerService.handleSuccess({
+                    c,
+                    response: response,
                     requestId,
                     apiKeyId: selectedApiKey.id,
-                    proxyKeyId: proxyApiKeyData.id,
-                    userId: proxyApiKeyData.user_id,
-                    apiFormat: proxyRequestDataParsed.apiFormat,
-                    requestData: {
-                        method: baseRequest.method,
-                        url: proxyRequestDataParsed.urlToProxy,
-                        headers: Object.fromEntries(headers.entries()),
-                    },
-                    responseData: {
-                        status: response.status,
-                        headers: Object.fromEntries(response.headers.entries()),
-                    },
-                    responseBody: responseCloneForLog,
-                    isStream: proxyRequestDataParsed.stream,
+                    proxyApiKeyData,
+                    proxyRequestDataParsed,
+                    baseRequest,
+                    headers: headers,
                     durationMs: attemptDuration,
-                    totalResponseTimeMs,
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
-                });
-
-                return new Response(responseClone.body, {
-                    status: responseClone.status,
-                    headers: filteredResponseHeaders,
                 });
             } catch (error) {
                 const errorObj =
@@ -862,64 +789,6 @@ export class ProxyService {
         };
     }
 
-    private static logApiKeyUsage(c: Context<HonoApp>, params: ApiKeyUsageParams): void {
-        const { apiKeyId, isSuccessful, error, providerError } = params;
-
-        if (isSuccessful) {
-            BatchLoggerService.addApiKeyUsage(c, { apiKeyId, isSuccessful: true });
-        } else if (error && providerError) {
-            BatchLoggerService.addApiKeyUsage(c, {
-                apiKeyId,
-                isSuccessful: false,
-                errorDetails: {
-                    message: error.message,
-                    type: error.type,
-                    status: error.status,
-                    code: error.code,
-                    provider_status: providerError.status,
-                    provider_headers: providerError.headers,
-                    provider_raw_body: providerError.body,
-                },
-            });
-        }
-    }
-
-    private static logRequestSuccess(c: Context<HonoApp>, params: RequestSuccessParams): void {
-        const {
-            requestId,
-            apiKeyId,
-            proxyKeyId,
-            userId,
-            apiFormat,
-            requestData,
-            responseData,
-            responseBody,
-            isStream,
-            durationMs,
-            retryAttempts,
-        } = params;
-
-        BatchLoggerService.addRequestLog(c, {
-            requestId,
-            apiKeyId,
-            proxyKeyId,
-            userId,
-            apiFormat,
-            requestData,
-            responseData,
-            isSuccessful: true,
-            isStream,
-            performanceMetrics: {
-                duration_ms: durationMs,
-                total_response_time_ms: params.totalResponseTimeMs,
-                attempt_count: retryAttempts.length + 1,
-            },
-            responseBody: responseBody,
-            retryAttempts,
-            totalResponseTimeMs: params.totalResponseTimeMs,
-        });
-    }
-
     private static createErrorResponse(c: Context<HonoApp>, params: ErrorResponseParams): Response {
         const {
             requestId,
@@ -931,78 +800,15 @@ export class ProxyService {
             retryAttempts,
         } = params;
 
-        // Calculate total response time from start to finish
-        const requestStartTime = c.get('requestStartTime') as number | undefined;
-        const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
-
-        BatchLoggerService.addRequestLog(c, {
+        return ResponseHandlerService.handleError({
+            c,
             requestId,
-            apiKeyId: null,
-            proxyKeyId: proxyApiKeyData.id,
-            userId: proxyApiKeyData.user_id,
-            apiFormat: proxyRequestDataParsed.apiFormat,
-            requestData: {
-                method: baseRequest.method,
-                url: proxyRequestDataParsed.urlToProxy,
-            },
-            responseData: lastProviderError
-                ? {
-                      status: lastProviderError.status,
-                      headers: lastProviderError.headers,
-                      error_body: lastProviderError.body,
-                  }
-                : undefined,
-            isStream: proxyRequestDataParsed.stream,
-            isSuccessful: false,
-            performanceMetrics: {
-                duration_ms: 0,
-                total_response_time_ms: totalResponseTimeMs,
-                attempt_count: retryAttempts.length,
-            },
-            errorDetails: {
-                message: lastError.message,
-                type: lastError.type,
-                status: lastError.status,
-                code: lastError.code,
-                provider_status: lastProviderError?.status,
-                provider_headers: lastProviderError?.headers,
-                provider_raw_body: lastProviderError?.body,
-            },
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            baseRequest,
+            lastError,
+            lastProviderError: lastProviderError || undefined,
             retryAttempts,
-            totalResponseTimeMs,
-        });
-
-        if (lastProviderError) {
-            const providerHeaders = new Headers();
-            if (lastProviderError.headers) {
-                Object.entries(lastProviderError.headers).forEach(([k, v]) => {
-                    providerHeaders.set(k, v);
-                });
-            }
-            const safeHeaders = this.filterResponseHeaders(providerHeaders);
-            safeHeaders.set('x-gproxy-error-type', lastError.type);
-            if (lastError.code) safeHeaders.set('x-gproxy-error-code', lastError.code);
-            safeHeaders.set('x-gproxy-error-message', lastError.message);
-            safeHeaders.set('x-gproxy-request-id', requestId);
-
-            const statusToReturn = lastProviderError.status || lastError.status || 500;
-
-            return new Response(lastProviderError.body || '', {
-                status: statusToReturn,
-                headers: safeHeaders,
-            });
-        }
-
-        const statusCode = typeof lastError.status === 'number' ? lastError.status : 500;
-        const jsonBody = {
-            error: lastError.type,
-            message: lastError.message,
-            code: lastError.code,
-            gproxy_request_id: requestId,
-        };
-        return new Response(JSON.stringify(jsonBody), {
-            status: statusCode,
-            headers: { 'content-type': 'application/json' },
         });
     }
 

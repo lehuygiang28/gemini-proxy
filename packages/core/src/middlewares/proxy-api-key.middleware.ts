@@ -4,9 +4,8 @@ import { ApiKeyService } from '../services/api-key.service';
 import { getSupabaseClient } from '../services/supabase.service';
 
 export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
-    const apiKey = ApiKeyService.getProxyApiKey(c);
-
-    if (!apiKey) {
+    const proxyApiKey = ApiKeyService.getProxyApiKeyFromHeader(c);
+    if (!proxyApiKey) {
         return c.json(
             {
                 error: 'Unauthorized',
@@ -21,7 +20,7 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
     const { data, error } = await supabase
         .from('proxy_api_keys')
         .select('id, user_id, name, is_active')
-        .eq('proxy_key_value', apiKey)
+        .eq('proxy_key_value', proxyApiKey)
         .limit(1)
         .single();
 
@@ -49,6 +48,6 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
         );
     }
 
-    c.set('proxyApiKeyData', data as unknown as any);
+    c.set('proxyApiKeyData', data);
     await next();
 };

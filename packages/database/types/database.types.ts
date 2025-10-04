@@ -4,13 +4,14 @@ export type Database = {
     // Allows to automatically instantiate createClient with right options
     // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
     __InternalSupabase: {
-        PostgrestVersion: '13.0.4';
+        PostgrestVersion: '13.0.5';
     };
     public: {
         Tables: {
             api_keys: {
                 Row: {
                     api_key_value: string;
+                    completion_tokens: number;
                     created_at: string;
                     failure_count: number;
                     id: string;
@@ -19,13 +20,16 @@ export type Database = {
                     last_used_at: string | null;
                     metadata: Json;
                     name: string;
+                    prompt_tokens: number;
                     provider: string;
                     success_count: number;
+                    total_tokens: number;
                     updated_at: string;
                     user_id: string;
                 };
                 Insert: {
                     api_key_value: string;
+                    completion_tokens?: number;
                     created_at?: string;
                     failure_count?: number;
                     id?: string;
@@ -34,13 +38,16 @@ export type Database = {
                     last_used_at?: string | null;
                     metadata?: Json;
                     name: string;
+                    prompt_tokens?: number;
                     provider?: string;
                     success_count?: number;
+                    total_tokens?: number;
                     updated_at?: string;
                     user_id: string;
                 };
                 Update: {
                     api_key_value?: string;
+                    completion_tokens?: number;
                     created_at?: string;
                     failure_count?: number;
                     id?: string;
@@ -49,8 +56,10 @@ export type Database = {
                     last_used_at?: string | null;
                     metadata?: Json;
                     name?: string;
+                    prompt_tokens?: number;
                     provider?: string;
                     success_count?: number;
+                    total_tokens?: number;
                     updated_at?: string;
                     user_id?: string;
                 };
@@ -193,38 +202,6 @@ export type Database = {
                 Returns: Json;
             };
             get_dashboard_statistics: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_all: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_api_formats: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_api_key_ids: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_error_types: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_models: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_proxy_key_ids: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_status_codes: {
-                Args: { p_user_id?: string };
-                Returns: Json;
-            };
-            get_filter_options_user_ids: {
                 Args: { p_user_id?: string };
                 Returns: Json;
             };
