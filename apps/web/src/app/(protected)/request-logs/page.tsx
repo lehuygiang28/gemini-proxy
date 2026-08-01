@@ -395,6 +395,7 @@ export default function RequestLogsListPage() {
                         ? 'Live updates on — table refreshes when new request logs arrive.'
                         : 'Live updates paused — resume to auto-refresh on new logs.'
                 }
+                description="Detailed request logs older than 90 days are removed automatically. Lifetime usage totals on API keys and proxy keys are kept."
             />
 
             <div className="gp-panel" style={{ marginBottom: 12, padding: 16 }}>

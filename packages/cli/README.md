@@ -126,7 +126,7 @@ gproxy proxy-keys create --quick
 ### **Log Commands**
 
 - `gproxy logs list`
-- `gproxy logs prune`
+- `gproxy logs prune` — deletes detailed `request_logs` older than N days (default **90**, or `LOG_RETENTION_DAYS`); calls `cleanup_old_request_logs`. Lifetime key/token counters are kept.
 - `gproxy logs get <id>`
 - `gproxy logs stats`
 

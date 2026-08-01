@@ -76,6 +76,13 @@ This guide explains how to configure the Gemini Proxy CLI using environment vari
 - **Values**: `true` or `false`
 - **Default**: `false`
 
+#### `LOG_RETENTION_DAYS`
+
+- **Description**: Default retention window for `gproxy logs prune` (days of detailed `request_logs` to keep)
+- **Values**: Integer `7`–`365`
+- **Default**: `90`
+- **Notes**: Server-side schedule uses the same 90-day default via `cleanup_old_request_logs` + `pg_cron`. Key usage totals on `api_keys` / `proxy_api_keys` are never cleared. On Supabase Free, enable Cron in the dashboard; jobs stop while a paused Free project is asleep.
+
 ## API Key Formats
 
 The CLI supports two formats for API keys: simple comma-separated and advanced JSON array.
