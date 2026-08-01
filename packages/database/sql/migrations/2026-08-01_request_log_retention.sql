@@ -55,9 +55,14 @@ COMMENT ON FUNCTION cleanup_old_request_logs(INTEGER) IS
     'service_role only. Does not modify api_keys / proxy_api_keys counters.';
 
 REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO postgres;
 
--- Schedule daily purge when pg_cron is available (Dashboard → Integrations → Cron).
+-- Enable pg_cron when permitted (Supabase Free supports it; Dashboard → Integrations → Cron also works).
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+
+-- Schedule daily purge when pg_cron is available.
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN

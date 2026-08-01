@@ -249,7 +249,9 @@ COMMENT ON FUNCTION cleanup_old_request_logs(INTEGER) IS
     'service_role only. Does not modify api_keys / proxy_api_keys counters.';
 
 REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO postgres;
 
 -- Documentation comments
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
