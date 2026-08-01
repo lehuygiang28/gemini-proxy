@@ -21,6 +21,7 @@ import {
     KpiStrip,
     LiveRequestFeed,
     buildConsoleKpiItems,
+    buildTokenUsageKpiItems,
     type LiveFeedLog,
 } from '@/features/observability';
 
@@ -237,11 +238,22 @@ export default function ConsolePage() {
                 totalRequests: dashboardStats?.total_requests,
                 successRate: dashboardStats?.success_rate,
                 avgResponseMs: dashboardStats?.avg_response_time_ms,
-                totalTokens: dashboardStats?.total_tokens,
                 activeKeys: dashboardStats?.active_keys,
                 retryRate: retryStats?.retry_rate,
             }),
         [dashboardStats, retryStats],
+    );
+
+    const tokenKpiItems = useMemo(
+        () =>
+            buildTokenUsageKpiItems({
+                promptTokens: requestLogsStats?.prompt_tokens,
+                completionTokens: requestLogsStats?.completion_tokens,
+                cacheTokens: requestLogsStats?.cache_tokens,
+                totalTokens: requestLogsStats?.total_tokens,
+                periodDays: requestLogsStats?.period_days ?? selectedDays,
+            }),
+        [requestLogsStats, selectedDays],
     );
 
     return (
@@ -270,6 +282,8 @@ export default function ConsolePage() {
                 )}
 
                 <KpiStrip items={kpiItems} loading={dashboardLoading || retryLoading} />
+
+                <KpiStrip items={tokenKpiItems} loading={requestLogsLoading} />
 
                 <ChartsRow
                     requestsByHour={requestLogsStats?.requests_by_hour}

@@ -25,6 +25,7 @@ export interface RequestLogData {
         promptTokens: number;
         completionTokens: number;
         totalTokens: number;
+        cacheTokens: number;
         model: string;
         responseId?: string;
         rawMetadata: any;
@@ -222,6 +223,7 @@ export class BackgroundService {
                 promptTokens: tokenUsage.promptTokens,
                 completionTokens: tokenUsage.completionTokens,
                 totalTokens: tokenUsage.totalTokens,
+                cacheTokens: tokenUsage.cacheTokens,
                 model: tokenUsage.model || proxyRequestDataParsed.model || 'unknown',
                 responseId: tokenUsage.responseId,
                 rawMetadata: {
@@ -357,6 +359,7 @@ export class BackgroundService {
                       promptTokens: 0,
                       completionTokens: 0,
                       totalTokens: 0,
+                      cacheTokens: 0,
                       model: model,
                       rawMetadata: { model: model },
                   }
@@ -547,6 +550,7 @@ export class BackgroundService {
                       prompt_tokens: usageMetadata.promptTokens,
                       completion_tokens: usageMetadata.completionTokens,
                       total_tokens: usageMetadata.totalTokens,
+                      cache_tokens: usageMetadata.cacheTokens,
                       model: usageMetadata.model,
                       response_id: usageMetadata.responseId,
                       raw_metadata: usageMetadata.rawMetadata,
@@ -865,6 +869,7 @@ export class BackgroundService {
             promptTokens: number;
             completionTokens: number;
             totalTokens: number;
+            cacheTokens: number;
             responseId?: string;
             model?: string;
         };
@@ -884,6 +889,7 @@ export class BackgroundService {
                         promptTokens: parsed.promptTokens || 0,
                         completionTokens: parsed.completionTokens || 0,
                         totalTokens: parsed.totalTokens || 0,
+                        cacheTokens: parsed.cacheTokens || 0,
                         responseId: parsed.responseId,
                         model: parsed.model,
                     },
@@ -895,6 +901,7 @@ export class BackgroundService {
                     promptTokens: 0,
                     completionTokens: 0,
                     totalTokens: 0,
+                    cacheTokens: 0,
                     responseId: undefined,
                     model: undefined,
                 },
@@ -909,6 +916,7 @@ export class BackgroundService {
                 promptTokens: 0,
                 completionTokens: 0,
                 totalTokens: 0,
+                cacheTokens: 0,
                 responseId: undefined,
                 model: undefined,
             },

@@ -63,7 +63,6 @@ export function buildConsoleKpiItems(input: {
     totalRequests?: number;
     successRate?: number;
     avgResponseMs?: number;
-    totalTokens?: number;
     activeKeys?: number;
     retryRate?: number;
 }): KpiItem[] {
@@ -90,12 +89,6 @@ export function buildConsoleKpiItems(input: {
             tone: 'default',
         },
         {
-            key: 'tokens',
-            label: 'Proxy tokens',
-            value: formatTokenCount(input.totalTokens),
-            hint: 'All-time token counters on proxy keys',
-        },
-        {
             key: 'keys',
             label: 'Active keys',
             value: input.activeKeys ?? 0,
@@ -105,6 +98,47 @@ export function buildConsoleKpiItems(input: {
             label: 'Retry rate',
             value: `${retryRate}%`,
             tone: retryRate > 20 ? 'error' : retryRate > 10 ? 'warn' : 'success',
+        },
+    ];
+}
+
+export function buildTokenUsageKpiItems(input: {
+    promptTokens?: number;
+    completionTokens?: number;
+    cacheTokens?: number;
+    totalTokens?: number;
+    periodDays?: number;
+}): KpiItem[] {
+    const periodHint =
+        input.periodDays != null
+            ? `Last ${input.periodDays} days from request logs`
+            : 'Period-scoped from request logs';
+    return [
+        {
+            key: 'input-tokens',
+            label: 'Input tokens',
+            value: formatTokenCount(input.promptTokens),
+            hint: periodHint,
+        },
+        {
+            key: 'output-tokens',
+            label: 'Output tokens',
+            value: formatTokenCount(input.completionTokens),
+            hint: periodHint,
+        },
+        {
+            key: 'cache-tokens',
+            label: 'Cache tokens',
+            value: formatTokenCount(input.cacheTokens),
+            tone: 'default',
+            hint: periodHint,
+        },
+        {
+            key: 'total-tokens',
+            label: 'Total tokens',
+            value: formatTokenCount(input.totalTokens),
+            tone: 'accent',
+            hint: periodHint,
         },
     ];
 }

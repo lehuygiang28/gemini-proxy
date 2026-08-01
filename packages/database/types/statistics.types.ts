@@ -50,6 +50,9 @@ export interface RequestLogsStatistics {
     successful_requests: number;
     failed_requests: number;
     total_tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    cache_tokens: number;
     avg_response_time_ms: number;
     avg_total_response_time_ms: number;
     success_rate: number;
@@ -70,6 +73,7 @@ export interface UsageMetadata {
     total_tokens: number;
     prompt_tokens: number;
     completion_tokens: number;
+    cache_tokens?: number;
     model: string | null;
     response_id?: string;
     created?: number;

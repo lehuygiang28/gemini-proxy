@@ -638,6 +638,9 @@ DECLARE
     successful_requests BIGINT;
     failed_requests BIGINT;
     total_tokens_sum BIGINT;
+    prompt_tokens_sum BIGINT;
+    completion_tokens_sum BIGINT;
+    cache_tokens_sum BIGINT;
     avg_response_time_ms NUMERIC;
     avg_total_response_time_ms NUMERIC;
     success_rate NUMERIC;
@@ -652,61 +655,80 @@ BEGIN
     END IF;
     -- Calculate cutoff date
     cutoff_date := NOW() - INTERVAL '1 day' * p_days_back;
-    
+
     -- Get basic request statistics
-    SELECT 
+    SELECT
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
         COUNT(*) FILTER (WHERE is_successful = false) as failed_count,
         COALESCE(
             SUM(
-                CASE 
-                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$' 
-                    THEN (performance_metrics->>'duration_ms')::NUMERIC 
+                CASE
+                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                    THEN (performance_metrics->>'duration_ms')::NUMERIC
                     ELSE 0
                 END
             ),
             0
         ) / NULLIF(COUNT(*), 0) as avg_response_time,
-            COALESCE(
-                SUM(
-                    CASE
-                        WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
-                        THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
-                        ELSE 0
-                    END
-                ),
-                0
-            ) / NULLIF(COUNT(*), 0) as avg_total_response_time
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                    THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
+                    ELSE 0
+                END
+            ),
+            0
+        ) / NULLIF(COUNT(*), 0) as avg_total_response_time
     INTO total_requests, successful_requests, failed_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
-    
-    -- Get total tokens from usage_metadata
-    SELECT COALESCE(
-        SUM(
-            CASE 
-                WHEN (usage_metadata->>'total_tokens') ~ '^[0-9]+$' 
-                THEN (usage_metadata->>'total_tokens')::BIGINT 
+
+    -- Token totals from usage_metadata (period-scoped)
+    SELECT
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'total_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'total_tokens')::BIGINT
                 ELSE 0
             END
-        ),
-        0
-    )
-    INTO total_tokens_sum
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'prompt_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'prompt_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'completion_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'completion_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'cache_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'cache_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0)
+    INTO total_tokens_sum, prompt_tokens_sum, completion_tokens_sum, cache_tokens_sum
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date
     AND usage_metadata IS NOT NULL;
-    
+
     -- Calculate success rate
-    success_rate := CASE 
-        WHEN total_requests > 0 THEN 
+    success_rate := CASE
+        WHEN total_requests > 0 THEN
             ROUND((successful_requests::NUMERIC / total_requests::NUMERIC) * 100, 2)
-        ELSE 0 
+        ELSE 0
     END;
-    
+
     -- Get requests by API format
     SELECT json_object_agg(api_format, format_count)
     INTO requests_by_format
@@ -717,12 +739,12 @@ BEGIN
         AND created_at >= cutoff_date
         GROUP BY api_format
     ) format_stats;
-    
+
     -- Get requests by hour (last 24 hours)
     SELECT json_object_agg(hour_bucket, hour_count)
     INTO requests_by_hour
     FROM (
-        SELECT 
+        SELECT
             EXTRACT(HOUR FROM created_at)::TEXT as hour_bucket,
             COUNT(*) as hour_count
         FROM request_logs
@@ -731,13 +753,16 @@ BEGIN
         GROUP BY EXTRACT(HOUR FROM created_at)
         ORDER BY EXTRACT(HOUR FROM created_at)
     ) hour_stats;
-    
+
     -- Build result JSON
     result := json_build_object(
         'total_requests', total_requests,
         'successful_requests', successful_requests,
         'failed_requests', failed_requests,
         'total_tokens', total_tokens_sum,
+        'prompt_tokens', prompt_tokens_sum,
+        'completion_tokens', completion_tokens_sum,
+        'cache_tokens', cache_tokens_sum,
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
         'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
@@ -745,7 +770,7 @@ BEGIN
         'requests_by_hour', COALESCE(requests_by_hour, '{}'::json),
         'period_days', p_days_back
     );
-    
+
     RETURN result;
 END;
 $$;
@@ -762,5 +787,6 @@ COMMENT ON FUNCTION get_dashboard_statistics(UUID, INTEGER) IS 'Returns dashboar
 COMMENT ON FUNCTION get_retry_statistics(UUID, INTEGER) IS 'Returns retry attempt statistics for request logs within specified time period';
 COMMENT ON FUNCTION get_api_key_statistics(UUID) IS 'Returns usage statistics for API keys including success/failure rates';
 COMMENT ON FUNCTION get_proxy_key_statistics(UUID) IS 'Returns usage statistics for proxy keys including token usage and success rates';
-COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS 'Returns detailed request logs statistics including format breakdown and hourly distribution';
+COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS
+    'Returns request logs statistics including format/hourly distribution and prompt/completion/cache token totals';
 
