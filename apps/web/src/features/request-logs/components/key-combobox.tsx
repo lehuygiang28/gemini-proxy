@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useMemo } from 'react';
 import { Select } from 'antd';
 import { useList } from '@refinedev/core';

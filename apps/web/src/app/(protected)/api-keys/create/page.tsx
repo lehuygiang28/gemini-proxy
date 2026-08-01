@@ -397,66 +397,79 @@ export default function ApiKeyCreatePage() {
             {renderFormatHelp()}
             <Card variant="borderless">
                 <Form {...formProps} layout="vertical">
-                    <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                        <Tabs.TabPane tab="Manual Entry" key="manual">
-                            <Form.List name="keys">
-                                {(fields, { add, remove }) => (
-                                    <>
-                                        {fields.map(({ key, name, ...restField }) => (
-                                            <Space
-                                                key={key}
-                                                style={{ display: 'flex', marginBottom: 8 }}
-                                                align="baseline"
-                                            >
-                                                <Form.Item
-                                                    {...restField}
-                                                    name={[name, 'name']}
-                                                    rules={[
-                                                        {
-                                                            required: true,
-                                                            message: 'Missing name',
-                                                        },
-                                                    ]}
-                                                >
-                                                    <Input placeholder="Key Name" />
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={[
+                            {
+                                key: 'manual',
+                                label: 'Manual Entry',
+                                children: (
+                                    <Form.List name="keys">
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                {fields.map(({ key, name, ...restField }) => (
+                                                    <Space
+                                                        key={key}
+                                                        style={{
+                                                            display: 'flex',
+                                                            marginBottom: 8,
+                                                        }}
+                                                        align="baseline"
+                                                    >
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'name']}
+                                                            rules={[
+                                                                {
+                                                                    required: true,
+                                                                    message: 'Missing name',
+                                                                },
+                                                            ]}
+                                                        >
+                                                            <Input placeholder="Key Name" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'api_key_value']}
+                                                            rules={[
+                                                                {
+                                                                    required: true,
+                                                                    message: 'Missing API key',
+                                                                },
+                                                            ]}
+                                                        >
+                                                            <Input.Password placeholder="API Key" />
+                                                        </Form.Item>
+                                                        <DeleteOutlined
+                                                            onClick={() => remove(name)}
+                                                            style={{ color: token.colorError }}
+                                                        />
+                                                    </Space>
+                                                ))}
+                                                <Form.Item>
+                                                    <Button
+                                                        type="dashed"
+                                                        onClick={() => add()}
+                                                        block
+                                                        icon={<PlusOutlined />}
+                                                    >
+                                                        Add API Key
+                                                    </Button>
                                                 </Form.Item>
-                                                <Form.Item
-                                                    {...restField}
-                                                    name={[name, 'api_key_value']}
-                                                    rules={[
-                                                        {
-                                                            required: true,
-                                                            message: 'Missing API key',
-                                                        },
-                                                    ]}
-                                                >
-                                                    <Input.Password placeholder="API Key" />
-                                                </Form.Item>
-                                                <DeleteOutlined
-                                                    onClick={() => remove(name)}
-                                                    style={{ color: token.colorError }}
-                                                />
-                                            </Space>
-                                        ))}
-                                        <Form.Item>
-                                            <Button
-                                                type="dashed"
-                                                onClick={() => add()}
-                                                block
-                                                icon={<PlusOutlined />}
-                                            >
-                                                Add API Key
-                                            </Button>
-                                        </Form.Item>
-                                    </>
-                                )}
-                            </Form.List>
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab="Bulk Paste" key="bulk">
-                            <Form.Item name="bulk_keys">
-                                <Input.TextArea
-                                    rows={10}
-                                    placeholder={`Paste API keys here, separated by commas, spaces, new lines, semicolons, or pipes.
+                                            </>
+                                        )}
+                                    </Form.List>
+                                ),
+                            },
+                            {
+                                key: 'bulk',
+                                label: 'Bulk Paste',
+                                children: (
+                                    <Form.Item name="bulk_keys">
+                                        <Input.TextArea
+                                            rows={10}
+                                            placeholder={`Paste API keys here, separated by commas, spaces, new lines, semicolons, or pipes.
 
 Examples:
 AIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3
@@ -467,14 +480,19 @@ AIzaXXXXXXXXXXXXXXXXXXXX2
 AIzaXXXXXXXXXXXXXXXXXXXX3
 
 Each key should be at least 10 characters long.`}
-                                />
-                            </Form.Item>
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab="Import JSON" key="json">
-                            <Form.Item name="json_keys">
-                                <Input.TextArea
-                                    rows={10}
-                                    placeholder={`Paste a JSON array of API keys.
+                                        />
+                                    </Form.Item>
+                                ),
+                            },
+                            {
+                                key: 'json',
+                                label: 'Import JSON',
+                                children: (
+                                    <>
+                                        <Form.Item name="json_keys">
+                                            <Input.TextArea
+                                                rows={10}
+                                                placeholder={`Paste a JSON array of API keys.
 
 Examples:
 
@@ -488,18 +506,24 @@ Object array:
 ]
 
 Supported fields: name/title/label, api_key_value/apiKey/key/value`}
-                                />
-                            </Form.Item>
-                            <Dragger beforeUpload={handleJsonUpload} showUploadList={false}>
-                                <p className="ant-upload-drag-icon">
-                                    <UploadOutlined />
-                                </p>
-                                <p className="ant-upload-text">
-                                    Click or drag a JSON file to this area to load
-                                </p>
-                            </Dragger>
-                        </Tabs.TabPane>
-                    </Tabs>
+                                            />
+                                        </Form.Item>
+                                        <Dragger
+                                            beforeUpload={handleJsonUpload}
+                                            showUploadList={false}
+                                        >
+                                            <p className="ant-upload-drag-icon">
+                                                <UploadOutlined />
+                                            </p>
+                                            <p className="ant-upload-text">
+                                                Click or drag a JSON file to this area to load
+                                            </p>
+                                        </Dragger>
+                                    </>
+                                ),
+                            },
+                        ]}
+                    />
                 </Form>
                 <Alert
                     message="Security Notice"

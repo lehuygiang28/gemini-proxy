@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useCallback, useState } from 'react';
 import { Button, Tooltip } from 'antd';
 import { CheckOutlined, CopyOutlined } from '@ant-design/icons';

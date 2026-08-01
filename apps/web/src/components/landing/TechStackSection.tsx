@@ -123,13 +123,15 @@ export const TechStackSection: React.FC = () => {
                                         border: `1px solid ${token.colorBorder}`,
                                         transition: 'all 0.3s ease',
                                     }}
-                                    bodyStyle={{
-                                        padding: token.paddingLG,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        minHeight: '200px',
+                                    styles={{
+                                        body: {
+                                            padding: token.paddingLG,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            minHeight: '200px',
+                                        },
                                     }}
                                     hoverable
                                 >

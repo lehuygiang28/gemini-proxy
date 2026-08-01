@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useMemo } from 'react';
 import { Empty, Spin, Typography } from 'antd';
 import type { Tables } from '@gemini-proxy/database';

@@ -51,7 +51,7 @@ export default function ApiKeysEditPage() {
         <Edit saveButtonProps={saveButtonProps} title={<Title level={4}>Edit API Key</Title>}>
             <Row gutter={12}>
                 <Col xs={24} lg={8}>
-                    <Card bordered={false}>
+                    <Card variant="borderless">
                         <Title level={5}>Editing {apiKeyData?.name}</Title>
                         <Paragraph type="secondary">
                             Modify the details of your existing API key.
@@ -64,7 +64,7 @@ export default function ApiKeysEditPage() {
                     </Card>
                 </Col>
                 <Col xs={24} lg={16}>
-                    <Card bordered={false}>
+                    <Card variant="borderless">
                         <Form {...formProps} layout="vertical">
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> Basic Information

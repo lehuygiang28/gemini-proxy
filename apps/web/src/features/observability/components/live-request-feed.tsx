@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty, Spin, Tag, Tooltip } from 'antd';
 import type { Tables } from '@gemini-proxy/database';

@@ -181,7 +181,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                     boxShadow: token.boxShadow,
                     borderRadius: token.borderRadiusLG,
                 }}
-                bordered={false}
+                variant="borderless"
             >
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
                     <div>

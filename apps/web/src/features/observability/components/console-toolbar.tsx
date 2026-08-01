@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Button, Select, Space, Typography } from 'antd';
 import { PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';

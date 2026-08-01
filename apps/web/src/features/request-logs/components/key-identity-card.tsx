@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Button, Space, Tag, Typography } from 'antd';
 import { CopyOutlined, KeyOutlined, SafetyOutlined } from '@ant-design/icons';
