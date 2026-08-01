@@ -6,6 +6,7 @@ import {
     SafetyCertificateOutlined,
     KeyOutlined,
     FileTextOutlined,
+    SettingOutlined,
 } from '@ant-design/icons';
 import { useNotificationProvider } from '@refinedev/antd';
 import { Refine } from '@refinedev/core';
@@ -75,6 +76,14 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         meta: {
                             label: 'Logs',
                             icon: <FileTextOutlined />,
+                        },
+                    },
+                    {
+                        name: 'user_settings',
+                        list: '/settings',
+                        meta: {
+                            label: 'Settings',
+                            icon: <SettingOutlined />,
                         },
                     },
                 ]}

@@ -797,7 +797,10 @@ export class ProxyService {
         };
     }
 
-    private static createErrorResponse(c: Context<HonoApp>, params: ErrorResponseParams): Response {
+    private static async createErrorResponse(
+        c: Context<HonoApp>,
+        params: ErrorResponseParams,
+    ): Promise<Response> {
         const {
             requestId,
             proxyApiKeyData,

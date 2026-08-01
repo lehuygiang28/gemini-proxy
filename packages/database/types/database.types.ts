@@ -125,6 +125,30 @@ export type Database = {
                 };
                 Relationships: [];
             };
+            user_settings: {
+                Row: {
+                    detailed_observability: boolean;
+                    id: string;
+                    save_request_body: boolean;
+                    save_response_body: boolean;
+                    updated_at: string;
+                };
+                Insert: {
+                    detailed_observability?: boolean;
+                    id: string;
+                    save_request_body?: boolean;
+                    save_response_body?: boolean;
+                    updated_at?: string;
+                };
+                Update: {
+                    detailed_observability?: boolean;
+                    id?: string;
+                    save_request_body?: boolean;
+                    save_response_body?: boolean;
+                    updated_at?: string;
+                };
+                Relationships: [];
+            };
             request_logs: {
                 Row: {
                     api_format: string;

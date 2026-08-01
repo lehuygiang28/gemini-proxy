@@ -14,6 +14,7 @@ import {
     Collapse,
     Badge,
 } from 'antd';
+import Link from 'next/link';
 import {
     CheckCircleOutlined,
     ExclamationCircleOutlined,
@@ -23,7 +24,7 @@ import {
     InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
-import { DateTimeDisplay } from '@/components/common';
+import { DateTimeDisplay, JsonTreeViewer } from '@/components/common';
 import { useNotification, useMany } from '@refinedev/core';
 import { RequestLog, RetryAttempt } from '../types/request-log.types';
 import {
@@ -83,8 +84,15 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
     const performanceMetrics = extractPerformanceMetrics(requestLog.performance_metrics);
     const usageMetadata = extractUsageMetadata(requestLog.usage_metadata);
     const retryAttempts = (requestLog.retry_attempts as unknown as RetryAttempt[]) || [];
-    const requestJson = JSON.stringify(requestData, null, 2);
-    const expandRequestByDefault = requestJson.length < 2048;
+    const responsePanelData = requestLog.is_successful
+        ? responseData
+        : {
+              ...errorDetails,
+              ...(responseData.error_body !== undefined
+                  ? { error_body: responseData.error_body }
+                  : {}),
+              ...(responseData.body !== undefined ? { body: responseData.body } : {}),
+          };
 
     return (
         <div
@@ -144,7 +152,6 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                             title="Request"
                             data={requestData}
                             filename={`request-${requestLog.request_id}.json`}
-                            defaultExpanded={expandRequestByDefault}
                             onCopy={handleCopyToClipboard}
                             onDownload={handleDownloadJson}
                         />
@@ -152,13 +159,12 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                     <Col xs={24} lg={12} style={{ minWidth: 0 }}>
                         <PayloadPanel
                             title="Response"
-                            data={requestLog.is_successful ? responseData : errorDetails}
+                            data={responsePanelData}
                             filename={
                                 requestLog.is_successful
                                     ? `response-${requestLog.request_id}.json`
                                     : `error-${requestLog.request_id}.json`
                             }
-                            defaultExpanded={!requestLog.is_successful}
                             isError={!requestLog.is_successful}
                             emptyLabel={
                                 requestLog.is_successful ? 'No response data' : 'No error details'
@@ -326,11 +332,53 @@ function MetricsStrip({
     );
 }
 
+function extractPayloadBody(data: Record<string, unknown>): {
+    body: unknown;
+    truncated: boolean;
+    hasBody: boolean;
+} {
+    if (data.body !== undefined && data.body !== null) {
+        return {
+            body: data.body,
+            truncated: Boolean(data.body_truncated),
+            hasBody: true,
+        };
+    }
+    if (data.error_body !== undefined && data.error_body !== null) {
+        return { body: data.error_body, truncated: false, hasBody: true };
+    }
+    if (data.provider_raw_body !== undefined && data.provider_raw_body !== null) {
+        return { body: data.provider_raw_body, truncated: false, hasBody: true };
+    }
+    return { body: null, truncated: false, hasBody: false };
+}
+
+const PAYLOAD_BODY_KEYS = new Set([
+    'body',
+    'body_truncated',
+    'body_chars',
+    'error_body',
+    'provider_raw_body',
+]);
+
+function splitPayloadMeta(data: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+        Object.entries(data).filter(([key]) => !PAYLOAD_BODY_KEYS.has(key)),
+    );
+}
+
+function payloadSizeHint(value: unknown): number {
+    try {
+        return JSON.stringify(value)?.length ?? 0;
+    } catch {
+        return 0;
+    }
+}
+
 function PayloadPanel({
     title,
     data,
     filename,
-    defaultExpanded,
     isError = false,
     emptyLabel = 'No data',
     onCopy,
@@ -339,81 +387,118 @@ function PayloadPanel({
     title: string;
     data: Record<string, unknown>;
     filename: string;
-    defaultExpanded: boolean;
     isError?: boolean;
     emptyLabel?: string;
     onCopy: (text: string, label: string) => void;
     onDownload: (data: unknown, filename: string) => void;
 }) {
-    const { token } = useToken();
     const hasData = data && Object.keys(data).length > 0;
-    const json = hasData ? JSON.stringify(data, null, 2) : '';
+    const { body, truncated, hasBody } = extractPayloadBody(data);
+    const headersMeta = splitPayloadMeta(data);
+    const expandBody = hasBody && payloadSizeHint(body) < 2048;
+    const fullJson = hasData ? JSON.stringify(data, null, 2) : '';
 
     return (
         <div className="gp-panel" style={{ padding: 0, overflow: 'hidden' }}>
-            <Collapse
-                ghost
-                defaultActiveKey={defaultExpanded ? ['body'] : []}
-                items={[
-                    {
-                        key: 'body',
-                        label: (
-                            <Space>
-                                <span style={{ fontWeight: 500 }}>{title}</span>
-                                {isError ? <Tag color="error" style={{ borderRadius: 2 }}>Error</Tag> : null}
-                            </Space>
-                        ),
-                        extra: hasData ? (
-                            <Space
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                }}
-                            >
-                                <Tooltip title={`Copy ${title}`}>
-                                    <Button
-                                        type="text"
-                                        size="small"
-                                        icon={<CopyOutlined />}
-                                        onClick={() => onCopy(json, title)}
+            <div
+                style={{
+                    padding: '10px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid var(--gp-border)',
+                }}
+            >
+                <Space>
+                    <span style={{ fontWeight: 500 }}>{title}</span>
+                    {isError ? (
+                        <Tag color="error" style={{ borderRadius: 2 }}>
+                            Error
+                        </Tag>
+                    ) : null}
+                    {hasBody ? (
+                        <Tag color="processing" style={{ borderRadius: 2 }}>
+                            Body captured{truncated ? ' · truncated' : ''}
+                        </Tag>
+                    ) : (
+                        <Tag style={{ borderRadius: 2 }}>Headers only</Tag>
+                    )}
+                </Space>
+                {hasData ? (
+                    <Space>
+                        <Tooltip title={`Copy ${title}`}>
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<CopyOutlined />}
+                                onClick={() => onCopy(fullJson, title)}
+                            />
+                        </Tooltip>
+                        <Tooltip title={`Download ${title}`}>
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<DownloadOutlined />}
+                                onClick={() => onDownload(data, filename)}
+                            />
+                        </Tooltip>
+                    </Space>
+                ) : null}
+            </div>
+            {!hasData ? (
+                <Text type="secondary" style={{ padding: 12, display: 'block' }}>
+                    {emptyLabel}
+                </Text>
+            ) : (
+                <Collapse
+                    ghost
+                    defaultActiveKey={expandBody ? ['body', 'headers'] : ['headers']}
+                    items={[
+                        {
+                            key: 'body',
+                            label: 'Body',
+                            children: hasBody ? (
+                                <div
+                                    style={{
+                                        padding: '0 8px 8px',
+                                        borderLeft: isError
+                                            ? '3px solid var(--gp-error)'
+                                            : undefined,
+                                    }}
+                                >
+                                    <JsonTreeViewer
+                                        value={body}
+                                        collapsed={expandBody ? 2 : 1}
+                                        maxHeight={320}
                                     />
-                                </Tooltip>
-                                <Tooltip title={`Download ${title}`}>
-                                    <Button
-                                        type="text"
-                                        size="small"
-                                        icon={<DownloadOutlined />}
-                                        onClick={() => onDownload(data, filename)}
+                                </div>
+                            ) : (
+                                <Text
+                                    type="secondary"
+                                    style={{ padding: '0 12px 12px', display: 'block', fontSize: 12 }}
+                                >
+                                    Body not stored.{' '}
+                                    <Link href="/settings">Enable in Settings → Observability</Link>
+                                    .
+                                </Text>
+                            ),
+                        },
+                        {
+                            key: 'headers',
+                            label: 'Headers & meta',
+                            children: (
+                                <div style={{ padding: '0 8px 8px' }}>
+                                    <JsonTreeViewer
+                                        value={headersMeta}
+                                        collapsed={1}
+                                        maxHeight={220}
                                     />
-                                </Tooltip>
-                            </Space>
-                        ) : null,
-                        children: hasData ? (
-                            <pre
-                                className="gp-panel-sunken gp-scrollable"
-                                style={{
-                                    margin: 0,
-                                    padding: 12,
-                                    maxHeight: 280,
-                                    overflow: 'auto',
-                                    fontSize: 12,
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                    borderLeft: isError
-                                        ? `3px solid ${token.colorError}`
-                                        : undefined,
-                                    color: isError ? token.colorError : 'var(--gp-text)',
-                                }}
-                            >
-                                {json}
-                            </pre>
-                        ) : (
-                            <Text type="secondary" style={{ padding: 12, display: 'block' }}>
-                                {emptyLabel}
-                            </Text>
-                        ),
-                    },
-                ]}
-            />
+                                </div>
+                            ),
+                        },
+                    ]}
+                />
+            )}
         </div>
     );
 }

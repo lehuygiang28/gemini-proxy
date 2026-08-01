@@ -10,7 +10,16 @@ export interface SanitizeOptions {
     redactUrls?: boolean;
 }
 
+export type SanitizedPayloadBody = {
+    body: string | Record<string, unknown> | unknown[];
+    body_truncated: boolean;
+    body_chars: number;
+};
+
 export class DataSanitizer {
+    /** Max chars for detailed request/response body capture (64 KiB). */
+    static readonly PAYLOAD_BODY_MAX_CHARS = 64 * 1024;
+
     private static readonly SENSITIVE_HEADERS = [
         'authorization',
         'x-goog-api-key',
@@ -141,6 +150,9 @@ export class DataSanitizer {
         if (!requestData) return requestData;
 
         const sanitized = { ...requestData };
+        const preservedBody = sanitized.body;
+        const preservedTruncated = sanitized.body_truncated;
+        const preservedChars = sanitized.body_chars;
 
         // Sanitize headers
         if (sanitized.headers) {
@@ -152,9 +164,11 @@ export class DataSanitizer {
             sanitized.url = this.sanitizeString(sanitized.url, opts);
         }
 
-        // Sanitize body if it's a string
-        if (sanitized.body && typeof sanitized.body === 'string') {
-            sanitized.body = this.sanitizeString(sanitized.body, opts);
+        // Bodies are prepared via sanitizePayloadBody — do not re-apply 1000-char API-key shredder
+        if (preservedBody !== undefined) {
+            sanitized.body = preservedBody;
+            sanitized.body_truncated = preservedTruncated;
+            sanitized.body_chars = preservedChars;
         }
 
         return sanitized;
@@ -166,17 +180,54 @@ export class DataSanitizer {
         if (!responseData) return responseData;
 
         const sanitized = { ...responseData };
+        const preservedBody = sanitized.body;
+        const preservedTruncated = sanitized.body_truncated;
+        const preservedChars = sanitized.body_chars;
 
         // Sanitize headers
         if (sanitized.headers) {
             sanitized.headers = this.sanitizeHeaders(sanitized.headers, opts);
         }
 
-        // Sanitize body if it's a string
-        if (sanitized.body && typeof sanitized.body === 'string') {
-            sanitized.body = this.sanitizeString(sanitized.body, opts);
+        // Bodies are prepared via sanitizePayloadBody — do not re-apply 1000-char API-key shredder
+        if (preservedBody !== undefined) {
+            sanitized.body = preservedBody;
+            sanitized.body_truncated = preservedTruncated;
+            sanitized.body_chars = preservedChars;
         }
 
         return sanitized;
+    }
+
+    /**
+     * Prepare a request/response payload body for storage.
+     * Truncates to maxChars; redacts Bearer/sk- secrets only — not generic long alphanumerics.
+     */
+    static sanitizePayloadBody(
+        text: string,
+        maxChars: number = DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+    ): SanitizedPayloadBody {
+        let redacted = text
+            .replace(/Bearer\s+[a-zA-Z0-9._-]+/gi, 'Bearer [REDACTED_TOKEN]')
+            .replace(/\bsk-[a-zA-Z0-9]{20,}\b/g, '[REDACTED_API_KEY]');
+        const originalLength = redacted.length;
+        const body_truncated = originalLength > maxChars;
+        if (body_truncated) {
+            redacted = redacted.substring(0, maxChars);
+        }
+        let body: string | Record<string, unknown> | unknown[] = redacted;
+        try {
+            const parsed: unknown = JSON.parse(redacted);
+            if (parsed !== null && typeof parsed === 'object') {
+                body = parsed as Record<string, unknown> | unknown[];
+            }
+        } catch {
+            // keep as string (SSE streams, plain text)
+        }
+        return {
+            body,
+            body_truncated,
+            body_chars: originalLength,
+        };
     }
 }

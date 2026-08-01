@@ -43,6 +43,7 @@ export class ResponseHandlerService {
 
         // Handle successful request with unified background service
         await BackgroundService.handleRequestSuccess({
+            c,
             requestId,
             apiKeyId,
             proxyKeyId: proxyApiKeyData.id,
@@ -67,7 +68,7 @@ export class ResponseHandlerService {
     /**
      * Handle error response - return immediately and log in background
      */
-    static handleError(params: {
+    static async handleError(params: {
         c: Context<HonoApp>;
         requestId: string;
         proxyApiKeyData: Tables<'proxy_api_keys'>;
@@ -80,7 +81,7 @@ export class ResponseHandlerService {
             body: string;
         };
         retryAttempts?: any[];
-    }): Response {
+    }): Promise<Response> {
         const {
             c,
             requestId,
@@ -101,8 +102,9 @@ export class ResponseHandlerService {
                 ? retryAttempts[retryAttempts.length - 1]
                 : null;
 
-        // Handle failed request with unified background service
-        BackgroundService.handleRequestError({
+        // Collect failed-request operations before returning (waitUntil flushes DB)
+        await BackgroundService.handleRequestError({
+            c,
             requestId,
             proxyKeyId: proxyApiKeyData.id,
             apiKeyId: lastRetry?.api_key_id ?? null,

@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     CONSTRAINT proxy_api_keys_proxy_key_value_length CHECK (char_length(proxy_key_value) >= 10)
 );
 
+-- Per-user settings (id = auth.users.id)
+CREATE TABLE IF NOT EXISTS user_settings (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    detailed_observability BOOLEAN NOT NULL DEFAULT false,
+    save_request_body BOOLEAN NOT NULL DEFAULT false,
+    save_response_body BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
 -- Soft-delete aware uniqueness (alive rows only)
 CREATE UNIQUE INDEX IF NOT EXISTS api_keys_user_id_name_alive_uidx
     ON api_keys (user_id, name)
@@ -160,10 +169,16 @@ CREATE TRIGGER update_proxy_api_keys_updated_at
     BEFORE UPDATE ON proxy_api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at
+    BEFORE UPDATE ON user_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Row Level Security (RLS)
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies using subqueries to avoid re-evaluation
 DROP POLICY IF EXISTS "Users can manage their own api_keys" ON api_keys;
@@ -177,6 +192,17 @@ DROP POLICY IF EXISTS "Users can manage their own proxy_api_keys" ON proxy_api_k
 CREATE POLICY "Users can manage their own proxy_api_keys" ON proxy_api_keys
     FOR ALL USING (
         user_id = (SELECT auth.uid()) OR 
+        (SELECT auth.role()) = 'service_role'
+    );
+
+DROP POLICY IF EXISTS "Users can manage their own user_settings" ON user_settings;
+CREATE POLICY "Users can manage their own user_settings" ON user_settings
+    FOR ALL USING (
+        id = (SELECT auth.uid()) OR
+        (SELECT auth.role()) = 'service_role'
+    )
+    WITH CHECK (
+        id = (SELECT auth.uid()) OR
         (SELECT auth.role()) = 'service_role'
     );
 
@@ -254,6 +280,15 @@ GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO service_role;
 GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO postgres;
 
 -- Documentation comments
+COMMENT ON TABLE user_settings IS
+    'Per-user settings; id matches auth.users.id. Controls detailed log body capture.';
+COMMENT ON COLUMN user_settings.detailed_observability IS
+    'Master gate for detailed observability (request/response body capture).';
+COMMENT ON COLUMN user_settings.save_request_body IS
+    'When detailed_observability is on, persist sanitized request bodies on request_logs.';
+COMMENT ON COLUMN user_settings.save_response_body IS
+    'When detailed_observability is on, persist sanitized response bodies on request_logs.';
+
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
 COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests with performance metrics';
