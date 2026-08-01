@@ -74,8 +74,7 @@ BEGIN
         );
     ELSE
         RAISE NOTICE
-            'pg_cron is not enabled. Enable it in Supabase Dashboard → Integrations → Cron, '
-            'then re-run this migration or: SELECT cron.schedule(''purge-request-logs-daily'', ''0 3 * * *'', $$SELECT cleanup_old_request_logs(90)$$);';
+            'pg_cron is not enabled. Enable it in Supabase Dashboard → Integrations → Cron, then schedule purge-request-logs-daily (0 3 * * *) to call cleanup_old_request_logs(90).';
     END IF;
 END;
 $$;
