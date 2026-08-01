@@ -100,9 +100,9 @@ Configure your Appwrite project details in `appwrite.config.json`.
 
 ### **Required Variables**
 
-| Variable                    | Description                  |
-| --------------------------- | ---------------------------- |
-| `SUPABASE_URL`              | Your Supabase project URL.   |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ### **Optional Variables**
@@ -120,7 +120,6 @@ You can fork this repository and connect it to Appwrite for faster deployments a
 1. Fork the repo on GitHub.
 2. In the Appwrite Console, create a new Function and connect your Git repository.
 3. Configure the function with the following settings:
-
    - Runtime: Nodejs 22
    - Entrypoint: `packages/appwrite/dist/main.js`
    - Root directory: `./` (root)
@@ -142,11 +141,11 @@ This package is intended for deployment to Appwrite and does not have a local de
 ```md
 packages/appwrite/
 ├── src/
-│   └── main.ts           # Main function entry point
-├── dist/                 # Compiled output
-├── appwrite.config.json  # Appwrite configuration
-├── package.json          # Dependencies and scripts
-└── README.md             # This file
+│ └── main.ts # Main function entry point
+├── dist/ # Compiled output
+├── appwrite.config.json # Appwrite configuration
+├── package.json # Dependencies and scripts
+└── README.md # This file
 ```
 
 ## 🐛 Troubleshooting

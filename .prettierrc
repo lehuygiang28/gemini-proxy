@@ -16,5 +16,25 @@
     "trailingComma": "all",
     "useTabs": false,
     "vueIndentScriptAndStyle": false,
-    "endOfLine": "auto"
+    "endOfLine": "lf",
+    "overrides": [
+        {
+            "files": ["*.md", "*.mdx"],
+            "options": {
+                "parser": "markdown",
+                "printWidth": 100,
+                "proseWrap": "preserve",
+                "tabWidth": 2,
+                "useTabs": false,
+                "singleQuote": false,
+                "embeddedLanguageFormatting": "auto"
+            }
+        },
+        {
+            "files": ["*.json", "*.jsonc"],
+            "options": {
+                "tabWidth": 4
+            }
+        }
+    ]
 }

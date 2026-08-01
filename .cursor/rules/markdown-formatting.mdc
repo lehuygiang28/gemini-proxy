@@ -1,0 +1,59 @@
+---
+description: Markdown formatting standards for docs and READMEs (Prettier + markdownlint).
+globs: "**/*.md,**/*.mdx"
+alwaysApply: false
+---
+
+# Markdown Formatting
+
+Use Prettier + markdownlint. Run `pnpm format` (or format the open file) before committing docs.
+
+## Tooling (source of truth)
+
+- Prettier override for `*.md` / `*.mdx`: `tabWidth: 2`, `proseWrap: "preserve"`, `printWidth: 100`
+- Project config: [.prettierrc](mdc:.prettierrc), [.markdownlint.json](mdc:.markdownlint.json)
+
+## DO
+
+- Align markdown tables with Prettier (pipe tables OK)
+- Use fenced code blocks with an explicit language (`bash`, `ts`, `sql`, `json`, `text`)
+- Put ASCII diagrams / directory trees in ` ```text ` fences (never ` ```md `)
+- Keep list nesting at 2-space indents (Prettier markdown default here)
+- Prefer `**bold**` / `*italic*` (asterisk style)
+- End files with a single trailing newline
+
+## DON'T
+
+- Do **not** wrap prose aggressively (`proseWrap` stays `preserve`)
+- Do **not** use ` ```md ` for non-markdown samples — Prettier will reformat nested markdown and destroy trees/diagrams
+- Do **not** leave decorative emphasis like `****` or invalid bold markers; use real `**text**` or remove them
+- Do **not** hand-edit generated docs that are in [.prettierignore](mdc:.prettierignore)
+
+```text
+# ✅ DO: diagram in a text fence
+gemini-proxy/
+├── apps/
+│   └── web/
+└── packages/
+```
+
+```md
+# ❌ DON'T: diagram in an md fence (Prettier mangles indentation)
+gemini-proxy/
+├── apps/
+│   └── web/
+```
+
+## Tables
+
+```markdown
+| Variable       | Description        |
+| -------------- | ------------------ |
+| `SUPABASE_URL` | Supabase project URL |
+```
+
+## Checklist before commit
+
+1. `pnpm exec prettier --check "**/*.{md,mdx}"` (or `pnpm format`)
+2. Spot-check ASCII trees still look correct
+3. No escaped junk like `\*\*\*\*` in prose

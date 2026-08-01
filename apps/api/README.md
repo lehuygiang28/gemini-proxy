@@ -90,9 +90,9 @@ The API server will be running at `http://localhost:9090`.
 
 ### **Required Variables**
 
-| Variable                    | Description                  |
-| --------------------------- | ---------------------------- |
-| `SUPABASE_URL`              | Your Supabase project URL.   |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ### **Optional Variables**
@@ -143,11 +143,11 @@ For detailed usage examples, please see the [**Usage Examples**](../../README.md
 ```md
 apps/api/
 ├── src/
-│   └── index.ts    # Main server entry point
-├── dist/           # Compiled output
-├── .env.example    # Environment variables template
-├── package.json    # Dependencies and scripts
-└── README.md       # This file
+│ └── index.ts # Main server entry point
+├── dist/ # Compiled output
+├── .env.example # Environment variables template
+├── package.json # Dependencies and scripts
+└── README.md # This file
 ```
 
 ## 🐛 Troubleshooting

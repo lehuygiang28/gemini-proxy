@@ -7,3 +7,8 @@ coverage
 *.log
 .env*
 .DS_Store
+
+# Generated / vendored — do not Prettier-format
+**/worker-configuration.d.ts
+pnpm-lock.yaml
+**/CHANGELOG.md

@@ -34,7 +34,14 @@ export default function ApiKeysEditPage() {
 
     if (query?.isLoading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100%',
+                }}
+            >
                 <Spin size="large" />
             </div>
         );
@@ -104,15 +111,8 @@ export default function ApiKeysEditPage() {
                             <Divider orientation="left">
                                 <SettingOutlined /> Settings
                             </Divider>
-                            <Form.Item
-                                label="Status"
-                                name="is_active"
-                                valuePropName="checked"
-                            >
-                                <Switch
-                                    checkedChildren="Active"
-                                    unCheckedChildren="Inactive"
-                                />
+                            <Form.Item label="Status" name="is_active" valuePropName="checked">
+                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
                             </Form.Item>
                         </Form>
                     </Card>

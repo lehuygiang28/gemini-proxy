@@ -1,5 +1,24 @@
 {
     "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/refs/heads/main/schema/markdownlint-config-schema.json",
+    "default": true,
     "MD013": false,
-    "MD033": false
+    "MD024": {
+        "siblings_only": true
+    },
+    "MD033": false,
+    "MD034": false,
+    "MD040": true,
+    "MD041": false,
+    "MD046": {
+        "style": "fenced"
+    },
+    "MD048": {
+        "style": "backtick"
+    },
+    "MD049": {
+        "style": "asterisk"
+    },
+    "MD050": {
+        "style": "asterisk"
+    }
 }

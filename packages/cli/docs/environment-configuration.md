@@ -10,13 +10,13 @@ This guide explains how to configure the Gemini Proxy CLI using environment vari
    cp .env.example .env
    ```
 
-2. Edit `.env` with your actual values:****
+2. Edit `.env` with your actual values:
 
    ```bash
    # Required
    SUPABASE_URL=https://your-project-id.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   
+
    # Optional
    GEMINI_API_KEY=your-gemini-api-keys
    PROXY_API_KEY=your-proxy-api-keys

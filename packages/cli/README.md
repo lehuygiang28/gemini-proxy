@@ -92,9 +92,9 @@ gproxy proxy-keys create --quick
 
 ### **Required Variables**
 
-| Variable                    | Description                  |
-| --------------------------- | ---------------------------- |
-| `SUPABASE_URL`              | Your Supabase project URL.   |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ## 💻 Command Reference

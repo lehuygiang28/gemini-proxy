@@ -13,5 +13,23 @@
         "Sider",
         "SUPABASE"
     ],
-    "js/ts.tsdk.path": "node_modules/typescript/lib"
+    "js/ts.tsdk.path": "node_modules/typescript/lib",
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        }
+    },
+    "[mdx]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "prettier.requireConfig": true,
+    "markdownlint.config": {
+        "extends": ".markdownlint.json"
+    }
 }

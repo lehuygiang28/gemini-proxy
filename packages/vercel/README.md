@@ -63,10 +63,10 @@ pnpm install @lehuygiang28/gemini-proxy-vercel
 
 ```typescript
 // src/app/api/gproxy/[[...slug]]/route.ts
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export { GET, POST, DELETE, PATCH, OPTIONS, HEAD } from '@lehuygiang28/gemini-proxy-vercel';
+export { GET, POST, DELETE, PATCH, OPTIONS, HEAD } from "@lehuygiang28/gemini-proxy-vercel";
 ```
 
 #### Custom Configuration
@@ -83,16 +83,14 @@ If you want to change the route path from the default `/api/gproxy` to a custom 
 
 ```typescript
 // src/app/api/custom-proxy/[[...slug]]/route.ts
-import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
-import { honoCoreApp } from '@lehuygiang28/gemini-proxy-vercel';
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+import { honoCoreApp } from "@lehuygiang28/gemini-proxy-vercel";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const customApp = new Hono()
-    .basePath('/api/custom-proxy')
-    .route('/*', honoCoreApp);
+const customApp = new Hono().basePath("/api/custom-proxy").route("/*", honoCoreApp);
 
 export const GET = handle(customApp);
 export const POST = handle(customApp);
@@ -114,9 +112,9 @@ Deploy your Next.js application to Vercel.
 
 ### **Required Variables**
 
-| Variable                    | Description                  |
-| --------------------------- | ---------------------------- |
-| `SUPABASE_URL`              | Your Supabase project URL.   |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ### **Optional Variables**
@@ -144,11 +142,11 @@ pnpm dev
 ```md
 packages/vercel/
 ├── src/
-│   ├── index.ts          # Main package exports
-│   └── route.ts          # Route handlers
-├── dist/                 # Compiled output
-├── package.json          # Dependencies and scripts
-└── README.md             # This file
+│ ├── index.ts # Main package exports
+│ └── route.ts # Route handlers
+├── dist/ # Compiled output
+├── package.json # Dependencies and scripts
+└── README.md # This file
 ```
 
 ## 🐛 Troubleshooting
