@@ -96,10 +96,16 @@ export class ResponseHandlerService {
         const requestStartTime = c.get('requestStartTime') as number | undefined;
         const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
 
+        const lastRetry =
+            retryAttempts && retryAttempts.length > 0
+                ? retryAttempts[retryAttempts.length - 1]
+                : null;
+
         // Handle failed request with unified background service
         BackgroundService.handleRequestError({
             requestId,
             proxyKeyId: proxyApiKeyData.id,
+            apiKeyId: lastRetry?.api_key_id ?? null,
             userId: proxyApiKeyData.user_id,
             apiFormat: proxyRequestDataParsed.apiFormat,
             baseRequest,
@@ -150,25 +156,23 @@ export class ResponseHandlerService {
      * Filter response headers to remove sensitive or problematic headers
      */
     private static filterResponseHeaders(headers: Headers): Headers {
-        const filteredHeaders = new Headers();
-        const blockedHeaders = [
+        const filtered = new Headers();
+        const excludeHeaders = new Set([
             'content-encoding',
             'transfer-encoding',
+            'content-length',
             'connection',
             'keep-alive',
             'set-cookie',
             'alt-svc',
             'server-timing',
             'vary',
-        ];
-
+        ]);
         headers.forEach((value, key) => {
-            const lowerKey = key.toLowerCase();
-            if (!blockedHeaders.includes(lowerKey)) {
-                filteredHeaders.set(key, value);
+            if (!excludeHeaders.has(key.toLowerCase())) {
+                filtered.set(key, value);
             }
         });
-
-        return filteredHeaders;
+        return filtered;
     }
 }

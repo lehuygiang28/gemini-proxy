@@ -229,6 +229,7 @@ export class BackgroundService {
     static handleRequestError(params: {
         requestId: string;
         proxyKeyId: string;
+        apiKeyId?: string | null;
         userId: string | null;
         apiFormat: ProxyRequestDataParsed['apiFormat'];
         baseRequest: Request;
@@ -246,6 +247,7 @@ export class BackgroundService {
         const {
             requestId,
             proxyKeyId,
+            apiKeyId,
             userId,
             apiFormat,
             baseRequest,
@@ -278,7 +280,7 @@ export class BackgroundService {
         // Log failed request
         this.addRequestLog(requestId, {
             requestId,
-            apiKeyId: null,
+            apiKeyId: apiKeyId ?? null,
             proxyKeyId,
             userId,
             apiFormat,

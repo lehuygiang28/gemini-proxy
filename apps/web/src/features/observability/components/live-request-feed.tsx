@@ -57,7 +57,7 @@ function keyLabel(
     fallbackId: string | null,
 ): string {
     if (joined?.name) {
-        return joined.deleted_at ? `${joined.name} (del)` : joined.name;
+        return joined.deleted_at ? `${joined.name} (removed)` : joined.name;
     }
     if (fallbackId) {
         return `${fallbackId.slice(0, 8)}…`;

@@ -1,16 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useGo, useResourceParams } from '@refinedev/core';
+import { useGo, useResourceParams, useOne } from '@refinedev/core';
 import { Button, Alert, Spin, theme } from 'antd';
-import { useOne } from '@refinedev/core';
-import type { Tables } from '@gemini-proxy/database';
-import { RequestLogDetails } from '@/components/RequestLogDetails';
 import { Show } from '@refinedev/antd';
+import { RequestLogDetails } from '@/components/RequestLogDetails';
+import type { RequestLog } from '@/types/request-log.types';
+import { REQUEST_LOG_DETAIL_SELECT } from '@/constants/request-log-select';
 
 const { useToken } = theme;
-
-type RequestLog = Tables<'request_logs'>;
 
 export default function RequestLogShowPage() {
     const { token } = useToken();
@@ -24,38 +22,7 @@ export default function RequestLogShowPage() {
         resource: 'request_logs',
         id: requestId,
         meta: {
-            select: `
-                *,
-                api_keys!api_key_id(
-                    id,
-                    name,
-                    provider,
-                    is_active,
-                    deleted_at,
-                    user_id,
-                    created_at,
-                    last_used_at,
-                    success_count,
-                    failure_count,
-                    total_tokens,
-                    prompt_tokens,
-                    completion_tokens
-                ),
-                proxy_api_keys!proxy_key_id(
-                    id,
-                    name,
-                    is_active,
-                    deleted_at,
-                    user_id,
-                    created_at,
-                    last_used_at,
-                    success_count,
-                    failure_count,
-                    total_tokens,
-                    prompt_tokens,
-                    completion_tokens
-                )
-            `,
+            select: REQUEST_LOG_DETAIL_SELECT,
         },
     });
 
@@ -91,11 +58,9 @@ export default function RequestLogShowPage() {
         );
     }
 
-    const log = requestLog;
-
     return (
         <Show>
-            <RequestLogDetails requestLog={log} isModal={false} />
+            <RequestLogDetails requestLog={requestLog} isModal={false} />
         </Show>
     );
 }

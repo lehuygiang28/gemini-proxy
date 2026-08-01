@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-    Card,
     Row,
     Col,
     Typography,
@@ -11,56 +10,32 @@ import {
     Button,
     Tooltip,
     theme,
-    Descriptions,
-    Divider,
-    Badge,
-    Statistic,
-    Progress,
-    Alert,
     Timeline,
-    Avatar,
     Collapse,
+    Badge,
 } from 'antd';
 import {
     CheckCircleOutlined,
     ExclamationCircleOutlined,
     BugOutlined,
-    ThunderboltOutlined,
-    DatabaseOutlined,
-    ApiOutlined,
     CopyOutlined,
     DownloadOutlined,
-    UserOutlined,
-    KeyOutlined,
-    ClockCircleOutlined,
-    BarChartOutlined,
-    SafetyOutlined,
     InfoCircleOutlined,
 } from '@ant-design/icons';
-import type {
-    PerformanceMetrics as PerformanceMetricsData,
-    Tables,
-    UsageMetadata,
-} from '@gemini-proxy/database';
+import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay } from '@/components/common';
 import { useNotification, useMany } from '@refinedev/core';
 import { RequestLog, RetryAttempt } from '../types/request-log.types';
 import {
     extractPerformanceMetrics,
     extractUsageMetadata,
+    formatDuration,
     formatTokenCount,
 } from '@/utils/table-helpers';
+import { KeyIdentityCard, UserIdentityCard, formatKeyLabel } from '@/features/request-logs';
 
 const { Text } = Typography;
 const { useToken } = theme;
-
-function safeSuccessRate(success: number, failure: number): number {
-    const total = success + failure;
-    if (total <= 0) {
-        return 100;
-    }
-    return Math.round((success / total) * 100);
-}
 
 interface RequestLogDetailsProps {
     requestLog: RequestLog;
@@ -68,8 +43,7 @@ interface RequestLogDetailsProps {
 }
 
 /**
- * Comprehensive Request Log Details Component
- * Production-ready component with Supabase PostgREST joins
+ * Proxy observability detail: overview → identity → metrics → payloads → retries.
  */
 export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
     requestLog,
@@ -96,7 +70,6 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
         notification.open({
             type: 'success',
             message: 'Download Started',
@@ -110,6 +83,8 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
     const performanceMetrics = extractPerformanceMetrics(requestLog.performance_metrics);
     const usageMetadata = extractUsageMetadata(requestLog.usage_metadata);
     const retryAttempts = (requestLog.retry_attempts as unknown as RetryAttempt[]) || [];
+    const requestJson = JSON.stringify(requestData, null, 2);
+    const expandRequestByDefault = requestJson.length < 2048;
 
     return (
         <div
@@ -117,80 +92,103 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                 height: isModal ? 'calc(90vh - 120px)' : 'auto',
                 overflowY: isModal ? 'auto' : 'visible',
                 overflowX: 'hidden',
-                padding: isModal ? '0' : '0',
                 width: '100%',
             }}
             className={isModal ? 'gp-scrollable' : undefined}
         >
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                {/* Status Overview */}
-                <StatusOverview requestLog={requestLog} />
-
-                {/* User & Keys Information */}
-                <UserAndKeysInfo requestLog={requestLog} onCopy={handleCopyToClipboard} />
-
-                {/* Performance & Usage Metrics */}
-                <PerformanceMetrics
-                    performanceMetrics={performanceMetrics}
-                    usageMetadata={usageMetadata}
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <OverviewStrip
+                    requestLog={requestLog}
                     onCopy={handleCopyToClipboard}
-                    onDownload={handleDownloadJson}
                 />
 
-                {/* Request & Response Details */}
-                <Row gutter={[16, 16]}>
-                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
-                        <RequestDetailsCard
-                            requestLog={requestLog}
-                            requestData={requestData}
-                            onDownload={handleDownloadJson}
-                            isModal={isModal}
+                <Row gutter={[12, 12]}>
+                    <Col xs={24} lg={8}>
+                        <UserIdentityCard
+                            userId={requestLog.user_id}
+                            onCopy={handleCopyToClipboard}
                         />
                     </Col>
-                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
-                        <ResponseDetailsCard
-                            requestLog={requestLog}
-                            responseData={responseData}
-                            errorDetails={errorDetails}
-                            onDownload={handleDownloadJson}
-                            isModal={isModal}
+                    <Col xs={24} lg={8}>
+                        <KeyIdentityCard
+                            kind="proxy"
+                            keyId={requestLog.proxy_key_id}
+                            joined={requestLog.proxy_api_keys}
+                            onCopy={handleCopyToClipboard}
+                        />
+                    </Col>
+                    <Col xs={24} lg={8}>
+                        <KeyIdentityCard
+                            kind="api"
+                            keyId={requestLog.api_key_id}
+                            joined={requestLog.api_keys}
+                            onCopy={handleCopyToClipboard}
                         />
                     </Col>
                 </Row>
 
-                {/* Retry Attempts Timeline */}
-                <RetryAttemptsCard retryAttempts={retryAttempts} />
+                <MetricsStrip
+                    durationMs={performanceMetrics.duration_ms ?? 0}
+                    totalMs={performanceMetrics.total_response_time_ms ?? 0}
+                    attempts={performanceMetrics.attempt_count ?? 1}
+                    totalTokens={usageMetadata.total_tokens ?? 0}
+                    promptTokens={usageMetadata.prompt_tokens ?? 0}
+                    completionTokens={usageMetadata.completion_tokens ?? 0}
+                    model={usageMetadata.model}
+                    isSuccessful={requestLog.is_successful}
+                />
+
+                <Row gutter={[12, 12]}>
+                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
+                        <PayloadPanel
+                            title="Request"
+                            data={requestData}
+                            filename={`request-${requestLog.request_id}.json`}
+                            defaultExpanded={expandRequestByDefault}
+                            onCopy={handleCopyToClipboard}
+                            onDownload={handleDownloadJson}
+                        />
+                    </Col>
+                    <Col xs={24} lg={12} style={{ minWidth: 0 }}>
+                        <PayloadPanel
+                            title="Response"
+                            data={requestLog.is_successful ? responseData : errorDetails}
+                            filename={
+                                requestLog.is_successful
+                                    ? `response-${requestLog.request_id}.json`
+                                    : `error-${requestLog.request_id}.json`
+                            }
+                            defaultExpanded={!requestLog.is_successful}
+                            isError={!requestLog.is_successful}
+                            emptyLabel={
+                                requestLog.is_successful ? 'No response data' : 'No error details'
+                            }
+                            onCopy={handleCopyToClipboard}
+                            onDownload={handleDownloadJson}
+                        />
+                    </Col>
+                </Row>
+
+                <RetryTimeline retryAttempts={retryAttempts} />
             </Space>
         </div>
     );
 };
 
-/**
- * Status Overview Component
- */
-function StatusOverview({ requestLog }: { requestLog: RequestLog }) {
-    const { token } = useToken();
-
+function OverviewStrip({
+    requestLog,
+    onCopy,
+}: {
+    requestLog: RequestLog;
+    onCopy: (text: string, label: string) => void;
+}) {
     return (
-        <Card
-            style={{
-                borderRadius: token.borderRadiusLG,
-                boxShadow: token.boxShadowTertiary,
-                background: `linear-gradient(135deg, ${token.colorBgContainer} 0%, ${token.colorFillQuaternary} 100%)`,
-            }}
-            title={
-                <Space>
-                    <BarChartOutlined style={{ color: token.colorPrimary }} />
-                    <span>Request Overview</span>
-                </Space>
-            }
-        >
-            <Row gutter={[token.marginLG, token.marginMD]}>
-                <Col xs={24} sm={6} style={{ minWidth: 0 }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Text strong style={{ color: token.colorText }}>
-                            Status
-                        </Text>
+        <div className="gp-panel" style={{ padding: '12px 16px' }}>
+            <div className="gp-section-title">Overview</div>
+            <Row gutter={[16, 12]} align="middle">
+                <Col xs={12} sm={6}>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Status</Text>
+                    <div>
                         <Tag
                             color={requestLog.is_successful ? 'success' : 'error'}
                             icon={
@@ -200,1194 +198,346 @@ function StatusOverview({ requestLog }: { requestLog: RequestLog }) {
                                     <ExclamationCircleOutlined />
                                 )
                             }
-                            style={{ fontSize: token.fontSizeSM }}
+                            style={{ borderRadius: 2 }}
                         >
                             {requestLog.is_successful ? 'Success' : 'Failed'}
                         </Tag>
-                    </Space>
+                    </div>
                 </Col>
-                <Col xs={24} sm={6} style={{ minWidth: 0 }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Text strong style={{ color: token.colorText }}>
-                            API Format
-                        </Text>
-                        <Tag color="processing" style={{ fontSize: token.fontSizeSM }}>
+                <Col xs={12} sm={6}>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Format</Text>
+                    <div>
+                        <Tag color="processing" style={{ borderRadius: 2 }}>
                             {requestLog.api_format?.toUpperCase()}
                         </Tag>
-                    </Space>
+                    </div>
                 </Col>
-                <Col xs={24} sm={6} style={{ minWidth: 0 }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Text strong style={{ color: token.colorText }}>
-                            Stream Type
-                        </Text>
-                        <Tag
-                            color={requestLog.is_stream ? 'success' : 'default'}
-                            style={{ fontSize: token.fontSizeSM }}
-                        >
-                            {requestLog.is_stream ? 'Streaming' : 'Non-streaming'}
-                        </Tag>
-                    </Space>
+                <Col xs={12} sm={6}>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Stream</Text>
+                    <div style={{ color: 'var(--gp-text)' }}>
+                        {requestLog.is_stream ? 'Streaming' : 'Non-streaming'}
+                    </div>
                 </Col>
-                <Col xs={24} sm={6} style={{ minWidth: 0 }}>
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Text strong style={{ color: token.colorText }}>
-                            Created At
-                        </Text>
+                <Col xs={12} sm={6}>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Created</Text>
+                    <div>
                         <DateTimeDisplay dateString={requestLog.created_at} />
-                    </Space>
+                    </div>
                 </Col>
-            </Row>
-        </Card>
-    );
-}
-
-/**
- * User and Keys Information Component
- */
-function UserAndKeysInfo({
-    requestLog,
-    onCopy,
-}: {
-    requestLog: RequestLog;
-    onCopy: (text: string, label: string) => void;
-}) {
-    const { token } = useToken();
-
-    return (
-        <Row gutter={[16, 16]}>
-            {/* User Information */}
-            <Col xs={24} lg={8}>
-                <Card
-                    title={
-                        <Space>
-                            <UserOutlined style={{ color: token.colorPrimary }} />
-                            <span>User Information</span>
-                        </Space>
-                    }
-                    size="small"
-                    style={{
-                        borderRadius: token.borderRadiusLG,
-                        boxShadow: token.boxShadowTertiary,
-                    }}
-                >
-                    {requestLog.user_id ? (
-                        <Descriptions column={1} size="small">
-                            <Descriptions.Item label="User ID">
-                                <Space>
-                                    <Avatar size="small" icon={<UserOutlined />} />
-                                    <Text code style={{ fontSize: token.fontSizeSM }}>
-                                        {requestLog.user_id.slice(0, 8)}...
-                                    </Text>
-                                    <Button
-                                        type="text"
-                                        size="small"
-                                        icon={<CopyOutlined />}
-                                        onClick={() => onCopy(requestLog.user_id!, 'User ID')}
-                                    />
-                                </Space>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Status">
-                                <Tag color="success">Authenticated User</Tag>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    ) : (
-                        <Alert
-                            message="No User Data"
-                            description="This request was not associated with a user account."
-                            type="info"
-                            showIcon
-                        />
-                    )}
-                </Card>
-            </Col>
-
-            {/* API Key Information */}
-            <Col xs={24} lg={8}>
-                <Card
-                    title={
-                        <Space>
-                            <KeyOutlined style={{ color: token.colorPrimary }} />
-                            <span>API Key</span>
-                        </Space>
-                    }
-                    size="small"
-                    style={{
-                        borderRadius: token.borderRadiusLG,
-                        boxShadow: token.boxShadowTertiary,
-                    }}
-                >
-                    {requestLog.api_keys ? (
-                        <Descriptions column={1} size="small">
-                            <Descriptions.Item label="Name">
-                                <Space>
-                                    <Text strong>{requestLog.api_keys.name}</Text>
-                                    {requestLog.api_keys.deleted_at ? (
-                                        <Tag color="default">Deleted</Tag>
-                                    ) : null}
-                                </Space>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Provider">
-                                <Tag color="blue">{requestLog.api_keys.provider}</Tag>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Status">
-                                <Tag
-                                    color={
-                                        requestLog.api_keys.deleted_at
-                                            ? 'default'
-                                            : requestLog.api_keys.is_active
-                                              ? 'success'
-                                              : 'error'
-                                    }
-                                >
-                                    {requestLog.api_keys.deleted_at
-                                        ? 'Deleted'
-                                        : requestLog.api_keys.is_active
-                                          ? 'Active'
-                                          : 'Inactive'}
-                                </Tag>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Success Rate">
-                                <Progress
-                                    percent={Math.round(
-                                        (() => {
-                                            const ok = requestLog.api_keys.success_count ?? 0;
-                                            const fail = requestLog.api_keys.failure_count ?? 0;
-                                            const total = ok + fail;
-                                            return total > 0 ? (ok / total) * 100 : 0;
-                                        })(),
-                                    )}
-                                    size="small"
-                                    showInfo={false}
-                                />
-                                <Text style={{ fontSize: token.fontSizeSM }}>
-                                    {requestLog.api_keys.success_count ?? 0} /{' '}
-                                    {(requestLog.api_keys.success_count ?? 0) +
-                                        (requestLog.api_keys.failure_count ?? 0)}
-                                </Text>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Total Tokens">
-                                <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(requestLog.api_keys.total_tokens)}
-                                </Text>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    ) : (
-                        <Alert
-                            message="API key unavailable"
-                            description={
-                                requestLog.api_key_id
-                                    ? 'The API key was removed and can no longer be loaded.'
-                                    : 'This request was not associated with an API key.'
-                            }
-                            type="warning"
-                            showIcon
-                        />
-                    )}
-                </Card>
-            </Col>
-
-            {/* Proxy Key Information */}
-            <Col xs={24} lg={8}>
-                <Card
-                    title={
-                        <Space>
-                            <SafetyOutlined style={{ color: token.colorPrimary }} />
-                            <span>Proxy Key</span>
-                        </Space>
-                    }
-                    size="small"
-                    style={{
-                        borderRadius: token.borderRadiusLG,
-                        boxShadow: token.boxShadowTertiary,
-                    }}
-                >
-                    {requestLog.proxy_api_keys ? (
-                        <Descriptions column={1} size="small">
-                            <Descriptions.Item label="Name">
-                                <Space>
-                                    <Text strong>{requestLog.proxy_api_keys.name}</Text>
-                                    {requestLog.proxy_api_keys.deleted_at ? (
-                                        <Tag color="default">Deleted</Tag>
-                                    ) : null}
-                                </Space>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Status">
-                                <Tag
-                                    color={
-                                        requestLog.proxy_api_keys.deleted_at
-                                            ? 'default'
-                                            : requestLog.proxy_api_keys.is_active
-                                              ? 'success'
-                                              : 'error'
-                                    }
-                                >
-                                    {requestLog.proxy_api_keys.deleted_at
-                                        ? 'Deleted'
-                                        : requestLog.proxy_api_keys.is_active
-                                          ? 'Active'
-                                          : 'Inactive'}
-                                </Tag>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Success Rate">
-                                <Progress
-                                    percent={Math.round(
-                                        (() => {
-                                            const ok = requestLog.proxy_api_keys.success_count ?? 0;
-                                            const fail =
-                                                requestLog.proxy_api_keys.failure_count ?? 0;
-                                            const total = ok + fail;
-                                            return total > 0 ? (ok / total) * 100 : 0;
-                                        })(),
-                                    )}
-                                    size="small"
-                                    showInfo={false}
-                                />
-                                <Text style={{ fontSize: token.fontSizeSM }}>
-                                    {requestLog.proxy_api_keys.success_count ?? 0} /{' '}
-                                    {(requestLog.proxy_api_keys.success_count ?? 0) +
-                                        (requestLog.proxy_api_keys.failure_count ?? 0)}
-                                </Text>
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Total Tokens">
-                                <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(requestLog.proxy_api_keys.total_tokens)}
-                                </Text>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    ) : (
-                        <Alert
-                            message="Proxy key unavailable"
-                            description={
-                                requestLog.proxy_key_id
-                                    ? 'The proxy key was removed and can no longer be loaded.'
-                                    : 'This request was not associated with a proxy key.'
-                            }
-                            type="warning"
-                            showIcon
-                        />
-                    )}
-                </Card>
-            </Col>
-        </Row>
-    );
-}
-
-/**
- * Performance Metrics Component
- */
-function PerformanceMetrics({
-    performanceMetrics,
-    usageMetadata,
-    onCopy,
-    onDownload,
-}: {
-    performanceMetrics: PerformanceMetricsData;
-    usageMetadata: UsageMetadata;
-    onCopy: (text: string, label: string) => void;
-    onDownload: (data: unknown, filename: string) => void;
-}) {
-    const { token } = useToken();
-
-    const duration = performanceMetrics.duration_ms ?? 0;
-    const attemptCount = performanceMetrics.attempt_count ?? 1;
-    const totalResponseTime = performanceMetrics.total_response_time_ms ?? 0;
-
-    const totalTokens = usageMetadata.total_tokens ?? 0;
-    const promptTokens = usageMetadata.prompt_tokens ?? 0;
-    const completionTokens = usageMetadata.completion_tokens ?? 0;
-    const model = usageMetadata.model;
-
-    return (
-        <Card
-            title={
-                <Space>
-                    <ThunderboltOutlined style={{ color: token.colorPrimary }} />
-                    <span>Performance & Usage Metrics</span>
-                </Space>
-            }
-            size="small"
-            style={{
-                borderRadius: token.borderRadiusLG,
-                boxShadow: token.boxShadowTertiary,
-            }}
-        >
-            <Row gutter={[16, 16]}>
-                {/* Performance Metrics */}
-                <Col xs={24} lg={12}>
-                    <Card
-                        title="Performance"
-                        size="small"
-                        extra={
-                            <Space>
-                                <Tooltip title="Copy Performance Data">
-                                    <Button
-                                        type="text"
-                                        icon={<CopyOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onCopy(
-                                                JSON.stringify(performanceMetrics, null, 2),
-                                                'Performance Metrics',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                                <Tooltip title="Download Performance Data">
-                                    <Button
-                                        type="text"
-                                        icon={<DownloadOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onDownload(
-                                                performanceMetrics,
-                                                'performance-metrics.json',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                            </Space>
-                        }
-                    >
-                        <Row gutter={[8, 8]}>
-                            <Col span={12}>
-                                <Statistic
-                                    title="Duration"
-                                    value={duration}
-                                    suffix="ms"
-                                    valueStyle={{ color: token.colorInfo }}
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <Statistic
-                                    title="Total Response Time"
-                                    value={totalResponseTime}
-                                    suffix="ms"
-                                    valueStyle={{ color: token.colorSuccess }}
-                                />
-                            </Col>
-                            <Col span={24}>
-                                <Statistic
-                                    title="Attempt Count"
-                                    value={attemptCount}
-                                    valueStyle={{
-                                        color:
-                                            attemptCount > 1
-                                                ? token.colorWarning
-                                                : token.colorSuccess,
-                                    }}
-                                />
-                                {attemptCount > 1 && (
-                                    <Progress
-                                        percent={Math.min((attemptCount / 5) * 100, 100)}
-                                        size="small"
-                                        strokeColor={token.colorWarning}
-                                        showInfo={false}
-                                    />
-                                )}
-                            </Col>
-                        </Row>
-                    </Card>
-                </Col>
-
-                {/* Usage Metrics */}
-                <Col xs={24} lg={12}>
-                    <Card
-                        title="Token Usage"
-                        size="small"
-                        extra={
-                            <Space>
-                                <Tooltip title="Copy Usage Data">
-                                    <Button
-                                        type="text"
-                                        icon={<CopyOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onCopy(
-                                                JSON.stringify(usageMetadata, null, 2),
-                                                'Usage Metadata',
-                                            )
-                                        }
-                                    />
-                                </Tooltip>
-                                <Tooltip title="Download Usage Data">
-                                    <Button
-                                        type="text"
-                                        icon={<DownloadOutlined />}
-                                        size="small"
-                                        onClick={() =>
-                                            onDownload(usageMetadata, 'usage-metadata.json')
-                                        }
-                                    />
-                                </Tooltip>
-                            </Space>
-                        }
-                    >
-                        <Row gutter={[8, 8]}>
-                            <Col span={24}>
-                                <Statistic
-                                    title="Total Tokens"
-                                    value={totalTokens}
-                                    valueStyle={{ color: token.colorPrimary }}
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <Statistic
-                                    title="Prompt Tokens"
-                                    value={promptTokens}
-                                    valueStyle={{ color: token.colorInfo }}
-                                />
-                            </Col>
-                            <Col span={12}>
-                                <Statistic
-                                    title="Completion Tokens"
-                                    value={completionTokens}
-                                    valueStyle={{ color: token.colorSuccess }}
-                                />
-                            </Col>
-                            {model && (
-                                <Col span={24}>
-                                    <Text strong style={{ color: token.colorText }}>
-                                        Model: <Tag color="blue">{model}</Tag>
-                                    </Text>
-                                </Col>
-                            )}
-                        </Row>
-                    </Card>
-                </Col>
-            </Row>
-        </Card>
-    );
-}
-
-/**
- * Request Details Card Component
- */
-function RequestDetailsCard({
-    requestLog,
-    requestData,
-    onDownload,
-    isModal,
-}: {
-    requestLog: RequestLog;
-    requestData: Record<string, unknown>;
-    onDownload: (data: unknown, filename: string) => void;
-    isModal: boolean;
-}) {
-    const { token } = useToken();
-
-    return (
-        <Card
-            title={
-                <Space>
-                    <ApiOutlined style={{ color: token.colorPrimary }} />
-                    <span>Request Details</span>
-                </Space>
-            }
-            size="small"
-            style={{
-                borderRadius: token.borderRadiusLG,
-                boxShadow: token.boxShadowTertiary,
-            }}
-            extra={
-                <Space>
-                    {requestData && (
-                        <Tooltip title="Download Request Data">
-                            <Button
-                                type="text"
-                                icon={<DownloadOutlined />}
-                                size="small"
-                                onClick={() =>
-                                    onDownload(requestData, `request-${requestLog.request_id}.json`)
-                                }
-                            />
-                        </Tooltip>
-                    )}
-                </Space>
-            }
-        >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Request ID">
-                        <Text code style={{ fontSize: token.fontSizeSM }}>
+                <Col span={24}>
+                    <Space size={4}>
+                        <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                            Request ID
+                        </Text>
+                        <Text className="gp-live-mono" style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}>
                             {requestLog.request_id}
                         </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="API Format">
-                        <Tag color="processing">{requestLog.api_format}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Stream Type">
-                        <Tag color={requestLog.is_stream ? 'success' : 'default'}>
-                            {requestLog.is_stream ? 'Streaming' : 'Non-streaming'}
-                        </Tag>
-                    </Descriptions.Item>
-                </Descriptions>
-
-                {requestData && (
-                    <div>
-                        <Text strong style={{ color: token.colorText }}>
-                            Request Data:
-                        </Text>
-                        <br />
-                        <pre
-                            style={{
-                                background: token.colorFillQuaternary,
-                                padding: isModal ? token.paddingXS : token.paddingSM,
-                                borderRadius: token.borderRadius,
-                                fontSize: isModal ? token.fontSizeSM : token.fontSize,
-                                overflow: 'auto',
-                                maxHeight: isModal ? '200px' : '300px',
-                                border: `1px solid ${token.colorBorder}`,
-                                color: token.colorText,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                overflowWrap: 'anywhere',
-                                maxWidth: '100%',
-                                boxSizing: 'border-box',
-                            }}
-                            className="gp-scrollable"
-                        >
-                            {JSON.stringify(requestData, null, 2)}
-                        </pre>
-                    </div>
-                )}
-            </Space>
-        </Card>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => onCopy(requestLog.request_id, 'Request ID')}
+                            aria-label="Copy request ID"
+                        />
+                    </Space>
+                </Col>
+            </Row>
+        </div>
     );
 }
 
-/**
- * Response Details Card Component
- */
-function ResponseDetailsCard({
-    requestLog,
-    responseData,
-    errorDetails,
-    onDownload,
-    isModal,
+function MetricsStrip({
+    durationMs,
+    totalMs,
+    attempts,
+    totalTokens,
+    promptTokens,
+    completionTokens,
+    model,
+    isSuccessful,
 }: {
-    requestLog: RequestLog;
-    responseData: Record<string, unknown>;
-    errorDetails: Record<string, unknown>;
+    durationMs: number;
+    totalMs: number;
+    attempts: number;
+    totalTokens: number;
+    promptTokens: number;
+    completionTokens: number;
+    model?: string;
+    isSuccessful: boolean;
+}) {
+    return (
+        <div>
+            <div className="gp-section-title" style={{ marginBottom: 8 }}>
+                Performance & usage
+            </div>
+            <div className="gp-kpi-strip">
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">API duration</div>
+                    <div className="gp-kpi-value" style={{ fontSize: 18 }}>
+                        {formatDuration(durationMs)}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">Total time</div>
+                    <div
+                        className="gp-kpi-value"
+                        style={{
+                            fontSize: 18,
+                            color: isSuccessful ? 'var(--gp-success)' : 'var(--gp-text)',
+                        }}
+                    >
+                        {formatDuration(totalMs)}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">Attempts</div>
+                    <div
+                        className="gp-kpi-value"
+                        style={{
+                            fontSize: 18,
+                            color: attempts > 1 ? 'var(--gp-warn)' : 'var(--gp-text)',
+                        }}
+                    >
+                        {attempts}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">Total tokens</div>
+                    <div className="gp-kpi-value" style={{ fontSize: 18, color: 'var(--gp-accent)' }}>
+                        {formatTokenCount(totalTokens)}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">Prompt / completion</div>
+                    <div className="gp-kpi-value" style={{ fontSize: 16 }}>
+                        {formatTokenCount(promptTokens)} / {formatTokenCount(completionTokens)}
+                    </div>
+                </div>
+                {model ? (
+                    <div className="gp-kpi-cell">
+                        <div className="gp-kpi-label">Model</div>
+                        <Tag color="blue" style={{ borderRadius: 2, marginTop: 4 }}>
+                            {model}
+                        </Tag>
+                    </div>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+function PayloadPanel({
+    title,
+    data,
+    filename,
+    defaultExpanded,
+    isError = false,
+    emptyLabel = 'No data',
+    onCopy,
+    onDownload,
+}: {
+    title: string;
+    data: Record<string, unknown>;
+    filename: string;
+    defaultExpanded: boolean;
+    isError?: boolean;
+    emptyLabel?: string;
+    onCopy: (text: string, label: string) => void;
     onDownload: (data: unknown, filename: string) => void;
-    isModal: boolean;
 }) {
     const { token } = useToken();
+    const hasData = data && Object.keys(data).length > 0;
+    const json = hasData ? JSON.stringify(data, null, 2) : '';
 
     return (
-        <Card
-            title={
-                <Space>
-                    <DatabaseOutlined style={{ color: token.colorPrimary }} />
-                    <span>Response Details</span>
-                </Space>
-            }
-            size="small"
-            style={{
-                borderRadius: token.borderRadiusLG,
-                boxShadow: token.boxShadowTertiary,
-            }}
-            extra={
-                <Space>
-                    {requestLog.is_successful && responseData && (
-                        <Tooltip title="Download Response Data">
-                            <Button
-                                type="text"
-                                icon={<DownloadOutlined />}
-                                size="small"
-                                onClick={() =>
-                                    onDownload(
-                                        responseData,
-                                        `response-${requestLog.request_id}.json`,
-                                    )
-                                }
-                            />
-                        </Tooltip>
-                    )}
-                    {!requestLog.is_successful && errorDetails && (
-                        <Tooltip title="Download Error Details">
-                            <Button
-                                type="text"
-                                icon={<DownloadOutlined />}
-                                size="small"
-                                onClick={() =>
-                                    onDownload(errorDetails, `error-${requestLog.request_id}.json`)
-                                }
-                            />
-                        </Tooltip>
-                    )}
-                </Space>
-            }
-        >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                {requestLog.is_successful ? (
-                    <>
-                        <div>
-                            <Text strong style={{ color: token.colorText }}>
-                                Response Data:
+        <div className="gp-panel" style={{ padding: 0, overflow: 'hidden' }}>
+            <Collapse
+                ghost
+                defaultActiveKey={defaultExpanded ? ['body'] : []}
+                items={[
+                    {
+                        key: 'body',
+                        label: (
+                            <Space>
+                                <span style={{ fontWeight: 500 }}>{title}</span>
+                                {isError ? <Tag color="error" style={{ borderRadius: 2 }}>Error</Tag> : null}
+                            </Space>
+                        ),
+                        extra: hasData ? (
+                            <Space
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                }}
+                            >
+                                <Tooltip title={`Copy ${title}`}>
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<CopyOutlined />}
+                                        onClick={() => onCopy(json, title)}
+                                    />
+                                </Tooltip>
+                                <Tooltip title={`Download ${title}`}>
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<DownloadOutlined />}
+                                        onClick={() => onDownload(data, filename)}
+                                    />
+                                </Tooltip>
+                            </Space>
+                        ) : null,
+                        children: hasData ? (
+                            <pre
+                                className="gp-panel-sunken gp-scrollable"
+                                style={{
+                                    margin: 0,
+                                    padding: 12,
+                                    maxHeight: 280,
+                                    overflow: 'auto',
+                                    fontSize: 12,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    borderLeft: isError
+                                        ? `3px solid ${token.colorError}`
+                                        : undefined,
+                                    color: isError ? token.colorError : 'var(--gp-text)',
+                                }}
+                            >
+                                {json}
+                            </pre>
+                        ) : (
+                            <Text type="secondary" style={{ padding: 12, display: 'block' }}>
+                                {emptyLabel}
                             </Text>
-                            <br />
-                            {responseData ? (
-                                <pre
-                                    style={{
-                                        background: token.colorFillQuaternary,
-                                        padding: isModal ? token.paddingXS : token.paddingSM,
-                                        borderRadius: token.borderRadius,
-                                        fontSize: isModal ? token.fontSizeSM : token.fontSize,
-                                        overflow: 'auto',
-                                        maxHeight: isModal ? '300px' : '400px',
-                                        border: `1px solid ${token.colorBorder}`,
-                                        color: token.colorText,
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'anywhere',
-                                        maxWidth: '100%',
-                                        boxSizing: 'border-box',
-                                    }}
-                                    className="gp-scrollable"
-                                >
-                                    {JSON.stringify(responseData, null, 2)}
-                                </pre>
-                            ) : (
-                                <Text type="secondary">No response data</Text>
-                            )}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div>
-                            <Text strong style={{ color: token.colorText }}>
-                                Error Details:
-                            </Text>
-                            <br />
-                            {errorDetails ? (
-                                <pre
-                                    style={{
-                                        background: token.colorErrorBg,
-                                        padding: isModal ? token.paddingXS : token.paddingSM,
-                                        borderRadius: token.borderRadius,
-                                        fontSize: isModal ? token.fontSizeSM : token.fontSize,
-                                        overflow: 'auto',
-                                        maxHeight: isModal ? '200px' : '300px',
-                                        border: `1px solid ${token.colorErrorBorder}`,
-                                        color: token.colorError,
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'anywhere',
-                                        maxWidth: '100%',
-                                        boxSizing: 'border-box',
-                                    }}
-                                    className="gp-scrollable"
-                                >
-                                    {JSON.stringify(errorDetails, null, 2)}
-                                </pre>
-                            ) : (
-                                <Text type="secondary">No error details</Text>
-                            )}
-                        </div>
-                    </>
-                )}
-            </Space>
-        </Card>
+                        ),
+                    },
+                ]}
+            />
+        </div>
     );
 }
 
-/**
- * Retry Attempts Card Component
- */
-function RetryAttemptsCard({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
+function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
     const { token } = useToken();
-    const notification = useNotification();
+    const apiKeyIds = useMemo(
+        () =>
+            [
+                ...new Set(
+                    retryAttempts
+                        .map((attempt) => attempt.api_key_id)
+                        .filter((id): id is string => Boolean(id)),
+                ),
+            ],
+        [retryAttempts],
+    );
 
-    // Extract unique API key IDs from retry attempts
-    const apiKeyIds = [
-        ...new Set(retryAttempts.map((attempt) => attempt.api_key_id).filter(Boolean)),
-    ] as string[];
-
-    // Fetch API key names for all retry attempts
     const {
         result: apiKeysData,
         query: { isLoading: apiKeysLoading },
     } = useMany<Tables<'api_keys'>>({
         resource: 'api_keys',
         ids: apiKeyIds,
-        queryOptions: {
-            enabled: apiKeyIds.length > 0,
-        },
+        queryOptions: { enabled: apiKeyIds.length > 0 },
     });
 
-    // Create a map of API key ID to name for quick lookup
-    const apiKeyMap = new Map<string, string>();
-    if (apiKeysData?.data) {
-        apiKeysData.data.forEach((apiKey) => {
-            apiKeyMap.set(apiKey.id, apiKey.name);
+    const apiKeyMap = useMemo(() => {
+        const map = new Map<string, string>();
+        apiKeysData?.data?.forEach((apiKey) => {
+            map.set(apiKey.id, apiKey.name);
         });
-    }
+        return map;
+    }, [apiKeysData?.data]);
 
     if (!retryAttempts || retryAttempts.length === 0) {
-        return (
-            <Card
-                title={
-                    <Space>
-                        <BugOutlined style={{ color: token.colorPrimary }} />
-                        <span>Retry Attempts</span>
-                    </Space>
-                }
-                size="small"
-                style={{
-                    borderRadius: token.borderRadiusLG,
-                    boxShadow: token.boxShadowTertiary,
-                }}
-            >
-                <Alert
-                    message="No Retry Attempts"
-                    description="This request completed successfully on the first attempt."
-                    type="success"
-                    showIcon
-                />
-            </Card>
-        );
+        return null;
     }
 
-    // Calculate retry statistics
-    // All retry attempts are failed attempts - the final success is determined by the request's is_successful field
-    const failedAttempts = retryAttempts.length; // All retry attempts are failures
     const totalDuration = retryAttempts.reduce(
-        (sum, attempt) => sum + ((attempt.duration_ms as number) || 0),
+        (sum, attempt) => sum + (attempt.duration_ms || 0),
         0,
     );
-    const uniqueApiKeys = [
-        ...new Set(retryAttempts.map((attempt) => attempt.api_key_id).filter(Boolean)),
-    ];
 
     return (
-        <Card
-            title={
+        <div className="gp-panel" style={{ padding: 16 }}>
+            <Space style={{ marginBottom: 12, width: '100%', justifyContent: 'space-between' }}>
                 <Space>
-                    <BugOutlined style={{ color: token.colorPrimary }} />
-                    <span>Retry Attempts Timeline</span>
+                    <BugOutlined style={{ color: 'var(--gp-accent)' }} />
+                    <span className="gp-section-title" style={{ margin: 0 }}>
+                        Retry timeline
+                    </span>
                     <Badge count={retryAttempts.length} color={token.colorWarning} />
                 </Space>
-            }
-            size="small"
-            style={{
-                borderRadius: token.borderRadiusLG,
-                boxShadow: token.boxShadowTertiary,
-            }}
-            extra={
-                <Space>
-                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                        {failedAttempts} retry attempts
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                        Total Duration: {totalDuration}ms
-                    </Text>
-                    {uniqueApiKeys.length > 1 && (
-                        <Space direction="vertical" size="small">
-                            <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                                {uniqueApiKeys.length} different API keys used:
-                            </Text>
-                            <Space wrap>
-                                {uniqueApiKeys.map((apiKeyId, index) => (
-                                    <Tag
-                                        key={`${apiKeyId}-${index}`}
-                                        color="blue"
-                                        style={{ fontSize: token.fontSizeSM }}
-                                    >
-                                        {apiKeyMap.get(apiKeyId as string) ||
-                                            `${(apiKeyId as string).slice(0, 8)}...`}
-                                    </Tag>
-                                ))}
-                            </Space>
-                        </Space>
-                    )}
-                </Space>
-            }
-        >
-            {apiKeysLoading && (
-                <div style={{ textAlign: 'center', padding: token.paddingMD }}>
-                    <Text type="secondary">Loading API key information...</Text>
-                </div>
-            )}
-            {/* Add a note about the final request status */}
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                    {retryAttempts.length} retries · {totalDuration}ms
+                </Text>
+            </Space>
             <div
                 style={{
-                    marginBottom: token.marginMD,
-                    padding: token.paddingSM,
-                    background: token.colorInfoBg,
-                    borderRadius: token.borderRadius,
+                    marginBottom: 12,
+                    padding: 8,
+                    background: 'var(--gp-bg-sunken)',
+                    borderRadius: 4,
+                    fontSize: 12,
+                    color: 'var(--gp-text-secondary)',
                 }}
             >
-                <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                    <InfoCircleOutlined style={{ marginRight: token.marginXS }} />
-                    All retry attempts shown below are failed attempts. The final request success is
-                    determined by the overall request status.
-                </Text>
+                <InfoCircleOutlined style={{ marginRight: 6 }} />
+                All entries below are failed attempts. Final outcome is the request status above.
             </div>
-            <Timeline
-                items={retryAttempts.map((attempt, index) => {
-                    const error = attempt.error;
-                    const timestamp = attempt.timestamp as string;
-                    const duration = attempt.duration_ms as number;
-                    const apiKeyId = attempt.api_key_id as string;
+            {apiKeysLoading ? (
+                <Text type="secondary">Loading API key names…</Text>
+            ) : (
+                <Timeline
+                    items={retryAttempts.map((attempt, index) => {
+                        const joinedName = attempt.api_key_id
+                            ? apiKeyMap.get(attempt.api_key_id)
+                            : undefined;
+                        const displayName = formatKeyLabel({
+                            joined: joinedName
+                                ? { name: joinedName, deleted_at: null }
+                                : null,
+                            embeddedName: attempt.api_key_name,
+                            id: attempt.api_key_id,
+                        });
 
-                    return {
-                        color: token.colorError,
-                        children: (
-                            <Card
-                                size="small"
-                                style={{
-                                    background: token.colorErrorBg,
-                                    border: `1px solid ${token.colorErrorBorder}`,
-                                }}
-                            >
-                                <Row gutter={[8, 8]}>
-                                    <Col span={24}>
-                                        <Space>
-                                            <Text strong>
-                                                Retry Attempt #
-                                                {String(attempt.attempt_number || index + 1)}
-                                            </Text>
-                                            <Tag color="error">Failed</Tag>
-                                            <Tag
-                                                color="orange"
-                                                style={{ fontSize: token.fontSizeSM }}
-                                            >
-                                                {new Date(timestamp).toLocaleString()}
+                        return {
+                            color: token.colorError,
+                            children: (
+                                <div className="gp-panel-sunken" style={{ padding: 10 }}>
+                                    <Space wrap>
+                                        <Text strong>
+                                            Attempt #{attempt.attempt_number || index + 1}
+                                        </Text>
+                                        <Tag color="blue" style={{ borderRadius: 2 }}>
+                                            {displayName}
+                                        </Tag>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            {attempt.duration_ms}ms
+                                        </Text>
+                                        {attempt.error?.type ? (
+                                            <Tag color="error" style={{ borderRadius: 2 }}>
+                                                {attempt.error.type}
                                             </Tag>
-                                        </Space>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Text
-                                            type="secondary"
-                                            style={{ fontSize: token.fontSizeSM }}
+                                        ) : null}
+                                    </Space>
+                                    {attempt.error?.message ? (
+                                        <div
+                                            style={{
+                                                marginTop: 6,
+                                                fontSize: 12,
+                                                color: 'var(--gp-text-secondary)',
+                                            }}
                                         >
-                                            <ClockCircleOutlined /> Duration: {duration}ms
-                                        </Text>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Text
-                                            type="secondary"
-                                            style={{ fontSize: token.fontSizeSM }}
-                                        >
-                                            <BugOutlined /> Error: {String(error.type || 'Unknown')}
-                                        </Text>
-                                    </Col>
-                                    {apiKeyId && (
-                                        <Col span={24}>
-                                            <Space>
-                                                <KeyOutlined
-                                                    style={{ color: token.colorPrimary }}
-                                                />
-                                                <Text
-                                                    type="secondary"
-                                                    style={{ fontSize: token.fontSizeSM }}
-                                                >
-                                                    API Key:{' '}
-                                                    {apiKeyMap.get(apiKeyId) ||
-                                                        `${apiKeyId.slice(0, 8)}...`}
-                                                    {!apiKeyMap.get(apiKeyId) && apiKeysLoading && (
-                                                        <Text
-                                                            type="secondary"
-                                                            style={{ fontSize: token.fontSizeSM }}
-                                                        >
-                                                            (loading...)
-                                                        </Text>
-                                                    )}
-                                                </Text>
-                                                {apiKeyMap.get(apiKeyId) && (
-                                                    <Tag
-                                                        color="blue"
-                                                        style={{ fontSize: token.fontSizeSM }}
-                                                    >
-                                                        {apiKeyId.slice(0, 8)}...
-                                                    </Tag>
-                                                )}
-                                                <Button
-                                                    type="text"
-                                                    size="small"
-                                                    icon={<CopyOutlined />}
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(apiKeyId);
-                                                        notification.open({
-                                                            type: 'success',
-                                                            message: 'API Key ID Copied',
-                                                            description:
-                                                                'API Key ID has been copied to clipboard.',
-                                                        });
-                                                    }}
-                                                />
-                                            </Space>
-                                        </Col>
-                                    )}
-                                    {error && (
-                                        <Col span={24}>
-                                            <Divider style={{ margin: '8px 0' }} />
-                                            <Collapse
-                                                size="small"
-                                                items={[
-                                                    {
-                                                        key: 'error-summary',
-                                                        label: (
-                                                            <Space>
-                                                                <Text
-                                                                    strong
-                                                                    style={{
-                                                                        color: token.colorError,
-                                                                    }}
-                                                                >
-                                                                    Error Summary
-                                                                </Text>
-                                                                <Tag
-                                                                    color="error"
-                                                                    style={{
-                                                                        fontSize: token.fontSizeSM,
-                                                                    }}
-                                                                >
-                                                                    {String(
-                                                                        error.type ||
-                                                                            'Unknown Error',
-                                                                    )}
-                                                                </Tag>
-                                                                {error.status && (
-                                                                    <Tag
-                                                                        color="red"
-                                                                        style={{
-                                                                            fontSize:
-                                                                                token.fontSizeSM,
-                                                                        }}
-                                                                    >
-                                                                        Status:{' '}
-                                                                        {String(error.status)}
-                                                                    </Tag>
-                                                                )}
-                                                            </Space>
-                                                        ),
-                                                        children: (
-                                                            <Space
-                                                                direction="vertical"
-                                                                size="small"
-                                                                style={{ width: '100%' }}
-                                                            >
-                                                                {error.message && (
-                                                                    <Text
-                                                                        type="danger"
-                                                                        style={{
-                                                                            fontSize:
-                                                                                token.fontSizeSM,
-                                                                        }}
-                                                                    >
-                                                                        {String(error.message)}
-                                                                    </Text>
-                                                                )}
-                                                            </Space>
-                                                        ),
-                                                    },
-                                                    ...(attempt.provider_error
-                                                        ? [
-                                                              {
-                                                                  key: 'provider-error',
-                                                                  label: (
-                                                                      <Space>
-                                                                          <Text
-                                                                              strong
-                                                                              style={{
-                                                                                  color: token.colorWarning,
-                                                                              }}
-                                                                          >
-                                                                              Provider Error Details
-                                                                          </Text>
-                                                                          <Tag
-                                                                              color="orange"
-                                                                              style={{
-                                                                                  fontSize:
-                                                                                      token.fontSizeSM,
-                                                                              }}
-                                                                          >
-                                                                              Status:{' '}
-                                                                              {String(
-                                                                                  attempt
-                                                                                      .provider_error
-                                                                                      ?.status ||
-                                                                                      'N/A',
-                                                                              )}
-                                                                          </Tag>
-                                                                      </Space>
-                                                                  ),
-                                                                  children: (
-                                                                      <Space
-                                                                          direction="vertical"
-                                                                          size="small"
-                                                                          style={{ width: '100%' }}
-                                                                      >
-                                                                          {attempt.provider_error
-                                                                              ?.headers && (
-                                                                              <div>
-                                                                                  <Text
-                                                                                      strong
-                                                                                      style={{
-                                                                                          fontSize:
-                                                                                              token.fontSizeSM,
-                                                                                      }}
-                                                                                  >
-                                                                                      Response
-                                                                                      Headers:
-                                                                                  </Text>
-                                                                                  <pre
-                                                                                      style={{
-                                                                                          background:
-                                                                                              token.colorFillQuaternary,
-                                                                                          padding:
-                                                                                              token.paddingXS,
-                                                                                          borderRadius:
-                                                                                              token.borderRadius,
-                                                                                          fontSize:
-                                                                                              token.fontSizeSM,
-                                                                                          overflow:
-                                                                                              'auto',
-                                                                                          maxHeight:
-                                                                                              '100px',
-                                                                                          border: `1px solid ${token.colorBorder}`,
-                                                                                          color: token.colorText,
-                                                                                          whiteSpace:
-                                                                                              'pre-wrap',
-                                                                                          wordBreak:
-                                                                                              'break-word',
-                                                                                          overflowWrap:
-                                                                                              'anywhere',
-                                                                                          maxWidth:
-                                                                                              '100%',
-                                                                                          boxSizing:
-                                                                                              'border-box',
-                                                                                          marginTop:
-                                                                                              token.marginXXS,
-                                                                                      }}
-                                                                                      className="gp-scrollable"
-                                                                                  >
-                                                                                      {JSON.stringify(
-                                                                                          attempt
-                                                                                              .provider_error
-                                                                                              ?.headers,
-                                                                                          null,
-                                                                                          2,
-                                                                                      )}
-                                                                                  </pre>
-                                                                              </div>
-                                                                          )}
-                                                                          {attempt.provider_error
-                                                                              ?.raw_body && (
-                                                                              <div>
-                                                                                  <Text
-                                                                                      strong
-                                                                                      style={{
-                                                                                          fontSize:
-                                                                                              token.fontSizeSM,
-                                                                                      }}
-                                                                                  >
-                                                                                      Raw Response
-                                                                                      Body:
-                                                                                  </Text>
-                                                                                  <pre
-                                                                                      style={{
-                                                                                          background:
-                                                                                              token.colorErrorBg,
-                                                                                          padding:
-                                                                                              token.paddingXS,
-                                                                                          borderRadius:
-                                                                                              token.borderRadius,
-                                                                                          fontSize:
-                                                                                              token.fontSizeSM,
-                                                                                          overflow:
-                                                                                              'auto',
-                                                                                          maxHeight:
-                                                                                              '120px',
-                                                                                          border: `1px solid ${token.colorErrorBorder}`,
-                                                                                          color: token.colorError,
-                                                                                          whiteSpace:
-                                                                                              'pre-wrap',
-                                                                                          wordBreak:
-                                                                                              'break-word',
-                                                                                          overflowWrap:
-                                                                                              'anywhere',
-                                                                                          maxWidth:
-                                                                                              '100%',
-                                                                                          boxSizing:
-                                                                                              'border-box',
-                                                                                          marginTop:
-                                                                                              token.marginXXS,
-                                                                                      }}
-                                                                                      className="gp-scrollable"
-                                                                                  >
-                                                                                      {String(
-                                                                                          attempt
-                                                                                              .provider_error
-                                                                                              ?.raw_body,
-                                                                                      )}
-                                                                                  </pre>
-                                                                              </div>
-                                                                          )}
-                                                                      </Space>
-                                                                  ),
-                                                              },
-                                                          ]
-                                                        : []),
-                                                    {
-                                                        key: 'complete-error',
-                                                        label: (
-                                                            <Space>
-                                                                <Text
-                                                                    strong
-                                                                    style={{
-                                                                        color: token.colorText,
-                                                                    }}
-                                                                >
-                                                                    Complete Error Object
-                                                                </Text>
-                                                                <Tag
-                                                                    color="default"
-                                                                    style={{
-                                                                        fontSize: token.fontSizeSM,
-                                                                    }}
-                                                                >
-                                                                    JSON
-                                                                </Tag>
-                                                            </Space>
-                                                        ),
-                                                        children: (
-                                                            <pre
-                                                                style={{
-                                                                    background:
-                                                                        token.colorFillQuaternary,
-                                                                    padding: token.paddingXS,
-                                                                    borderRadius:
-                                                                        token.borderRadius,
-                                                                    fontSize: token.fontSizeSM,
-                                                                    overflow: 'auto',
-                                                                    maxHeight: '200px',
-                                                                    border: `1px solid ${token.colorBorder}`,
-                                                                    color: token.colorError,
-                                                                    whiteSpace: 'pre-wrap',
-                                                                    wordBreak: 'break-word',
-                                                                    overflowWrap: 'anywhere',
-                                                                    maxWidth: '100%',
-                                                                    boxSizing: 'border-box',
-                                                                }}
-                                                                className="gp-scrollable"
-                                                            >
-                                                                {JSON.stringify(attempt, null, 2)}
-                                                            </pre>
-                                                        ),
-                                                    },
-                                                ]}
-                                            />
-                                        </Col>
-                                    )}
-                                </Row>
-                            </Card>
-                        ),
-                    };
-                })}
-            />
-        </Card>
+                                            {attempt.error.message}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ),
+                        };
+                    })}
+                />
+            )}
+        </div>
     );
 }
