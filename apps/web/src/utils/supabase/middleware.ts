@@ -3,6 +3,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './constants';
 
 export async function updateSession(request: NextRequest) {
+    // Supabase email/OAuth PKCE returns ?code= on Site URL — route it to the exchanger.
+    const authCode = request.nextUrl.searchParams.get('code');
+    if (authCode && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+        const callbackUrl = request.nextUrl.clone();
+        callbackUrl.pathname = '/auth/callback';
+        if (!callbackUrl.searchParams.get('next')) {
+            callbackUrl.searchParams.set('next', '/dashboard');
+        }
+        return NextResponse.redirect(callbackUrl);
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,

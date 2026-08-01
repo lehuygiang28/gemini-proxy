@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, Typography, Input, Button, Alert, Space, theme, Form } from 'antd';
@@ -16,12 +16,27 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
 
     const { formProps, saveButtonProps } = useRefineForm();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
     const { mutate: login, isPending: isLoggingIn } = useLogin();
     const { mutate: register, isPending: isRegistering } = useRegister();
     const { mutate: forgotPassword, isPending: isResetting } = useForgotPassword();
 
     const isLoading = isLoggingIn || isRegistering || isResetting;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        if (error) {
+            setErrorMessage(decodeURIComponent(error));
+        }
+        if (params.get('registered') === '1') {
+            setInfoMessage('Account created. Check your email to confirm, then sign in.');
+        }
+    }, []);
 
     const titles = useMemo(() => {
         switch (type) {
@@ -34,9 +49,19 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
         }
     }, [type]);
 
+    const redirectAfterAuth = useCallback(
+        async (path: string) => {
+            // Sync server components / middleware with cookies set by the browser client
+            router.refresh();
+            router.push(path);
+        },
+        [router],
+    );
+
     const onFinish = useCallback(
         async (values: Record<string, string>) => {
             setErrorMessage(null);
+            setInfoMessage(null);
             try {
                 if (type === 'login') {
                     await new Promise<void>((resolve, reject) =>
@@ -45,8 +70,9 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                             {
                                 onSuccess: (res) => {
                                     if (res?.success) {
-                                        router.push(res.redirectTo ?? '/');
-                                        resolve();
+                                        void redirectAfterAuth(res.redirectTo ?? '/dashboard').then(
+                                            () => resolve(),
+                                        );
                                     } else {
                                         reject(new Error(res?.error?.message ?? 'Login failed'));
                                     }
@@ -62,8 +88,16 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                             {
                                 onSuccess: (res) => {
                                     if (res?.success) {
-                                        router.push(res.redirectTo ?? '/login');
-                                        resolve();
+                                        const target = res.redirectTo ?? '/login?registered=1';
+                                        if (target.startsWith('/dashboard')) {
+                                            void redirectAfterAuth(target).then(() => resolve());
+                                        } else {
+                                            setInfoMessage(
+                                                'Account created. Check your email to confirm, then sign in.',
+                                            );
+                                            router.push(target);
+                                            resolve();
+                                        }
                                     } else {
                                         reject(new Error(res?.error?.message ?? 'Register failed'));
                                     }
@@ -79,6 +113,9 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                             {
                                 onSuccess: (res) => {
                                     if (res?.success) {
+                                        setInfoMessage(
+                                            'Password reset email sent. Check your inbox.',
+                                        );
                                         resolve();
                                     } else {
                                         reject(
@@ -98,7 +135,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                 setErrorMessage(err?.message ?? 'Something went wrong');
             }
         },
-        [type, login, register, forgotPassword, router],
+        [type, login, register, forgotPassword, router, redirectAfterAuth],
     );
 
     const footerLinks = useMemo(() => {
@@ -161,6 +198,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                     </div>
 
                     {errorMessage ? <Alert type="error" message={errorMessage} showIcon /> : null}
+                    {infoMessage ? <Alert type="info" message={infoMessage} showIcon /> : null}
 
                     <Form
                         {...formProps}
