@@ -11,6 +11,8 @@ export interface DashboardStatistics {
     avg_total_response_time_ms: number;
     success_rate: number;
     active_keys: number;
+    /** Null when p_days_back was not provided (all-time request aggregates). */
+    period_days: number | null;
 }
 
 export interface RetryStatistics {

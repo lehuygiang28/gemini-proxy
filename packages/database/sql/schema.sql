@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     metadata JSONB NOT NULL DEFAULT '{}',
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(user_id, name),
     CONSTRAINT api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
     CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10)
 );
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 CREATE TABLE IF NOT EXISTS proxy_api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    proxy_key_value TEXT NOT NULL UNIQUE,
+    proxy_key_value TEXT NOT NULL,
     name TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     success_count BIGINT NOT NULL DEFAULT 0,
@@ -39,11 +39,21 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     metadata JSONB NOT NULL DEFAULT '{}',
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     CONSTRAINT proxy_api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
     CONSTRAINT proxy_api_keys_proxy_key_value_length CHECK (char_length(proxy_key_value) >= 10)
 );
+
+-- Soft-delete aware uniqueness (alive rows only)
+CREATE UNIQUE INDEX IF NOT EXISTS api_keys_user_id_name_alive_uidx
+    ON api_keys (user_id, name)
+    WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS proxy_api_keys_value_alive_uidx
+    ON proxy_api_keys (proxy_key_value)
+    WHERE deleted_at IS NULL;
 
 -- Request Logs table - stores detailed request logs
 CREATE TABLE IF NOT EXISTS request_logs (
@@ -120,6 +130,12 @@ CREATE INDEX IF NOT EXISTS idx_request_logs_user_created_at ON request_logs(user
 CREATE INDEX IF NOT EXISTS idx_request_logs_api_key_created_at ON request_logs(api_key_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_user_active ON proxy_api_keys(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_api_keys_deleted_at
+    ON api_keys (deleted_at)
+    WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_deleted_at
+    ON proxy_api_keys (deleted_at)
+    WHERE deleted_at IS NULL;
 
 -- Updated timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -134,10 +150,12 @@ END;
 $$;
 
 -- Triggers for automatic updated_at maintenance
+DROP TRIGGER IF EXISTS update_api_keys_updated_at ON api_keys;
 CREATE TRIGGER update_api_keys_updated_at 
     BEFORE UPDATE ON api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_proxy_api_keys_updated_at ON proxy_api_keys;
 CREATE TRIGGER update_proxy_api_keys_updated_at 
     BEFORE UPDATE ON proxy_api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -148,27 +166,32 @@ ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies using subqueries to avoid re-evaluation
+DROP POLICY IF EXISTS "Users can manage their own api_keys" ON api_keys;
 CREATE POLICY "Users can manage their own api_keys" ON api_keys
     FOR ALL USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Users can manage their own proxy_api_keys" ON proxy_api_keys;
 CREATE POLICY "Users can manage their own proxy_api_keys" ON proxy_api_keys
     FOR ALL USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Users can view their own request_logs" ON request_logs;
 CREATE POLICY "Users can view their own request_logs" ON request_logs
     FOR SELECT USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Service role can insert request_logs" ON request_logs;
 CREATE POLICY "Service role can insert request_logs" ON request_logs
     FOR INSERT WITH CHECK ((SELECT auth.role()) = 'service_role');
 
+DROP POLICY IF EXISTS "Service role can update request_logs" ON request_logs;
 CREATE POLICY "Service role can update request_logs" ON request_logs
     FOR UPDATE USING ((SELECT auth.role()) = 'service_role');
 
@@ -207,9 +230,40 @@ COMMENT ON COLUMN request_logs.usage_metadata IS 'JSON object containing token u
 COMMENT ON COLUMN request_logs.performance_metrics IS 'JSON object containing timing and performance metrics';
 
 -- =====================================
+-- Realtime publication for admin live feeds (Refine liveProvider)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE request_logs;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE proxy_api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =====================================
 -- Function to get dashboard statistics
+DROP FUNCTION IF EXISTS get_dashboard_statistics(UUID);
 CREATE OR REPLACE FUNCTION get_dashboard_statistics(
-    p_user_id UUID DEFAULT NULL
+    p_user_id UUID DEFAULT NULL,
+    p_days_back INTEGER DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -234,19 +288,21 @@ BEGIN
     ELSE
         effective_user_id := (SELECT auth.uid());
     END IF;
-    -- Get API keys count
+    -- Get API keys count (all-time inventory)
     SELECT COUNT(*) INTO total_api_keys
     FROM api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
     
-    -- Get proxy keys count
+    -- Get proxy keys count (all-time inventory)
     SELECT COUNT(*) INTO total_proxy_keys
     FROM proxy_api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
     
-    -- Get request logs statistics
+    -- Get request logs statistics (optionally period-scoped)
     SELECT 
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
@@ -272,9 +328,10 @@ BEGIN
             ) / NULLIF(COUNT(*), 0) as avg_total_response_time
     INTO total_requests, successful_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND (p_days_back IS NULL OR created_at >= NOW() - (p_days_back || ' days')::INTERVAL);
     
-    -- Get total tokens from proxy keys
+    -- Get total tokens from proxy keys (all-time counters; include soft-deleted history)
     SELECT COALESCE(SUM(total_tokens), 0) INTO total_tokens_sum
     FROM proxy_api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
@@ -296,7 +353,8 @@ BEGIN
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
         'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
-        'active_keys', total_api_keys + total_proxy_keys
+        'active_keys', total_api_keys + total_proxy_keys,
+        'period_days', p_days_back
     );
     
     RETURN result;
@@ -394,7 +452,8 @@ BEGIN
         COALESCE(SUM(failure_count), 0) as total_failure
     INTO total_keys, active_keys, total_success_count, total_failure_count
     FROM api_keys
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND deleted_at IS NULL;
     
     -- Calculate totals and success rate
     total_usage_count := total_success_count + total_failure_count;
@@ -458,7 +517,8 @@ BEGIN
     INTO total_keys, active_keys, total_success_count, total_failure_count, 
          total_tokens_sum, total_prompt_tokens, total_completion_tokens
     FROM proxy_api_keys
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND deleted_at IS NULL;
     
     -- Calculate success rate
     success_rate := CASE 
@@ -615,14 +675,14 @@ END;
 $$;
 
 -- Grant execute permissions to authenticated users
-GRANT EXECUTE ON FUNCTION get_dashboard_statistics(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_dashboard_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_retry_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_api_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_proxy_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_request_logs_statistics(UUID, INTEGER) TO authenticated;
 
 -- Add comments for documentation
-COMMENT ON FUNCTION get_dashboard_statistics(UUID) IS 'Returns comprehensive dashboard statistics including API keys, proxy keys, requests, and performance metrics';
+COMMENT ON FUNCTION get_dashboard_statistics(UUID, INTEGER) IS 'Returns dashboard statistics; request aggregates honor optional p_days_back, key inventory is all-time';
 COMMENT ON FUNCTION get_retry_statistics(UUID, INTEGER) IS 'Returns retry attempt statistics for request logs within specified time period';
 COMMENT ON FUNCTION get_api_key_statistics(UUID) IS 'Returns usage statistics for API keys including success/failure rates';
 COMMENT ON FUNCTION get_proxy_key_statistics(UUID) IS 'Returns usage statistics for proxy keys including token usage and success rates';

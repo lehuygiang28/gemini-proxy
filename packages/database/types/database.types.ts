@@ -13,6 +13,7 @@ export type Database = {
                     api_key_value: string;
                     completion_tokens: number;
                     created_at: string;
+                    deleted_at: string | null;
                     failure_count: number;
                     id: string;
                     is_active: boolean;
@@ -31,6 +32,7 @@ export type Database = {
                     api_key_value: string;
                     completion_tokens?: number;
                     created_at?: string;
+                    deleted_at?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -49,6 +51,7 @@ export type Database = {
                     api_key_value?: string;
                     completion_tokens?: number;
                     created_at?: string;
+                    deleted_at?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -69,6 +72,7 @@ export type Database = {
                 Row: {
                     completion_tokens: number;
                     created_at: string;
+                    deleted_at: string | null;
                     failure_count: number;
                     id: string;
                     is_active: boolean;
@@ -86,6 +90,7 @@ export type Database = {
                 Insert: {
                     completion_tokens?: number;
                     created_at?: string;
+                    deleted_at?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -103,6 +108,7 @@ export type Database = {
                 Update: {
                     completion_tokens?: number;
                     created_at?: string;
+                    deleted_at?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -202,7 +208,7 @@ export type Database = {
                 Returns: Json;
             };
             get_dashboard_statistics: {
-                Args: { p_user_id?: string };
+                Args: { p_user_id?: string; p_days_back?: number };
                 Returns: Json;
             };
             get_proxy_key_statistics: {
