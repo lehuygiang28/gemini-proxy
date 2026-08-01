@@ -1,15 +1,21 @@
 import { type CookieOptions, createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './constants';
+import { safeNextPath } from './route-handler';
 
 export async function updateSession(request: NextRequest) {
-    // Supabase email/OAuth PKCE returns ?code= on Site URL — route it to the exchanger.
+    // Supabase PKCE returns ?code= on the redirectTo URL — route it to the exchanger.
     const authCode = request.nextUrl.searchParams.get('code');
     if (authCode && !request.nextUrl.pathname.startsWith('/auth/callback')) {
         const callbackUrl = request.nextUrl.clone();
         callbackUrl.pathname = '/auth/callback';
+        // Keep the landing path (e.g. /update-password) as `next`, not always /dashboard.
         if (!callbackUrl.searchParams.get('next')) {
-            callbackUrl.searchParams.set('next', '/dashboard');
+            const fromPath = safeNextPath(request.nextUrl.pathname, '/dashboard');
+            callbackUrl.searchParams.set(
+                'next',
+                fromPath === '/' ? '/dashboard' : fromPath,
+            );
         }
         return NextResponse.redirect(callbackUrl);
     }

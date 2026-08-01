@@ -61,6 +61,392 @@ body {
     color: var(--gp-text);
 }
 
+/* Header account — Clerk-style compact avatar trigger + identity panel */
+.gp-user-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 36px;
+    padding: 2px;
+    margin: 0;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--gp-text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    vertical-align: middle;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gp-user-menu-trigger:hover {
+    background: var(--gp-bg-hover);
+}
+
+.gp-user-menu-trigger:focus {
+    outline: none;
+}
+
+.gp-user-menu-trigger:focus-visible {
+    box-shadow: 0 0 0 2px var(--gp-bg-raised), 0 0 0 4px var(--gp-accent);
+}
+
+.gp-user-menu-avatar {
+    flex: 0 0 auto;
+    font-size: 12px;
+    line-height: 32px;
+    background: var(--gp-bg-active) !important;
+    color: var(--gp-text) !important;
+}
+
+.gp-user-menu-chevron {
+    font-size: 10px;
+    margin-right: 4px;
+    opacity: 0.65;
+}
+
+.gp-user-menu-panel {
+    min-width: 240px;
+    max-width: 280px;
+    border: 1px solid var(--gp-border);
+    border-radius: 8px;
+    background: var(--gp-bg-raised);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+[data-theme='light'] .gp-user-menu-panel {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.gp-user-menu-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px 12px;
+    border-bottom: 1px solid var(--gp-border-subtle);
+}
+
+.gp-user-menu-identity-avatar {
+    flex: 0 0 auto;
+    font-size: 14px;
+    line-height: 40px;
+    background: var(--gp-bg-active) !important;
+    color: var(--gp-text) !important;
+}
+
+.gp-user-menu-identity-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gp-user-menu-identity-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gp-text);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gp-user-menu-identity-email {
+    font-size: 12px;
+    color: var(--gp-text-muted);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gp-user-menu-list.ant-menu {
+    border: none !important;
+    background: transparent !important;
+    padding: 4px;
+}
+
+.gp-user-menu-list.ant-menu .ant-menu-item {
+    height: 36px;
+    line-height: 36px;
+    margin: 0 !important;
+    width: 100%;
+    border-radius: var(--gp-radius);
+    color: var(--gp-text);
+}
+
+.gp-user-menu-list.ant-menu .ant-menu-item:hover {
+    background: var(--gp-bg-hover) !important;
+}
+
+.gp-user-menu-list.ant-menu .ant-menu-item-danger,
+.gp-user-menu-list.ant-menu .ant-menu-item-danger .anticon {
+    color: var(--gp-error) !important;
+}
+
+.gp-user-menu-list.ant-menu .ant-menu-item-danger:hover {
+    background: var(--gp-error-muted) !important;
+    color: var(--gp-error) !important;
+}
+
+.gp-user-menu-list.ant-menu .ant-menu-item-divider {
+    margin: 4px 0;
+    border-color: var(--gp-border-subtle);
+}
+
+/* Account modal — Clerk-inspired split profile */
+.gp-account-modal.ant-modal .ant-modal-content {
+    overflow: hidden;
+    border: 1px solid var(--gp-border);
+    background: var(--gp-bg-raised);
+}
+
+.gp-account-modal.ant-modal .ant-modal-header {
+    margin: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gp-border-subtle);
+    background: transparent;
+}
+
+.gp-account-modal.ant-modal .ant-modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gp-text);
+}
+
+.gp-account-modal.ant-modal .ant-modal-close {
+    top: 14px;
+    inset-inline-end: 14px;
+}
+
+.gp-account-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(75dvh, 640px);
+}
+
+.gp-account-status {
+    padding: 24px 20px;
+}
+
+.gp-account-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gp-border-subtle);
+    flex-shrink: 0;
+}
+
+.gp-account-identity-avatar {
+    flex: 0 0 auto;
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--gp-bg-active) !important;
+    color: var(--gp-text) !important;
+}
+
+.gp-account-identity-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gp-account-identity-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gp-text);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gp-account-identity-email {
+    font-size: 12px;
+    color: var(--gp-text-muted);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gp-account-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+}
+
+.gp-account-nav {
+    flex: 0 0 180px;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 10px;
+    border-right: 1px solid var(--gp-border-subtle);
+    background: var(--gp-bg-sunken);
+    overflow-y: auto;
+}
+
+.gp-account-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--gp-radius);
+    background: transparent;
+    color: var(--gp-text-secondary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.gp-account-nav-item:hover {
+    background: var(--gp-bg-hover);
+    color: var(--gp-text);
+}
+
+.gp-account-nav-item:focus {
+    outline: none;
+}
+
+.gp-account-nav-item:focus-visible {
+    box-shadow: 0 0 0 2px var(--gp-accent);
+}
+
+.gp-account-nav-item.is-active {
+    background: var(--gp-accent-muted);
+    color: var(--gp-text);
+}
+
+.gp-account-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    font-size: 14px;
+    opacity: 0.85;
+}
+
+.gp-account-pane {
+    flex: 1;
+    min-width: 0;
+    padding: 16px 18px 18px;
+    overflow-y: auto;
+}
+
+.gp-account-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 18px 18px 16px;
+    border: 1px solid var(--gp-border);
+    border-radius: 8px;
+    background: var(--gp-bg-base);
+}
+
+.gp-account-section-header {
+    margin-bottom: 16px;
+}
+
+.gp-account-section-title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gp-text);
+    line-height: 1.3;
+}
+
+.gp-account-section-desc {
+    margin: 0;
+    font-size: 13px;
+    color: var(--gp-text-secondary);
+    line-height: 1.45;
+}
+
+.gp-account-section-form.ant-form {
+    margin: 0;
+}
+
+.gp-account-section-form .ant-form-item:last-child {
+    margin-bottom: 0;
+}
+
+.gp-account-section-form .ant-form-item {
+    margin-bottom: 14px;
+}
+
+.gp-account-section-hint {
+    margin: -4px 0 14px;
+    font-size: 12px;
+    color: var(--gp-text-muted);
+    line-height: 1.4;
+}
+
+.gp-account-section-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+}
+
+.gp-account-current-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--gp-border-subtle);
+    border-radius: var(--gp-radius);
+    background: var(--gp-bg-sunken);
+}
+
+.gp-account-current-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--gp-text-muted);
+}
+
+.gp-account-current-value {
+    font-size: 13px;
+    color: var(--gp-text);
+    word-break: break-all;
+}
+
+@media (max-width: 640px) {
+    .gp-account-body {
+        flex-direction: column;
+    }
+
+    .gp-account-nav {
+        flex: 0 0 auto;
+        width: 100%;
+        flex-direction: row;
+        gap: 4px;
+        padding: 10px 12px;
+        border-right: none;
+        border-bottom: 1px solid var(--gp-border-subtle);
+        overflow-x: auto;
+    }
+
+    .gp-account-nav-item {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}
+
 /* Viewport-locked protected shell: chrome stays put, content scrolls */
 html:has(.gp-app-shell),
 html:has(.gp-app-shell) body {

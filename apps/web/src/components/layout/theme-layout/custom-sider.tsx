@@ -10,7 +10,6 @@ import {
     type MenuProps,
 } from 'antd';
 import {
-    LogoutOutlined,
     UnorderedListOutlined,
     BarsOutlined,
     LeftOutlined,
@@ -18,12 +17,8 @@ import {
 } from '@ant-design/icons';
 import {
     type TreeMenuItem,
-    useTranslate,
-    useLogout,
-    useIsExistAuthentication,
     useMenu,
     useLink,
-    useWarnAboutChange,
 } from '@refinedev/core';
 import {
     useThemedLayoutContext,
@@ -104,56 +99,24 @@ export function CustomSider({
         mobileSiderOpen,
         setMobileSiderOpen,
     } = useThemedLayoutContext();
-    const isExistAuthentication = useIsExistAuthentication();
     const direction = useContext(ConfigProvider.ConfigContext)?.direction;
     const Link = useLink();
-    const { warnWhen, setWarnWhen } = useWarnAboutChange();
-    const translate = useTranslate();
     const { menuItems, selectedKey, defaultOpenKeys } = useMenu({ meta });
     const breakpoint = Grid.useBreakpoint();
-    const { mutate: mutateLogout } = useLogout();
     const isMobile = typeof breakpoint.lg === 'undefined' ? false : !breakpoint.lg;
     const RenderToTitle = TitleFromProps ?? CustomTitle;
-
-    const handleLogout = (): void => {
-        if (warnWhen) {
-            const confirmed = window.confirm(
-                translate(
-                    'warnWhenUnsavedChanges',
-                    'Are you sure you want to leave? You have unsaved changes.',
-                ),
-            );
-            if (confirmed) {
-                setWarnWhen(false);
-                mutateLogout();
-            }
-            return;
-        }
-        mutateLogout();
-    };
 
     const defaultExpandMenuItems = siderItemsAreCollapsed
         ? []
         : menuItems.map(({ key }) => key).filter((key): key is string => Boolean(key));
 
-    const treeItems = buildMenuItems(
+    const items: MenuItem[] = buildMenuItems(
         menuItems,
         selectedKey,
         Link,
         siderCollapsed,
         activeItemDisabled,
     );
-    const items: MenuItem[] = isExistAuthentication
-        ? [
-              ...treeItems,
-              {
-                  key: 'logout',
-                  icon: <LogoutOutlined />,
-                  label: translate('buttons.logout', 'Logout'),
-                  onClick: () => handleLogout(),
-              },
-          ]
-        : treeItems;
 
     const renderMenu = (): ReactNode => (
         <Menu
