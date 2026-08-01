@@ -22,7 +22,9 @@ export function CustomThemedLayout({
     const { token } = useToken();
 
     const layoutStyles: CSSProperties = {
-        minHeight: '100vh',
+        height: '100dvh',
+        maxHeight: '100dvh',
+        overflow: 'hidden',
         background: token.colorBgContainer,
     };
 
@@ -32,7 +34,7 @@ export function CustomThemedLayout({
     };
 
     return (
-        <Layout style={layoutStyles} className="gp-console">
+        <Layout style={layoutStyles} className="gp-console gp-app-shell">
             <ThemedLayout
                 Header={Header}
                 Sider={CustomSider}

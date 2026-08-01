@@ -61,6 +61,52 @@ body {
     color: var(--gp-text);
 }
 
+/* Viewport-locked protected shell: chrome stays put, content scrolls */
+html:has(.gp-app-shell),
+html:has(.gp-app-shell) body {
+    height: 100%;
+    overflow: hidden;
+}
+
+.gp-app-shell.gp-console {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+.gp-app-shell > .ant-layout {
+    height: 100% !important;
+    max-height: 100%;
+    min-height: 0 !important;
+    overflow: hidden;
+}
+
+.gp-app-shell > .ant-layout > .ant-layout {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.gp-app-shell .ant-layout-sider {
+    height: 100% !important;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.gp-app-shell .ant-layout-sider-children,
+.ant-drawer .ant-layout-sider-children {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .gp-console {
     --gp-console-pad: 16px;
     font-size: 13px;
@@ -420,44 +466,59 @@ body {
     }
 }
 
-/* Global scrollbar styling */
+/* Signal Deck scrollbars — thin, low-contrast; WebKit + Firefox */
 .gp-scrollable-root,
 .gp-scrollable,
-pre.gp-scrollable,
-div.gp-scrollable {
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content,
+.gp-live-feed,
+.gp-snippet {
     scrollbar-width: thin;
-    scrollbar-color: var(--ant-color-border) var(--ant-color-fill-quaternary);
+    scrollbar-color: var(--gp-border) var(--gp-bg-sunken);
 }
 
 .gp-scrollable-root::-webkit-scrollbar,
 .gp-scrollable::-webkit-scrollbar,
-pre.gp-scrollable::-webkit-scrollbar,
-div.gp-scrollable::-webkit-scrollbar {
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content::-webkit-scrollbar,
+.gp-live-feed::-webkit-scrollbar,
+.gp-snippet::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 .gp-scrollable-root::-webkit-scrollbar-track,
 .gp-scrollable::-webkit-scrollbar-track,
-pre.gp-scrollable::-webkit-scrollbar-track,
-div.gp-scrollable::-webkit-scrollbar-track {
-    background: var(--ant-color-fill-quaternary);
-    border-radius: var(--ant-border-radius);
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content::-webkit-scrollbar-track,
+.gp-live-feed::-webkit-scrollbar-track,
+.gp-snippet::-webkit-scrollbar-track {
+    background: var(--gp-bg-sunken);
+    border-radius: var(--gp-radius);
 }
 
 .gp-scrollable-root::-webkit-scrollbar-thumb,
 .gp-scrollable::-webkit-scrollbar-thumb,
-pre.gp-scrollable::-webkit-scrollbar-thumb,
-div.gp-scrollable::-webkit-scrollbar-thumb {
-    background: var(--ant-color-border);
-    border-radius: var(--ant-border-radius);
-    border: 2px solid var(--ant-color-fill-quaternary);
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content::-webkit-scrollbar-thumb,
+.gp-live-feed::-webkit-scrollbar-thumb,
+.gp-snippet::-webkit-scrollbar-thumb {
+    background: var(--gp-border);
+    border-radius: var(--gp-radius);
+    border: 2px solid var(--gp-bg-sunken);
+    background-clip: padding-box;
 }
 
 .gp-scrollable-root::-webkit-scrollbar-thumb:hover,
 .gp-scrollable::-webkit-scrollbar-thumb:hover,
-pre.gp-scrollable::-webkit-scrollbar-thumb:hover,
-div.gp-scrollable::-webkit-scrollbar-thumb:hover {
-    background: var(--ant-color-primary);
-    border-color: var(--ant-color-fill-quaternary);
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content::-webkit-scrollbar-thumb:hover,
+.gp-live-feed::-webkit-scrollbar-thumb:hover,
+.gp-snippet::-webkit-scrollbar-thumb:hover {
+    background: var(--gp-border-strong);
+    border: 2px solid var(--gp-bg-sunken);
+    background-clip: padding-box;
+}
+
+.gp-scrollable-root::-webkit-scrollbar-corner,
+.gp-scrollable::-webkit-scrollbar-corner,
+.gp-app-shell > .ant-layout > .ant-layout > .ant-layout-content::-webkit-scrollbar-corner,
+.gp-live-feed::-webkit-scrollbar-corner,
+.gp-snippet::-webkit-scrollbar-corner {
+    background: transparent;
 }

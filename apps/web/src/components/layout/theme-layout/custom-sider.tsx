@@ -157,6 +157,7 @@ export function CustomSider({
 
     const renderMenu = (): ReactNode => (
         <Menu
+            className="gp-scrollable"
             selectedKeys={selectedKey ? [selectedKey] : []}
             defaultOpenKeys={[...defaultOpenKeys, ...defaultExpandMenuItems]}
             mode="inline"
@@ -164,7 +165,8 @@ export function CustomSider({
                 paddingTop: 8,
                 border: 'none',
                 overflow: 'auto',
-                height: 'calc(100% - 72px)',
+                flex: 1,
+                minHeight: 0,
             }}
             onClick={() => {
                 setMobileSiderOpen(false);
@@ -188,7 +190,7 @@ export function CustomSider({
                     <Layout>
                         <Layout.Sider
                             style={{
-                                height: '100vh',
+                                height: '100dvh',
                                 backgroundColor: token.colorBgContainer,
                                 borderRight: `1px solid ${token.colorBgElevated}`,
                             }}
@@ -223,11 +225,13 @@ export function CustomSider({
     const siderStyles: CSSProperties = {
         backgroundColor: token.colorBgContainer,
         borderRight: `1px solid ${token.colorBgElevated}`,
+        height: '100%',
+        overflow: 'hidden',
     };
     if (fixed) {
         siderStyles.position = 'fixed';
         siderStyles.top = 0;
-        siderStyles.height = '100vh';
+        siderStyles.height = '100dvh';
         siderStyles.zIndex = 999;
     }
 

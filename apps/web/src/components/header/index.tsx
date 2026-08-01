@@ -27,6 +27,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
         alignItems: 'center',
         padding: '0px 24px',
         height: '64px',
+        flexShrink: 0,
     };
 
     if (sticky) {
