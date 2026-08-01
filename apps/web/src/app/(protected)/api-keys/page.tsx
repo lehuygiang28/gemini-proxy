@@ -1,15 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import {
-    List,
-    CreateButton,
-    EditButton,
-    ShowButton,
-    DeleteButton,
-    useTable,
-} from '@refinedev/antd';
-import { useDelete, useUpdate } from '@refinedev/core';
+import { List, CreateButton, EditButton, ShowButton, useTable } from '@refinedev/antd';
+import { useGo, useUpdate } from '@refinedev/core';
+import { buildSoftDeleteKeyValues } from '@/utils/soft-delete-key';
 import {
     Table,
     Space,
@@ -27,7 +21,13 @@ import {
     Empty,
     Typography,
 } from 'antd';
-import { ReloadOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import {
+    DeleteOutlined,
+    FileTextOutlined,
+    ReloadOutlined,
+    SearchOutlined,
+    FilterOutlined,
+} from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import {
     SensitiveKeyDisplay,
@@ -35,6 +35,7 @@ import {
     UsageStatistics,
     DateTimeDisplay,
 } from '@/components/common';
+import { KeyHealthBadge } from '@/features/observability';
 import { getProviderColor, getProviderText, formatTokenCount } from '@/utils/table-helpers';
 import { PROVIDER_OPTIONS } from '@/constants/providers';
 
@@ -54,17 +55,21 @@ interface IApiKeySearch {
 
 export default function ApiKeysListPage() {
     const { token } = useToken();
+    const go = useGo();
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
     const { mutate: updateApiKey } = useUpdate({
         resource: API_KEYS_RESOURCE,
     });
-    const { mutate: deleteApiKey } = useDelete();
 
     const { tableProps, searchFormProps } = useTable<ApiKey>({
         syncWithLocation: true,
         resource: API_KEYS_RESOURCE,
+        liveMode: 'auto',
         pagination: {
             pageSize: 20,
+        },
+        filters: {
+            permanent: [{ field: 'deleted_at', operator: 'null', value: true }],
         },
         sorters: {
             initial: [{ field: 'created_at', order: 'desc' }],
@@ -143,14 +148,14 @@ export default function ApiKeysListPage() {
 
     const handleDelete = useCallback(
         (record: ApiKey) => {
-            deleteApiKey({
+            updateApiKey({
                 resource: API_KEYS_RESOURCE,
                 id: record.id,
-                mutationMode: 'optimistic',
+                values: buildSoftDeleteKeyValues('api', record.id),
                 successNotification: {
                     type: 'success',
                     message: 'API Key Deleted',
-                    description: `API key "${record.name}" has been deleted successfully`,
+                    description: `API key "${record.name}" removed. Request logs are kept.`,
                 },
                 errorNotification: {
                     type: 'error',
@@ -159,7 +164,7 @@ export default function ApiKeysListPage() {
                 },
             });
         },
-        [deleteApiKey],
+        [updateApiKey],
     );
 
     return (
@@ -286,6 +291,27 @@ export default function ApiKeysListPage() {
                             sorter: true,
                         },
                         {
+                            title: 'Health',
+                            key: 'health',
+                            width: 100,
+                            render: (_: unknown, record: ApiKey) => (
+                                <KeyHealthBadge
+                                    isActive={record.is_active}
+                                    successRate={
+                                        record.success_count + record.failure_count > 0
+                                            ? Math.round(
+                                                  (record.success_count /
+                                                      (record.success_count +
+                                                          record.failure_count)) *
+                                                      100,
+                                              )
+                                            : 100
+                                    }
+                                    failureCount={record.failure_count}
+                                />
+                            ),
+                        },
+                        {
                             title: 'Usage Statistics',
                             dataIndex: 'success_count',
                             sorter: true,
@@ -351,10 +377,22 @@ export default function ApiKeysListPage() {
                         {
                             title: 'Actions',
                             dataIndex: 'actions',
-                            width: 120,
+                            width: 160,
                             fixed: 'right',
                             render: (_: unknown, record: ApiKey) => (
                                 <Space size="small">
+                                    <Tooltip title="View logs for this key">
+                                        <Button
+                                            size="small"
+                                            type="text"
+                                            icon={<FileTextOutlined />}
+                                            onClick={() =>
+                                                go({
+                                                    to: `/request-logs?api_key_id=${record.id}`,
+                                                })
+                                            }
+                                        />
+                                    </Tooltip>
                                     <Tooltip title="Edit API Key">
                                         <EditButton
                                             hideText
@@ -372,16 +410,17 @@ export default function ApiKeysListPage() {
                                     <Tooltip title="Delete API Key">
                                         <Popconfirm
                                             title="Delete API Key"
-                                            description="Are you sure you want to delete this API key? This action cannot be undone."
+                                            description="Key is deactivated and hidden. Request logs stay linked."
                                             onConfirm={() => handleDelete(record)}
-                                            okText="Yes, Delete"
+                                            okText="Delete"
                                             cancelText="Cancel"
                                             okType="danger"
                                         >
-                                            <DeleteButton
-                                                hideText
-                                                recordItemId={record.id}
+                                            <Button
+                                                danger
                                                 size="small"
+                                                type="text"
+                                                icon={<DeleteOutlined />}
                                             />
                                         </Popconfirm>
                                     </Tooltip>

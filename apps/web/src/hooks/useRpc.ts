@@ -76,11 +76,13 @@ const createRpcHookWithDefaults = <T extends RpcFunctionName>(
 };
 
 // Statistics RPC Hooks
-export const useDashboardStatistics = createRpcHook('get_dashboard_statistics');
 export const useApiKeyStatistics = createRpcHook('get_api_key_statistics');
 export const useProxyKeyStatistics = createRpcHook('get_proxy_key_statistics');
 
 // Statistics RPC Hooks with Parameters
+export const useDashboardStatistics = createRpcHookWithDefaults('get_dashboard_statistics', {
+    p_days_back: 7,
+});
 export const useRetryStatistics = createRpcHookWithDefaults('get_retry_statistics', {
     p_days_back: 30,
 });

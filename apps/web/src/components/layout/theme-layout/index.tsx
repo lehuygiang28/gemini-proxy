@@ -26,12 +26,12 @@ export function CustomThemedLayout({
     };
 
     const contentStyles: CSSProperties = {
-        background: token.colorBgContainer,
+        background: 'var(--gp-bg-base)',
         padding: token.paddingLG,
     };
 
     return (
-        <Layout style={layoutStyles}>
+        <Layout style={layoutStyles} className="gp-console">
             <ThemedLayout
                 Header={Header}
                 Title={CustomTitle}

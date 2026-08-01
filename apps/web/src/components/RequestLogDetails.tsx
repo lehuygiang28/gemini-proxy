@@ -37,13 +37,30 @@ import {
     SafetyOutlined,
     InfoCircleOutlined,
 } from '@ant-design/icons';
-import type { Tables } from '@gemini-proxy/database';
+import type {
+    PerformanceMetrics as PerformanceMetricsData,
+    Tables,
+    UsageMetadata,
+} from '@gemini-proxy/database';
 import { DateTimeDisplay } from '@/components/common';
 import { useNotification, useMany } from '@refinedev/core';
 import { RequestLog, RetryAttempt } from '../types/request-log.types';
+import {
+    extractPerformanceMetrics,
+    extractUsageMetadata,
+    formatTokenCount,
+} from '@/utils/table-helpers';
 
 const { Text } = Typography;
 const { useToken } = theme;
+
+function safeSuccessRate(success: number, failure: number): number {
+    const total = success + failure;
+    if (total <= 0) {
+        return 100;
+    }
+    return Math.round((success / total) * 100);
+}
 
 interface RequestLogDetailsProps {
     requestLog: RequestLog;
@@ -87,11 +104,11 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
         });
     };
 
-    const requestData = requestLog.request_data as Record<string, unknown>;
-    const responseData = requestLog.response_data as Record<string, unknown>;
-    const errorDetails = requestLog.error_details as Record<string, unknown>;
-    const performanceMetrics = requestLog.performance_metrics as Record<string, unknown>;
-    const usageMetadata = requestLog.usage_metadata as Record<string, unknown>;
+    const requestData = (requestLog.request_data as Record<string, unknown>) || {};
+    const responseData = (requestLog.response_data as Record<string, unknown>) || {};
+    const errorDetails = (requestLog.error_details as Record<string, unknown>) || {};
+    const performanceMetrics = extractPerformanceMetrics(requestLog.performance_metrics);
+    const usageMetadata = extractUsageMetadata(requestLog.usage_metadata);
     const retryAttempts = (requestLog.retry_attempts as unknown as RetryAttempt[]) || [];
 
     return (
@@ -303,43 +320,66 @@ function UserAndKeysInfo({
                     {requestLog.api_keys ? (
                         <Descriptions column={1} size="small">
                             <Descriptions.Item label="Name">
-                                <Text strong>{requestLog.api_keys.name}</Text>
+                                <Space>
+                                    <Text strong>{requestLog.api_keys.name}</Text>
+                                    {requestLog.api_keys.deleted_at ? (
+                                        <Tag color="default">Deleted</Tag>
+                                    ) : null}
+                                </Space>
                             </Descriptions.Item>
                             <Descriptions.Item label="Provider">
                                 <Tag color="blue">{requestLog.api_keys.provider}</Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Status">
-                                <Tag color={requestLog.api_keys.is_active ? 'success' : 'error'}>
-                                    {requestLog.api_keys.is_active ? 'Active' : 'Inactive'}
+                                <Tag
+                                    color={
+                                        requestLog.api_keys.deleted_at
+                                            ? 'default'
+                                            : requestLog.api_keys.is_active
+                                              ? 'success'
+                                              : 'error'
+                                    }
+                                >
+                                    {requestLog.api_keys.deleted_at
+                                        ? 'Deleted'
+                                        : requestLog.api_keys.is_active
+                                          ? 'Active'
+                                          : 'Inactive'}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Success Rate">
                                 <Progress
                                     percent={Math.round(
-                                        (requestLog.api_keys.success_count /
-                                            (requestLog.api_keys.success_count +
-                                                requestLog.api_keys.failure_count)) *
-                                            100,
+                                        (() => {
+                                            const ok = requestLog.api_keys.success_count ?? 0;
+                                            const fail = requestLog.api_keys.failure_count ?? 0;
+                                            const total = ok + fail;
+                                            return total > 0 ? (ok / total) * 100 : 0;
+                                        })(),
                                     )}
                                     size="small"
                                     showInfo={false}
                                 />
                                 <Text style={{ fontSize: token.fontSizeSM }}>
-                                    {requestLog.api_keys.success_count} /{' '}
-                                    {requestLog.api_keys.success_count +
-                                        requestLog.api_keys.failure_count}
+                                    {requestLog.api_keys.success_count ?? 0} /{' '}
+                                    {(requestLog.api_keys.success_count ?? 0) +
+                                        (requestLog.api_keys.failure_count ?? 0)}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item label="Total Tokens">
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {requestLog.api_keys.total_tokens.toLocaleString()}
+                                    {formatTokenCount(requestLog.api_keys.total_tokens)}
                                 </Text>
                             </Descriptions.Item>
                         </Descriptions>
                     ) : (
                         <Alert
-                            message="No API Key"
-                            description="This request was not associated with an API key."
+                            message="API key unavailable"
+                            description={
+                                requestLog.api_key_id
+                                    ? 'The API key was removed and can no longer be loaded.'
+                                    : 'This request was not associated with an API key.'
+                            }
                             type="warning"
                             showIcon
                         />
@@ -365,44 +405,64 @@ function UserAndKeysInfo({
                     {requestLog.proxy_api_keys ? (
                         <Descriptions column={1} size="small">
                             <Descriptions.Item label="Name">
-                                <Text strong>{requestLog.proxy_api_keys.name}</Text>
+                                <Space>
+                                    <Text strong>{requestLog.proxy_api_keys.name}</Text>
+                                    {requestLog.proxy_api_keys.deleted_at ? (
+                                        <Tag color="default">Deleted</Tag>
+                                    ) : null}
+                                </Space>
                             </Descriptions.Item>
                             <Descriptions.Item label="Status">
                                 <Tag
                                     color={
-                                        requestLog.proxy_api_keys.is_active ? 'success' : 'error'
+                                        requestLog.proxy_api_keys.deleted_at
+                                            ? 'default'
+                                            : requestLog.proxy_api_keys.is_active
+                                              ? 'success'
+                                              : 'error'
                                     }
                                 >
-                                    {requestLog.proxy_api_keys.is_active ? 'Active' : 'Inactive'}
+                                    {requestLog.proxy_api_keys.deleted_at
+                                        ? 'Deleted'
+                                        : requestLog.proxy_api_keys.is_active
+                                          ? 'Active'
+                                          : 'Inactive'}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Success Rate">
                                 <Progress
                                     percent={Math.round(
-                                        (requestLog.proxy_api_keys.success_count /
-                                            (requestLog.proxy_api_keys.success_count +
-                                                requestLog.proxy_api_keys.failure_count)) *
-                                            100,
+                                        (() => {
+                                            const ok = requestLog.proxy_api_keys.success_count ?? 0;
+                                            const fail =
+                                                requestLog.proxy_api_keys.failure_count ?? 0;
+                                            const total = ok + fail;
+                                            return total > 0 ? (ok / total) * 100 : 0;
+                                        })(),
                                     )}
                                     size="small"
                                     showInfo={false}
                                 />
                                 <Text style={{ fontSize: token.fontSizeSM }}>
-                                    {requestLog.proxy_api_keys.success_count} /{' '}
-                                    {requestLog.proxy_api_keys.success_count +
-                                        requestLog.proxy_api_keys.failure_count}
+                                    {requestLog.proxy_api_keys.success_count ?? 0} /{' '}
+                                    {(requestLog.proxy_api_keys.success_count ?? 0) +
+                                        (requestLog.proxy_api_keys.failure_count ?? 0)}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item label="Total Tokens">
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {requestLog.proxy_api_keys.total_tokens.toLocaleString()}
+                                    {formatTokenCount(requestLog.proxy_api_keys.total_tokens)}
                                 </Text>
                             </Descriptions.Item>
                         </Descriptions>
                     ) : (
                         <Alert
-                            message="No Proxy Key"
-                            description="This request was not associated with a proxy key."
+                            message="Proxy key unavailable"
+                            description={
+                                requestLog.proxy_key_id
+                                    ? 'The proxy key was removed and can no longer be loaded.'
+                                    : 'This request was not associated with a proxy key.'
+                            }
                             type="warning"
                             showIcon
                         />
@@ -422,21 +482,21 @@ function PerformanceMetrics({
     onCopy,
     onDownload,
 }: {
-    performanceMetrics: Record<string, unknown>;
-    usageMetadata: Record<string, unknown>;
+    performanceMetrics: PerformanceMetricsData;
+    usageMetadata: UsageMetadata;
     onCopy: (text: string, label: string) => void;
     onDownload: (data: unknown, filename: string) => void;
 }) {
     const { token } = useToken();
 
-    const duration = performanceMetrics.duration_ms as number;
-    const attemptCount = performanceMetrics.attempt_count as number;
-    const totalResponseTime = performanceMetrics.total_response_time_ms as number;
+    const duration = performanceMetrics.duration_ms ?? 0;
+    const attemptCount = performanceMetrics.attempt_count ?? 1;
+    const totalResponseTime = performanceMetrics.total_response_time_ms ?? 0;
 
-    const totalTokens = usageMetadata.total_tokens as number;
-    const promptTokens = usageMetadata.prompt_tokens as number;
-    const completionTokens = usageMetadata.completion_tokens as number;
-    const model = usageMetadata.model as string;
+    const totalTokens = usageMetadata.total_tokens ?? 0;
+    const promptTokens = usageMetadata.prompt_tokens ?? 0;
+    const completionTokens = usageMetadata.completion_tokens ?? 0;
+    const model = usageMetadata.model;
 
     return (
         <Card
