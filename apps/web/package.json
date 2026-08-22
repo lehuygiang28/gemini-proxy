@@ -12,12 +12,17 @@
         "start:dev": "cross-env NODE_ENV=development PORT=4040 refine start",
         "lint": "next lint",
         "refine": "refine",
-        "clean": "rm -rf .next .turbo"
+        "clean": "rm -rf .next .turbo .open-next",
+        "cf:build": "opennextjs-cloudflare build --config ../../wrangler.jsonc",
+        "cf:preview": "opennextjs-cloudflare build --config ../../wrangler.jsonc && opennextjs-cloudflare preview --config ../../wrangler.jsonc",
+        "cf:deploy": "opennextjs-cloudflare build --config ../../wrangler.jsonc && opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
+        "cf-typegen": "wrangler types --config ../../wrangler.jsonc --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts"
     },
     "dependencies": {
         "@ant-design/icons": "^5.5.1",
         "@ant-design/nextjs-registry": "^1.1.0",
         "@ant-design/v5-patch-for-react-19": "^1.0.3",
+        "@opennextjs/cloudflare": "^1.20.2",
         "@refinedev/antd": "^6.0.1",
         "@refinedev/cli": "^2.16.48",
         "@refinedev/core": "^5.0.0",
@@ -29,7 +34,7 @@
         "@uiw/react-json-view": "2.0.0-alpha.43",
         "antd": "^5.23.0",
         "js-cookie": "^3.0.5",
-        "next": "^15.2.6",
+        "next": "^15.5.23",
         "react": "^19.1.2",
         "react-dom": "^19.1.2",
         "react-icons": "^5.5.0",
@@ -44,8 +49,9 @@
         "@types/react-syntax-highlighter": "^15.5.13",
         "cross-env": "^7.0.3",
         "eslint": "^8",
-        "eslint-config-next": "^15.0.3",
-        "typescript": "^5.8.3"
+        "eslint-config-next": "^15.5.23",
+        "typescript": "^5.8.3",
+        "wrangler": "^4.125.0"
     },
     "refine": {
         "projectId": "64BVSR-vqtbDM-0z7Jfd"
