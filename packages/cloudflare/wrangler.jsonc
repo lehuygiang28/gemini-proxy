@@ -1,0 +1,34 @@
+/**
+ * API-only Cloudflare Worker (headless /api/gproxy).
+ * Default full-stack deploy uses the root wrangler.jsonc (OpenNext).
+ */
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "gemini-proxy",
+    "main": "src/index.ts",
+    "compatibility_date": "2026-08-20",
+    "compatibility_flags": ["nodejs_compat"],
+    "observability": {
+        "enabled": true,
+    },
+    "placement": { "mode": "smart" },
+    "alias": {
+        "@gemini-proxy/core": "../../packages/core/src/index.ts",
+    },
+    /**
+     * Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) go in `.dev.vars` at the repo root
+     * and `wrangler secret put` / dashboard for deployed Workers.
+     */
+    "vars": {
+        // Official Google Gemini API
+        // "GOOGLE_GEMINI_API_BASE_URL": "https://generativelanguage.googleapis.com/",
+        // "GOOGLE_OPENAI_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        /**
+         * Cloudflare AI Gateway
+         * Replace {account_id} and {gateway_name} with your own values.
+         * Docs: https://developers.cloudflare.com/ai-gateway/
+         */
+        // "GOOGLE_GEMINI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/",
+        // "GOOGLE_OPENAI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/v1beta/openai/",
+    },
+}

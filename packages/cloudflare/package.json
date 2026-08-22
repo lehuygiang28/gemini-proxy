@@ -5,11 +5,11 @@
     "description": "Cloudflare Workers proxy for Gemini Proxy service",
     "scripts": {
         "build": "tsdown",
-        "deploy": "wrangler deploy --config ../../wrangler.jsonc",
-        "dev": "wrangler dev --config ../../wrangler.jsonc",
-        "start": "wrangler dev --config ../../wrangler.jsonc",
+        "deploy": "wrangler deploy --config wrangler.jsonc",
+        "dev": "wrangler dev --config wrangler.jsonc",
+        "start": "wrangler dev --config wrangler.jsonc",
         "test": "vitest",
-        "cf-typegen": "wrangler types --config ../../wrangler.jsonc",
+        "cf-typegen": "wrangler types --config wrangler.jsonc",
         "prepublishOnly": "pnpm build"
     },
     "license": "MIT",
