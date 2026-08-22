@@ -108,7 +108,7 @@ For a complete list of optional environment variables, refer to the [**root READ
 
 ## 🚀 Deployment
 
-The `pnpm deploy` script will build and deploy the worker to your Cloudflare account.
+`pnpm run deploy:cloudflare` (from the repo root) runs the package `deploy` script via `pnpm run deploy` — not the pnpm CLI `deploy` command.
 
 ### 🔄 Git-connected CI/CD (Recommended)
 
