@@ -5,11 +5,11 @@
     "description": "Cloudflare Workers proxy for Gemini Proxy service",
     "scripts": {
         "build": "tsdown",
-        "deploy": "wrangler deploy --config ../../wrangler.jsonc",
-        "dev": "wrangler dev --config ../../wrangler.jsonc",
-        "start": "wrangler dev --config ../../wrangler.jsonc",
+        "deploy": "wrangler deploy --config wrangler.jsonc",
+        "dev": "wrangler dev --config wrangler.jsonc",
+        "start": "wrangler dev --config wrangler.jsonc",
         "test": "vitest",
-        "cf-typegen": "wrangler types --config ../../wrangler.jsonc",
+        "cf-typegen": "wrangler types --config wrangler.jsonc",
         "prepublishOnly": "pnpm build"
     },
     "license": "MIT",
@@ -33,11 +33,11 @@
         "hono": "^4.9.2"
     },
     "devDependencies": {
-        "@cloudflare/vitest-pool-workers": "^0.8.19",
+        "@cloudflare/vitest-pool-workers": "^0.12.21",
         "tsdown": "^0.17.0",
         "typescript": "^5.5.2",
         "vitest": "~3.2.0",
-        "wrangler": "^4.30.0"
+        "wrangler": "^4.125.0"
     },
     "publishConfig": {
         "access": "public"

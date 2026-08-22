@@ -6,6 +6,8 @@
 
 This package allows you to deploy **Gemini Proxy** as a [Cloudflare Worker](https://workers.cloudflare.com/), running on Cloudflare's global edge network for minimal latency.
 
+This Worker is **API-only** (`/api/gproxy`). To deploy the **full-stack dashboard** (Next.js UI + the same proxy) on Cloudflare, see [apps/web — Cloudflare / OpenNext](../../apps/web/README.MD#cloudflare-deployment-opennext).
+
 ## 📋 Table of Contents
 
 <details>
@@ -76,19 +78,19 @@ cd gemini-proxy
 pnpm install
 ```
 
-### **3. Deploy the Worker**
+### **3. Deploy the API-only Worker**
 
 From the repository root:
 
 ```bash
-pnpm run deploy:cloudflare
+pnpm run deploy:cloudflare:api
 ```
 
 ### **4. Set Secrets**
 
 ```bash
-wrangler secret put SUPABASE_URL --config wrangler.jsonc
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
+wrangler secret put SUPABASE_URL --config packages/cloudflare/wrangler.jsonc
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config packages/cloudflare/wrangler.jsonc
 ```
 
 ## ⚙️ Environment Variables
@@ -108,20 +110,18 @@ For a complete list of optional environment variables, refer to the [**root READ
 
 ## 🚀 Deployment
 
-`pnpm run deploy:cloudflare` (from the repo root) runs the package `deploy` script via `pnpm run deploy` — not the pnpm CLI `deploy` command.
+`pnpm run deploy:cloudflare:api` (from the repo root) deploys this headless Worker. The **default** Cloudflare deploy (`pnpm run deploy:cloudflare`) is the full-stack OpenNext app — see [apps/web Cloudflare deployment](../../apps/web/README.MD#cloudflare-deployment-opennext).
 
-### 🔄 Git-connected CI/CD (Recommended)
+### 🔄 Git-connected CI/CD (API-only)
 
-You can fork this repository and connect it directly to Cloudflare for fast deployments and automatic CI/CD from Git.
-
-Wrangler config is a single file at the **repository root** (`wrangler.jsonc`). Workers Builds looks there when Root directory is `/`. Do not add a second `wrangler.jsonc` under `packages/cloudflare`.
+Wrangler config for **this API-only Worker** is [`wrangler.jsonc`](./wrangler.jsonc) in this package. The default full-stack app uses the root [`wrangler.jsonc`](../../wrangler.jsonc) (`gemini-proxy-web`).
 
 1. Fork the repo on GitHub.
-2. In Cloudflare dashboard, create a new Worker named `gemini-proxy` and connect your Git repository.
+2. In the Cloudflare dashboard, create a new Worker named `gemini-proxy` and connect your Git repository.
 3. Use the following settings:
    - Root directory: `/` (repository root)
-   - Build command: `pnpm run build:cloudflare`
-   - Deploy command: `pnpm run deploy:cloudflare`
+   - Build command: `pnpm run build:cloudflare:api`
+   - Deploy command: `pnpm run deploy:cloudflare:api`
 
 4. Configure secrets (see Environment Variables section) in your Worker Settings.
 5. Every push to your default branch will trigger build and deploy automatically.
@@ -132,7 +132,7 @@ Your Cloudflare Worker will be available at the URL provided after deployment.
 
 ## 🛠️ Local Development
 
-Copy `packages/cloudflare/.env.example` to `.dev.vars` at the repository root, then:
+Copy [`.dev.vars.example`](./.dev.vars.example) to `.dev.vars` in this package directory, then:
 
 - `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare dev`: Starts the local development server.
 - `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare test`: Runs tests.
@@ -141,18 +141,19 @@ Copy `packages/cloudflare/.env.example` to `.dev.vars` at the repository root, t
 
 ```text
 gemini-proxy/
-├── wrangler.jsonc # Worker config (repo root — Workers Builds + wrangler)
+├── wrangler.jsonc              # Default: OpenNext full-stack (gemini-proxy-web)
 └── packages/cloudflare/
+    ├── wrangler.jsonc          # API-only Worker (gemini-proxy)
     ├── src/
-    │   └── index.ts # Worker entry
-    ├── dist/ # npm publish bundle (tsdown)
+    │   └── index.ts            # Worker entry
+    ├── dist/                   # npm publish bundle (tsdown)
     ├── package.json
     └── README.md
 ```
 
 ## 🐛 Troubleshooting
 
-- **Deployment Fails:** Ensure your Wrangler CLI is logged in and the root `wrangler.jsonc` is correct.
+- **Deployment Fails:** Ensure your Wrangler CLI is logged in and `packages/cloudflare/wrangler.jsonc` is correct.
 - **Worker Errors:** Use `wrangler tail` to view live logs.
 - **Missing Secrets:** Use `wrangler secret list` to verify your secrets.
 

@@ -1,0 +1,5 @@
+SUPABASE_URL=https://api.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_test_12345
+
+GOOGLE_GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/
+GOOGLE_OPENAI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/

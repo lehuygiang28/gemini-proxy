@@ -2,6 +2,22 @@
 
 Follow these steps to set up Supabase, initialize the database schema, and save environment variables for your chosen platform.
 
+## Fast Supabase setup (for Cloudflare / local)
+
+Cloudflare **does not** auto-provision Supabase (unlike the [Vercel Deploy button](../README.md#one-click-deploy-production) with Supabase integration). Do this once (~60 seconds):
+
+1. [Create a Supabase project](https://supabase.com/dashboard/new/project)
+2. **SQL Editor** → paste and run [`packages/database/sql/schema.sql`](../packages/database/sql/schema.sql) (or use `pnpm db:apply` from step 4 below)
+3. **Settings → API** → copy **Project URL**, **anon** key (`sb_publishable_...`), and **service role** key (`sb_secret_...`)
+4. Paste into the Cloudflare Deploy form (see [`.dev.vars.example`](../.dev.vars.example)) or into `apps/web/.env.local` for local dev
+5. **Authentication → URL Configuration** (after Cloudflare deploy):
+   - **Site URL:** `https://<your-worker>.workers.dev`
+   - **Redirect URLs:** add `https://<your-worker>.workers.dev/**`
+
+Without step 5, login and OAuth callbacks will fail on Cloudflare.
+
+**Fastest path with auto-migrations:** use the Vercel button in the [root README](../README.md#one-click-deploy-production) — it runs [`supabase/migrations/`](../supabase/migrations/) for you.
+
 ## 1. Create a Supabase account
 
 - Go to [`https://supabase.com`](https://supabase.com) and sign up.
@@ -87,11 +103,20 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-- Cloudflare Worker (packages/cloudflare): set secrets via Wrangler:
+- Cloudflare full-stack (OpenNext, default): set variables/secrets on Worker `gemini-proxy-web` (Deploy button or dashboard). Copy [`.dev.vars.example`](../.dev.vars.example). `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_ANON_SUPABASE_KEY` are required at **build** time (OpenNext inlines them). CLI:
 
 ```bash
+cp .dev.vars.example .dev.vars
+# Fill NEXT_PUBLIC_* and SUPABASE_* before pnpm run deploy:cloudflare
 wrangler secret put SUPABASE_URL --config wrangler.jsonc
 wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
+```
+
+- Cloudflare API-only (`packages/cloudflare`): copy [`packages/cloudflare/.dev.vars.example`](../packages/cloudflare/.dev.vars.example) to `packages/cloudflare/.dev.vars`, then set secrets via Wrangler:
+
+```bash
+wrangler secret put SUPABASE_URL --config packages/cloudflare/wrangler.jsonc
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config packages/cloudflare/wrangler.jsonc
 ```
 
 - Appwrite Function (packages/appwrite): create variables via Appwrite CLI or Console:

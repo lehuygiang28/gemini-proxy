@@ -140,11 +140,21 @@ pnpm db:apply
 pnpm dev
 ```
 
-### **Alternative: Deploy to Vercel (Recommended for Production)**
+### **One-click deploy (production)**
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&root-directory=apps/web&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_ANON_SUPABASE_KEY,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY&integration-ids=oac_VqOgBHqhEoFTPzGkPd7L0iH6&external-id=https://github.com/lehuygiang28/gemini-proxy)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/lehuygiang28/gemini-proxy)
 
-For manual setup, please refer to the [**apps/web/README.md**](./apps/web/README.md).
+| Button         | What you get                             | Supabase setup                                                                                                     |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Vercel**     | Full-stack Next.js (`apps/web`)          | **Automatic** — Supabase integration creates a project and runs [`supabase/migrations/`](./supabase/migrations/)   |
+| **Cloudflare** | Full-stack OpenNext (`gemini-proxy-web`) | **Manual (~60s)** — see [fast Supabase setup](./docs/getting-started.md#fast-supabase-setup-for-cloudflare--local) |
+
+The Deploy button reads root `package.json` on the repo **default branch (`main`)**. It auto-fills **Build:** `pnpm run build` and **Deploy:** `pnpm run deploy` when a `deploy` script exists — otherwise it falls back to `npx wrangler deploy`. Merge the OpenNext branch to `main` before testing the button. Fill in the Supabase variables prompted from [`.dev.vars.example`](./.dev.vars.example).
+
+CLI one-shot (build + deploy): `pnpm run deploy:cloudflare`. Cloudflare CI uses separate `pnpm run build` then `pnpm run deploy`. Monorepo build (all packages): `pnpm run build:monorepo`. Headless API-only: `pnpm run deploy:cloudflare:api`.
+
+For manual setup, see [**apps/web/README.MD**](./apps/web/README.MD).
 
 ## ⚙️ Environment Variables
 
@@ -226,10 +236,11 @@ const google = createGoogleGenerativeAI({
 
 ## 🛠️ Platform-Specific Guides
 
-- **🎯 [Next.js Web App](./apps/web/README.md):** Full-stack solution with a web dashboard.
+- **🎯 [Next.js Web App](./apps/web/README.MD):** Full-stack dashboard. Deploy to [Vercel](./apps/web/README.MD#vercel-deployment) or [Cloudflare (OpenNext)](./apps/web/README.MD#cloudflare-deployment-opennext).
 - **⚡ [Standalone API Server](./apps/api/README.md):** Lightweight Node.js API server.
 - **🚀 [Vercel Edge Functions](./packages/vercel/README.md):** Serverless edge functions on Vercel.
-- **🌍 [Cloudflare Workers](./packages/cloudflare/README.md):** Edge computing on Cloudflare's network.
+- **🌍 [Cloudflare (OpenNext, default)](./apps/web/README.MD#cloudflare-deployment-opennext):** Full-stack dashboard + API on Workers.
+- **🌍 [Cloudflare Workers (API-only)](./packages/cloudflare/README.md):** Opt-in headless `/api/gproxy` Worker (`pnpm run deploy:cloudflare:api`).
 - **🔧 [Appwrite Functions](./packages/appwrite/README.md):** Serverless functions on Appwrite.
 - **🛠️ [CLI Tools](./packages/cli/README.md):** Command-line tools for management.
 

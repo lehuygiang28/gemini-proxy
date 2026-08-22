@@ -4,7 +4,8 @@
     "description": "Monorepo for Gemini Proxy applications and packages",
     "private": true,
     "scripts": {
-        "build": "turbo run build",
+        "build": "pnpm --filter web exec opennextjs-cloudflare build --config ../../wrangler.jsonc",
+        "build:monorepo": "turbo run build",
         "dev": "turbo run dev",
         "dev:web": "turbo run dev --filter=web",
         "dev:api": "turbo run dev --filter=api",
@@ -23,8 +24,12 @@
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
         "db:stop": "supabase stop",
-        "build:cloudflare": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run build",
-        "deploy:cloudflare": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run deploy"
+        "deploy": "pnpm --filter web exec opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
+        "build:cloudflare": "pnpm run build",
+        "deploy:cloudflare": "pnpm run build && pnpm run deploy",
+        "preview:cloudflare": "pnpm --filter web run cf:preview",
+        "build:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run build",
+        "deploy:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run deploy"
     },
     "devDependencies": {
         "@ai-sdk/google": "^2.0.6",
@@ -42,5 +47,21 @@
     "engines": {
         "node": ">=20.0.0",
         "pnpm": ">=10.15.0"
+    },
+    "cloudflare": {
+        "bindings": {
+            "NEXT_PUBLIC_SUPABASE_URL": {
+                "description": "Supabase project URL from Dashboard → Settings → API. See [getting-started](docs/getting-started.md)."
+            },
+            "NEXT_PUBLIC_ANON_SUPABASE_KEY": {
+                "description": "Supabase **anon** / publishable key (`sb_publishable_...`) for the dashboard client."
+            },
+            "SUPABASE_URL": {
+                "description": "Same value as `NEXT_PUBLIC_SUPABASE_URL` (used by `/api/gproxy` on the server)."
+            },
+            "SUPABASE_SERVICE_ROLE_KEY": {
+                "description": "Supabase **service role** secret (`sb_secret_...`). Keep private — never expose to the browser."
+            }
+        }
     }
 }
