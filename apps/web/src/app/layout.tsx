@@ -5,23 +5,27 @@ import './globals.css';
 import React, { Suspense } from 'react';
 import { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
+import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
-import {
-    DashboardOutlined,
-    SafetyCertificateOutlined,
-    KeyOutlined,
-    FileTextOutlined,
-} from '@ant-design/icons';
-import { useNotificationProvider } from '@refinedev/antd';
-import { Refine } from '@refinedev/core';
-import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
-import routerProvider from '@refinedev/nextjs-router';
 
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { DevtoolsProvider } from '@providers/devtools';
-import { authProviderClient } from '@providers/auth-provider/auth-provider.client';
-import { dataProvider } from '@providers/data-provider';
+import { RefineProvider } from '@providers/refine-provider';
 import { THEME_COOKIE_NAME } from '@constants';
+
+const ibmPlexSans = IBM_Plex_Sans({
+    subsets: ['latin'],
+    weight: ['400', '500', '600'],
+    variable: '--gp-font-sans',
+    display: 'swap',
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+    subsets: ['latin'],
+    weight: ['400', '500'],
+    variable: '--gp-font-mono',
+    display: 'swap',
+});
 
 export const metadata: Metadata = {
     title: 'Gemini Proxy - API Key Management',
@@ -78,73 +82,20 @@ export default async function RootLayout({
     const defaultMode = theme?.value === 'light' ? 'light' : 'dark';
 
     return (
-        <html lang="en" data-theme={defaultMode}>
-            <body className="gp-scrollable-root">
+        <html
+            lang="en"
+            data-theme={defaultMode}
+            className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
+        >
+            <body className="gp-scrollable-root" style={{ fontFamily: 'var(--gp-font-sans)' }}>
                 <Suspense>
-                    <RefineKbarProvider>
-                        <AntdRegistry>
-                            <ColorModeContextProvider defaultMode={defaultMode}>
-                                <DevtoolsProvider>
-                                    <Refine
-                                        routerProvider={routerProvider}
-                                        authProvider={authProviderClient}
-                                        dataProvider={dataProvider}
-                                        notificationProvider={useNotificationProvider}
-                                        options={{
-                                            syncWithLocation: true,
-                                            warnWhenUnsavedChanges: true,
-                                            projectId: '64BVSR-vqtbDM-0z7Jfd',
-                                            disableTelemetry: true,
-                                        }}
-                                        resources={[
-                                            {
-                                                name: 'dashboard',
-                                                list: '/dashboard',
-                                                meta: {
-                                                    label: 'Dashboard',
-                                                    icon: <DashboardOutlined />,
-                                                },
-                                            },
-                                            {
-                                                name: 'api_keys',
-                                                list: '/api-keys',
-                                                create: '/api-keys/create',
-                                                edit: '/api-keys/edit/:id',
-                                                show: '/api-keys/show/:id',
-                                                meta: {
-                                                    label: 'API Keys',
-                                                    icon: <KeyOutlined />,
-                                                },
-                                            },
-                                            {
-                                                name: 'proxy_api_keys',
-                                                list: '/proxy-api-keys',
-                                                create: '/proxy-api-keys/create',
-                                                edit: '/proxy-api-keys/edit/:id',
-                                                show: '/proxy-api-keys/show/:id',
-                                                meta: {
-                                                    label: 'Proxy API Keys',
-                                                    icon: <SafetyCertificateOutlined />,
-                                                },
-                                            },
-                                            {
-                                                name: 'request_logs',
-                                                list: '/request-logs',
-                                                show: '/request-logs/show/:id',
-                                                meta: {
-                                                    label: 'Request Logs',
-                                                    icon: <FileTextOutlined />,
-                                                },
-                                            },
-                                        ]}
-                                    >
-                                        {children}
-                                        <RefineKbar />
-                                    </Refine>
-                                </DevtoolsProvider>
-                            </ColorModeContextProvider>
-                        </AntdRegistry>
-                    </RefineKbarProvider>
+                    <AntdRegistry>
+                        <ColorModeContextProvider defaultMode={defaultMode}>
+                            <DevtoolsProvider>
+                                <RefineProvider>{children}</RefineProvider>
+                            </DevtoolsProvider>
+                        </ColorModeContextProvider>
+                    </AntdRegistry>
                 </Suspense>
             </body>
         </html>

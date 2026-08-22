@@ -74,83 +74,61 @@ export function logsCommands(program: Command) {
             }
         });
 
-    // Prune old logs
+    // Prune old logs via cleanup_old_request_logs RPC (batched server-side delete)
+    const defaultRetentionDays = process.env.LOG_RETENTION_DAYS?.trim() || '90';
     logs.command('prune')
-        .description('Remove old request logs')
-        .option('-d, --days <number>', 'Remove logs older than N days', '30')
+        .description('Remove request logs older than N days (default 90; key usage totals kept)')
+        .option(
+            '-d, --days <number>',
+            'Remove logs older than N days (min 7)',
+            defaultRetentionDays,
+        )
         .option('-f, --force', 'Skip confirmation')
-        .option('-s, --success-only', 'Remove only successful logs')
-        .option('-e, --failed-only', 'Remove only failed logs')
         .action(async (options) => {
             const spinner = ora('Checking for old logs...').start();
             try {
-                const days = Validation.validateDays(options.days);
-
+                const days = Validation.validateDays(options.days, 7);
                 await supabase.init();
-
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - days);
-
-                let query = supabase.client
+                const { count, error: countError } = await supabase.client
                     .from('request_logs')
-                    .select('id, created_at, request_id, is_successful')
+                    .select('*', { count: 'exact', head: true })
                     .lt('created_at', cutoffDate.toISOString());
-
-                if (options.successOnly) {
-                    query = query.eq('is_successful', true);
-                } else if (options.failedOnly) {
-                    query = query.eq('is_successful', false);
+                if (countError) {
+                    throw new Error(`Failed to count old logs: ${countError.message}`);
                 }
-
-                const { data: oldLogs, error } = await query;
-
-                if (error) {
-                    throw new Error(`Failed to fetch old logs: ${error.message}`);
-                }
-
-                if (!oldLogs || oldLogs.length === 0) {
+                const oldCount = count ?? 0;
+                if (oldCount === 0) {
                     spinner.succeed('No old logs found to prune');
                     return;
                 }
-
-                spinner.succeed(`Found ${oldLogs.length} old log(s) to prune`);
-
+                spinner.succeed(`Found ${oldCount} old log(s) older than ${days} day(s)`);
                 if (!options.force) {
-                    console.log('\nOld logs to be removed:');
-                    oldLogs.slice(0, 10).forEach((log) => {
-                        const status = log.is_successful ? colors.green('✓') : colors.red('✗');
-                        const date = new Date(log.created_at ?? new Date()).toLocaleDateString();
-                        console.log(`  • ${status} ${log.request_id} - ${date}`);
-                    });
-
-                    if (oldLogs.length > 10) {
-                        console.log(`  ... and ${oldLogs.length - 10} more`);
-                    }
-
                     const confirmed = await confirm({
-                        message: `Delete ${oldLogs.length} old log(s)?`,
+                        message: `Delete ${oldCount} request log(s) older than ${days} days via cleanup_old_request_logs? Key usage totals are kept.`,
                         default: false,
                     });
-
                     if (!confirmed) {
                         console.log(colors.yellow('Operation cancelled'));
                         return;
                     }
                 }
-
                 const deleteSpinner = ora('Deleting old logs...').start();
-
-                const ids = oldLogs.map((log) => log.id);
-                const { error: deleteError } = await supabase.client
-                    .from('request_logs')
-                    .delete()
-                    .in('id', ids);
-
+                const { data: deletedCount, error: deleteError } = await supabase.client.rpc(
+                    'cleanup_old_request_logs',
+                    { p_days_to_keep: days },
+                );
                 if (deleteError) {
-                    throw new Error(`Failed to delete logs: ${deleteError.message}`);
+                    throw new Error(`Failed to prune logs: ${deleteError.message}`);
                 }
-
-                deleteSpinner.succeed(`Deleted ${oldLogs.length} old log(s)`);
+                const removed = deletedCount ?? 0;
+                deleteSpinner.succeed(
+                    `Deleted ${removed} old log(s)` +
+                        (removed < oldCount
+                            ? ` (${oldCount - removed} remaining — re-run if backlog exceeds one batch run)`
+                            : ''),
+                );
             } catch (error) {
                 Logger.error('Failed to prune logs');
                 ErrorHandler.handle(error, 'logs prune');

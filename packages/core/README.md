@@ -71,12 +71,12 @@ This is an internal package and is not intended for direct installation.
 ## 💻 Usage Example
 
 ```typescript
-import { Hono } from 'hono';
-import { coreApp } from '@gemini-proxy/core';
+import { Hono } from "hono";
+import { coreApp } from "@gemini-proxy/core";
 
 const app = new Hono();
 
-app.route('/api/gproxy/*', coreApp);
+app.route("/api/gproxy/*", coreApp);
 
 export default app;
 ```

@@ -3,13 +3,12 @@
 import React from 'react';
 import { Modal, Typography, Alert, Spin, Button, theme } from 'antd';
 import { useOne, useResourceParams, useBack } from '@refinedev/core';
-import type { Tables } from '@gemini-proxy/database';
 import { RequestLogDetails } from '@/components/RequestLogDetails';
+import type { RequestLog } from '@/types/request-log.types';
+import { REQUEST_LOG_DETAIL_SELECT } from '@/constants/request-log-select';
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
-
-type RequestLog = Tables<'request_logs'>;
 
 /**
  * Request Log Details Modal
@@ -27,6 +26,9 @@ export default function RequestLogDetailsModal() {
     } = useOne<RequestLog>({
         resource: 'request_logs',
         id: requestId,
+        meta: {
+            select: REQUEST_LOG_DETAIL_SELECT,
+        },
     });
 
     const handleClose = () => {
@@ -40,7 +42,7 @@ export default function RequestLogDetailsModal() {
                 open={true}
                 onCancel={handleClose}
                 footer={null}
-                width={1400}
+                width={1200}
                 style={{ top: 10 }}
                 styles={{
                     body: {
@@ -55,6 +57,7 @@ export default function RequestLogDetailsModal() {
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
+                        alignContent: 'center',
                         alignItems: 'center',
                         height: '400px',
                         background: token.colorBgContainer,
@@ -95,15 +98,15 @@ export default function RequestLogDetailsModal() {
                     <Title level={4} style={{ margin: 0 }}>
                         Request Log Details
                     </Title>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                        Request ID: {log.request_id}
+                    <Text type="secondary" style={{ fontSize: '12px' }} className="gp-live-mono">
+                        {log.request_id}
                     </Text>
                 </div>
             }
             open={true}
             onCancel={handleClose}
             footer={null}
-            width={1400}
+            width={1200}
             style={{ top: 10 }}
             styles={{
                 body: {

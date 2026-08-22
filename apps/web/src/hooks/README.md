@@ -29,11 +29,7 @@ apps/web/src/types/
 ### Basic Statistics Hooks
 
 ```typescript
-import { 
-    useDashboardStatistics, 
-    useApiKeyStatistics, 
-    useProxyKeyStatistics 
-} from '@/hooks/useRpc';
+import { useDashboardStatistics, useApiKeyStatistics, useProxyKeyStatistics } from "@/hooks/useRpc";
 
 // Type-safe usage
 const { data: dashboardStats } = useDashboardStatistics();
@@ -44,7 +40,7 @@ const { data: proxyKeyStats } = useProxyKeyStatistics();
 ### Statistics Hooks with Parameters
 
 ```typescript
-import { useRetryStatistics, useRequestLogsStatistics } from '@/hooks/useRpc';
+import { useRetryStatistics, useRequestLogsStatistics } from "@/hooks/useRpc";
 
 // With default parameters
 const { data: retryStats } = useRetryStatistics(); // p_days_back: 30
@@ -58,10 +54,7 @@ const { data: customRequestLogsStats } = useRequestLogsStatistics({ p_days_back:
 ### Filter Options Hooks
 
 ```typescript
-import { 
-    useFilterOptionsModels, 
-    useFilterOptionsAll 
-} from '@/hooks/useRpc';
+import { useFilterOptionsModels, useFilterOptionsAll } from "@/hooks/useRpc";
 
 // Individual filter options
 const { data: models } = useFilterOptionsModels();
@@ -125,14 +118,14 @@ const { data: invalid } = useRetryStatistics({ p_days_back: "30" }); // ❌ Type
 ### Custom RPC Hook Creation
 
 ```typescript
-import { createRpcHook, createRpcHookWithDefaults } from '@/hooks/useRpc';
+import { createRpcHook, createRpcHookWithDefaults } from "@/hooks/useRpc";
 
 // Create a custom hook for any RPC function
-const useCustomRpc = createRpcHook('get_dashboard_statistics');
+const useCustomRpc = createRpcHook("get_dashboard_statistics");
 
 // Create a custom hook with default parameters
-const useCustomRpcWithDefaults = createRpcHookWithDefaults('get_retry_statistics', {
-    p_days_back: 14
+const useCustomRpcWithDefaults = createRpcHookWithDefaults("get_retry_statistics", {
+  p_days_back: 14,
 });
 ```
 
@@ -174,11 +167,11 @@ If you were using the old separate files:
 
 ```typescript
 // Old (deprecated)
-import { useDashboardStatistics } from '@/hooks/useRpcStatistics';
-import { useFilterOptionsModels } from '@/hooks/useRpcFilters';
+import { useDashboardStatistics } from "@/hooks/useRpcStatistics";
+import { useFilterOptionsModels } from "@/hooks/useRpcFilters";
 
 // New (recommended)
-import { useDashboardStatistics, useFilterOptionsModels } from '@/hooks/useRpc';
+import { useDashboardStatistics, useFilterOptionsModels } from "@/hooks/useRpc";
 ```
 
 ## Best Practices
@@ -190,7 +183,7 @@ import { useDashboardStatistics, useFilterOptionsModels } from '@/hooks/useRpc';
 const { data: stats } = useDashboardStatistics();
 
 // ❌ Avoid direct RPC calls
-const { data } = useCustom({ url: 'rpc/get_dashboard_statistics' });
+const { data } = useCustom({ url: "rpc/get_dashboard_statistics" });
 ```
 
 ### 2. **Handle Loading and Error States**

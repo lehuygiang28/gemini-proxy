@@ -15,7 +15,14 @@
         "test": "turbo run test",
         "clean": "turbo run clean",
         "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+        "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+        "format:md": "prettier --write \"**/*.{md,mdx}\"",
+        "format:md:check": "prettier --check \"**/*.{md,mdx}\"",
+        "db:apply": "pnpm --filter @lehuygiang28/gemini-proxy-db db:apply",
+        "db:push": "pnpm db:apply",
+        "db:start": "supabase start",
+        "db:reset": "supabase db reset",
+        "db:stop": "supabase stop"
     },
     "devDependencies": {
         "@ai-sdk/google": "^2.0.6",
@@ -24,6 +31,7 @@
         "ai": "^5.0.15",
         "openai": "^5.12.2",
         "prettier": "^3.2.5",
+        "supabase": "2.39.2",
         "tsdown": "^0.17.0",
         "turbo": "^2.5.8",
         "typescript": "^5.9.2"

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    transpilePackages: ['@refinedev/antd'],
+    transpilePackages: ['@refinedev/antd', '@uiw/react-json-view'],
     output: 'standalone',
 };
 

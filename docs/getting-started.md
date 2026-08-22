@@ -22,13 +22,21 @@ Follow these steps to set up Supabase, initialize the database schema, and save 
 
 ## 4. Initialize the database schema
 
-- Open Supabase Dashboard → your project → SQL → SQL Editor.
-- Open [schema.sql](https://github.com/lehuygiang28/gemini-proxy/blob/main/packages/database/sql/schema.sql) and copy all of its contents.
-- Paste into the SQL Editor and run it.
+From the repo root (after `pnpm install`):
+
+```bash
+cp packages/database/.env.example packages/database/.env
+# Edit packages/database/.env — set SUPABASE_DB_URL (Session pooler URI from Dashboard → Connect)
+pnpm db:apply
+```
+
+This runs `supabase db push` and applies all versioned migrations in [`supabase/migrations/`](../supabase/migrations/).
+
+**Fallback (SQL Editor):** paste [`packages/database/sql/schema.sql`](../packages/database/sql/schema.sql) into Supabase Dashboard → SQL → SQL Editor and run it. Use this only if you cannot run the CLI. For existing databases created from an older `schema.sql`, prefer `pnpm db:apply` so incremental migrations apply safely.
 
 ![Run Schema SQL screen](../assets/images/supabase_3.png)
 
-This creates the required tables, indexes, and RPC functions (`api_keys`, `proxy_api_keys`, `request_logs`, and statistics functions).
+This creates the required tables, indexes, and RPC functions (`api_keys`, `proxy_api_keys`, `request_logs`, `user_settings`, and statistics functions).
 
 ## 5. Get connection and API info (save it)
 
@@ -42,7 +50,7 @@ Save these for later use:
 
 - SUPABASE_URL = Project URL
 - SUPABASE_SERVICE_ROLE_KEY = Service role key
-- (DB password kept safe; not directly needed for this project’s envs)
+- SUPABASE_DB_URL = Session pooler URI (only needed for `pnpm db:apply`, not daily `pnpm dev`)
 
 ![Connection info screen](../assets/images/supabase_4.png)
 
@@ -101,5 +109,9 @@ Optional configs live in root `README.md` under “Environment Variables”.
 pnpm install
 pnpm dev
 ```
+
+When you pull new database changes from git, run `pnpm db:apply` once to apply pending migrations.
+
+Optional (contributors): local Supabase with Docker — `pnpm db:start`, then `pnpm db:reset` to replay migrations locally. See [Supabase CI & migrations](./supabase-ci.md).
 
 You’re ready to use the proxy endpoints and the dashboard.

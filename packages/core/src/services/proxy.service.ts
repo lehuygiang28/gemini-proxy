@@ -23,6 +23,7 @@ import { getSupabaseClient } from './supabase.service';
 interface RetryAttemptData {
     attempt_number: number;
     api_key_id: string | null;
+    api_key_name?: string | null;
     error: { message: string; type: string; status?: number; code?: string };
     duration_ms: number;
     timestamp: string;
@@ -75,6 +76,7 @@ interface AttemptParams {
 interface RetryAttemptParams {
     attemptNumber: number;
     apiKeyId: string | null;
+    apiKeyName?: string | null;
     error: ProxyError;
     durationMs: number;
     providerError: ProviderErrorData;
@@ -443,6 +445,7 @@ export class ProxyService {
         const firstRetryAttempt = this.createRetryAttempt({
             attemptNumber: 1,
             apiKeyId: firstApiKey.id,
+            apiKeyName: firstApiKey.name,
             error: syntheticError,
             durationMs: firstAttemptDuration,
             providerError: this.extractProviderError(firstResponse),
@@ -512,6 +515,7 @@ export class ProxyService {
         const firstRetryAttempt = this.createRetryAttempt({
             attemptNumber: 1,
             apiKeyId: firstApiKey.id,
+            apiKeyName: firstApiKey.name,
             error: firstError,
             durationMs: firstAttemptDuration,
             providerError: firstProviderError,
@@ -634,6 +638,7 @@ export class ProxyService {
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
                         apiKeyId: selectedApiKey.id,
+                        apiKeyName: selectedApiKey.name,
                         error,
                         durationMs: attemptDuration,
                         providerError,
@@ -663,6 +668,7 @@ export class ProxyService {
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
                         apiKeyId: selectedApiKey.id,
+                        apiKeyName: selectedApiKey.name,
                         error: syntheticError,
                         durationMs: attemptDuration,
                         providerError,
@@ -704,6 +710,7 @@ export class ProxyService {
                 const retryAttempt = this.createRetryAttempt({
                     attemptNumber: currentAttempt + 1,
                     apiKeyId: selectedApiKey?.id || null,
+                    apiKeyName: selectedApiKey?.name || null,
                     error: errorObj,
                     durationMs: Date.now() - attemptStart,
                     providerError: { status: 0, headers: {}, body: '' },
@@ -749,6 +756,7 @@ export class ProxyService {
         return {
             attempt_number: params.attemptNumber,
             api_key_id: params.apiKeyId,
+            api_key_name: params.apiKeyName ?? null,
             error: {
                 message: params.error.message,
                 type: params.error.type,
@@ -789,7 +797,10 @@ export class ProxyService {
         };
     }
 
-    private static createErrorResponse(c: Context<HonoApp>, params: ErrorResponseParams): Response {
+    private static async createErrorResponse(
+        c: Context<HonoApp>,
+        params: ErrorResponseParams,
+    ): Promise<Response> {
         const {
             requestId,
             proxyApiKeyData,

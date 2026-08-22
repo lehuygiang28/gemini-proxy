@@ -25,14 +25,20 @@ export interface RequestLogData {
         promptTokens: number;
         completionTokens: number;
         totalTokens: number;
+        cacheTokens: number;
         model: string;
         responseId?: string;
         rawMetadata: any;
     } | null;
-    responseBody?: Response;
     retryAttempts?: any;
     totalResponseTimeMs?: number;
 }
+
+type UserObservabilitySettings = {
+    detailed_observability: boolean;
+    save_request_body: boolean;
+    save_response_body: boolean;
+};
 
 export interface ApiKeyUsageData {
     apiKeyId: string;
@@ -107,6 +113,7 @@ export class BackgroundService {
      * @param params - All required context for logging and aggregation
      */
     static async handleRequestSuccess(params: {
+        c: Context<HonoApp>;
         requestId: string;
         apiKeyId: string | null;
         proxyKeyId: string;
@@ -121,6 +128,7 @@ export class BackgroundService {
         totalResponseTimeMs: number;
     }): Promise<void> {
         const {
+            c,
             requestId,
             apiKeyId,
             proxyKeyId,
@@ -138,8 +146,13 @@ export class BackgroundService {
         // Initialize operations for this request
         this.initializeRequest(requestId);
 
-        // Extract token usage from response (single source of truth)
-        const tokenUsage = await this.extractTokenUsage(response, apiFormat);
+        // Extract token usage from response (single source of truth; buffers stream text)
+        const { tokenUsage, responseText } = await this.extractTokenUsage(response, apiFormat);
+        const settings = await this.loadUserSettings(c, userId);
+        const requestText =
+            settings.detailed_observability && settings.save_request_body
+                ? await this.readRequestText(baseRequest)
+                : null;
 
         // Always touch proxy API key last_used for successful requests
         this.addProxyApiKeyTouch(requestId, {
@@ -171,6 +184,23 @@ export class BackgroundService {
             totalTokens: tokenUsage.totalTokens,
         });
 
+        const requestData: Record<string, unknown> = {
+            method: baseRequest.method,
+            url: baseRequest.url,
+            headers: Object.fromEntries(headers.entries()),
+        };
+        const responseData: Record<string, unknown> = {
+            status: response.status,
+            headers: Object.fromEntries(response.headers.entries()),
+        };
+        this.attachDetailedBodies({
+            settings,
+            requestData,
+            responseData,
+            requestText,
+            responseText,
+        });
+
         // Log request (with token usage and model)
         this.addRequestLog(requestId, {
             requestId,
@@ -178,16 +208,8 @@ export class BackgroundService {
             proxyKeyId,
             userId,
             apiFormat,
-            requestData: {
-                method: baseRequest.method,
-                url: baseRequest.url,
-                headers: Object.fromEntries(headers.entries()),
-            },
-            responseData: {
-                status: response.status,
-                headers: Object.fromEntries(response.headers.entries()),
-            },
-            responseBody: response.clone(),
+            requestData,
+            responseData,
             isStream: proxyRequestDataParsed.stream,
             isSuccessful: true,
             performanceMetrics: {
@@ -201,6 +223,7 @@ export class BackgroundService {
                 promptTokens: tokenUsage.promptTokens,
                 completionTokens: tokenUsage.completionTokens,
                 totalTokens: tokenUsage.totalTokens,
+                cacheTokens: tokenUsage.cacheTokens,
                 model: tokenUsage.model || proxyRequestDataParsed.model || 'unknown',
                 responseId: tokenUsage.responseId,
                 rawMetadata: {
@@ -226,9 +249,11 @@ export class BackgroundService {
      *
      * @param params - All required context for logging and aggregation
      */
-    static handleRequestError(params: {
+    static async handleRequestError(params: {
+        c: Context<HonoApp>;
         requestId: string;
         proxyKeyId: string;
+        apiKeyId?: string | null;
         userId: string | null;
         apiFormat: ProxyRequestDataParsed['apiFormat'];
         baseRequest: Request;
@@ -242,10 +267,12 @@ export class BackgroundService {
         isStream: boolean;
         totalResponseTimeMs: number;
         model?: string;
-    }): void {
+    }): Promise<void> {
         const {
+            c,
             requestId,
             proxyKeyId,
+            apiKeyId,
             userId,
             apiFormat,
             baseRequest,
@@ -259,6 +286,12 @@ export class BackgroundService {
 
         // Initialize operations for this request
         this.initializeRequest(requestId);
+
+        const settings = await this.loadUserSettings(c, userId);
+        const requestText =
+            settings.detailed_observability && settings.save_request_body
+                ? await this.readRequestText(baseRequest)
+                : null;
 
         // Always touch proxy API key last_error for failed requests
         this.addProxyApiKeyTouch(requestId, {
@@ -275,24 +308,34 @@ export class BackgroundService {
             totalTokens: 0,
         });
 
+        const requestData: Record<string, unknown> = {
+            method: baseRequest.method,
+            url: baseRequest.url,
+        };
+        const responseData: Record<string, unknown> | undefined = providerError
+            ? {
+                  status: providerError.status,
+                  headers: providerError.headers,
+                  error_body: providerError.body,
+              }
+            : undefined;
+        this.attachDetailedBodies({
+            settings,
+            requestData,
+            responseData,
+            requestText,
+            responseText: null,
+        });
+
         // Log failed request
         this.addRequestLog(requestId, {
             requestId,
-            apiKeyId: null,
+            apiKeyId: apiKeyId ?? null,
             proxyKeyId,
             userId,
             apiFormat,
-            requestData: {
-                method: baseRequest.method,
-                url: baseRequest.url,
-            },
-            responseData: providerError
-                ? {
-                      status: providerError.status,
-                      headers: providerError.headers,
-                      error_body: providerError.body,
-                  }
-                : undefined,
+            requestData,
+            responseData,
             isStream,
             isSuccessful: false,
             performanceMetrics: {
@@ -316,6 +359,7 @@ export class BackgroundService {
                       promptTokens: 0,
                       completionTokens: 0,
                       totalTokens: 0,
+                      cacheTokens: 0,
                       model: model,
                       rawMetadata: { model: model },
                   }
@@ -506,6 +550,7 @@ export class BackgroundService {
                       prompt_tokens: usageMetadata.promptTokens,
                       completion_tokens: usageMetadata.completionTokens,
                       total_tokens: usageMetadata.totalTokens,
+                      cache_tokens: usageMetadata.cacheTokens,
                       model: usageMetadata.model,
                       response_id: usageMetadata.responseId,
                       raw_metadata: usageMetadata.rawMetadata,
@@ -749,20 +794,86 @@ export class BackgroundService {
         this.operations.clear();
     }
 
-    // ===== TOKEN EXTRACTION =====
+    // ===== TOKEN EXTRACTION + OBSERVABILITY =====
+
+    private static readonly DEFAULT_USER_SETTINGS: UserObservabilitySettings = {
+        detailed_observability: false,
+        save_request_body: false,
+        save_response_body: false,
+    };
+
+    private static async loadUserSettings(
+        c: Context<HonoApp>,
+        userId: string | null,
+    ): Promise<UserObservabilitySettings> {
+        if (!userId) {
+            return { ...this.DEFAULT_USER_SETTINGS };
+        }
+        try {
+            const supabase = getSupabaseClient(c);
+            const { data, error } = await supabase
+                .from('user_settings')
+                .select('detailed_observability, save_request_body, save_response_body')
+                .eq('id', userId)
+                .maybeSingle();
+            if (error || !data) {
+                return { ...this.DEFAULT_USER_SETTINGS };
+            }
+            return {
+                detailed_observability: Boolean(data.detailed_observability),
+                save_request_body: Boolean(data.save_request_body),
+                save_response_body: Boolean(data.save_response_body),
+            };
+        } catch {
+            return { ...this.DEFAULT_USER_SETTINGS };
+        }
+    }
+
+    private static attachDetailedBodies(params: {
+        settings: UserObservabilitySettings;
+        requestData: Record<string, unknown>;
+        responseData?: Record<string, unknown>;
+        requestText: string | null;
+        responseText: string | null;
+    }): void {
+        const { settings, requestData, responseData, requestText, responseText } = params;
+        if (!settings.detailed_observability) {
+            return;
+        }
+        if (settings.save_request_body && requestText) {
+            Object.assign(requestData, DataSanitizer.sanitizePayloadBody(requestText));
+        }
+        if (settings.save_response_body && responseText && responseData) {
+            Object.assign(responseData, DataSanitizer.sanitizePayloadBody(responseText));
+        }
+    }
+
+    private static async readRequestText(request: Request): Promise<string | null> {
+        try {
+            const clone = request.clone();
+            const text = await clone.text();
+            return text || null;
+        } catch {
+            return null;
+        }
+    }
 
     /**
-     * Extract token usage from response body
+     * Extract token usage from response body; also returns buffered response text.
      */
     private static async extractTokenUsage(
         response: Response,
         apiFormat: 'gemini' | 'openai',
     ): Promise<{
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-        responseId?: string;
-        model?: string;
+        tokenUsage: {
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+            cacheTokens: number;
+            responseId?: string;
+            model?: string;
+        };
+        responseText: string | null;
     }> {
         try {
             // Clone the response to avoid consuming the original
@@ -774,24 +885,42 @@ export class BackgroundService {
 
             if (parsed) {
                 return {
-                    promptTokens: parsed.promptTokens || 0,
-                    completionTokens: parsed.completionTokens || 0,
-                    totalTokens: parsed.totalTokens || 0,
-                    responseId: parsed.responseId,
-                    model: parsed.model,
+                    tokenUsage: {
+                        promptTokens: parsed.promptTokens || 0,
+                        completionTokens: parsed.completionTokens || 0,
+                        totalTokens: parsed.totalTokens || 0,
+                        cacheTokens: parsed.cacheTokens || 0,
+                        responseId: parsed.responseId,
+                        model: parsed.model,
+                    },
+                    responseText,
                 };
             }
+            return {
+                tokenUsage: {
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    totalTokens: 0,
+                    cacheTokens: 0,
+                    responseId: undefined,
+                    model: undefined,
+                },
+                responseText,
+            };
         } catch (error) {
             console.warn('Failed to extract token usage from response:', error);
         }
 
-        // Return zeros if extraction fails
         return {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-            responseId: undefined,
-            model: undefined,
+            tokenUsage: {
+                promptTokens: 0,
+                completionTokens: 0,
+                totalTokens: 0,
+                cacheTokens: 0,
+                responseId: undefined,
+                model: undefined,
+            },
+            responseText: null,
         };
     }
 }

@@ -26,6 +26,7 @@ export class ProxyKeysManager {
         const { data, error } = await supabase.client
             .from('proxy_api_keys')
             .select('*')
+            .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -107,7 +108,17 @@ export class ProxyKeysManager {
 
     static async delete(id: string): Promise<void> {
         await supabase.init();
-        const { error } = await supabase.client.from('proxy_api_keys').delete().eq('id', id);
+        const stamp = Date.now().toString(36);
+        const revoked = `deleted_${id.replace(/-/g, '').slice(0, 16)}_${stamp}`;
+        const { error } = await supabase.client
+            .from('proxy_api_keys')
+            .update({
+                is_active: false,
+                deleted_at: new Date().toISOString(),
+                proxy_key_value: revoked,
+            })
+            .eq('id', id)
+            .is('deleted_at', null);
 
         if (error) {
             throw new Error(`Failed to delete proxy API key: ${error.message}`);
@@ -127,10 +138,20 @@ export class ProxyKeysManager {
         if (ids.length === 0) return;
 
         await supabase.init();
-        const { error } = await supabase.client.from('proxy_api_keys').delete().in('id', ids);
-
-        if (error) {
-            throw new Error(`Failed to delete proxy API keys: ${error.message}`);
+        const now = new Date().toISOString();
+        for (const id of ids) {
+            const { error } = await supabase.client
+                .from('proxy_api_keys')
+                .update({
+                    is_active: false,
+                    deleted_at: now,
+                    proxy_key_value: `deleted_${id.replace(/-/g, '').slice(0, 16)}_${Date.now().toString(36)}`,
+                })
+                .eq('id', id)
+                .is('deleted_at', null);
+            if (error) {
+                throw new Error(`Failed to delete proxy API keys: ${error.message}`);
+            }
         }
     }
 

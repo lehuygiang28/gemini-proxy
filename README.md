@@ -16,6 +16,7 @@
 - [Prerequisites](#-prerequisites)
 - [Quick Start Guide](#-quick-start-guide)
 - [Illustrated Setup Guide](./docs/getting-started.md)
+- [Supabase migrations & CI](./docs/supabase-ci.md)
 - [Quick Usage (CLI)](./docs/quick-usage.md)
 
 </details>
@@ -129,10 +130,13 @@ pnpm install
 
 # 3. Configure environment
 cp apps/web/.env.example apps/web/.env.local
-# Edit apps/web/.env.development with your values
+# Edit apps/web/.env.local with your Supabase URL and keys
+
+cp packages/database/.env.example packages/database/.env
+# Edit packages/database/.env — set SUPABASE_DB_URL, then:
+pnpm db:apply
 
 # 4. Start development server
-cd apps/web
 pnpm dev
 ```
 
@@ -146,57 +150,57 @@ For manual setup, please refer to the [**apps/web/README.md**](./apps/web/README
 
 ### **Required Environment Variables**
 
-| Variable | Description |
-|----------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL. |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ### **Optional Environment Variables**
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GOOGLE_GEMINI_API_BASE_URL` | Gemini API base URL. | `https://generativelanguage.googleapis.com/` |
-| `GOOGLE_OPENAI_API_BASE_URL` | OpenAI-compatible API base URL. | `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `PROXY_MAX_RETRIES` | Maximum retry attempts. | `-1` |
-| `PROXY_LOGGING_ENABLED` | Enable request logging. | `true` |
-| `PROXY_LOG_LEVEL` | Logging level. | `info` |
-| `PROXY_LOADBALANCE_STRATEGY` | Proxy load balance strategy. (`round_robin` or `sticky_until_error`) | `round_robin` |
+| Variable                     | Description                                                          | Default                                                    |
+| ---------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `GOOGLE_GEMINI_API_BASE_URL` | Gemini API base URL.                                                 | `https://generativelanguage.googleapis.com/`               |
+| `GOOGLE_OPENAI_API_BASE_URL` | OpenAI-compatible API base URL.                                      | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `PROXY_MAX_RETRIES`          | Maximum retry attempts.                                              | `-1`                                                       |
+| `PROXY_LOGGING_ENABLED`      | Enable request logging.                                              | `true`                                                     |
+| `PROXY_LOG_LEVEL`            | Logging level.                                                       | `info`                                                     |
+| `PROXY_LOADBALANCE_STRATEGY` | Proxy load balance strategy. (`round_robin` or `sticky_until_error`) | `round_robin`                                              |
 
 ## 💻 Usage Examples
 
 ### **Using with Google Generative AI SDK**
 
 ```typescript
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from "@google/genai";
 
 const genAi = new GoogleGenAI({
-    apiKey: 'your_proxy_api_key',
-    httpOptions: {
-        baseUrl: 'https://your-proxy-endpoint/api/gproxy/gemini',
-    },
+  apiKey: "your_proxy_api_key",
+  httpOptions: {
+    baseUrl: "https://your-proxy-endpoint/api/gproxy/gemini",
+  },
 });
 ```
 
 ### **Using with OpenAI-Compatible Clients**
 
 ```typescript
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 const openai = new OpenAI({
-    apiKey: 'your_proxy_api_key',
-    baseURL: 'https://your-proxy-endpoint/api/gproxy/openai',
+  apiKey: "your_proxy_api_key",
+  baseURL: "https://your-proxy-endpoint/api/gproxy/openai",
 });
 ```
 
 ### **Using with Vercel AI SDK**
 
 ```typescript
-import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 const google = createGoogleGenerativeAI({
-    apiKey: 'gproxy_test_12345',
-    baseURL: 'https://your-proxy-endpoint/api/gproxy/gemini/v1beta',
+  apiKey: "gproxy_test_12345",
+  baseURL: "https://your-proxy-endpoint/api/gproxy/gemini/v1beta",
 });
 ```
 
@@ -231,7 +235,7 @@ const google = createGoogleGenerativeAI({
 
 ## 🏗️ Architecture
 
-```md
+```text
 Your App --> Gemini Proxy --> Google Gemini API
                  |
                  v
@@ -240,7 +244,7 @@ Your App --> Gemini Proxy --> Google Gemini API
 
 ## 📁 Project Structure
 
-```md
+```text
 gemini-proxy/
 ├── apps/
 │   ├── web/      # Next.js web application (Recommended)

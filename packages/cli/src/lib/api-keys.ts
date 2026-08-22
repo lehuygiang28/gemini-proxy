@@ -21,6 +21,7 @@ export class ApiKeysManager {
         const { data, error } = await supabase.client
             .from('api_keys')
             .select('*')
+            .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -104,7 +105,17 @@ export class ApiKeysManager {
 
     static async delete(id: string): Promise<void> {
         await supabase.init();
-        const { error } = await supabase.client.from('api_keys').delete().eq('id', id);
+        const stamp = Date.now().toString(36);
+        const revoked = `deleted_${id.replace(/-/g, '').slice(0, 16)}_${stamp}`;
+        const { error } = await supabase.client
+            .from('api_keys')
+            .update({
+                is_active: false,
+                deleted_at: new Date().toISOString(),
+                api_key_value: revoked,
+            })
+            .eq('id', id)
+            .is('deleted_at', null);
 
         if (error) {
             throw new Error(`Failed to delete API key: ${error.message}`);
@@ -124,10 +135,28 @@ export class ApiKeysManager {
         if (ids.length === 0) return;
 
         await supabase.init();
-        const { error } = await supabase.client.from('api_keys').delete().in('id', ids);
+        const now = new Date().toISOString();
+        const rows = ids.map((id) => ({
+            id,
+            is_active: false,
+            deleted_at: now,
+            api_key_value: `deleted_${id.replace(/-/g, '').slice(0, 16)}_${Date.now().toString(36)}`,
+        }));
 
-        if (error) {
-            throw new Error(`Failed to delete API keys: ${error.message}`);
+        // Soft-delete each row (values must be unique among alive keys)
+        for (const row of rows) {
+            const { error } = await supabase.client
+                .from('api_keys')
+                .update({
+                    is_active: row.is_active,
+                    deleted_at: row.deleted_at,
+                    api_key_value: row.api_key_value,
+                })
+                .eq('id', row.id)
+                .is('deleted_at', null);
+            if (error) {
+                throw new Error(`Failed to delete API keys: ${error.message}`);
+            }
         }
     }
 

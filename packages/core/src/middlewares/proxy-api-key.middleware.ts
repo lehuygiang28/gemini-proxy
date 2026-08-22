@@ -19,13 +19,21 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
 
     const { data, error } = await supabase
         .from('proxy_api_keys')
-        .select('id, user_id, name, is_active')
+        .select('id, user_id, name, is_active, deleted_at')
         .eq('proxy_key_value', proxyApiKey)
+        .is('deleted_at', null)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-    if (error) {
-        return c.json({ error: error.message }, 500);
+    // PGRST116 / null data = key not found (client error), not a server failure
+    if (error && error.code !== 'PGRST116') {
+        return c.json(
+            {
+                error: 'server_error',
+                message: 'Failed to validate proxy API key',
+            },
+            500,
+        );
     }
 
     if (!data) {

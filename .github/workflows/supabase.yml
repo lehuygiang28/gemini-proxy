@@ -1,0 +1,90 @@
+name: Supabase
+
+on:
+    pull_request:
+        paths:
+            - 'supabase/**'
+            - 'packages/database/sql/**'
+            - '.github/workflows/supabase.yml'
+    push:
+        branches:
+            - main
+            - develop
+        paths:
+            - 'supabase/**'
+            - 'packages/database/sql/**'
+            - '.github/workflows/supabase.yml'
+
+concurrency:
+    group: supabase-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    verify-migrations:
+        name: Verify migrations apply
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 2.39.2
+
+            - name: Start local Supabase stack and apply migrations
+              run: supabase start -x studio,imgproxy,logflare,vector
+
+            - name: Verify all migrations are recorded locally
+              run: |
+                  supabase migration list --local
+                  expected=$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)
+                  applied=$(supabase migration list --local | grep -Ec '[0-9]{14}')
+                  echo "Expected migration files: $expected"
+                  echo "Applied migrations: $applied"
+                  test "$applied" -eq "$expected"
+
+    push-migrations-staging:
+        name: Push migrations (staging)
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        environment: staging
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 2.39.2
+
+            - name: Push pending migrations to staging
+              env:
+                  SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+                  CI: 'true'
+              run: |
+                  if [ -z "$SUPABASE_DB_URL" ]; then
+                      echo "SUPABASE_DB_URL is not set on the staging environment — skipping db push."
+                      exit 0
+                  fi
+                  supabase db push --yes --db-url "$SUPABASE_DB_URL"
+
+    push-migrations-production:
+        name: Push migrations (production)
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        environment: production
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: 2.39.2
+
+            - name: Push pending migrations to production
+              env:
+                  SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+                  CI: 'true'
+              run: |
+                  if [ -z "$SUPABASE_DB_URL" ]; then
+                      echo "SUPABASE_DB_URL is not set on the production environment — skipping db push."
+                      exit 0
+                  fi
+                  supabase db push --yes --db-url "$SUPABASE_DB_URL"

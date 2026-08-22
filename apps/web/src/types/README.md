@@ -26,46 +26,46 @@ The type-safe RPC system extends from the database schema to provide:
 
 ```typescript
 // RPC Function Names - Type-safe function names
-export type RpcFunctionName = 
-    | 'get_dashboard_statistics'
-    | 'get_retry_statistics'
-    | 'get_api_key_statistics'
-    | 'get_proxy_key_statistics'
-    | 'get_request_logs_statistics'
-    | 'get_filter_options_models'
-    | 'get_filter_options_error_types'
-    | 'get_filter_options_status_codes'
-    | 'get_filter_options_api_formats'
-    | 'get_filter_options_user_ids'
-    | 'get_filter_options_proxy_key_ids'
-    | 'get_filter_options_api_key_ids'
-    | 'get_filter_options_all';
+export type RpcFunctionName =
+  | "get_dashboard_statistics"
+  | "get_retry_statistics"
+  | "get_api_key_statistics"
+  | "get_proxy_key_statistics"
+  | "get_request_logs_statistics"
+  | "get_filter_options_models"
+  | "get_filter_options_error_types"
+  | "get_filter_options_status_codes"
+  | "get_filter_options_api_formats"
+  | "get_filter_options_user_ids"
+  | "get_filter_options_proxy_key_ids"
+  | "get_filter_options_api_key_ids"
+  | "get_filter_options_all";
 
 // RPC Function Parameters - Type-safe parameter definitions
 export interface RpcFunctionParams {
-    get_dashboard_statistics: {
-        p_user_id?: string;
-    };
-    get_retry_statistics: {
-        p_user_id?: string;
-        p_days_back?: number;
-    };
-    // ... other functions
+  get_dashboard_statistics: {
+    p_user_id?: string;
+  };
+  get_retry_statistics: {
+    p_user_id?: string;
+    p_days_back?: number;
+  };
+  // ... other functions
 }
 
 // RPC Function Return Types - Type-safe return type definitions
 export interface RpcFunctionReturns {
-    get_dashboard_statistics: {
-        total_api_keys: number;
-        total_proxy_keys: number;
-        total_requests: number;
-        successful_requests: number;
-        total_tokens: number;
-        avg_response_time_ms: number;
-        success_rate: number;
-        active_keys: number;
-    };
-    // ... other return types
+  get_dashboard_statistics: {
+    total_api_keys: number;
+    total_proxy_keys: number;
+    total_requests: number;
+    successful_requests: number;
+    total_tokens: number;
+    avg_response_time_ms: number;
+    success_rate: number;
+    active_keys: number;
+  };
+  // ... other return types
 }
 ```
 
@@ -74,7 +74,7 @@ export interface RpcFunctionReturns {
 ### Basic Usage
 
 ```typescript
-import { useDashboardStatistics, useRetryStatistics } from '@/hooks/useRpc';
+import { useDashboardStatistics, useRetryStatistics } from "@/hooks/useRpc";
 
 // Type-safe hook usage
 const { data: dashboardStats } = useDashboardStatistics();
@@ -88,11 +88,11 @@ const retryData: RetryStatistics = retryStats; // Fully typed
 ### Advanced Usage with Parameters
 
 ```typescript
-import { useRequestLogsStatistics } from '@/hooks/useRpc';
+import { useRequestLogsStatistics } from "@/hooks/useRpc";
 
 // Type-safe parameter passing
-const { data: requestLogsStats } = useRequestLogsStatistics({ 
-    p_days_back: 7 
+const { data: requestLogsStats } = useRequestLogsStatistics({
+  p_days_back: 7,
 });
 
 // Type-safe return types
@@ -103,7 +103,7 @@ console.log(stats.total_requests); // Fully typed with IntelliSense
 ### Filter Options Usage
 
 ```typescript
-import { useFilterOptionsAll } from '@/hooks/useRpc';
+import { useFilterOptionsAll } from "@/hooks/useRpc";
 
 // Type-safe filter options
 const { data: filterOptions } = useFilterOptionsAll();
@@ -148,7 +148,7 @@ Parameters and responses are validated at runtime:
 ```typescript
 // Parameters are validated before making the RPC call
 if (!validateRpcParams(payload, functionName)) {
-    throw new Error(`Invalid parameters for RPC function ${functionName}`);
+  throw new Error(`Invalid parameters for RPC function ${functionName}`);
 }
 
 // Responses are validated after receiving data
@@ -161,13 +161,13 @@ The type system is designed to extend from the database schema:
 
 ```typescript
 // Future: Extend from actual database types
-import type { Database } from '@gemini-proxy/database';
+import type { Database } from "@gemini-proxy/database";
 
 // RPC functions can be typed based on actual database schema
 type RpcFunctionParams = {
-    get_dashboard_statistics: {
-        p_user_id?: Database['public']['Tables']['api_keys']['Row']['user_id'];
-    };
+  get_dashboard_statistics: {
+    p_user_id?: Database["public"]["Tables"]["api_keys"]["Row"]["user_id"];
+  };
 };
 ```
 
@@ -229,7 +229,7 @@ const stats: DashboardStatistics = data?.data;
 const { data: stats } = useDashboardStatistics();
 
 // ❌ Avoid - Direct RPC calls without types
-const { data } = useCustom({ url: 'rpc/get_dashboard_statistics' });
+const { data } = useCustom({ url: "rpc/get_dashboard_statistics" });
 ```
 
 ### 2. Handle Loading and Error States

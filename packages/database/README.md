@@ -3,73 +3,58 @@
 [![License](https://img.shields.io/github/license/lehuygiang28/gemini-proxy?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/blob/main/LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/lehuygiang28/gemini-proxy/pulls)
 
-This internal package contains the database schema, types, and management scripts for the **Gemini Proxy** application.
+This internal package contains database types and scripts for the **Gemini Proxy** application.
 
-## 📋 Table of Contents
+## Schema source of truth
 
-<details>
-<summary><strong>🚀 Overview</strong></summary>
+| Location | Role |
+| -------- | ---- |
+| [`../../supabase/migrations/`](../../supabase/migrations/) | Versioned migrations (Supabase CLI) |
+| [`sql/schema.sql`](sql/schema.sql) | SQL Editor fallback dump |
 
-- [Schema](#️-schema)
-- [Scripts](#️-scripts)
-
-</details>
-
-<details>
-<summary><strong>💻 Usage</strong></summary>
-
-- [Installation](#-installation)
-- [Usage Information](#-usage-information)
-
-</details>
-
-<details>
-<summary><strong>📚 References</strong></summary>
-
-- [Back to Main README](#-back-to-main-readme)
-
-</details>
-
-## 🏗️ Schema
-
-The database schema is defined in `sql/schema.sql` and includes tables for `api_keys`, `proxy_api_keys`, and `request_logs`.
-
-## 📊 Types Architecture
-
-This package provides centralized TypeScript types for the entire monorepo:
-
-- **Database Schema Types**: Auto-generated from Supabase schema
-- **Statistics Types**: Manual interfaces for RPC function returns
-- **User Types**: Shared authentication types
-
-## 🛠️ Scripts
-
-### **Generating Types**
+Apply migrations from the **repo root**:
 
 ```bash
-pnpm gen:types
+cp packages/database/.env.example packages/database/.env
+# Set SUPABASE_DB_URL (Session pooler URI)
+pnpm db:apply
 ```
 
-### **Pushing Schema Changes**
+See [docs/supabase-ci.md](../../docs/supabase-ci.md) for CI, local Docker, and contributor workflow.
+
+## Request log retention (90 days)
+
+Detailed rows in `request_logs` are hard-deleted after **90 days** by default. Lifetime counters on `api_keys` / `proxy_api_keys` are **not** cleared.
+
+| Piece | Detail |
+| ----- | ------ |
+| RPC | `cleanup_old_request_logs(p_days_to_keep DEFAULT 90)` |
+| Migration | `supabase/migrations/20260801030000_request_log_retention.sql` |
+| Schedule | `pg_cron` job `purge-request-logs-daily` at `0 3 * * *` (03:00 UTC) when available |
+
+### Manual prune (CLI)
 
 ```bash
-pnpm db:push
+gproxy logs prune --days 90 --force
 ```
 
-**Warning:** This command will overwrite the existing schema in your database.
+## Types
 
-## 📦 Installation
+```bash
+cd packages/database && pnpm gen:types
+```
 
-This is an internal package and is not intended for direct installation.
+Types are generated from the remote Supabase project (`SUPABASE_PROJECT_ID` in `.env`).
 
-## 💻 Usage Information
+## Scripts
 
-The generated TypeScript types are used by the `@gemini-proxy/core` package.
+| Command | Description |
+| ------- | ----------- |
+| `pnpm db:apply` / `pnpm db:push` | Apply pending CLI migrations to remote DB |
+| `pnpm gen:types` | Regenerate `types/database.types.ts` from remote |
 
-## 📚 Back to Main README
+Run these from `packages/database/`, or `pnpm db:apply` from the repo root.
 
-For a complete overview of the project, please refer to the [**root README.md**](../../README.md).
+## Back to main README
 
----
-
-**Made with ❤️ by [lehuygiang28](https://github.com/lehuygiang28)**
+[**root README.md**](../../README.md)

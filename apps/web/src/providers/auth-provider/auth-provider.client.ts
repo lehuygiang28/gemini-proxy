@@ -33,6 +33,20 @@ function hasCode(value: unknown): value is { code: string | number } {
     return 'code' in (value as object);
 }
 
+function getAuthCallbackUrl(next = '/dashboard'): string {
+    const path = next.startsWith('/') ? next : '/dashboard';
+    if (typeof window !== 'undefined') {
+        return `${window.location.origin}/auth/callback?next=${encodeURIComponent(path)}`;
+    }
+    return `/auth/callback?next=${encodeURIComponent(path)}`;
+}
+
+type UserMetadata = {
+    role?: string;
+    display_name?: string;
+    avatar_url?: string;
+};
+
 export const authProviderClient: AuthProvider = {
     login: async ({ email, password }) => {
         const { data, error } = await supabaseBrowserClient.auth.signInWithPassword({
@@ -48,15 +62,12 @@ export const authProviderClient: AuthProvider = {
         }
 
         if (data?.session) {
-            await supabaseBrowserClient.auth.setSession(data.session);
-
             return {
                 success: true,
-                redirectTo: '/',
+                redirectTo: '/dashboard',
             };
         }
 
-        // for third-party login
         return {
             success: false,
             error: {
@@ -85,6 +96,9 @@ export const authProviderClient: AuthProvider = {
             const { data, error } = await supabaseBrowserClient.auth.signUp({
                 email,
                 password,
+                options: {
+                    emailRedirectTo: getAuthCallbackUrl(),
+                },
             });
 
             if (error) {
@@ -95,10 +109,14 @@ export const authProviderClient: AuthProvider = {
             }
 
             if (data?.session) {
-                return { success: true, redirectTo: '/' };
+                return { success: true, redirectTo: '/dashboard' };
             }
-            // User created but not authenticated (e.g., email confirmation required)
-            return { success: true, redirectTo: '/login' };
+
+            // Email confirmation required — stay on register with guidance via success path
+            return {
+                success: true,
+                redirectTo: '/login?registered=1',
+            };
         } catch (error: unknown) {
             const err = error instanceof Error ? error : new Error(String(error));
             return {
@@ -109,6 +127,38 @@ export const authProviderClient: AuthProvider = {
                 },
             };
         }
+    },
+    forgotPassword: async ({ email }) => {
+        // Land on /update-password so middleware/callback keep next=/update-password.
+        // Prefer Supabase Recovery email template:
+        // {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/update-password
+        const redirectTo =
+            typeof window !== 'undefined'
+                ? `${window.location.origin}/update-password`
+                : '/update-password';
+        const { error } = await supabaseBrowserClient.auth.resetPasswordForEmail(email, {
+            redirectTo,
+        });
+        if (error) {
+            return {
+                success: false,
+                error: normalizeSupabaseError(error),
+            };
+        }
+        return { success: true };
+    },
+    updatePassword: async ({ password }) => {
+        const { error } = await supabaseBrowserClient.auth.updateUser({ password });
+        if (error) {
+            return {
+                success: false,
+                error: normalizeSupabaseError(error),
+            };
+        }
+        return {
+            success: true,
+            redirectTo: '/login?passwordUpdated=1',
+        };
     },
     check: async () => {
         const { data, error } = await supabaseBrowserClient.auth.getUser();
@@ -136,21 +186,23 @@ export const authProviderClient: AuthProvider = {
     getPermissions: async () => {
         const { data } = await supabaseBrowserClient.auth.getUser();
         const user: User | null | undefined = data?.user ?? null;
-        const metadata = (user?.user_metadata as { role?: string } | undefined) ?? undefined;
+        const metadata = (user?.user_metadata as UserMetadata | undefined) ?? undefined;
         const role = metadata?.role ?? (user ? 'authenticated' : null);
         return role;
     },
     getIdentity: async () => {
         const { data } = await supabaseBrowserClient.auth.getUser();
-
-        if (data?.user) {
-            return {
-                ...data.user,
-                name: data.user.email,
-            };
+        const user = data?.user;
+        if (!user) {
+            return null;
         }
-
-        return null;
+        const metadata = (user.user_metadata as UserMetadata | undefined) ?? undefined;
+        return {
+            id: user.id,
+            email: user.email,
+            name: metadata?.display_name?.trim() || user.email || 'User',
+            avatar: metadata?.avatar_url || undefined,
+        };
     },
     onError: async (error) => {
         if (

@@ -42,4 +42,5 @@ npx -y @lehuygiang28/gemini-proxy-cli ak sync
 
 Once synced, use your proxy key(s) to call Gemini via the proxy. Your Google API keys will be managed and load-balanced behind the scenes.
 
-- Schema reference: [schema.sql](https://github.com/lehuygiang28/gemini-proxy/blob/main/packages/database/sql/schema.sql)
+- Schema & migrations: [`supabase/migrations/`](./supabase/migrations/) — apply with `pnpm db:apply` (see [getting started](./docs/getting-started.md))
+- SQL Editor fallback: [schema.sql](./packages/database/sql/schema.sql)

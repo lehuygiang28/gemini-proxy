@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     metadata JSONB NOT NULL DEFAULT '{}',
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(user_id, name),
     CONSTRAINT api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
     CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10)
 );
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 CREATE TABLE IF NOT EXISTS proxy_api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    proxy_key_value TEXT NOT NULL UNIQUE,
+    proxy_key_value TEXT NOT NULL,
     name TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     success_count BIGINT NOT NULL DEFAULT 0,
@@ -39,11 +39,30 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     metadata JSONB NOT NULL DEFAULT '{}',
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     CONSTRAINT proxy_api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
     CONSTRAINT proxy_api_keys_proxy_key_value_length CHECK (char_length(proxy_key_value) >= 10)
 );
+
+-- Per-user settings (id = auth.users.id)
+CREATE TABLE IF NOT EXISTS user_settings (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    detailed_observability BOOLEAN NOT NULL DEFAULT false,
+    save_request_body BOOLEAN NOT NULL DEFAULT false,
+    save_response_body BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Soft-delete aware uniqueness (alive rows only)
+CREATE UNIQUE INDEX IF NOT EXISTS api_keys_user_id_name_alive_uidx
+    ON api_keys (user_id, name)
+    WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS proxy_api_keys_value_alive_uidx
+    ON proxy_api_keys (proxy_key_value)
+    WHERE deleted_at IS NULL;
 
 -- Request Logs table - stores detailed request logs
 CREATE TABLE IF NOT EXISTS request_logs (
@@ -120,6 +139,12 @@ CREATE INDEX IF NOT EXISTS idx_request_logs_user_created_at ON request_logs(user
 CREATE INDEX IF NOT EXISTS idx_request_logs_api_key_created_at ON request_logs(api_key_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_user_active ON proxy_api_keys(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_api_keys_deleted_at
+    ON api_keys (deleted_at)
+    WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_deleted_at
+    ON proxy_api_keys (deleted_at)
+    WHERE deleted_at IS NULL;
 
 -- Updated timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -134,62 +159,136 @@ END;
 $$;
 
 -- Triggers for automatic updated_at maintenance
+DROP TRIGGER IF EXISTS update_api_keys_updated_at ON api_keys;
 CREATE TRIGGER update_api_keys_updated_at 
     BEFORE UPDATE ON api_keys 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_proxy_api_keys_updated_at ON proxy_api_keys;
 CREATE TRIGGER update_proxy_api_keys_updated_at 
     BEFORE UPDATE ON proxy_api_keys 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at
+    BEFORE UPDATE ON user_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Row Level Security (RLS)
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies using subqueries to avoid re-evaluation
+DROP POLICY IF EXISTS "Users can manage their own api_keys" ON api_keys;
 CREATE POLICY "Users can manage their own api_keys" ON api_keys
     FOR ALL USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Users can manage their own proxy_api_keys" ON proxy_api_keys;
 CREATE POLICY "Users can manage their own proxy_api_keys" ON proxy_api_keys
     FOR ALL USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Users can manage their own user_settings" ON user_settings;
+CREATE POLICY "Users can manage their own user_settings" ON user_settings
+    FOR ALL USING (
+        id = (SELECT auth.uid()) OR
+        (SELECT auth.role()) = 'service_role'
+    )
+    WITH CHECK (
+        id = (SELECT auth.uid()) OR
+        (SELECT auth.role()) = 'service_role'
+    );
+
+DROP POLICY IF EXISTS "Users can view their own request_logs" ON request_logs;
 CREATE POLICY "Users can view their own request_logs" ON request_logs
     FOR SELECT USING (
         user_id = (SELECT auth.uid()) OR 
         (SELECT auth.role()) = 'service_role'
     );
 
+DROP POLICY IF EXISTS "Service role can insert request_logs" ON request_logs;
 CREATE POLICY "Service role can insert request_logs" ON request_logs
     FOR INSERT WITH CHECK ((SELECT auth.role()) = 'service_role');
 
+DROP POLICY IF EXISTS "Service role can update request_logs" ON request_logs;
 CREATE POLICY "Service role can update request_logs" ON request_logs
     FOR UPDATE USING ((SELECT auth.role()) = 'service_role');
 
--- Cleanup function for old logs
+-- Cleanup function for old logs (batched; service_role only; default 90 days)
 CREATE OR REPLACE FUNCTION cleanup_old_request_logs(p_days_to_keep INTEGER DEFAULT 90)
-RETURNS BIGINT 
+RETURNS BIGINT
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
-    deleted_count BIGINT;
+    v_cutoff TIMESTAMPTZ;
+    v_batch_size INTEGER := 1000;
+    v_max_batches INTEGER := 50;
+    v_sleep_ms INTEGER := 200;
+    v_batch_deleted BIGINT;
+    v_total_deleted BIGINT := 0;
+    v_batch INTEGER;
 BEGIN
-    DELETE FROM request_logs 
-    WHERE created_at < NOW() - INTERVAL '1 day' * p_days_to_keep;
-    
-    GET DIAGNOSTICS deleted_count = ROW_COUNT;
-    RETURN deleted_count;
+    IF p_days_to_keep IS NULL OR p_days_to_keep < 7 THEN
+        RAISE EXCEPTION 'p_days_to_keep must be >= 7';
+    END IF;
+
+    v_cutoff := NOW() - (p_days_to_keep || ' days')::INTERVAL;
+
+    FOR v_batch IN 1..v_max_batches LOOP
+        WITH doomed AS (
+            SELECT id
+            FROM request_logs
+            WHERE created_at < v_cutoff
+            ORDER BY created_at
+            LIMIT v_batch_size
+            FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM request_logs rl
+        USING doomed d
+        WHERE rl.id = d.id;
+
+        GET DIAGNOSTICS v_batch_deleted = ROW_COUNT;
+        v_total_deleted := v_total_deleted + v_batch_deleted;
+
+        EXIT WHEN v_batch_deleted = 0;
+
+        IF v_batch < v_max_batches AND v_batch_deleted = v_batch_size THEN
+            PERFORM pg_sleep(v_sleep_ms / 1000.0);
+        END IF;
+    END LOOP;
+
+    RETURN v_total_deleted;
 END;
 $$;
 
+COMMENT ON FUNCTION cleanup_old_request_logs(INTEGER) IS
+    'Hard-deletes request_logs older than p_days_to_keep (default 90) in batches. '
+    'service_role only. Does not modify api_keys / proxy_api_keys counters.';
+
+REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO postgres;
+
 -- Documentation comments
+COMMENT ON TABLE user_settings IS
+    'Per-user settings; id matches auth.users.id. Controls detailed log body capture.';
+COMMENT ON COLUMN user_settings.detailed_observability IS
+    'Master gate for detailed observability (request/response body capture).';
+COMMENT ON COLUMN user_settings.save_request_body IS
+    'When detailed_observability is on, persist sanitized request bodies on request_logs.';
+COMMENT ON COLUMN user_settings.save_response_body IS
+    'When detailed_observability is on, persist sanitized response bodies on request_logs.';
+
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
 COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests with performance metrics';
@@ -207,9 +306,40 @@ COMMENT ON COLUMN request_logs.usage_metadata IS 'JSON object containing token u
 COMMENT ON COLUMN request_logs.performance_metrics IS 'JSON object containing timing and performance metrics';
 
 -- =====================================
+-- Realtime publication for admin live feeds (Refine liveProvider)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE request_logs;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE proxy_api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =====================================
 -- Function to get dashboard statistics
+DROP FUNCTION IF EXISTS get_dashboard_statistics(UUID);
 CREATE OR REPLACE FUNCTION get_dashboard_statistics(
-    p_user_id UUID DEFAULT NULL
+    p_user_id UUID DEFAULT NULL,
+    p_days_back INTEGER DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -234,19 +364,21 @@ BEGIN
     ELSE
         effective_user_id := (SELECT auth.uid());
     END IF;
-    -- Get API keys count
+    -- Get API keys count (all-time inventory)
     SELECT COUNT(*) INTO total_api_keys
     FROM api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
     
-    -- Get proxy keys count
+    -- Get proxy keys count (all-time inventory)
     SELECT COUNT(*) INTO total_proxy_keys
     FROM proxy_api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
     
-    -- Get request logs statistics
+    -- Get request logs statistics (optionally period-scoped)
     SELECT 
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
@@ -272,9 +404,10 @@ BEGIN
             ) / NULLIF(COUNT(*), 0) as avg_total_response_time
     INTO total_requests, successful_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND (p_days_back IS NULL OR created_at >= NOW() - (p_days_back || ' days')::INTERVAL);
     
-    -- Get total tokens from proxy keys
+    -- Get total tokens from proxy keys (all-time counters; include soft-deleted history)
     SELECT COALESCE(SUM(total_tokens), 0) INTO total_tokens_sum
     FROM proxy_api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
@@ -296,7 +429,8 @@ BEGIN
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
         'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
-        'active_keys', total_api_keys + total_proxy_keys
+        'active_keys', total_api_keys + total_proxy_keys,
+        'period_days', p_days_back
     );
     
     RETURN result;
@@ -394,7 +528,8 @@ BEGIN
         COALESCE(SUM(failure_count), 0) as total_failure
     INTO total_keys, active_keys, total_success_count, total_failure_count
     FROM api_keys
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND deleted_at IS NULL;
     
     -- Calculate totals and success rate
     total_usage_count := total_success_count + total_failure_count;
@@ -458,7 +593,8 @@ BEGIN
     INTO total_keys, active_keys, total_success_count, total_failure_count, 
          total_tokens_sum, total_prompt_tokens, total_completion_tokens
     FROM proxy_api_keys
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND deleted_at IS NULL;
     
     -- Calculate success rate
     success_rate := CASE 
@@ -502,6 +638,9 @@ DECLARE
     successful_requests BIGINT;
     failed_requests BIGINT;
     total_tokens_sum BIGINT;
+    prompt_tokens_sum BIGINT;
+    completion_tokens_sum BIGINT;
+    cache_tokens_sum BIGINT;
     avg_response_time_ms NUMERIC;
     avg_total_response_time_ms NUMERIC;
     success_rate NUMERIC;
@@ -516,61 +655,80 @@ BEGIN
     END IF;
     -- Calculate cutoff date
     cutoff_date := NOW() - INTERVAL '1 day' * p_days_back;
-    
+
     -- Get basic request statistics
-    SELECT 
+    SELECT
         COUNT(*) as total_count,
         COUNT(*) FILTER (WHERE is_successful = true) as successful_count,
         COUNT(*) FILTER (WHERE is_successful = false) as failed_count,
         COALESCE(
             SUM(
-                CASE 
-                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$' 
-                    THEN (performance_metrics->>'duration_ms')::NUMERIC 
+                CASE
+                    WHEN (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                    THEN (performance_metrics->>'duration_ms')::NUMERIC
                     ELSE 0
                 END
             ),
             0
         ) / NULLIF(COUNT(*), 0) as avg_response_time,
-            COALESCE(
-                SUM(
-                    CASE
-                        WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
-                        THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
-                        ELSE 0
-                    END
-                ),
-                0
-            ) / NULLIF(COUNT(*), 0) as avg_total_response_time
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN (performance_metrics->>'total_response_time_ms') ~ '^[0-9]+(\.[0-9]+)?$'
+                    THEN (performance_metrics->>'total_response_time_ms')::NUMERIC
+                    ELSE 0
+                END
+            ),
+            0
+        ) / NULLIF(COUNT(*), 0) as avg_total_response_time
     INTO total_requests, successful_requests, failed_requests, avg_response_time_ms, avg_total_response_time_ms
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date;
-    
-    -- Get total tokens from usage_metadata
-    SELECT COALESCE(
-        SUM(
-            CASE 
-                WHEN (usage_metadata->>'total_tokens') ~ '^[0-9]+$' 
-                THEN (usage_metadata->>'total_tokens')::BIGINT 
+
+    -- Token totals from usage_metadata (period-scoped)
+    SELECT
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'total_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'total_tokens')::BIGINT
                 ELSE 0
             END
-        ),
-        0
-    )
-    INTO total_tokens_sum
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'prompt_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'prompt_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'completion_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'completion_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'cache_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'cache_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0)
+    INTO total_tokens_sum, prompt_tokens_sum, completion_tokens_sum, cache_tokens_sum
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date
     AND usage_metadata IS NOT NULL;
-    
+
     -- Calculate success rate
-    success_rate := CASE 
-        WHEN total_requests > 0 THEN 
+    success_rate := CASE
+        WHEN total_requests > 0 THEN
             ROUND((successful_requests::NUMERIC / total_requests::NUMERIC) * 100, 2)
-        ELSE 0 
+        ELSE 0
     END;
-    
+
     -- Get requests by API format
     SELECT json_object_agg(api_format, format_count)
     INTO requests_by_format
@@ -581,12 +739,12 @@ BEGIN
         AND created_at >= cutoff_date
         GROUP BY api_format
     ) format_stats;
-    
+
     -- Get requests by hour (last 24 hours)
     SELECT json_object_agg(hour_bucket, hour_count)
     INTO requests_by_hour
     FROM (
-        SELECT 
+        SELECT
             EXTRACT(HOUR FROM created_at)::TEXT as hour_bucket,
             COUNT(*) as hour_count
         FROM request_logs
@@ -595,13 +753,16 @@ BEGIN
         GROUP BY EXTRACT(HOUR FROM created_at)
         ORDER BY EXTRACT(HOUR FROM created_at)
     ) hour_stats;
-    
+
     -- Build result JSON
     result := json_build_object(
         'total_requests', total_requests,
         'successful_requests', successful_requests,
         'failed_requests', failed_requests,
         'total_tokens', total_tokens_sum,
+        'prompt_tokens', prompt_tokens_sum,
+        'completion_tokens', completion_tokens_sum,
+        'cache_tokens', cache_tokens_sum,
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
         'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
@@ -609,22 +770,23 @@ BEGIN
         'requests_by_hour', COALESCE(requests_by_hour, '{}'::json),
         'period_days', p_days_back
     );
-    
+
     RETURN result;
 END;
 $$;
 
 -- Grant execute permissions to authenticated users
-GRANT EXECUTE ON FUNCTION get_dashboard_statistics(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_dashboard_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_retry_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_api_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_proxy_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_request_logs_statistics(UUID, INTEGER) TO authenticated;
 
 -- Add comments for documentation
-COMMENT ON FUNCTION get_dashboard_statistics(UUID) IS 'Returns comprehensive dashboard statistics including API keys, proxy keys, requests, and performance metrics';
+COMMENT ON FUNCTION get_dashboard_statistics(UUID, INTEGER) IS 'Returns dashboard statistics; request aggregates honor optional p_days_back, key inventory is all-time';
 COMMENT ON FUNCTION get_retry_statistics(UUID, INTEGER) IS 'Returns retry attempt statistics for request logs within specified time period';
 COMMENT ON FUNCTION get_api_key_statistics(UUID) IS 'Returns usage statistics for API keys including success/failure rates';
 COMMENT ON FUNCTION get_proxy_key_statistics(UUID) IS 'Returns usage statistics for proxy keys including token usage and success rates';
-COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS 'Returns detailed request logs statistics including format breakdown and hourly distribution';
+COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS
+    'Returns request logs statistics including format/hourly distribution and prompt/completion/cache token totals';
 

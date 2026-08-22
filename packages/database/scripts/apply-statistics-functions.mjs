@@ -39,7 +39,7 @@ async function applyStatisticsFunctions() {
 
         console.log('✅ Statistics functions applied successfully!');
         console.log('📊 Available RPC functions:');
-        console.log('   - get_dashboard_statistics(p_user_id)');
+        console.log('   - get_dashboard_statistics(p_user_id, p_days_back)');
         console.log('   - get_retry_statistics(p_user_id, p_days_back)');
         console.log('   - get_api_key_statistics(p_user_id)');
         console.log('   - get_proxy_key_statistics(p_user_id)');

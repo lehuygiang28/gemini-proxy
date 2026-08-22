@@ -71,6 +71,7 @@ export class ApiKeyService {
             .from('api_keys')
             .select('*')
             .eq('is_active', true)
+            .is('deleted_at', null)
             .or(`user_id.is.null, user_id.eq.${params.userId}`)
             .order('last_used_at', { ascending: true })
             .order('last_error_at', { ascending: true })
@@ -205,6 +206,7 @@ export class ApiKeyService {
             .from('api_keys')
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true)
+            .is('deleted_at', null)
             .or(`user_id.is.null, user_id.eq.${userId}`);
         if (error) {
             throw new Error(`Failed to count API keys: ${error.message}`);
@@ -231,6 +233,7 @@ export class ApiKeyService {
                     'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, is_active',
                 )
                 .eq('is_active', true)
+                .is('deleted_at', null)
                 .or(`user_id.is.null, user_id.eq.${params.userId}`);
 
             const excludeIds =
@@ -265,7 +268,8 @@ export class ApiKeyService {
                 .from('api_keys')
                 .update({ last_used_at: nowIso, updated_at: nowIso })
                 .eq('id', candidate.id)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .is('deleted_at', null);
 
             if (candidate.last_used_at === null) {
                 updateQuery = updateQuery.is('last_used_at', null);

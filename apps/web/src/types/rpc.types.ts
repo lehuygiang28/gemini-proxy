@@ -33,15 +33,13 @@ export const validateRpcParams = <T extends RpcFunctionName>(
 
     // Validate based on function name and their actual parameter requirements
     switch (functionName) {
-        case 'get_dashboard_statistics':
         case 'get_api_key_statistics':
         case 'get_proxy_key_statistics':
-            // These functions only need p_user_id (optional)
             return paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string';
 
+        case 'get_dashboard_statistics':
         case 'get_retry_statistics':
         case 'get_request_logs_statistics':
-            // These functions need p_user_id (optional) and p_days_back (optional)
             return (
                 (paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string') &&
                 (paramObj.p_days_back === undefined || typeof paramObj.p_days_back === 'number')

@@ -96,9 +96,9 @@ Sensitive information should be stored as secrets using the Wrangler CLI.
 
 ### **Required Secrets**
 
-| Secret                      | Description                  |
-| --------------------------- | ---------------------------- |
-| `SUPABASE_URL`              | Your Supabase project URL.   |
+| Secret                      | Description                     |
+| --------------------------- | ------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL.      |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key. |
 
 ### **Optional Variables**
@@ -116,7 +116,6 @@ You can fork this repository and connect it directly to Cloudflare for fast depl
 1. Fork the repo on GitHub.
 2. In Cloudflare dashboard, create a new Worker and connect your Git repository.
 3. Use the following settings:
-
    - Build command: `pnpm build -F @lehuygiang28/gemini-proxy-cloudflare`
    - Deploy command: `cd packages/cloudflare && pnpm run deploy`
    - Path: `/` (root directory)
@@ -138,11 +137,11 @@ Your Cloudflare Worker will be available at the URL provided after deployment.
 ```md
 packages/cloudflare/
 ├── src/
-│   └── index.ts          # Main worker entry point
-├── dist/                 # Compiled output
-├── wrangler.jsonc        # Worker configuration
-├── package.json          # Dependencies and scripts
-└── README.md             # This file
+│ └── index.ts # Main worker entry point
+├── dist/ # Compiled output
+├── wrangler.jsonc # Worker configuration
+├── package.json # Dependencies and scripts
+└── README.md # This file
 ```
 
 ## 🐛 Troubleshooting

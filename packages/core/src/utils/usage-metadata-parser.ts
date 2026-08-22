@@ -3,6 +3,7 @@ import { ProxyApiFormat } from '../types';
 export interface UsageMetadata {
     promptTokenCount?: number;
     totalTokenCount?: number;
+    cachedContentTokenCount?: number;
     promptTokensDetails?: Array<{
         modality: string;
         tokenCount: number;
@@ -18,6 +19,8 @@ export interface UsageMetadata {
     completion_tokens?: number;
     prompt_tokens?: number;
     total_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+    input_tokens_details?: { cached_tokens?: number };
     model?: string;
     id?: string;
     created?: number;
@@ -28,12 +31,28 @@ export interface ParsedUsageMetadata {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
+    cacheTokens: number;
     model: string;
     responseId?: string;
     metadata: UsageMetadata;
 }
 
 export class UsageMetadataParser {
+    private static geminiCacheTokens(meta: UsageMetadata): number {
+        return Number(meta.cachedContentTokenCount) || 0;
+    }
+
+    private static openAICacheTokens(usage: {
+        prompt_tokens_details?: { cached_tokens?: number };
+        input_tokens_details?: { cached_tokens?: number };
+    }): number {
+        return (
+            Number(usage.prompt_tokens_details?.cached_tokens) ||
+            Number(usage.input_tokens_details?.cached_tokens) ||
+            0
+        );
+    }
+
     /**
      * Parse usage metadata from response body text
      * Supports both streaming and non-streaming formats for Gemini and OpenAI
@@ -116,6 +135,7 @@ export class UsageMetadataParser {
             promptTokens: finalUsageMetadata.promptTokenCount || 0,
             completionTokens: finalUsageMetadata.candidatesTokenCount || 0,
             totalTokens: finalUsageMetadata.totalTokenCount || 0,
+            cacheTokens: this.geminiCacheTokens(finalUsageMetadata),
             model: modelVersion,
             responseId: responseId,
             metadata: finalUsageMetadata,
@@ -151,6 +171,7 @@ export class UsageMetadataParser {
                 promptTokens: finalUsageMetadata.promptTokenCount || 0,
                 completionTokens: finalUsageMetadata.candidatesTokenCount || 0,
                 totalTokens: finalUsageMetadata.totalTokenCount || 0,
+                cacheTokens: this.geminiCacheTokens(finalUsageMetadata),
                 model: modelVersion,
                 responseId: responseId,
                 metadata: finalUsageMetadata,
@@ -214,6 +235,7 @@ export class UsageMetadataParser {
             promptTokens: finalUsage.prompt_tokens || 0,
             completionTokens: finalUsage.completion_tokens || 0,
             totalTokens: finalUsage.total_tokens || 0,
+            cacheTokens: this.openAICacheTokens(finalUsage),
             model: model,
             responseId: id,
             metadata: {
@@ -238,6 +260,7 @@ export class UsageMetadataParser {
                 promptTokens: data.usage.prompt_tokens || 0,
                 completionTokens: data.usage.completion_tokens || 0,
                 totalTokens: data.usage.total_tokens || 0,
+                cacheTokens: this.openAICacheTokens(data.usage),
                 model: data.model || '',
                 responseId: data.id || '',
                 metadata: {

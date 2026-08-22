@@ -60,10 +60,10 @@ export class Validation {
         return num;
     }
 
-    static validateDays(days: string): number {
+    static validateDays(days: string, minDays: number = 1): number {
         const num = parseInt(days, 10);
-        if (isNaN(num) || num < 1 || num > 365) {
-            throw ErrorHandler.createError('Days must be a number between 1 and 365');
+        if (isNaN(num) || num < minDays || num > 365) {
+            throw ErrorHandler.createError(`Days must be a number between ${minDays} and 365`);
         }
         return num;
     }

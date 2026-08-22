@@ -1,5 +1,3 @@
-'use client';
-
 import { CSSProperties } from 'react';
 import Link from 'next/link';
 import { Typography, theme } from 'antd';

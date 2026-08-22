@@ -43,6 +43,7 @@ export class ResponseHandlerService {
 
         // Handle successful request with unified background service
         await BackgroundService.handleRequestSuccess({
+            c,
             requestId,
             apiKeyId,
             proxyKeyId: proxyApiKeyData.id,
@@ -67,7 +68,7 @@ export class ResponseHandlerService {
     /**
      * Handle error response - return immediately and log in background
      */
-    static handleError(params: {
+    static async handleError(params: {
         c: Context<HonoApp>;
         requestId: string;
         proxyApiKeyData: Tables<'proxy_api_keys'>;
@@ -80,7 +81,7 @@ export class ResponseHandlerService {
             body: string;
         };
         retryAttempts?: any[];
-    }): Response {
+    }): Promise<Response> {
         const {
             c,
             requestId,
@@ -96,10 +97,17 @@ export class ResponseHandlerService {
         const requestStartTime = c.get('requestStartTime') as number | undefined;
         const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
 
-        // Handle failed request with unified background service
-        BackgroundService.handleRequestError({
+        const lastRetry =
+            retryAttempts && retryAttempts.length > 0
+                ? retryAttempts[retryAttempts.length - 1]
+                : null;
+
+        // Collect failed-request operations before returning (waitUntil flushes DB)
+        await BackgroundService.handleRequestError({
+            c,
             requestId,
             proxyKeyId: proxyApiKeyData.id,
+            apiKeyId: lastRetry?.api_key_id ?? null,
             userId: proxyApiKeyData.user_id,
             apiFormat: proxyRequestDataParsed.apiFormat,
             baseRequest,
@@ -150,25 +158,23 @@ export class ResponseHandlerService {
      * Filter response headers to remove sensitive or problematic headers
      */
     private static filterResponseHeaders(headers: Headers): Headers {
-        const filteredHeaders = new Headers();
-        const blockedHeaders = [
+        const filtered = new Headers();
+        const excludeHeaders = new Set([
             'content-encoding',
             'transfer-encoding',
+            'content-length',
             'connection',
             'keep-alive',
             'set-cookie',
             'alt-svc',
             'server-timing',
             'vary',
-        ];
-
+        ]);
         headers.forEach((value, key) => {
-            const lowerKey = key.toLowerCase();
-            if (!blockedHeaders.includes(lowerKey)) {
-                filteredHeaders.set(key, value);
+            if (!excludeHeaders.has(key.toLowerCase())) {
+                filtered.set(key, value);
             }
         });
-
-        return filteredHeaders;
+        return filtered;
     }
 }

@@ -205,10 +205,10 @@ The CLI supports multiple configuration sources with automatic fallback:
 
 ### Environment Variables (for .env file)
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `SUPABASE_URL` | Your Supabase project URL | Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key | Yes |
+| Variable                    | Description                    | Required |
+| --------------------------- | ------------------------------ | -------- |
+| `SUPABASE_URL`              | Your Supabase project URL      | Yes      |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role key | Yes      |
 
 ### Configuration Files
 
