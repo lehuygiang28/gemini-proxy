@@ -1,17 +1,30 @@
 -- Ops console: Realtime publication + dashboard period filter
--- Apply in Supabase SQL editor (or any Postgres with supabase_realtime publication).
 
-DO $$ BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE request_logs;
-EXCEPTION WHEN duplicate_object THEN NULL;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE request_logs;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
 END $$;
-DO $$ BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
-EXCEPTION WHEN duplicate_object THEN NULL;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
 END $$;
-DO $$ BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE proxy_api_keys;
-EXCEPTION WHEN duplicate_object THEN NULL;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE proxy_api_keys;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
 END $$;
 
 DROP FUNCTION IF EXISTS get_dashboard_statistics(UUID);
@@ -45,12 +58,14 @@ BEGIN
     SELECT COUNT(*) INTO total_api_keys
     FROM api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
 
     SELECT COUNT(*) INTO total_proxy_keys
     FROM proxy_api_keys
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
-    AND is_active = true;
+    AND is_active = true
+    AND deleted_at IS NULL;
 
     SELECT
         COUNT(*) as total_count,
@@ -82,7 +97,8 @@ BEGIN
 
     SELECT COALESCE(SUM(total_tokens), 0) INTO total_tokens_sum
     FROM proxy_api_keys
-    WHERE (effective_user_id IS NULL OR user_id = effective_user_id);
+    WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
+    AND deleted_at IS NULL;
 
     success_rate := CASE
         WHEN total_requests > 0 THEN

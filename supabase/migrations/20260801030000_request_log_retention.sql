@@ -59,8 +59,15 @@ REVOKE ALL ON FUNCTION cleanup_old_request_logs(INTEGER) FROM anon, authenticate
 GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO service_role;
 GRANT EXECUTE ON FUNCTION cleanup_old_request_logs(INTEGER) TO postgres;
 
--- Enable pg_cron when permitted (Supabase Free supports it; Dashboard → Integrations → Cron also works).
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+-- pg_cron is available on Supabase cloud but not in local `supabase start`.
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'pg_cron is not available locally (%). Enable Cron in Supabase Dashboard for scheduled purges.', SQLERRM;
+END;
+$$;
 
 -- Schedule daily purge when pg_cron is available.
 DO $$
