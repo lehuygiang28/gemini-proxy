@@ -103,14 +103,16 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-- Cloudflare full-stack (OpenNext, default): set variables/secrets on Worker `gemini-proxy-web` (Deploy button or dashboard). Copy [`.dev.vars.example`](../.dev.vars.example). CLI:
+- Cloudflare full-stack (OpenNext, default): set variables/secrets on Worker `gemini-proxy-web` (Deploy button or dashboard). Copy [`.dev.vars.example`](../.dev.vars.example). `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_ANON_SUPABASE_KEY` are required at **build** time (OpenNext inlines them). CLI:
 
 ```bash
+cp .dev.vars.example .dev.vars
+# Fill NEXT_PUBLIC_* and SUPABASE_* before pnpm run deploy:cloudflare
 wrangler secret put SUPABASE_URL --config wrangler.jsonc
 wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
 ```
 
-- Cloudflare API-only (`packages/cloudflare`): set secrets via Wrangler:
+- Cloudflare API-only (`packages/cloudflare`): copy [`packages/cloudflare/.dev.vars.example`](../packages/cloudflare/.dev.vars.example) to `packages/cloudflare/.dev.vars`, then set secrets via Wrangler:
 
 ```bash
 wrangler secret put SUPABASE_URL --config packages/cloudflare/wrangler.jsonc

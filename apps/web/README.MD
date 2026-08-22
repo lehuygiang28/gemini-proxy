@@ -20,8 +20,8 @@ This is the **recommended** deployment option for **Gemini Proxy**. It's a full-
 <summary><strong>⚙️ Configuration & Deployment</strong></summary>
 
 - [Environment Variables](#️-environment-variables)
-- [Vercel Deployment](#-vercel-deployment-recommended)
-- [Cloudflare Deployment](#-cloudflare-deployment-opennext)
+- [Vercel Deployment](#vercel-deployment)
+- [Cloudflare Deployment](#cloudflare-deployment-opennext)
 - [Other Deployment Options](#️-other-deployment-options)
 
 </details>
@@ -101,9 +101,11 @@ The application will be available at `http://localhost:4040`.
 
 For a complete list of optional environment variables, refer to the [**root README**](../../README.md#️-environment-variables).
 
+<a id="vercel-deployment"></a>
+
 ## 🚀 Vercel Deployment
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&root-directory=apps/web&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_ANON_SUPABASE_KEY,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY&integration-ids=oac_VqOgBHqhEoFTPzGkPd7L0iH6&external-id=https://github.com/lehuygiang28/gemini-proxy)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flehuygiang28%2Fgemini-proxy&project-name=gemini-proxy&repository-name=gemini-proxy&build-command=pnpm%20build%20-F%20web&output-directory=apps/web/.next&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_ANON_SUPABASE_KEY,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY&integration-ids=oac_VqOgBHqhEoFTPzGkPd7L0iH6&external-id=https://github.com/lehuygiang28/gemini-proxy)
 
 The Vercel button installs the [Supabase integration](https://vercel.com/integrations/supabase), creates a Supabase project, and runs migrations in [`supabase/migrations/`](../../supabase/migrations/).
 
@@ -115,6 +117,8 @@ The Vercel button installs the [Supabase integration](https://vercel.com/integra
     - **Root Directory:** Leave this empty (default).
 3. **Environment Variables:** Add the required environment variables in the Vercel project settings.
 4. **Deploy:** Vercel will automatically build and deploy your application.
+
+<a id="cloudflare-deployment-opennext"></a>
 
 ## ☁️ Cloudflare Deployment (OpenNext)
 
@@ -135,9 +139,12 @@ From the repository root (requires [`wrangler login`](https://developers.cloudfl
 
 ```bash
 cp .dev.vars.example .dev.vars
-# Also keep NEXT_PUBLIC_* in apps/web/.env.local for next dev
+# Fill NEXT_PUBLIC_* and SUPABASE_* in .dev.vars (required for OpenNext build — constants.ts throws if missing)
+# Also keep NEXT_PUBLIC_* in apps/web/.env.local for `pnpm dev`
 pnpm run deploy:cloudflare
 ```
+
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_ANON_SUPABASE_KEY` must be set before any OpenNext build (`pnpm run build`, `pnpm run deploy:cloudflare`, or `pnpm cf:deploy`). Use repo-root `.dev.vars`, exported env vars, or `apps/web/.env.local`.
 
 Preview the Worker locally (workerd, not `next dev`):
 
@@ -217,9 +224,9 @@ apps/web/
 ├── .dev.vars.example        # NEXTJS_ENV for local wrangler preview
 ├── .env.example             # Environment variables template
 ├── package.json             # Dependencies and scripts
-└── README.md                # This file
+└── README.MD                # This file
 
-# Root wrangler.jsonc (../../wrangler.jsonc) — OpenNext Worker gemini-proxy-web
+# Repo root: wrangler.jsonc + .dev.vars.example (OpenNext Worker gemini-proxy-web)
 ```
 
 ## 🐛 Troubleshooting

@@ -24,10 +24,9 @@
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
         "db:stop": "supabase stop",
-        "predeploy": "pnpm run build",
         "deploy": "pnpm --filter web exec opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
         "build:cloudflare": "pnpm run build",
-        "deploy:cloudflare": "pnpm run deploy",
+        "deploy:cloudflare": "pnpm run build && pnpm run deploy",
         "preview:cloudflare": "pnpm --filter web run cf:preview",
         "build:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run build",
         "deploy:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run deploy"

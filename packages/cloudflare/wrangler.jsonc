@@ -16,8 +16,8 @@
         "@gemini-proxy/core": "../../packages/core/src/index.ts",
     },
     /**
-     * Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) go in `.dev.vars` at the repo root
-     * and `wrangler secret put` / dashboard for deployed Workers.
+     * Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) go in `.dev.vars` beside this file
+     * (`packages/cloudflare/.dev.vars`) and `wrangler secret put` / dashboard for deployed Workers.
      */
     "vars": {
         // Official Google Gemini API

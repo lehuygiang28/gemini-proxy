@@ -6,7 +6,7 @@
 
 This package allows you to deploy **Gemini Proxy** as a [Cloudflare Worker](https://workers.cloudflare.com/), running on Cloudflare's global edge network for minimal latency.
 
-This Worker is **API-only** (`/api/gproxy`). To deploy the **full-stack dashboard** (Next.js UI + the same proxy) on Cloudflare, see [apps/web — Cloudflare / OpenNext](../../apps/web/README.md#-cloudflare-deployment-opennext).
+This Worker is **API-only** (`/api/gproxy`). To deploy the **full-stack dashboard** (Next.js UI + the same proxy) on Cloudflare, see [apps/web — Cloudflare / OpenNext](../../apps/web/README.MD#cloudflare-deployment-opennext).
 
 ## 📋 Table of Contents
 
@@ -110,7 +110,7 @@ For a complete list of optional environment variables, refer to the [**root READ
 
 ## 🚀 Deployment
 
-`pnpm run deploy:cloudflare:api` (from the repo root) deploys this headless Worker. The **default** Cloudflare deploy (`pnpm run deploy:cloudflare`) is the full-stack OpenNext app — see [apps/web Cloudflare deployment](../../apps/web/README.md#-cloudflare-deployment-opennext).
+`pnpm run deploy:cloudflare:api` (from the repo root) deploys this headless Worker. The **default** Cloudflare deploy (`pnpm run deploy:cloudflare`) is the full-stack OpenNext app — see [apps/web Cloudflare deployment](../../apps/web/README.MD#cloudflare-deployment-opennext).
 
 ### 🔄 Git-connected CI/CD (API-only)
 
@@ -132,7 +132,7 @@ Your Cloudflare Worker will be available at the URL provided after deployment.
 
 ## 🛠️ Local Development
 
-Copy `packages/cloudflare/.env.example` to `.dev.vars` at the repository root, then:
+Copy [`.dev.vars.example`](./.dev.vars.example) to `.dev.vars` in this package directory, then:
 
 - `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare dev`: Starts the local development server.
 - `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare test`: Runs tests.

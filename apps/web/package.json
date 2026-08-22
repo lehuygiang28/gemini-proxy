@@ -10,7 +10,7 @@
         "build": "cross-env NODE_OPTIONS=\"--no-deprecation\" refine build",
         "start": "cross-env NODE_ENV=production PORT=4041 refine start",
         "start:dev": "cross-env NODE_ENV=development PORT=4040 refine start",
-        "lint": "next lint",
+        "lint": "eslint .",
         "refine": "refine",
         "clean": "rm -rf .next .turbo .open-next",
         "cf:build": "opennextjs-cloudflare build --config ../../wrangler.jsonc",
