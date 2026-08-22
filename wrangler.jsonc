@@ -1,38 +1,25 @@
 /**
- * Single Wrangler config for this repo.
- * Lives at the repository root so Cloudflare Workers Builds (Path `/`) can find it.
- * https://developers.cloudflare.com/workers/ci-cd/builds/troubleshoot/#missing-wrangler-configuration-file
+ * Default Cloudflare Worker: full-stack Next.js (OpenNext) — dashboard + /api/gproxy.
+ * API-only deploy uses packages/cloudflare/wrangler.jsonc instead.
+ * https://opennext.js.org/cloudflare/get-started
  */
 {
     "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "gemini-proxy",
-    "main": "packages/cloudflare/src/index.ts",
+    "name": "gemini-proxy-web",
+    "main": "apps/web/.open-next/worker.js",
     "compatibility_date": "2026-08-20",
-    "compatibility_flags": ["nodejs_compat"],
+    "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
     "observability": {
         "enabled": true,
     },
-    "placement": { "mode": "smart" },
-    "alias": {
-        "@gemini-proxy/core": "./packages/core/src/index.ts",
+    "assets": {
+        "directory": "apps/web/.open-next/assets",
+        "binding": "ASSETS",
     },
-    /**
-     * Environment Variables
-     * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-     *
-     * Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) go in `.dev.vars` locally
-     * and `wrangler secret put` / dashboard for deployed Workers.
-     */
-    "vars": {
-        // Official Google Gemini API
-        // "GOOGLE_GEMINI_API_BASE_URL": "https://generativelanguage.googleapis.com/",
-        // "GOOGLE_OPENAI_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        /**
-         * Cloudflare AI Gateway
-         * Replace {account_id} and {gateway_name} with your own values.
-         * Docs: https://developers.cloudflare.com/ai-gateway/
-         */
-        // "GOOGLE_GEMINI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/",
-        // "GOOGLE_OPENAI_API_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_name}/google-ai-studio/v1beta/openai/",
-    },
+    "services": [
+        {
+            "binding": "WORKER_SELF_REFERENCE",
+            "service": "gemini-proxy-web",
+        },
+    ],
 }

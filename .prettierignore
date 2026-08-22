@@ -10,5 +10,7 @@ coverage
 
 # Generated / vendored — do not Prettier-format
 **/worker-configuration.d.ts
+**/cloudflare-env.d.ts
+.open-next
 pnpm-lock.yaml
 **/CHANGELOG.md

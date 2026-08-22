@@ -6,6 +6,10 @@
             "dependsOn": ["^build"],
             "outputs": [".next/**", "!.next/cache/**", "dist/**"]
         },
+        "cf:build": {
+            "dependsOn": ["^build"],
+            "outputs": [".open-next/**", ".next/**", "!.next/cache/**"]
+        },
         "dev": {
             "cache": false,
             "persistent": true
