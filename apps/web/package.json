@@ -16,6 +16,7 @@
         "cf:build": "opennextjs-cloudflare build --config ../../wrangler.jsonc",
         "cf:preview": "opennextjs-cloudflare build --config ../../wrangler.jsonc && opennextjs-cloudflare preview --config ../../wrangler.jsonc",
         "cf:deploy": "opennextjs-cloudflare build --config ../../wrangler.jsonc && opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
+        "cf:deploy:only": "opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
         "cf-typegen": "wrangler types --config ../../wrangler.jsonc --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts"
     },
     "dependencies": {

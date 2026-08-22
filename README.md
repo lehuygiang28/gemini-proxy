@@ -150,9 +150,9 @@ pnpm dev
 | **Vercel**     | Full-stack Next.js (`apps/web`)          | **Automatic** — Supabase integration creates a project and runs [`supabase/migrations/`](./supabase/migrations/)   |
 | **Cloudflare** | Full-stack OpenNext (`gemini-proxy-web`) | **Manual (~60s)** — see [fast Supabase setup](./docs/getting-started.md#fast-supabase-setup-for-cloudflare--local) |
 
-After Cloudflare deploy, set **Build command** to `pnpm --filter web run cf:build` (or leave empty — `pnpm run deploy` already runs OpenNext build). Fill in the Supabase variables prompted from [`.dev.vars.example`](./.dev.vars.example).
+The Deploy button auto-detects **`pnpm run build`** (OpenNext) and **`pnpm run deploy`** from root `package.json` — no need to edit build/deploy commands. Fill in the Supabase variables prompted from [`.dev.vars.example`](./.dev.vars.example).
 
-CLI: `pnpm run deploy:cloudflare` (full-stack). Headless API-only: `pnpm run deploy:cloudflare:api`.
+CLI one-shot (build + deploy): `pnpm run deploy:cloudflare`. Monorepo build (all packages): `pnpm run build:monorepo`. Headless API-only: `pnpm run deploy:cloudflare:api`.
 
 For manual setup, see [**apps/web/README.md**](./apps/web/README.md).
 

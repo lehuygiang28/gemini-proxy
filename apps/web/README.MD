@@ -170,10 +170,7 @@ Connect the repo to a Worker named `gemini-proxy-web`:
 
 1. Fork the repo on GitHub.
 2. In the Cloudflare dashboard, create Worker `gemini-proxy-web` and connect the repository.
-3. Use the following settings:
-    - Root directory: `/` (repository root)
-    - Build command: `pnpm --filter web run cf:build` (optional — `deploy` already builds)
-    - Deploy command: `pnpm run deploy` or `pnpm --filter web run cf:deploy`
+3. Accept the auto-detected commands from root `package.json` (**Build:** `pnpm run build`, **Deploy:** `pnpm run deploy`). Do not replace deploy with `npx wrangler deploy`.
 4. Under **Build variables and secrets**, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_ANON_SUPABASE_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. The Next.js build inlines `NEXT_PUBLIC_*`.
 5. Under **Worker settings** (runtime), set the same variables/secrets again so the deployed Worker can read them.
 6. Every push to your default branch will build and deploy `gemini-proxy-web`.
@@ -199,7 +196,7 @@ The web app includes the Gemini Proxy API, available at `/api/gproxy`.
 ## 🛠️ Local Development
 
 - `pnpm dev`: Starts the Next.js development server (Node.js, HMR).
-- `pnpm build`: Builds the application for production (Vercel / Node).
+- `pnpm build`: Builds the application for production (Vercel / Node). From monorepo root, use `pnpm build -F web` or `pnpm run build:monorepo` for all packages.
 - `pnpm start`: Starts the production server.
 - `pnpm lint`: Lints the codebase.
 - `pnpm cf:build`: Builds the OpenNext Cloudflare Worker bundle.

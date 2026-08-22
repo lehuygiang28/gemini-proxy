@@ -4,7 +4,8 @@
     "description": "Monorepo for Gemini Proxy applications and packages",
     "private": true,
     "scripts": {
-        "build": "turbo run build",
+        "build": "pnpm --filter web run cf:build",
+        "build:monorepo": "turbo run build",
         "dev": "turbo run dev",
         "dev:web": "turbo run dev --filter=web",
         "dev:api": "turbo run dev --filter=api",
@@ -23,7 +24,7 @@
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
         "db:stop": "supabase stop",
-        "deploy": "pnpm --filter web run cf:deploy",
+        "deploy": "pnpm --filter web run cf:deploy:only",
         "build:cloudflare": "pnpm --filter web run cf:build",
         "deploy:cloudflare": "pnpm --filter web run cf:deploy",
         "preview:cloudflare": "pnpm --filter web run cf:preview",
