@@ -16,6 +16,7 @@
 - [Prerequisites](#-prerequisites)
 - [Quick Start Guide](#-quick-start-guide)
 - [Illustrated Setup Guide](./docs/getting-started.md)
+- [Supabase migrations & CI](./docs/supabase-ci.md)
 - [Quick Usage (CLI)](./docs/quick-usage.md)
 
 </details>
@@ -129,10 +130,13 @@ pnpm install
 
 # 3. Configure environment
 cp apps/web/.env.example apps/web/.env.local
-# Edit apps/web/.env.development with your values
+# Edit apps/web/.env.local with your Supabase URL and keys
+
+cp packages/database/.env.example packages/database/.env
+# Edit packages/database/.env — set SUPABASE_DB_URL, then:
+pnpm db:apply
 
 # 4. Start development server
-cd apps/web
 pnpm dev
 ```
 
