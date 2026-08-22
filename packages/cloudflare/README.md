@@ -117,7 +117,7 @@ You can fork this repository and connect it directly to Cloudflare for fast depl
 Wrangler config is a single file at the **repository root** (`wrangler.jsonc`). Workers Builds looks there when Root directory is `/`. Do not add a second `wrangler.jsonc` under `packages/cloudflare`.
 
 1. Fork the repo on GitHub.
-2. In Cloudflare dashboard, create a new Worker named `gemini-proxy-cloudflare` and connect your Git repository.
+2. In Cloudflare dashboard, create a new Worker named `gemini-proxy` and connect your Git repository.
 3. Use the following settings:
    - Root directory: `/` (repository root)
    - Build command: `pnpm run build:cloudflare`
