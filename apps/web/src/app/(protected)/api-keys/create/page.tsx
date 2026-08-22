@@ -59,9 +59,10 @@ export default function ApiKeyCreatePage() {
     const [activeTab, setActiveTab] = useState('manual');
     const [parsedKeys, setParsedKeys] = useState<ParsedApiKey[]>([]);
 
-    const { formProps } = useForm({
+    const { formProps, form } = useForm<ApiKeyInsert>({
         resource: 'api_keys',
         action: 'create',
+        redirect: false,
     });
 
     const { mutate } = useCreateMany<ApiKeyInsert>({
@@ -181,7 +182,7 @@ export default function ApiKeyCreatePage() {
 
     // Handle import step - parse keys and move to review
     const handleImport = useCallback(() => {
-        const values = formProps.form?.getFieldsValue();
+        const values = form.getFieldsValue();
         const keys = parseKeysFromInput(values);
 
         if (keys.length === 0) {
@@ -195,7 +196,7 @@ export default function ApiKeyCreatePage() {
 
         setParsedKeys(keys);
         setCurrentStep('review');
-    }, [formProps.form, parseKeysFromInput, notification]);
+    }, [form, parseKeysFromInput, notification]);
 
     // Handle review step - update key details
     const handleKeyUpdate = useCallback((keyId: string, updates: Partial<ParsedApiKey>) => {
@@ -251,7 +252,7 @@ export default function ApiKeyCreatePage() {
             reader.onload = (e) => {
                 try {
                     const content = e.target?.result as string;
-                    formProps.form?.setFieldsValue({ json_keys: content });
+                    form.setFieldsValue({ json_keys: content });
                     notification.open({
                         type: 'success',
                         message: 'Success',
@@ -268,7 +269,7 @@ export default function ApiKeyCreatePage() {
             reader.readAsText(file);
             return false; // Prevent upload
         },
-        [formProps.form, notification],
+        [form, notification],
     );
 
     // Render format help section
