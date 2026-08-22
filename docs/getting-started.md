@@ -90,8 +90,8 @@ SUPABASE_SERVICE_ROLE_KEY
 - Cloudflare Worker (packages/cloudflare): set secrets via Wrangler:
 
 ```bash
-wrangler secret put SUPABASE_URL
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+wrangler secret put SUPABASE_URL --config wrangler.jsonc
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
 ```
 
 - Appwrite Function (packages/appwrite): create variables via Appwrite CLI or Console:

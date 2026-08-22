@@ -115,3 +115,8 @@ supabase/.temp/*
 
 # Gemini Proxy CLI configuration
 .gproxy/
+
+# Wrangler local secrets (config is at repo root)
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

@@ -22,7 +22,9 @@
         "db:push": "pnpm db:apply",
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
-        "db:stop": "supabase stop"
+        "db:stop": "supabase stop",
+        "build:cloudflare": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare build",
+        "deploy:cloudflare": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare deploy"
     },
     "devDependencies": {
         "@ai-sdk/google": "^2.0.6",

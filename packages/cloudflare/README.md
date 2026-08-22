@@ -78,16 +78,17 @@ pnpm install
 
 ### **3. Deploy the Worker**
 
+From the repository root:
+
 ```bash
-cd packages/cloudflare
-pnpm deploy
+pnpm run deploy:cloudflare
 ```
 
 ### **4. Set Secrets**
 
 ```bash
-wrangler secret put SUPABASE_URL
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+wrangler secret put SUPABASE_URL --config wrangler.jsonc
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
 ```
 
 ## ⚙️ Environment Variables
@@ -113,12 +114,14 @@ The `pnpm deploy` script will build and deploy the worker to your Cloudflare acc
 
 You can fork this repository and connect it directly to Cloudflare for fast deployments and automatic CI/CD from Git.
 
+Wrangler config is a single file at the **repository root** (`wrangler.jsonc`). Workers Builds looks there when Root directory is `/`. Do not add a second `wrangler.jsonc` under `packages/cloudflare`.
+
 1. Fork the repo on GitHub.
-2. In Cloudflare dashboard, create a new Worker and connect your Git repository.
+2. In Cloudflare dashboard, create a new Worker named `gemini-proxy-cloudflare` and connect your Git repository.
 3. Use the following settings:
-   - Build command: `pnpm build -F @lehuygiang28/gemini-proxy-cloudflare`
-   - Deploy command: `cd packages/cloudflare && pnpm run deploy`
-   - Path: `/` (root directory)
+   - Root directory: `/` (repository root)
+   - Build command: `pnpm run build:cloudflare`
+   - Deploy command: `pnpm run deploy:cloudflare`
 
 4. Configure secrets (see Environment Variables section) in your Worker Settings.
 5. Every push to your default branch will trigger build and deploy automatically.
@@ -129,24 +132,27 @@ Your Cloudflare Worker will be available at the URL provided after deployment.
 
 ## 🛠️ Local Development
 
-- `pnpm dev`: Starts the local development server.
-- `pnpm test`: Runs tests.
+Copy `packages/cloudflare/.env.example` to `.dev.vars` at the repository root, then:
+
+- `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare dev`: Starts the local development server.
+- `pnpm --filter @lehuygiang28/gemini-proxy-cloudflare test`: Runs tests.
 
 ## 📁 Project Structure
 
-```md
-packages/cloudflare/
-├── src/
-│ └── index.ts # Main worker entry point
-├── dist/ # Compiled output
-├── wrangler.jsonc # Worker configuration
-├── package.json # Dependencies and scripts
-└── README.md # This file
+```text
+gemini-proxy/
+├── wrangler.jsonc # Worker config (repo root — Workers Builds + wrangler)
+└── packages/cloudflare/
+    ├── src/
+    │   └── index.ts # Worker entry
+    ├── dist/ # npm publish bundle (tsdown)
+    ├── package.json
+    └── README.md
 ```
 
 ## 🐛 Troubleshooting
 
-- **Deployment Fails:** Ensure your Wrangler CLI is logged in and `wrangler.jsonc` is correct.
+- **Deployment Fails:** Ensure your Wrangler CLI is logged in and the root `wrangler.jsonc` is correct.
 - **Worker Errors:** Use `wrangler tail` to view live logs.
 - **Missing Secrets:** Use `wrangler secret list` to verify your secrets.
 

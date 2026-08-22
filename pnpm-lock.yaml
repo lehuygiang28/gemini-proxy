@@ -232,7 +232,7 @@ importers:
   packages/cloudflare:
     dependencies:
       hono:
-        specifier: '>=4.0.0'
+        specifier: ^4.9.2
         version: 4.9.2
     devDependencies:
       '@cloudflare/vitest-pool-workers':
