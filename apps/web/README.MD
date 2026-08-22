@@ -170,7 +170,7 @@ Connect the repo to a Worker named `gemini-proxy-web`:
 
 1. Fork the repo on GitHub.
 2. In the Cloudflare dashboard, create Worker `gemini-proxy-web` and connect the repository.
-3. Accept the auto-detected commands from root `package.json` (**Build:** `pnpm run build`, **Deploy:** `pnpm run deploy`). Do not replace deploy with `npx wrangler deploy`.
+3. Accept the auto-detected commands (**Build:** `pnpm run build`, **Deploy:** `pnpm run deploy`). If Deploy still shows `npx wrangler deploy`, the default branch on GitHub is missing the `deploy` script — merge the OpenNext changes to `main` first.
 4. Under **Build variables and secrets**, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_ANON_SUPABASE_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. The Next.js build inlines `NEXT_PUBLIC_*`.
 5. Under **Worker settings** (runtime), set the same variables/secrets again so the deployed Worker can read them.
 6. Every push to your default branch will build and deploy `gemini-proxy-web`.

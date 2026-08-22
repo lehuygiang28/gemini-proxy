@@ -4,7 +4,7 @@
     "description": "Monorepo for Gemini Proxy applications and packages",
     "private": true,
     "scripts": {
-        "build": "pnpm --filter web run cf:build",
+        "build": "pnpm --filter web exec opennextjs-cloudflare build --config ../../wrangler.jsonc",
         "build:monorepo": "turbo run build",
         "dev": "turbo run dev",
         "dev:web": "turbo run dev --filter=web",
@@ -24,9 +24,10 @@
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
         "db:stop": "supabase stop",
-        "deploy": "pnpm --filter web run cf:deploy:only",
-        "build:cloudflare": "pnpm --filter web run cf:build",
-        "deploy:cloudflare": "pnpm --filter web run cf:deploy",
+        "predeploy": "pnpm run build",
+        "deploy": "pnpm --filter web exec opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
+        "build:cloudflare": "pnpm run build",
+        "deploy:cloudflare": "pnpm run deploy",
         "preview:cloudflare": "pnpm --filter web run cf:preview",
         "build:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run build",
         "deploy:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run deploy"
