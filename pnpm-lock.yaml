@@ -26,6 +26,9 @@ importers:
       prettier:
         specifier: ^3.2.5
         version: 3.6.2
+      supabase:
+        specifier: 2.39.2
+        version: 2.39.2
       tsdown:
         specifier: ^0.17.0
         version: 0.17.0(typescript@5.9.2)
@@ -291,7 +294,7 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
       supabase:
-        specifier: ^2.39.2
+        specifier: 2.39.2
         version: 2.39.2
       tsdown:
         specifier: ^0.17.0
