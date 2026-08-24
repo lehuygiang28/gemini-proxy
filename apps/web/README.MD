@@ -203,7 +203,7 @@ The web app includes the Gemini Proxy API, available at `/api/gproxy`.
 ## 🛠️ Local Development
 
 - `pnpm dev`: Starts the Next.js development server (Node.js, HMR).
-- `pnpm build`: Builds the application for production (Vercel / Node). From monorepo root, use `pnpm build -F web` or `pnpm run build:monorepo` for all packages.
+- `pnpm build`: Builds the application for production (Vercel / Node). From monorepo root, use `pnpm build -F web` or `pnpm run build`.
 - `pnpm start`: Starts the production server.
 - `pnpm lint`: Lints the codebase.
 - `pnpm cf:build`: Builds the OpenNext Cloudflare Worker bundle.

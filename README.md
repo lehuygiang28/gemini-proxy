@@ -152,7 +152,7 @@ pnpm dev
 
 The Deploy button auto-detects **Deploy:** `pnpm run deploy` (OpenNext build + deploy in one step). Leave **Build command empty** — runtime secrets from the form are not available during a separate build step. Fill Supabase values in the deploy form (from [`.dev.vars.example`](./.dev.vars.example)).
 
-If an existing Worker still has **Build:** `pnpm run build`, clear it under Settings → Build. CLI: `pnpm run deploy:cloudflare`. Monorepo: `pnpm run build:monorepo`. API-only: `pnpm run deploy:cloudflare:api`.
+If an existing Worker still has **Build:** `pnpm run build`, clear it under Settings → Build. CLI: `pnpm run deploy:cloudflare`. API-only: `pnpm run deploy:cloudflare:api`.
 
 For manual setup, see [**apps/web/README.MD**](./apps/web/README.MD).
 
