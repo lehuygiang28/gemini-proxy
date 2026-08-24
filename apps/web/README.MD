@@ -177,9 +177,9 @@ Connect the repo to a Worker named `gemini-proxy-web`:
 
 1. Fork the repo on GitHub.
 2. In the Cloudflare dashboard, create Worker `gemini-proxy-web` and connect the repository.
-3. Accept the auto-detected commands (**Build:** `pnpm run build`, **Deploy:** `pnpm run deploy`). If Deploy still shows `npx wrangler deploy`, the default branch on GitHub is missing the `deploy` script — merge the OpenNext changes to `main` first.
-4. Under **Build variables and secrets**, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_ANON_SUPABASE_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. The Next.js build inlines `NEXT_PUBLIC_*`.
-5. Under **Worker settings** (runtime), set the same variables/secrets again so the deployed Worker can read them.
+3. Leave **Build command empty**. Set **Deploy command** to `pnpm run deploy` (runs OpenNext build + deploy via [`scripts/cf-env.mjs`](../../scripts/cf-env.mjs), which loads `.dev.vars` / wrangler `vars`). If Build is still `pnpm run build`, clear it — deploy-button secrets are runtime-only and are not visible to a separate build step.
+4. Fill Supabase values in the Deploy form (same keys as [`.dev.vars.example`](../../.dev.vars.example)). `NEXT_PUBLIC_*` are also declared in [`wrangler.jsonc`](../../wrangler.jsonc) `vars` for Deploy-button provisioning.
+5. Under **Worker settings → Variables and secrets**, keep `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for runtime `/api/gproxy`.
 6. Every push to your default branch will build and deploy `gemini-proxy-web`.
 
 See [OpenNext environment variables](https://opennext.js.org/cloudflare/howtos/env-vars) for why build-time and runtime vars are both required.

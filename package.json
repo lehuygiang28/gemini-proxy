@@ -4,7 +4,7 @@
     "description": "Monorepo for Gemini Proxy applications and packages",
     "private": true,
     "scripts": {
-        "build": "pnpm --filter web exec opennextjs-cloudflare build --config ../../wrangler.jsonc",
+        "build:cf": "node scripts/cf-env.mjs build",
         "build:monorepo": "turbo run build",
         "dev": "turbo run dev",
         "dev:web": "turbo run dev --filter=web",
@@ -24,9 +24,10 @@
         "db:start": "supabase start",
         "db:reset": "supabase db reset",
         "db:stop": "supabase stop",
-        "deploy": "pnpm --filter web exec opennextjs-cloudflare deploy --config ../../wrangler.jsonc -- --keep-vars",
-        "build:cloudflare": "pnpm run build",
-        "deploy:cloudflare": "pnpm run build && pnpm run deploy",
+        "deploy": "node scripts/cf-env.mjs full",
+        "deploy:only": "node scripts/cf-env.mjs deploy",
+        "build:cloudflare": "node scripts/cf-env.mjs build",
+        "deploy:cloudflare": "node scripts/cf-env.mjs full",
         "preview:cloudflare": "pnpm --filter web run cf:preview",
         "build:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run build",
         "deploy:cloudflare:api": "pnpm --filter @lehuygiang28/gemini-proxy-cloudflare run deploy"
@@ -51,16 +52,16 @@
     "cloudflare": {
         "bindings": {
             "NEXT_PUBLIC_SUPABASE_URL": {
-                "description": "Supabase project URL from Dashboard → Settings → API. See [getting-started](docs/getting-started.md)."
+                "description": "Supabase project URL (build + runtime). Same as `vars.NEXT_PUBLIC_SUPABASE_URL` in wrangler.jsonc. See [getting-started](docs/getting-started.md)."
             },
             "NEXT_PUBLIC_ANON_SUPABASE_KEY": {
-                "description": "Supabase **anon** / publishable key (`sb_publishable_...`) for the dashboard client."
+                "description": "Supabase anon / publishable key (`sb_publishable_...`) — required at OpenNext build time and runtime."
             },
             "SUPABASE_URL": {
-                "description": "Same value as `NEXT_PUBLIC_SUPABASE_URL` (used by `/api/gproxy` on the server)."
+                "description": "Same value as `NEXT_PUBLIC_SUPABASE_URL` — runtime only (`/api/gproxy` server)."
             },
             "SUPABASE_SERVICE_ROLE_KEY": {
-                "description": "Supabase **service role** secret (`sb_secret_...`). Keep private — never expose to the browser."
+                "description": "Supabase service role secret (`sb_secret_...`) — runtime only. Never expose to the browser."
             }
         }
     }

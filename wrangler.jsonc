@@ -9,6 +9,15 @@
     "main": "apps/web/.open-next/worker.js",
     "compatibility_date": "2026-08-20",
     "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+    /**
+     * Deploy button / Workers Builds: NEXT_PUBLIC_* must be available at OpenNext build time.
+     * Values from the deploy form are written here (and as Worker vars) when using Deploy to Cloudflare.
+     * Local: use repo-root `.dev.vars` instead — do not commit real keys.
+     */
+    "vars": {
+        "NEXT_PUBLIC_SUPABASE_URL": "",
+        "NEXT_PUBLIC_ANON_SUPABASE_KEY": "",
+    },
     "observability": {
         "enabled": true,
     },
