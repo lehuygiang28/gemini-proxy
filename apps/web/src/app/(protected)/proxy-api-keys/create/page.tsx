@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Create, useForm } from '@refinedev/antd';
-import { useGetIdentity, useNotification } from '@refinedev/core';
+import { useGetIdentity, useNotification, useTranslation } from '@refinedev/core';
 import {
     Card,
     Form,
@@ -29,6 +29,7 @@ type ProxyApiKeyInsert = TablesInsert<'proxy_api_keys'>;
 export default function ProxyApiKeyCreatePage() {
     const { token } = useToken();
     const notification = useNotification();
+    const { translate } = useTranslation();
     const { data: user, isPending: isUserLoading } = useGetIdentity<User>();
 
     const { formProps, saveButtonProps } = useForm<ProxyApiKeyInsert>({
@@ -42,8 +43,8 @@ export default function ProxyApiKeyCreatePage() {
         if (!user?.id) {
             notification.open({
                 type: 'error',
-                message: 'Authentication Required',
-                description: 'Please log in to create proxy API keys.',
+                message: translate('proxy_api_keys.create.authRequired'),
+                description: translate('proxy_api_keys.create.authRequiredDesc'),
             });
             return;
         }
@@ -74,14 +75,14 @@ export default function ProxyApiKeyCreatePage() {
                 await navigator.clipboard.writeText(keyValue);
                 notification.open({
                     type: 'success',
-                    message: 'Copied to clipboard',
-                    description: 'API key has been copied to your clipboard.',
+                    message: translate('proxy_api_keys.create.copied'),
+                    description: translate('proxy_api_keys.create.copiedDesc'),
                 });
-            } catch (err) {
+            } catch {
                 notification.open({
                     type: 'error',
-                    message: 'Copy failed',
-                    description: 'Unable to copy to clipboard. Please copy manually.',
+                    message: translate('proxy_api_keys.create.copyFailed'),
+                    description: translate('proxy_api_keys.create.copyFailedDesc'),
                 });
             }
         }
@@ -98,22 +99,22 @@ export default function ProxyApiKeyCreatePage() {
             <Row gutter={12}>
                 <Col xs={24} lg={8}>
                     <Card variant="borderless">
-                        <Title level={5}>Create Proxy API Key</Title>
+                        <Title level={5}>{translate('proxy_api_keys.titles.create')}</Title>
                         <Paragraph type="secondary">
-                            Follow the steps to create a new proxy API key for your application.
+                            {translate('proxy_api_keys.create.subtitle')}
                         </Paragraph>
                         <Steps direction="vertical" size="small" current={3}>
                             <Steps.Step
-                                title="Name"
-                                description="Give your key a descriptive name."
+                                title={translate('proxy_api_keys.create.stepName')}
+                                description={translate('proxy_api_keys.create.stepNameDesc')}
                             />
                             <Steps.Step
-                                title="Generate Key"
-                                description="Create a secure and unique proxy API key."
+                                title={translate('proxy_api_keys.create.stepGenerate')}
+                                description={translate('proxy_api_keys.create.stepGenerateDesc')}
                             />
                             <Steps.Step
-                                title="Set Status"
-                                description="Decide if the key should be active immediately."
+                                title={translate('proxy_api_keys.create.stepStatus')}
+                                description={translate('proxy_api_keys.create.stepStatusDesc')}
                             />
                         </Steps>
                     </Card>
@@ -122,34 +123,40 @@ export default function ProxyApiKeyCreatePage() {
                     <Card variant="borderless">
                         <Form {...formProps} onFinish={handleFormFinish} layout="vertical">
                             <Divider orientation="left">
-                                <InfoCircleOutlined /> Basic Information
+                                <InfoCircleOutlined /> {translate('proxy_api_keys.edit.basicInfo')}
                             </Divider>
                             <Form.Item
-                                label="Name"
+                                label={translate('proxy_api_keys.fields.name')}
                                 name="name"
                                 rules={[
                                     {
                                         required: true,
-                                        message: 'Please enter a name',
+                                        message: translate('proxy_api_keys.errors.enterName'),
                                     },
                                 ]}
                             >
-                                <Input placeholder="e.g., My App Key" />
+                                <Input
+                                    placeholder={translate('proxy_api_keys.placeholders.nameExample')}
+                                />
                             </Form.Item>
                             <Divider orientation="left">
-                                <KeyOutlined /> Proxy API Key
+                                <KeyOutlined /> {translate('proxy_api_keys.fields.proxyKey')}
                             </Divider>
                             <Form.Item
-                                label="Proxy API Key Value"
+                                label={translate('proxy_api_keys.fields.proxyKeyValue')}
                                 name="proxy_key_value"
                                 rules={[
                                     {
                                         required: true,
-                                        message: 'Please enter or generate a proxy API key',
+                                        message: translate('proxy_api_keys.errors.enterOrGenerate'),
                                     },
                                 ]}
                             >
-                                <Input placeholder="Enter your API key or generate one below" />
+                                <Input
+                                    placeholder={translate(
+                                        'proxy_api_keys.placeholders.enterOrGenerate',
+                                    )}
+                                />
                             </Form.Item>
 
                             <Space wrap>
@@ -158,31 +165,34 @@ export default function ProxyApiKeyCreatePage() {
                                     onClick={generateProxyApiKey}
                                     style={{ marginBottom: token.marginMD }}
                                 >
-                                    Generate Secure Key
+                                    {translate('proxy_api_keys.create.generateKey')}
                                 </Button>
                                 <Button
                                     icon={<CopyOutlined />}
                                     onClick={copyToClipboard}
                                     style={{ marginBottom: token.marginMD }}
                                 >
-                                    Copy to Clipboard
+                                    {translate('proxy_api_keys.create.copyClipboard')}
                                 </Button>
                             </Space>
                             <Alert
-                                message="Please copy this key and store it securely. You will not be able to see it again."
+                                message={translate('proxy_api_keys.create.copyWarning')}
                                 type="info"
                                 showIcon
                             />
                             <Divider orientation="left">
-                                <SettingOutlined /> Settings
+                                <SettingOutlined /> {translate('proxy_api_keys.edit.settings')}
                             </Divider>
                             <Form.Item
-                                label="Status"
+                                label={translate('proxy_api_keys.fields.status')}
                                 name="is_active"
                                 valuePropName="checked"
                                 initialValue={true}
                             >
-                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                                <Switch
+                                    checkedChildren={translate('common.active')}
+                                    unCheckedChildren={translate('common.inactive')}
+                                />
                             </Form.Item>
                         </Form>
                     </Card>

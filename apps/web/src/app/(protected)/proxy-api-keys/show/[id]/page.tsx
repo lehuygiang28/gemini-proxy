@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Descriptions, Tag, Card, Row, Col, Typography, Space, Spin, Empty, theme } from 'antd';
 import { Show } from '@refinedev/antd';
-import { useShow } from '@refinedev/core';
+import { useShow, useTranslation } from '@refinedev/core';
 import {
     InfoCircleOutlined,
     SafetyCertificateOutlined,
@@ -28,6 +28,7 @@ export default function ProxyApiKeysShowPage() {
     const record = data?.data;
     const [isRevealed, setIsRevealed] = useState(false);
     const { token } = useToken();
+    const { translate } = useTranslation();
 
     if (isLoading) {
         return (
@@ -45,7 +46,7 @@ export default function ProxyApiKeysShowPage() {
     }
 
     if (!record) {
-        return <Empty description="Proxy API Key not found" />;
+        return <Empty description={translate('proxy_api_keys.notFound')} />;
     }
 
     return (
@@ -55,19 +56,23 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <InfoCircleOutlined /> Proxy API Key Details
+                                <InfoCircleOutlined /> {translate('proxy_api_keys.fields.details')}
                             </Space>
                         }
                         variant="borderless"
                     >
                         <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label="ID">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.id')}>
                                 <Text copyable>{record.id}</Text>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Name">{record.name}</Descriptions.Item>
-                            <Descriptions.Item label="Status">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.name')}>
+                                {record.name}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.status')}>
                                 <Tag color={record.is_active ? 'success' : 'error'}>
-                                    {record.is_active ? 'Active' : 'Inactive'}
+                                    {record.is_active
+                                        ? translate('common.active')
+                                        : translate('common.inactive')}
                                 </Tag>
                             </Descriptions.Item>
                         </Descriptions>
@@ -77,13 +82,14 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <SafetyCertificateOutlined /> Security
+                                <SafetyCertificateOutlined />{' '}
+                                {translate('proxy_api_keys.show.security')}
                             </Space>
                         }
                         variant="borderless"
                     >
                         <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label="Proxy API Key">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.proxyKey')}>
                                 <SensitiveKeyDisplay
                                     value={record.proxy_key_value}
                                     isRevealed={isRevealed}
@@ -97,7 +103,7 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <BarChartOutlined /> Usage Statistics
+                                <BarChartOutlined /> {translate('proxy_api_keys.fields.usage')}
                             </Space>
                         }
                         variant="borderless"
@@ -112,21 +118,27 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <ThunderboltOutlined /> Token Usage
+                                <ThunderboltOutlined /> {translate('proxy_api_keys.fields.tokens')}
                             </Space>
                         }
                         variant="borderless"
                     >
                         <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label="Total Tokens">
+                            <Descriptions.Item
+                                label={translate('proxy_api_keys.tokens.totalTokens')}
+                            >
                                 <Text strong style={{ color: token.colorInfo }}>
                                     {formatTokenCount(record.total_tokens)}
                                 </Text>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Prompt Tokens">
+                            <Descriptions.Item
+                                label={translate('proxy_api_keys.tokens.promptTokens')}
+                            >
                                 <Text>{formatTokenCount(record.prompt_tokens)}</Text>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Completion Tokens">
+                            <Descriptions.Item
+                                label={translate('proxy_api_keys.tokens.completionTokens')}
+                            >
                                 <Text>{formatTokenCount(record.completion_tokens)}</Text>
                             </Descriptions.Item>
                         </Descriptions>
@@ -136,22 +148,22 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <ClockCircleOutlined /> Timestamps
+                                <ClockCircleOutlined /> {translate('proxy_api_keys.show.timestamps')}
                             </Space>
                         }
                         variant="borderless"
                     >
                         <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label="Last Used">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.lastUsed')}>
                                 <DateTimeDisplay dateString={record.last_used_at} />
                             </Descriptions.Item>
-                            <Descriptions.Item label="Last Error">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.lastError')}>
                                 <DateTimeDisplay dateString={record.last_error_at} />
                             </Descriptions.Item>
-                            <Descriptions.Item label="Created">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.created')}>
                                 <DateTimeDisplay dateString={record.created_at} />
                             </Descriptions.Item>
-                            <Descriptions.Item label="Last Updated">
+                            <Descriptions.Item label={translate('proxy_api_keys.fields.updated')}>
                                 <DateTimeDisplay dateString={record.updated_at} />
                             </Descriptions.Item>
                         </Descriptions>
@@ -162,7 +174,7 @@ export default function ProxyApiKeysShowPage() {
                         <Card
                             title={
                                 <Space>
-                                    <CodeOutlined /> Metadata
+                                    <CodeOutlined /> {translate('proxy_api_keys.fields.metadata')}
                                 </Space>
                             }
                             variant="borderless"

@@ -338,7 +338,125 @@
             "create": "Create Proxy API Key",
             "edit": "Edit Proxy API Key",
             "show": "Show Proxy API Key"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Name",
+            "proxyKey": "Proxy API Key",
+            "proxyKeyValue": "Proxy API Key Value",
+            "status": "Status",
+            "health": "Health",
+            "usage": "Usage Statistics",
+            "tokens": "Token Usage",
+            "lastUsed": "Last Used",
+            "lastError": "Last Error",
+            "created": "Created",
+            "updated": "Last Updated",
+            "details": "Proxy API Key Details",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Search proxy API key names...",
+            "allStatus": "All Status",
+            "nameExample": "e.g., My App Key",
+            "enterOrGenerate": "Enter your API key or generate one below"
+        },
+        "tabs": {
+            "keys": "Keys",
+            "quickstart": "Quick start"
+        },
+        "filters": {
+            "title": "Filters",
+            "reset": "Reset",
+            "searchByName": "Search by Name"
+        },
+        "tokens": {
+            "total": "Total: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Total Tokens",
+            "promptTokens": "Prompt Tokens",
+            "completionTokens": "Completion Tokens"
+        },
+        "actions": {
+            "viewLogs": "View logs for this key",
+            "viewDetails": "View Details",
+            "edit": "Edit Proxy API Key",
+            "delete": "Delete Proxy API Key"
+        },
+        "delete": {
+            "title": "Delete Proxy API Key",
+            "description": "Key is deactivated and hidden. Request logs stay linked."
+        },
+        "empty": "No proxy API keys found",
+        "notFound": "Proxy API Key not found",
+        "notifications": {
+            "statusUpdated": "Status Updated",
+            "enabled": "Proxy API key \"{name}\" enabled successfully",
+            "disabled": "Proxy API key \"{name}\" disabled successfully",
+            "updateFailed": "Update Failed",
+            "updateFailedDesc": "Failed to update proxy API key status",
+            "deleted": "Proxy API Key Deleted",
+            "deletedDesc": "Proxy API key \"{name}\" removed. Request logs are kept.",
+            "deleteFailed": "Delete Failed",
+            "deleteFailedDesc": "Failed to delete proxy API key"
+        },
+        "errors": {
+            "enterName": "Please enter a name",
+            "enterOrGenerate": "Please enter or generate a proxy API key"
+        },
+        "edit": {
+            "editing": "Editing {name}",
+            "subtitle": "Modify the details of your existing proxy API key.",
+            "keyImmutable": "The proxy API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "basicInfo": "Basic Information",
+            "settings": "Settings"
+        },
+        "show": {
+            "security": "Security",
+            "timestamps": "Timestamps"
+        },
+        "create": {
+            "subtitle": "Follow the steps to create a new proxy API key for your application.",
+            "stepName": "Name",
+            "stepNameDesc": "Give your key a descriptive name.",
+            "stepGenerate": "Generate Key",
+            "stepGenerateDesc": "Create a secure and unique proxy API key.",
+            "stepStatus": "Set Status",
+            "stepStatusDesc": "Decide if the key should be active immediately.",
+            "generateKey": "Generate Secure Key",
+            "copyClipboard": "Copy to Clipboard",
+            "copyWarning": "Please copy this key and store it securely. You will not be able to see it again.",
+            "copied": "Copied to clipboard",
+            "copiedDesc": "API key has been copied to your clipboard.",
+            "copyFailed": "Copy failed",
+            "copyFailedDesc": "Unable to copy to clipboard. Please copy manually.",
+            "authRequired": "Authentication Required",
+            "authRequiredDesc": "Please log in to create proxy API keys."
         }
+    },
+    "proxy_quickstart": {
+        "empty": "Create an active proxy key first",
+        "selectKey": "Select key",
+        "selectKeyWarning": "Select a proxy key",
+        "copy": "Copy",
+        "copied": "Copied",
+        "openaiBase": "OpenAI base",
+        "openaiChat": "OpenAI chat",
+        "geminiBase": "Gemini base",
+        "geminiV1beta": "Gemini v1beta",
+        "apiKey": "API key",
+        "openaiAuth": "OpenAI auth",
+        "geminiAuth": "Gemini auth",
+        "sdkOpenai": "OpenAI SDK",
+        "sdkGemini": "Gemini SDK",
+        "curlOpenai": "curl OpenAI",
+        "curlGemini": "curl Gemini",
+        "copyAria": "Copy {label}",
+        "endpoints": "Endpoints",
+        "proxyKey": "Proxy key",
+        "snippet": "Snippet"
     },
     "request_logs": {
         "request_logs": "Logs",

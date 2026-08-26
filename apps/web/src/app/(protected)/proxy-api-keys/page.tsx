@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { List, CreateButton, EditButton, ShowButton, useTable } from '@refinedev/antd';
-import { useGo, useUpdate } from '@refinedev/core';
+import { useGo, useUpdate, useTranslation } from '@refinedev/core';
 import { buildSoftDeleteKeyValues } from '@/utils/soft-delete-key';
 import {
     Table,
@@ -54,6 +54,7 @@ interface IProxyApiKeySearch {
 export default function ProxyApiKeysListPage() {
     const { token } = useToken();
     const go = useGo();
+    const { translate } = useTranslation();
     const [activeTab, setActiveTab] = useState('keys');
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
@@ -122,17 +123,22 @@ export default function ProxyApiKeysListPage() {
                 },
                 successNotification: {
                     type: 'success',
-                    message: 'Status Updated',
-                    description: `Proxy API key "${record.name}" ${checked ? 'enabled' : 'disabled'} successfully`,
+                    message: translate('proxy_api_keys.notifications.statusUpdated'),
+                    description: translate(
+                        checked
+                            ? 'proxy_api_keys.notifications.enabled'
+                            : 'proxy_api_keys.notifications.disabled',
+                        { name: record.name },
+                    ),
                 },
                 errorNotification: {
                     type: 'error',
-                    message: 'Update Failed',
-                    description: 'Failed to update proxy API key status',
+                    message: translate('proxy_api_keys.notifications.updateFailed'),
+                    description: translate('proxy_api_keys.notifications.updateFailedDesc'),
                 },
             });
         },
-        [updateProxyApiKey],
+        [updateProxyApiKey, translate],
     );
 
     const handleDelete = useCallback(
@@ -143,31 +149,33 @@ export default function ProxyApiKeysListPage() {
                 values: buildSoftDeleteKeyValues('proxy', record.id),
                 successNotification: {
                     type: 'success',
-                    message: 'Proxy API Key Deleted',
-                    description: `Proxy API key "${record.name}" removed. Request logs are kept.`,
+                    message: translate('proxy_api_keys.notifications.deleted'),
+                    description: translate('proxy_api_keys.notifications.deletedDesc', {
+                        name: record.name,
+                    }),
                 },
                 errorNotification: {
                     type: 'error',
-                    message: 'Delete Failed',
-                    description: 'Failed to delete proxy API key',
+                    message: translate('proxy_api_keys.notifications.deleteFailed'),
+                    description: translate('proxy_api_keys.notifications.deleteFailedDesc'),
                 },
             });
         },
-        [updateProxyApiKey],
+        [updateProxyApiKey, translate],
     );
 
     return (
         <List
             headerButtons={activeTab === 'keys' ? <CreateButton /> : <></>}
-            title="Proxy API Keys"
+            title={translate('proxy_api_keys.titles.list')}
             breadcrumb={false}
         >
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 items={[
-                    { key: 'keys', label: 'Keys' },
-                    { key: 'quickstart', label: 'Quick start' },
+                    { key: 'keys', label: translate('proxy_api_keys.tabs.keys') },
+                    { key: 'quickstart', label: translate('proxy_api_keys.tabs.quickstart') },
                 ]}
                 style={{ marginBottom: 8 }}
             />
@@ -185,7 +193,7 @@ export default function ProxyApiKeysListPage() {
                         title={
                             <Space>
                                 <FilterOutlined />
-                                <Text strong>Filters</Text>
+                                <Text strong>{translate('proxy_api_keys.filters.title')}</Text>
                             </Space>
                         }
                         extra={
@@ -197,16 +205,21 @@ export default function ProxyApiKeysListPage() {
                                 }}
                                 size="small"
                             >
-                                Reset
+                                {translate('proxy_api_keys.filters.reset')}
                             </Button>
                         }
                     >
                         <Form {...searchFormProps} layout="vertical">
                             <Row gutter={12}>
                                 <Col xs={24} sm={12}>
-                                    <Form.Item name="name" label="Search by Name">
+                                    <Form.Item
+                                        name="name"
+                                        label={translate('proxy_api_keys.filters.searchByName')}
+                                    >
                                         <Search
-                                            placeholder="Search proxy API key names..."
+                                            placeholder={translate(
+                                                'proxy_api_keys.placeholders.searchName',
+                                            )}
                                             allowClear
                                             enterButton={<SearchOutlined />}
                                             onSearch={() => searchFormProps.form?.submit()}
@@ -214,10 +227,22 @@ export default function ProxyApiKeysListPage() {
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} sm={12}>
-                                    <Form.Item name="is_active" label="Status">
-                                        <Select placeholder="All Status" allowClear>
-                                            <Select.Option value={true}>Active</Select.Option>
-                                            <Select.Option value={false}>Inactive</Select.Option>
+                                    <Form.Item
+                                        name="is_active"
+                                        label={translate('proxy_api_keys.fields.status')}
+                                    >
+                                        <Select
+                                            placeholder={translate(
+                                                'proxy_api_keys.placeholders.allStatus',
+                                            )}
+                                            allowClear
+                                        >
+                                            <Select.Option value={true}>
+                                                {translate('common.active')}
+                                            </Select.Option>
+                                            <Select.Option value={false}>
+                                                {translate('common.inactive')}
+                                            </Select.Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
@@ -234,7 +259,7 @@ export default function ProxyApiKeysListPage() {
                             size="middle"
                             columns={[
                                 {
-                                    title: 'Proxy API Key Details',
+                                    title: translate('proxy_api_keys.fields.details'),
                                     dataIndex: 'name',
                                     sorter: true,
                                     width: 200,
@@ -248,13 +273,15 @@ export default function ProxyApiKeysListPage() {
                                                 type="secondary"
                                                 style={{ fontSize: token.fontSizeSM }}
                                             >
-                                                ID: {record.id.slice(0, 8)}...
+                                                {translate('proxy_api_keys.fields.idShort', {
+                                                    id: record.id.slice(0, 8),
+                                                })}
                                             </Text>
                                         </Space>
                                     ),
                                 },
                                 {
-                                    title: 'Proxy API Key',
+                                    title: translate('proxy_api_keys.fields.proxyKey'),
                                     dataIndex: 'proxy_key_value',
                                     width: 300,
                                     render: (value: string, record: ProxyApiKey) => (
@@ -268,7 +295,7 @@ export default function ProxyApiKeysListPage() {
                                     ),
                                 },
                                 {
-                                    title: 'Status',
+                                    title: translate('proxy_api_keys.fields.status'),
                                     dataIndex: 'is_active',
                                     width: 120,
                                     render: (value: boolean, record: ProxyApiKey) => (
@@ -282,7 +309,7 @@ export default function ProxyApiKeysListPage() {
                                     sorter: true,
                                 },
                                 {
-                                    title: 'Health',
+                                    title: translate('proxy_api_keys.fields.health'),
                                     key: 'health',
                                     width: 100,
                                     render: (_: unknown, record: ProxyApiKey) => (
@@ -303,7 +330,7 @@ export default function ProxyApiKeysListPage() {
                                     ),
                                 },
                                 {
-                                    title: 'Usage Statistics',
+                                    title: translate('proxy_api_keys.fields.usage'),
                                     dataIndex: 'success_count',
                                     sorter: true,
                                     width: 150,
@@ -315,7 +342,7 @@ export default function ProxyApiKeysListPage() {
                                     ),
                                 },
                                 {
-                                    title: 'Token Usage',
+                                    title: translate('proxy_api_keys.fields.tokens'),
                                     key: 'token_usage',
                                     dataIndex: 'total_tokens',
                                     sorter: true,
@@ -325,8 +352,11 @@ export default function ProxyApiKeysListPage() {
                                             <div>
                                                 <div style={{ fontSize: token.fontSizeSM }}>
                                                     <span style={{ color: token.colorInfo }}>
-                                                        Total:{' '}
-                                                        {formatTokenCount(record.total_tokens)}
+                                                        {translate('proxy_api_keys.tokens.total', {
+                                                            count: formatTokenCount(
+                                                                record.total_tokens,
+                                                            ),
+                                                        })}
                                                     </span>
                                                 </div>
                                                 <div
@@ -336,13 +366,22 @@ export default function ProxyApiKeysListPage() {
                                                     }}
                                                 >
                                                     <span>
-                                                        Prompt:{' '}
-                                                        {formatTokenCount(record.prompt_tokens)}
+                                                        {translate('proxy_api_keys.tokens.prompt', {
+                                                            count: formatTokenCount(
+                                                                record.prompt_tokens,
+                                                            ),
+                                                        })}
                                                     </span>
                                                     {' | '}
                                                     <span>
-                                                        Completion:{' '}
-                                                        {formatTokenCount(record.completion_tokens)}
+                                                        {translate(
+                                                            'proxy_api_keys.tokens.completion',
+                                                            {
+                                                                count: formatTokenCount(
+                                                                    record.completion_tokens,
+                                                                ),
+                                                            },
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
@@ -350,7 +389,7 @@ export default function ProxyApiKeysListPage() {
                                     },
                                 },
                                 {
-                                    title: 'Last Used',
+                                    title: translate('proxy_api_keys.fields.lastUsed'),
                                     dataIndex: 'last_used_at',
                                     width: 140,
                                     sorter: true,
@@ -359,13 +398,13 @@ export default function ProxyApiKeysListPage() {
                                     ),
                                 },
                                 {
-                                    title: 'Actions',
+                                    title: translate('table.actions'),
                                     dataIndex: 'actions',
                                     width: 160,
                                     fixed: 'right',
                                     render: (_: unknown, record: ProxyApiKey) => (
                                         <Space size="small">
-                                            <Tooltip title="View logs for this key">
+                                            <Tooltip title={translate('proxy_api_keys.actions.viewLogs')}>
                                                 <Button
                                                     size="small"
                                                     type="text"
@@ -377,27 +416,29 @@ export default function ProxyApiKeysListPage() {
                                                     }
                                                 />
                                             </Tooltip>
-                                            <Tooltip title="Edit Proxy API Key">
+                                            <Tooltip title={translate('proxy_api_keys.actions.edit')}>
                                                 <EditButton
                                                     hideText
                                                     recordItemId={record.id}
                                                     size="small"
                                                 />
                                             </Tooltip>
-                                            <Tooltip title="View Details">
+                                            <Tooltip title={translate('proxy_api_keys.actions.viewDetails')}>
                                                 <ShowButton
                                                     hideText
                                                     recordItemId={record.id}
                                                     size="small"
                                                 />
                                             </Tooltip>
-                                            <Tooltip title="Delete Proxy API Key">
+                                            <Tooltip title={translate('proxy_api_keys.actions.delete')}>
                                                 <Popconfirm
-                                                    title="Delete Proxy API Key"
-                                                    description="Key is deactivated and hidden. Request logs stay linked."
+                                                    title={translate('proxy_api_keys.delete.title')}
+                                                    description={translate(
+                                                        'proxy_api_keys.delete.description',
+                                                    )}
                                                     onConfirm={() => handleDelete(record)}
-                                                    okText="Delete"
-                                                    cancelText="Cancel"
+                                                    okText={translate('buttons.delete')}
+                                                    cancelText={translate('buttons.cancel')}
                                                     okType="danger"
                                                 >
                                                     <Button
@@ -416,7 +457,7 @@ export default function ProxyApiKeysListPage() {
                                 emptyText: (
                                     <Empty
                                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                        description="No proxy API keys found"
+                                        description={translate('proxy_api_keys.empty')}
                                     />
                                 ),
                             }}

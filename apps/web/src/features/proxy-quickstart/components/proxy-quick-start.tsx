@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useList } from '@refinedev/core';
+import { useList, useTranslation } from '@refinedev/core';
 import { Alert, Button, Empty, Segmented, Select } from 'antd';
 import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
@@ -53,6 +53,7 @@ console.log(res.text);`,
  * Quick-start panel: endpoints, proxy key, copyable client snippets.
  */
 export function ProxyQuickStart() {
+    const { translate } = useTranslation();
     const [origin, setOrigin] = useState('');
     const [selectedKeyId, setSelectedKeyId] = useState<string | undefined>();
     const [snippetKind, setSnippetKind] = useState<SnippetKind>('openai');
@@ -108,7 +109,7 @@ export function ProxyQuickStart() {
     if (!query.isLoading && keys.length === 0) {
         return (
             <div className="gp-panel" style={{ padding: 24 }}>
-                <Empty description="Create an active proxy key first" />
+                <Empty description={translate('proxy_quickstart.empty')} />
             </div>
         );
     }
@@ -116,15 +117,18 @@ export function ProxyQuickStart() {
     return (
         <div className="gp-quickstart">
             <div className="gp-panel" style={{ padding: 16, marginBottom: 12 }}>
-                <div className="gp-section-title">Endpoints</div>
-                <CopyRow label="OpenAI base" value={openaiUrl} />
-                <CopyRow label="OpenAI chat" value={openaiChatUrl} />
-                <CopyRow label="Gemini base" value={geminiUrl} />
-                <CopyRow label="Gemini v1beta" value={geminiV1betaUrl} />
+                <div className="gp-section-title">{translate('proxy_quickstart.endpoints')}</div>
+                <CopyRow label={translate('proxy_quickstart.openaiBase')} value={openaiUrl} />
+                <CopyRow label={translate('proxy_quickstart.openaiChat')} value={openaiChatUrl} />
+                <CopyRow label={translate('proxy_quickstart.geminiBase')} value={geminiUrl} />
+                <CopyRow
+                    label={translate('proxy_quickstart.geminiV1beta')}
+                    value={geminiV1betaUrl}
+                />
             </div>
 
             <div className="gp-panel" style={{ padding: 16, marginBottom: 12 }}>
-                <div className="gp-section-title">Proxy key</div>
+                <div className="gp-section-title">{translate('proxy_quickstart.proxyKey')}</div>
                 <Select
                     style={{ width: '100%', marginBottom: 8 }}
                     loading={query.isLoading}
@@ -134,16 +138,16 @@ export function ProxyQuickStart() {
                         value: key.id,
                         label: key.name,
                     }))}
-                    placeholder="Select key"
+                    placeholder={translate('proxy_quickstart.selectKey')}
                 />
-                <CopyRow label="API key" value={keyValue} masked />
+                <CopyRow label={translate('proxy_quickstart.apiKey')} value={keyValue} masked />
                 <CopyRow
-                    label="OpenAI auth"
+                    label={translate('proxy_quickstart.openaiAuth')}
                     value={keyValue ? `Authorization: Bearer ${keyValue}` : ''}
                     masked
                 />
                 <CopyRow
-                    label="Gemini auth"
+                    label={translate('proxy_quickstart.geminiAuth')}
                     value={keyValue ? `x-goog-api-key: ${keyValue}` : ''}
                     masked
                 />
@@ -160,7 +164,7 @@ export function ProxyQuickStart() {
                     }}
                 >
                     <div className="gp-section-title" style={{ marginBottom: 0 }}>
-                        Snippet
+                        {translate('proxy_quickstart.snippet')}
                     </div>
                     <Button
                         type="primary"
@@ -169,7 +173,9 @@ export function ProxyQuickStart() {
                         onClick={() => void copySnippet()}
                         disabled={!keyValue}
                     >
-                        {snippetCopied ? 'Copied' : 'Copy'}
+                        {snippetCopied
+                            ? translate('proxy_quickstart.copied')
+                            : translate('proxy_quickstart.copy')}
                     </Button>
                 </div>
                 <Segmented
@@ -178,15 +184,19 @@ export function ProxyQuickStart() {
                     value={snippetKind}
                     onChange={(value) => setSnippetKind(value as SnippetKind)}
                     options={[
-                        { label: 'OpenAI SDK', value: 'openai' },
-                        { label: 'Gemini SDK', value: 'gemini' },
-                        { label: 'curl OpenAI', value: 'curl-openai' },
-                        { label: 'curl Gemini', value: 'curl-gemini' },
+                        { label: translate('proxy_quickstart.sdkOpenai'), value: 'openai' },
+                        { label: translate('proxy_quickstart.sdkGemini'), value: 'gemini' },
+                        { label: translate('proxy_quickstart.curlOpenai'), value: 'curl-openai' },
+                        { label: translate('proxy_quickstart.curlGemini'), value: 'curl-gemini' },
                     ]}
                     style={{ marginBottom: 12 }}
                 />
                 {!keyValue ? (
-                    <Alert type="warning" showIcon message="Select a proxy key" />
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message={translate('proxy_quickstart.selectKeyWarning')}
+                    />
                 ) : (
                     <pre className="gp-snippet gp-scrollable">{snippet}</pre>
                 )}

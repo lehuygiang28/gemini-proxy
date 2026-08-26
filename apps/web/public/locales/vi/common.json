@@ -338,7 +338,125 @@
             "create": "Tạo khóa proxy",
             "edit": "Sửa khóa proxy",
             "show": "Xem khóa proxy"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Tên",
+            "proxyKey": "Khóa proxy",
+            "proxyKeyValue": "Giá trị khóa proxy",
+            "status": "Trạng thái",
+            "health": "Sức khỏe",
+            "usage": "Thống kê sử dụng",
+            "tokens": "Token",
+            "lastUsed": "Dùng lần cuối",
+            "lastError": "Lỗi gần nhất",
+            "created": "Ngày tạo",
+            "updated": "Cập nhật lần cuối",
+            "details": "Chi tiết khóa proxy",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Tìm tên khóa proxy...",
+            "allStatus": "Tất cả trạng thái",
+            "nameExample": "vd. Khóa ứng dụng của tôi",
+            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới"
+        },
+        "tabs": {
+            "keys": "Khóa",
+            "quickstart": "Bắt đầu nhanh"
+        },
+        "filters": {
+            "title": "Bộ lọc",
+            "reset": "Đặt lại",
+            "searchByName": "Tìm theo tên"
+        },
+        "tokens": {
+            "total": "Tổng: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Tổng token",
+            "promptTokens": "Token prompt",
+            "completionTokens": "Token completion"
+        },
+        "actions": {
+            "viewLogs": "Xem nhật ký của khóa này",
+            "viewDetails": "Xem chi tiết",
+            "edit": "Sửa khóa proxy",
+            "delete": "Xóa khóa proxy"
+        },
+        "delete": {
+            "title": "Xóa khóa proxy",
+            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+        },
+        "empty": "Không tìm thấy khóa proxy",
+        "notFound": "Không tìm thấy khóa proxy",
+        "notifications": {
+            "statusUpdated": "Đã cập nhật trạng thái",
+            "enabled": "Đã bật khóa proxy \"{name}\" thành công",
+            "disabled": "Đã tắt khóa proxy \"{name}\" thành công",
+            "updateFailed": "Cập nhật thất bại",
+            "updateFailedDesc": "Không cập nhật được trạng thái khóa proxy",
+            "deleted": "Đã xóa khóa proxy",
+            "deletedDesc": "Đã gỡ khóa proxy \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deleteFailed": "Xóa thất bại",
+            "deleteFailedDesc": "Không xóa được khóa proxy"
+        },
+        "errors": {
+            "enterName": "Vui lòng nhập tên",
+            "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy"
+        },
+        "edit": {
+            "editing": "Đang sửa {name}",
+            "subtitle": "Chỉnh sửa thông tin khóa proxy hiện có.",
+            "keyImmutable": "Không thể đổi giá trị khóa proxy vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "basicInfo": "Thông tin cơ bản",
+            "settings": "Cài đặt"
+        },
+        "show": {
+            "security": "Bảo mật",
+            "timestamps": "Dấu thời gian"
+        },
+        "create": {
+            "subtitle": "Làm theo các bước để tạo khóa proxy mới cho ứng dụng của bạn.",
+            "stepName": "Tên",
+            "stepNameDesc": "Đặt tên mô tả cho khóa của bạn.",
+            "stepGenerate": "Tạo khóa",
+            "stepGenerateDesc": "Tạo khóa proxy an toàn và duy nhất.",
+            "stepStatus": "Đặt trạng thái",
+            "stepStatusDesc": "Quyết định khóa có được bật ngay hay không.",
+            "generateKey": "Tạo khóa an toàn",
+            "copyClipboard": "Sao chép",
+            "copyWarning": "Hãy sao chép khóa này và lưu trữ an toàn. Bạn sẽ không xem lại được khóa.",
+            "copied": "Đã sao chép",
+            "copiedDesc": "Khóa API đã được sao chép vào clipboard.",
+            "copyFailed": "Sao chép thất bại",
+            "copyFailedDesc": "Không thể sao chép. Hãy sao chép thủ công.",
+            "authRequired": "Cần đăng nhập",
+            "authRequiredDesc": "Hãy đăng nhập để tạo khóa proxy."
         }
+    },
+    "proxy_quickstart": {
+        "empty": "Hãy tạo khóa proxy đang bật trước",
+        "selectKey": "Chọn khóa",
+        "selectKeyWarning": "Chọn một khóa proxy",
+        "copy": "Sao chép",
+        "copied": "Đã sao chép",
+        "openaiBase": "OpenAI base",
+        "openaiChat": "OpenAI chat",
+        "geminiBase": "Gemini base",
+        "geminiV1beta": "Gemini v1beta",
+        "apiKey": "Khóa API",
+        "openaiAuth": "OpenAI auth",
+        "geminiAuth": "Gemini auth",
+        "sdkOpenai": "OpenAI SDK",
+        "sdkGemini": "Gemini SDK",
+        "curlOpenai": "curl OpenAI",
+        "curlGemini": "curl Gemini",
+        "copyAria": "Sao chép {label}",
+        "endpoints": "Endpoint",
+        "proxyKey": "Khóa proxy",
+        "snippet": "Đoạn mã"
     },
     "request_logs": {
         "request_logs": "Nhật ký",
