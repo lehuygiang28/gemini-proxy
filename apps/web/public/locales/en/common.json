@@ -137,7 +137,61 @@
     },
     "documentTitle": {
         "default": "Gemini Proxy",
-        "suffix": " | Gemini Proxy"
+        "suffix": " | Gemini Proxy",
+        "dashboard": { "list": "Console | Gemini Proxy" },
+        "api_keys": {
+            "list": "API Keys | Gemini Proxy",
+            "show": "#{id} API Key | Gemini Proxy",
+            "edit": "#{id} Edit API Key | Gemini Proxy",
+            "create": "Create API Key | Gemini Proxy"
+        },
+        "proxy_api_keys": {
+            "list": "Proxy API Keys | Gemini Proxy",
+            "show": "#{id} Proxy API Key | Gemini Proxy",
+            "edit": "#{id} Edit Proxy API Key | Gemini Proxy",
+            "create": "Create Proxy API Key | Gemini Proxy"
+        },
+        "request_logs": {
+            "list": "Logs | Gemini Proxy",
+            "show": "#{id} Log | Gemini Proxy"
+        },
+        "user_settings": { "list": "Settings | Gemini Proxy" }
+    },
+    "header": {
+        "account": "Account",
+        "settings": "Settings",
+        "logout": "Logout",
+        "accountMenu": "Account menu"
+    },
+    "dashboard": {
+        "dashboard": "Console",
+        "titles": { "list": "Console" }
+    },
+    "api_keys": {
+        "api_keys": "API Keys",
+        "titles": {
+            "list": "API Keys",
+            "create": "Create API Key",
+            "edit": "Edit API Key",
+            "show": "Show API Key"
+        }
+    },
+    "proxy_api_keys": {
+        "proxy_api_keys": "Proxy API Keys",
+        "titles": {
+            "list": "Proxy API Keys",
+            "create": "Create Proxy API Key",
+            "edit": "Edit Proxy API Key",
+            "show": "Show Proxy API Key"
+        }
+    },
+    "request_logs": {
+        "request_logs": "Logs",
+        "titles": { "list": "Logs", "show": "Show Log" }
+    },
+    "user_settings": {
+        "user_settings": "Settings",
+        "titles": { "list": "Settings" }
     },
     "languageSwitcher": {
         "en": "English",

@@ -137,7 +137,61 @@
     },
     "documentTitle": {
         "default": "Gemini Proxy",
-        "suffix": " | Gemini Proxy"
+        "suffix": " | Gemini Proxy",
+        "dashboard": { "list": "Bảng điều khiển | Gemini Proxy" },
+        "api_keys": {
+            "list": "Khóa API | Gemini Proxy",
+            "show": "#{id} Khóa API | Gemini Proxy",
+            "edit": "#{id} Sửa khóa API | Gemini Proxy",
+            "create": "Tạo khóa API | Gemini Proxy"
+        },
+        "proxy_api_keys": {
+            "list": "Khóa proxy | Gemini Proxy",
+            "show": "#{id} Khóa proxy | Gemini Proxy",
+            "edit": "#{id} Sửa khóa proxy | Gemini Proxy",
+            "create": "Tạo khóa proxy | Gemini Proxy"
+        },
+        "request_logs": {
+            "list": "Nhật ký | Gemini Proxy",
+            "show": "#{id} Nhật ký | Gemini Proxy"
+        },
+        "user_settings": { "list": "Cài đặt | Gemini Proxy" }
+    },
+    "header": {
+        "account": "Tài khoản",
+        "settings": "Cài đặt",
+        "logout": "Đăng xuất",
+        "accountMenu": "Menu tài khoản"
+    },
+    "dashboard": {
+        "dashboard": "Bảng điều khiển",
+        "titles": { "list": "Bảng điều khiển" }
+    },
+    "api_keys": {
+        "api_keys": "Khóa API",
+        "titles": {
+            "list": "Khóa API",
+            "create": "Tạo khóa API",
+            "edit": "Sửa khóa API",
+            "show": "Xem khóa API"
+        }
+    },
+    "proxy_api_keys": {
+        "proxy_api_keys": "Khóa proxy",
+        "titles": {
+            "list": "Khóa proxy",
+            "create": "Tạo khóa proxy",
+            "edit": "Sửa khóa proxy",
+            "show": "Xem khóa proxy"
+        }
+    },
+    "request_logs": {
+        "request_logs": "Nhật ký",
+        "titles": { "list": "Nhật ký", "show": "Xem nhật ký" }
+    },
+    "user_settings": {
+        "user_settings": "Cài đặt",
+        "titles": { "list": "Cài đặt" }
     },
     "languageSwitcher": {
         "en": "English",

@@ -2,7 +2,7 @@
 
 import { ColorModeContext } from '@contexts/color-mode';
 import type { RefineThemedLayoutHeaderProps } from '@refinedev/antd';
-import { useGetIdentity, useLogout, useWarnAboutChange, useTranslate } from '@refinedev/core';
+import { useGetIdentity, useLogout, useWarnAboutChange, useTranslation } from '@refinedev/core';
 import {
     DownOutlined,
     LogoutOutlined,
@@ -53,7 +53,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
     const router = useRouter();
     const { mutate: logout } = useLogout();
     const { warnWhen, setWarnWhen } = useWarnAboutChange();
-    const translate = useTranslate();
+    const { translate } = useTranslation();
     const [accountOpen, setAccountOpen] = useState(false);
 
     const headerStyles: React.CSSProperties = {
@@ -94,25 +94,25 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
             {
                 key: 'account',
                 icon: <UserOutlined />,
-                label: 'Account',
+                label: translate('header.account'),
                 onClick: () => setAccountOpen(true),
             },
             {
                 key: 'settings',
                 icon: <SettingOutlined />,
-                label: 'Settings',
+                label: translate('header.settings'),
                 onClick: () => router.push('/settings'),
             },
             { type: 'divider' },
             {
                 key: 'logout',
                 icon: <LogoutOutlined />,
-                label: 'Logout',
+                label: translate('header.logout'),
                 danger: true,
                 onClick: () => handleLogout(),
             },
         ],
-        [router, handleLogout],
+        [router, handleLogout, translate],
     );
 
     const primaryLabel = displayNameFrom(user);
@@ -166,7 +166,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
                             <button
                                 type="button"
                                 className="gp-user-menu-trigger"
-                                aria-label="Account menu"
+                                aria-label={translate('header.accountMenu')}
                                 aria-haspopup="menu"
                             >
                                 <Avatar

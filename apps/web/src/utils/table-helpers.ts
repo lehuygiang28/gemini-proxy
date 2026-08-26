@@ -31,10 +31,6 @@ export const getStatusValue = (isActive: boolean): PresetStatusColorType => {
     return isActive ? 'success' : 'error';
 };
 
-export const getStatusText = (isActive: boolean): string => {
-    return isActive ? 'Active' : 'Inactive';
-};
-
 // Provider utilities
 export const getProviderColor = (provider: string): string => {
     return PROVIDERS[provider]?.color || 'default';
@@ -95,14 +91,14 @@ export const maskSensitiveKey = (key: string, isRevealed: boolean): string => {
 };
 
 // Date formatting utilities
-export const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString();
+export const formatDate = (dateString: string | null | undefined, locale: string): string => {
+    if (!dateString) return '';
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(dateString));
 };
 
-export const formatTime = (dateString: string | null | undefined): string => {
+export const formatTime = (dateString: string | null | undefined, locale: string): string => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleTimeString();
+    return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(new Date(dateString));
 };
 
 // JSON display utilities

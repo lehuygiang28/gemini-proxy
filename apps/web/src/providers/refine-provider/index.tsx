@@ -60,7 +60,6 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         name: 'dashboard',
                         list: '/dashboard',
                         meta: {
-                            label: 'Console',
                             icon: <DashboardOutlined />,
                         },
                     },
@@ -71,7 +70,6 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         edit: '/api-keys/edit/:id',
                         show: '/api-keys/show/:id',
                         meta: {
-                            label: 'API Keys',
                             icon: <KeyOutlined />,
                         },
                     },
@@ -82,7 +80,6 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         edit: '/proxy-api-keys/edit/:id',
                         show: '/proxy-api-keys/show/:id',
                         meta: {
-                            label: 'Proxy API Keys',
                             icon: <SafetyCertificateOutlined />,
                         },
                     },
@@ -91,7 +88,6 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         list: '/request-logs',
                         show: '/request-logs/show/:id',
                         meta: {
-                            label: 'Logs',
                             icon: <FileTextOutlined />,
                         },
                     },
@@ -99,7 +95,6 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         name: 'user_settings',
                         list: '/settings',
                         meta: {
-                            label: 'Settings',
                             icon: <SettingOutlined />,
                         },
                     },
