@@ -1,6 +1,6 @@
 'use client';
 
-import React, { type PropsWithChildren } from 'react';
+import React, { type PropsWithChildren, useRef } from 'react';
 import {
     DashboardOutlined,
     SafetyCertificateOutlined,
@@ -27,6 +27,8 @@ const appLiveProvider = createLiveProvider(supabaseBrowserClient);
 export function RefineProvider({ children }: PropsWithChildren) {
     const t = useTranslations();
     const locale = useLocale();
+    const localeRef = useRef(locale);
+    localeRef.current = locale;
     const i18nProvider: I18nProvider = {
         translate: (key: string, options?: unknown, defaultMessage?: string) => {
             if (typeof options === 'string') {
@@ -38,7 +40,7 @@ export function RefineProvider({ children }: PropsWithChildren) {
             });
         },
         changeLocale: setUserLocale,
-        getLocale: () => locale,
+        getLocale: () => localeRef.current,
     };
     return (
         <RefineKbarProvider>
