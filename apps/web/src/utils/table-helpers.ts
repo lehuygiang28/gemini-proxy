@@ -138,16 +138,6 @@ export const getAttemptCountColor = (attemptCount: number): string => {
     return 'purple';
 };
 
-export const getAttemptCountSeverity = (attemptCount: number): string => {
-    if (attemptCount === 1) return 'Success';
-    if (attemptCount <= 2) return 'Minor Issue';
-    if (attemptCount <= 4) return 'Moderate Issue';
-    if (attemptCount <= 5) return 'High Issue';
-    if (attemptCount <= 10) return 'Critical Issue';
-    if (attemptCount <= 20) return 'Severe Issue';
-    return 'Extreme Issue';
-};
-
 // Performance metrics utilities
 export const extractPerformanceMetrics = (metrics: unknown): PerformanceMetrics => {
     if (!metrics || typeof metrics !== 'object' || metrics === null) {

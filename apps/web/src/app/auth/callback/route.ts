@@ -1,8 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import {
-    createSupabaseRouteHandlerClient,
-    safeNextPath,
-} from '@utils/supabase/route-handler';
+import { createSupabaseRouteHandlerClient, safeNextPath } from '@utils/supabase/route-handler';
 
 /**
  * Exchange Supabase Auth PKCE `code` for a session cookie, then redirect.
@@ -33,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-        return errorRedirect(error.message || 'auth_callback_failed');
+        return errorRedirect('auth_callback_failed');
     }
 
     return response;

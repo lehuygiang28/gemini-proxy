@@ -1,7 +1,10 @@
-export type KeyJoinLabel = {
-    name: string;
-    deleted_at: string | null;
-} | null | undefined;
+export type KeyJoinLabel =
+    | {
+          name: string;
+          deleted_at: string | null;
+      }
+    | null
+    | undefined;
 
 export type ResolveKeyLabelInput = {
     joined?: KeyJoinLabel;
@@ -32,18 +35,4 @@ export function resolveKeyLabel(input: ResolveKeyLabelInput): ResolveKeyLabelRes
         return { label: shortId, isRemoved: Boolean(id) && !joined, shortId };
     }
     return { label: '—', isRemoved: false, shortId: null };
-}
-
-/**
- * Compact label for tables / feeds (optional removed suffix).
- */
-export function formatKeyLabel(
-    input: ResolveKeyLabelInput,
-    options?: { showRemoved?: boolean },
-): string {
-    const resolved = resolveKeyLabel(input);
-    if (options?.showRemoved !== false && resolved.isRemoved && resolved.label !== '—') {
-        return `${resolved.label} (removed)`;
-    }
-    return resolved.label;
 }

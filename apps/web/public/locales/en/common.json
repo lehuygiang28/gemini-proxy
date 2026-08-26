@@ -92,6 +92,14 @@
             "404": "Sorry, the page you visited does not exist.",
             "resource404": "Are you sure you have created the {resource} resource.",
             "backHome": "Back Home"
+        },
+        "auth": {
+            "errors": {
+                "missingAuthCode": "Missing sign-in code. Try signing in again.",
+                "callbackFailed": "Sign-in confirmation failed. Try again.",
+                "missingAuthToken": "Missing confirmation token. Request a new link.",
+                "confirmFailed": "Email confirmation failed. Request a new link."
+            }
         }
     },
     "actions": {
@@ -546,6 +554,7 @@
             "close": "Close",
             "back": "Back to Request Logs"
         },
+        "empty": "No request logs found",
         "notFound": {
             "title": "Request Log Not Found",
             "description": "The requested log could not be found or you don't have permission to view it."
@@ -687,9 +696,9 @@
             "detailed": "Detailed observability",
             "detailedExtra": "Master switch. When off, logs stay headers-only (current default).",
             "saveRequest": "Save request bodies",
-            "saveRequestExtra": "Persist the outbound request JSON/text on request_logs.request_data.body.",
+            "saveRequestExtra": "Save the JSON/text sent to the model on each log (request_data.body).",
             "saveResponse": "Save response bodies",
-            "saveResponseExtra": "Persist the AI response (including streamed wire format) on response_data.body.",
+            "saveResponseExtra": "Save the model response on each log, including streamed output (response_data.body).",
             "reset": "Reset to defaults"
         }
     },
@@ -876,7 +885,8 @@
     "languageSwitcher": {
         "en": "English",
         "vi": "Tiếng Việt",
-        "label": "Language"
+        "label": "Language",
+        "ariaLabel": "{label}: {locale}"
     },
     "common": {
         "never": "Never",

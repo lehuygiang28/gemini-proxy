@@ -19,6 +19,7 @@ import {
     Input,
     Badge,
     Alert,
+    Empty,
 } from 'antd';
 import {
     FilterOutlined,
@@ -100,7 +101,7 @@ function getAttemptSeverityKey(attemptCount: number): string {
 export default function RequestLogsListPage() {
     const { token } = useToken();
     const go = useGo();
-    const { translate } = useTranslation();
+    const { translate, getLocale } = useTranslation();
     const [isLive, setIsLive] = useState(true);
     const [filtersOpen, setFiltersOpen] = useState(true);
     const [formValues, setFormValues] = useState<RequestLogSearch>({});
@@ -244,15 +245,15 @@ export default function RequestLogsListPage() {
         searchFormProps.form?.submit();
     }, [searchFormProps.form]);
 
-    const handleCopyRequestId = useCallback(
-        (requestId: string) => {
-            void navigator.clipboard.writeText(requestId);
-        },
-        [],
-    );
+    const handleCopyRequestId = useCallback((requestId: string) => {
+        void navigator.clipboard.writeText(requestId);
+    }, []);
 
     const formatRemovedKeyLabel = useCallback(
-        (input: { joined?: { name: string; deleted_at: string | null } | null; id?: string | null }) => {
+        (input: {
+            joined?: { name: string; deleted_at: string | null } | null;
+            id?: string | null;
+        }) => {
             const resolved = resolveKeyLabel(input);
             if (resolved.isRemoved && resolved.label !== '—') {
                 return translate('request_logs.identity.removedLabel', { name: resolved.label });
@@ -290,7 +291,9 @@ export default function RequestLogsListPage() {
                                 >
                                     {translate('request_logs.fields.proxy')}
                                 </span>
-                                <span style={{ fontSize: 13, color: 'var(--gp-text)' }}>{proxy}</span>
+                                <span style={{ fontSize: 13, color: 'var(--gp-text)' }}>
+                                    {proxy}
+                                </span>
                             </div>
                             <div>
                                 <span
@@ -394,7 +397,9 @@ export default function RequestLogsListPage() {
                             </Tooltip>
                             {retryCount > 0 && (
                                 <div style={{ color: token.colorError }}>
-                                    {translate('request_logs.metrics.retries', { count: retryCount })}
+                                    {translate('request_logs.metrics.retries', {
+                                        count: retryCount,
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -414,10 +419,7 @@ export default function RequestLogsListPage() {
                             </div>
                             <div style={{ color: token.colorTextSecondary }}>
                                 {formatTokenCount(usage.prompt_tokens, translate('common.na'))} /{' '}
-                                {formatTokenCount(
-                                    usage.completion_tokens,
-                                    translate('common.na'),
-                                )}
+                                {formatTokenCount(usage.completion_tokens, translate('common.na'))}
                             </div>
                         </div>
                     );
@@ -530,7 +532,13 @@ export default function RequestLogsListPage() {
             />
 
             <div className="gp-panel" style={{ marginBottom: 12, padding: 16 }}>
-                <Space style={{ marginBottom: filtersOpen || activeFilterCount > 0 ? 12 : 0, width: '100%', justifyContent: 'space-between' }}>
+                <Space
+                    style={{
+                        marginBottom: filtersOpen || activeFilterCount > 0 ? 12 : 0,
+                        width: '100%',
+                        justifyContent: 'space-between',
+                    }}
+                >
                     <Space>
                         <Button
                             type="text"
@@ -757,7 +765,11 @@ export default function RequestLogsListPage() {
                                     <RangePicker
                                         style={{ width: '100%' }}
                                         showTime
-                                        format="YYYY-MM-DD HH:mm:ss"
+                                        format={
+                                            getLocale() === 'vi'
+                                                ? 'DD/MM/YYYY HH:mm:ss'
+                                                : 'YYYY-MM-DD HH:mm:ss'
+                                        }
                                     />
                                 </Form.Item>
                             </Col>
@@ -772,6 +784,14 @@ export default function RequestLogsListPage() {
                     rowKey="id"
                     columns={tableColumns}
                     scroll={{ x: 1100 }}
+                    locale={{
+                        emptyText: (
+                            <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={translate('request_logs.empty')}
+                            />
+                        ),
+                    }}
                 />
             </div>
         </List>

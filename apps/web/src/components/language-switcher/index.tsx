@@ -6,31 +6,39 @@ import { Button, Dropdown, Space, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { I18N_COOKIE_NAME, SUPPORTED_LOCALES } from '@i18n/config';
+import { I18N_COOKIE_NAME, I18N_COOKIE_OPTIONS, SUPPORTED_LOCALES } from '@i18n/config';
+
+const SWITCHER_TRIGGER_MIN_WIDTH = 132;
 
 export function LanguageSwitcher() {
     const { getLocale, changeLocale, translate } = useTranslation();
-    const currentLocale = getLocale();
+    const currentLocale = getLocale() === 'vi' ? 'vi' : 'en';
     const router = useRouter();
+    const localeLabel = translate(`languageSwitcher.${currentLocale}`);
 
     const items: MenuProps['items'] = SUPPORTED_LOCALES.map((lang) => ({
         key: lang,
         label: translate(`languageSwitcher.${lang}`),
         onClick: () => {
             void changeLocale(lang).then(() => {
-                Cookies.set(I18N_COOKIE_NAME, lang);
+                Cookies.set(I18N_COOKIE_NAME, lang, I18N_COOKIE_OPTIONS);
                 router.refresh();
             });
         },
     }));
 
     return (
-        <Dropdown menu={{ items, selectedKeys: currentLocale ? [currentLocale] : [] }}>
-            <Button type="text" aria-label={translate('languageSwitcher.label')}>
+        <Dropdown trigger={['click']} menu={{ items, selectedKeys: [currentLocale] }}>
+            <Button
+                type="text"
+                style={{ minWidth: SWITCHER_TRIGGER_MIN_WIDTH }}
+                aria-label={translate('languageSwitcher.ariaLabel', {
+                    label: translate('languageSwitcher.label'),
+                    locale: localeLabel,
+                })}
+            >
                 <Space>
-                    <Typography.Text>
-                        {translate(`languageSwitcher.${currentLocale === 'vi' ? 'vi' : 'en'}`)}
-                    </Typography.Text>
+                    <Typography.Text>{localeLabel}</Typography.Text>
                     <DownOutlined />
                 </Space>
             </Button>

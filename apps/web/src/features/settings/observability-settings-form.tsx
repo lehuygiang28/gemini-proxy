@@ -34,9 +34,7 @@ export function ObservabilitySettingsForm() {
 
     const { result, query } = useList<UserSettings>({
         resource: 'user_settings',
-        filters: userId
-            ? [{ field: 'id', operator: 'eq', value: userId }]
-            : [],
+        filters: userId ? [{ field: 'id', operator: 'eq', value: userId }] : [],
         pagination: { currentPage: 1, pageSize: 1 },
         queryOptions: { enabled: Boolean(userId) },
     });
@@ -92,14 +90,11 @@ export function ObservabilitySettingsForm() {
                 message: translate('settings.observability.saved'),
                 description: translate('settings.observability.savedDesc'),
             });
-        } catch (error) {
+        } catch {
             notification.open({
                 type: 'error',
                 message: translate('settings.observability.saveFailed'),
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : translate('common.genericError'),
+                description: translate('common.genericError'),
             });
         } finally {
             setSaving(false);

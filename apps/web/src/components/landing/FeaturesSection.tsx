@@ -11,7 +11,6 @@ import {
     FileTextOutlined,
     GlobalOutlined,
 } from '@ant-design/icons';
-import { SiSupabase, SiNextdotjs, SiTypescript } from 'react-icons/si';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;

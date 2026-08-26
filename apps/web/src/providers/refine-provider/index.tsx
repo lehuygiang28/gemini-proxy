@@ -26,6 +26,7 @@ const appLiveProvider = createLiveProvider(supabaseBrowserClient);
  */
 export function RefineProvider({ children }: PropsWithChildren) {
     const t = useTranslations();
+    const locale = useLocale();
     const i18nProvider: I18nProvider = {
         translate: (key: string, options?: unknown, defaultMessage?: string) => {
             if (typeof options === 'string') {
@@ -37,7 +38,7 @@ export function RefineProvider({ children }: PropsWithChildren) {
             });
         },
         changeLocale: setUserLocale,
-        getLocale: useLocale,
+        getLocale: () => locale,
     };
     return (
         <RefineKbarProvider>

@@ -7,16 +7,16 @@ import { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { DevtoolsProvider } from '@providers/devtools';
 import { RefineProvider } from '@providers/refine-provider';
+import { IntlClientProvider } from '@i18n/intl-client-provider';
 import { THEME_COOKIE_NAME } from '@constants';
 
 const ibmPlexSans = IBM_Plex_Sans({
-    subsets: ['latin'],
+    subsets: ['latin', 'vietnamese'],
     weight: ['400', '500', '600'],
     variable: '--gp-font-sans',
     display: 'swap',
@@ -99,11 +99,11 @@ export default async function RootLayout({
                 <Suspense>
                     <AntdRegistry>
                         <ColorModeContextProvider defaultMode={defaultMode} locale={locale}>
-                            <NextIntlClientProvider locale={locale} messages={messages}>
+                            <IntlClientProvider locale={locale} messages={messages}>
                                 <DevtoolsProvider>
                                     <RefineProvider>{children}</RefineProvider>
                                 </DevtoolsProvider>
-                            </NextIntlClientProvider>
+                            </IntlClientProvider>
                         </ColorModeContextProvider>
                     </AntdRegistry>
                 </Suspense>

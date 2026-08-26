@@ -90,8 +90,7 @@ export function AccountSettingsForm() {
             return;
         }
         profileForm.setFieldsValue({
-            displayName:
-                identity.name && identity.name !== identity.email ? identity.name : '',
+            displayName: identity.name && identity.name !== identity.email ? identity.name : '',
         });
         emailForm.setFieldsValue({
             email: identity.email ?? '',
@@ -120,12 +119,10 @@ export function AccountSettingsForm() {
                 description: translate('account.profileUpdatedDesc'),
             });
         } catch (error: unknown) {
-            const message =
-                error instanceof Error ? error.message : translate('account.profileFailed');
             notification.open?.({
                 type: 'error',
                 message: translate('account.profileFailed'),
-                description: message,
+                description: translate('common.genericError'),
             });
         } finally {
             setSavingProfile(false);
@@ -164,12 +161,15 @@ export function AccountSettingsForm() {
                 description: translate('account.emailRequestedDesc'),
             });
         } catch (error: unknown) {
-            const message =
-                error instanceof Error ? error.message : translate('account.emailFailed');
+            const noEmail = translate('account.noEmail');
+            const description =
+                error instanceof Error && error.message === noEmail
+                    ? noEmail
+                    : translate('common.genericError');
             notification.open?.({
                 type: 'error',
                 message: translate('account.emailFailed'),
-                description: message,
+                description,
             });
         } finally {
             setSavingEmail(false);
@@ -193,12 +193,15 @@ export function AccountSettingsForm() {
                 description: translate('account.passwordUpdatedDesc'),
             });
         } catch (error: unknown) {
-            const message =
-                error instanceof Error ? error.message : translate('account.passwordFailed');
+            const noEmail = translate('account.noEmail');
+            const description =
+                error instanceof Error && error.message === noEmail
+                    ? noEmail
+                    : translate('common.genericError');
             notification.open?.({
                 type: 'error',
                 message: translate('account.passwordFailed'),
-                description: message,
+                description,
             });
         } finally {
             setSavingPassword(false);
@@ -243,7 +246,10 @@ export function AccountSettingsForm() {
             </div>
 
             <div className="gp-account-body">
-                <nav className="gp-account-nav gp-scrollable" aria-label={translate('account.sectionsAria')}>
+                <nav
+                    className="gp-account-nav gp-scrollable"
+                    aria-label={translate('account.sectionsAria')}
+                >
                     {navItems.map((item) => {
                         const isActive = activeSection === item.key;
                         return (
@@ -265,9 +271,15 @@ export function AccountSettingsForm() {
 
                 <div className="gp-account-pane gp-scrollable">
                     {activeSection === 'profile' ? (
-                        <section className="gp-account-section" aria-labelledby="gp-account-profile-title">
+                        <section
+                            className="gp-account-section"
+                            aria-labelledby="gp-account-profile-title"
+                        >
                             <header className="gp-account-section-header">
-                                <h3 id="gp-account-profile-title" className="gp-account-section-title">
+                                <h3
+                                    id="gp-account-profile-title"
+                                    className="gp-account-section-title"
+                                >
                                     {translate('account.profile')}
                                 </h3>
                                 <p className="gp-account-section-desc">
@@ -300,7 +312,11 @@ export function AccountSettingsForm() {
                                     />
                                 </Form.Item>
                                 <div className="gp-account-section-actions">
-                                    <Button type="primary" htmlType="submit" loading={savingProfile}>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={savingProfile}
+                                    >
                                         {translate('buttons.save')}
                                     </Button>
                                 </div>
@@ -309,9 +325,15 @@ export function AccountSettingsForm() {
                     ) : null}
 
                     {activeSection === 'email' ? (
-                        <section className="gp-account-section" aria-labelledby="gp-account-email-title">
+                        <section
+                            className="gp-account-section"
+                            aria-labelledby="gp-account-email-title"
+                        >
                             <header className="gp-account-section-header">
-                                <h3 id="gp-account-email-title" className="gp-account-section-title">
+                                <h3
+                                    id="gp-account-email-title"
+                                    className="gp-account-section-title"
+                                >
                                     {translate('account.email')}
                                 </h3>
                                 <p className="gp-account-section-desc">
@@ -337,7 +359,10 @@ export function AccountSettingsForm() {
                                     name="email"
                                     label={translate('account.newEmail')}
                                     rules={[
-                                        { required: true, message: translate('account.enterEmail') },
+                                        {
+                                            required: true,
+                                            message: translate('account.enterEmail'),
+                                        },
                                         { type: 'email', message: translate('account.validEmail') },
                                     ]}
                                 >

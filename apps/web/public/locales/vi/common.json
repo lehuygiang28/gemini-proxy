@@ -92,6 +92,14 @@
             "404": "Trang bạn truy cập không tồn tại.",
             "resource404": "Bạn đã tạo tài nguyên {resource} chưa?",
             "backHome": "Về trang chủ"
+        },
+        "auth": {
+            "errors": {
+                "missingAuthCode": "Thiếu mã đăng nhập. Hãy đăng nhập lại.",
+                "callbackFailed": "Xác nhận đăng nhập thất bại. Hãy thử lại.",
+                "missingAuthToken": "Thiếu mã xác nhận. Hãy yêu cầu liên kết mới.",
+                "confirmFailed": "Xác nhận email thất bại. Hãy yêu cầu liên kết mới."
+            }
         }
     },
     "actions": {
@@ -216,11 +224,11 @@
         },
         "tokens": {
             "total": "Tổng: {count}",
-            "prompt": "Prompt: {count}",
-            "completion": "Completion: {count}",
+            "prompt": "Đầu vào: {count}",
+            "completion": "Đầu ra: {count}",
             "totalTokens": "Tổng token",
-            "promptTokens": "Token prompt",
-            "completionTokens": "Token completion"
+            "promptTokens": "Token đầu vào",
+            "completionTokens": "Token đầu ra"
         },
         "actions": {
             "viewLogs": "Xem nhật ký của khóa này",
@@ -373,11 +381,11 @@
         },
         "tokens": {
             "total": "Tổng: {count}",
-            "prompt": "Prompt: {count}",
-            "completion": "Completion: {count}",
+            "prompt": "Đầu vào: {count}",
+            "completion": "Đầu ra: {count}",
             "totalTokens": "Tổng token",
-            "promptTokens": "Token prompt",
-            "completionTokens": "Token completion"
+            "promptTokens": "Token đầu vào",
+            "completionTokens": "Token đầu ra"
         },
         "actions": {
             "viewLogs": "Xem nhật ký của khóa này",
@@ -474,7 +482,7 @@
             "performance": "Hiệu năng",
             "tokens": "Token",
             "created": "Thời gian",
-            "requestId": "Request ID",
+            "requestId": "Mã request",
             "body": "Nội dung",
             "headersMeta": "Header & meta",
             "apiFormat": "Định dạng API",
@@ -546,6 +554,7 @@
             "close": "Đóng",
             "back": "Quay lại nhật ký"
         },
+        "empty": "Không tìm thấy nhật ký",
         "notFound": {
             "title": "Không tìm thấy nhật ký",
             "description": "Không tìm thấy nhật ký này hoặc bạn không có quyền xem."
@@ -568,7 +577,7 @@
             "totalTime": "Tổng thời gian",
             "attemptsLabel": "Số lần thử",
             "totalTokens": "Tổng token",
-            "promptCompletion": "Prompt / completion",
+            "promptCompletion": "Đầu vào / đầu ra",
             "model": "Model"
         },
         "severity": {
@@ -687,9 +696,9 @@
             "detailed": "Giám sát chi tiết",
             "detailedExtra": "Công tắc chính. Khi tắt, nhật ký chỉ lưu headers (mặc định hiện tại).",
             "saveRequest": "Lưu body request",
-            "saveRequestExtra": "Lưu JSON/text request gửi đi trên request_logs.request_data.body.",
+            "saveRequestExtra": "Lưu JSON/text gửi tới model trên mỗi nhật ký (request_data.body).",
             "saveResponse": "Lưu body response",
-            "saveResponseExtra": "Lưu phản hồi AI (kể cả định dạng streaming) trên response_data.body.",
+            "saveResponseExtra": "Lưu phản hồi model trên mỗi nhật ký, kể cả dữ liệu streaming (response_data.body).",
             "reset": "Đặt lại mặc định"
         }
     },
@@ -876,11 +885,12 @@
     "languageSwitcher": {
         "en": "English",
         "vi": "Tiếng Việt",
-        "label": "Ngôn ngữ"
+        "label": "Ngôn ngữ",
+        "ariaLabel": "{label}: {locale}"
     },
     "common": {
         "never": "Chưa từng",
-        "na": "N/A",
+        "na": "—",
         "active": "Bật",
         "inactive": "Tắt",
         "enable": "Bấm để bật",
