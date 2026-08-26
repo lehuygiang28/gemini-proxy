@@ -28,7 +28,11 @@ export function LanguageSwitcher() {
     }));
 
     return (
-        <Dropdown trigger={['click']} menu={{ items, selectedKeys: [currentLocale] }}>
+        <Dropdown
+            trigger={['click']}
+            placement="bottomRight"
+            menu={{ items, selectedKeys: [currentLocale] }}
+        >
             <Button
                 type="text"
                 style={{ minWidth: SWITCHER_TRIGGER_MIN_WIDTH }}

@@ -24,7 +24,7 @@ export const HeroSection: React.FC = () => {
     return (
         <div
             style={{
-                paddingTop: token.paddingXL,
+                paddingTop: token.paddingXL + token.controlHeight,
                 paddingBottom: token.paddingXL,
                 paddingLeft: token.paddingLG,
                 paddingRight: token.paddingLG,

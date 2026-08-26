@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Card, Space, theme } from 'antd';
-import { LanguageSwitcher } from '@components/language-switcher';
+import { HeaderlessPageChrome } from '@components/headerless-page-chrome';
 
 type AuthCardChromeProps = {
     children: ReactNode;
@@ -11,32 +11,31 @@ type AuthCardChromeProps = {
 export function AuthCardChrome({ children }: AuthCardChromeProps) {
     const { token } = theme.useToken();
     return (
-        <div
-            style={{
-                display: 'grid',
-                placeItems: 'center',
-                minHeight: '100dvh',
-                padding: token.padding,
-                background: token.colorBgLayout,
-            }}
-        >
-            <Card
+        <HeaderlessPageChrome>
+            <div
                 style={{
-                    width: '100%',
-                    maxWidth: 420,
-                    background: token.colorBgContainer,
-                    boxShadow: token.boxShadow,
-                    borderRadius: token.borderRadiusLG,
+                    display: 'grid',
+                    placeItems: 'center',
+                    minHeight: '100dvh',
+                    padding: token.padding,
+                    paddingTop: token.controlHeight + token.padding * 2,
                 }}
-                variant="borderless"
             >
-                <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <LanguageSwitcher />
-                    </div>
-                    {children}
-                </Space>
-            </Card>
-        </div>
+                <Card
+                    style={{
+                        width: '100%',
+                        maxWidth: 420,
+                        background: token.colorBgContainer,
+                        boxShadow: token.boxShadow,
+                        borderRadius: token.borderRadiusLG,
+                    }}
+                    variant="borderless"
+                >
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                        {children}
+                    </Space>
+                </Card>
+            </div>
+        </HeaderlessPageChrome>
     );
 }
