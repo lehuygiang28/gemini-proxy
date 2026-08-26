@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Modal, Typography, Alert, Spin, Button, theme } from 'antd';
-import { useOne, useResourceParams, useBack } from '@refinedev/core';
+import { useOne, useResourceParams, useBack, useTranslation } from '@refinedev/core';
 import { RequestLogDetails } from '@/components/RequestLogDetails';
 import type { RequestLog } from '@/types/request-log.types';
 import { REQUEST_LOG_DETAIL_SELECT } from '@/constants/request-log-select';
@@ -17,6 +17,7 @@ const { useToken } = theme;
  */
 export default function RequestLogDetailsModal() {
     const { token } = useToken();
+    const { translate } = useTranslation();
     const { id: requestId } = useResourceParams();
     const back = useBack();
 
@@ -35,10 +36,12 @@ export default function RequestLogDetailsModal() {
         back();
     };
 
+    const detailsTitle = translate('request_logs.titles.details');
+
     if (isLoading) {
         return (
             <Modal
-                title="Request Log Details"
+                title={detailsTitle}
                 open={true}
                 onCancel={handleClose}
                 footer={null}
@@ -72,18 +75,22 @@ export default function RequestLogDetailsModal() {
     if (isError || !requestLog) {
         return (
             <Modal
-                title="Request Log Details"
+                title={detailsTitle}
                 open={true}
                 onCancel={handleClose}
                 footer={null}
                 width={800}
             >
                 <Alert
-                    message="Request Log Not Found"
-                    description="The requested log could not be found or you don't have permission to view it."
+                    message={translate('request_logs.notFound.title')}
+                    description={translate('request_logs.notFound.description')}
                     type="error"
                     showIcon
-                    action={<Button onClick={handleClose}>Close</Button>}
+                    action={
+                        <Button onClick={handleClose}>
+                            {translate('request_logs.actions.close')}
+                        </Button>
+                    }
                 />
             </Modal>
         );
@@ -96,7 +103,7 @@ export default function RequestLogDetailsModal() {
             title={
                 <div>
                     <Title level={4} style={{ margin: 0 }}>
-                        Request Log Details
+                        {detailsTitle}
                     </Title>
                     <Text type="secondary" style={{ fontSize: '12px' }} className="gp-live-mono">
                         {log.request_id}

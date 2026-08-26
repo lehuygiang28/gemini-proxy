@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay, JsonTreeViewer } from '@/components/common';
-import { useNotification, useMany } from '@refinedev/core';
+import { useNotification, useMany, useTranslation } from '@refinedev/core';
 import { RequestLog, RetryAttempt } from '../types/request-log.types';
 import {
     extractPerformanceMetrics,
@@ -33,7 +33,7 @@ import {
     formatDuration,
     formatTokenCount,
 } from '@/utils/table-helpers';
-import { KeyIdentityCard, UserIdentityCard, formatKeyLabel } from '@/features/request-logs';
+import { KeyIdentityCard, UserIdentityCard, resolveKeyLabel } from '@/features/request-logs';
 
 const { Text } = Typography;
 const { useToken } = theme;
@@ -51,13 +51,14 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
     isModal = false,
 }) => {
     const notification = useNotification();
+    const { translate } = useTranslation();
 
     const handleCopyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
         notification.open({
             type: 'success',
-            message: 'Copied to Clipboard',
-            description: `${label} has been copied to clipboard.`,
+            message: translate('request_logs.clipboard.copied'),
+            description: translate('request_logs.clipboard.copiedDesc', { label }),
         });
     };
 
@@ -73,8 +74,8 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
         URL.revokeObjectURL(url);
         notification.open({
             type: 'success',
-            message: 'Download Started',
-            description: `${filename} has been downloaded.`,
+            message: translate('request_logs.clipboard.downloadStarted'),
+            description: translate('request_logs.clipboard.downloadStartedDesc', { filename }),
         });
     };
 
@@ -149,7 +150,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                 <Row gutter={[12, 12]}>
                     <Col xs={24} lg={12} style={{ minWidth: 0 }}>
                         <PayloadPanel
-                            title="Request"
+                            title={translate('request_logs.payload.request')}
                             data={requestData}
                             filename={`request-${requestLog.request_id}.json`}
                             onCopy={handleCopyToClipboard}
@@ -158,7 +159,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                     </Col>
                     <Col xs={24} lg={12} style={{ minWidth: 0 }}>
                         <PayloadPanel
-                            title="Response"
+                            title={translate('request_logs.payload.response')}
                             data={responsePanelData}
                             filename={
                                 requestLog.is_successful
@@ -167,7 +168,9 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                             }
                             isError={!requestLog.is_successful}
                             emptyLabel={
-                                requestLog.is_successful ? 'No response data' : 'No error details'
+                                requestLog.is_successful
+                                    ? translate('request_logs.payload.noResponse')
+                                    : translate('request_logs.payload.noError')
                             }
                             onCopy={handleCopyToClipboard}
                             onDownload={handleDownloadJson}
@@ -188,12 +191,15 @@ function OverviewStrip({
     requestLog: RequestLog;
     onCopy: (text: string, label: string) => void;
 }) {
+    const { translate } = useTranslation();
     return (
         <div className="gp-panel" style={{ padding: '12px 16px' }}>
-            <div className="gp-section-title">Overview</div>
+            <div className="gp-section-title">{translate('request_logs.details.overview')}</div>
             <Row gutter={[16, 12]} align="middle">
                 <Col xs={12} sm={6}>
-                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Status</Text>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        {translate('request_logs.fields.status')}
+                    </Text>
                     <div>
                         <Tag
                             color={requestLog.is_successful ? 'success' : 'error'}
@@ -206,12 +212,16 @@ function OverviewStrip({
                             }
                             style={{ borderRadius: 2 }}
                         >
-                            {requestLog.is_successful ? 'Success' : 'Failed'}
+                            {requestLog.is_successful
+                                ? translate('request_logs.status.success')
+                                : translate('request_logs.status.failed')}
                         </Tag>
                     </div>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Format</Text>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        {translate('request_logs.fields.format')}
+                    </Text>
                     <div>
                         <Tag color="processing" style={{ borderRadius: 2 }}>
                             {requestLog.api_format?.toUpperCase()}
@@ -219,13 +229,19 @@ function OverviewStrip({
                     </div>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Stream</Text>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        {translate('request_logs.fields.stream')}
+                    </Text>
                     <div style={{ color: 'var(--gp-text)' }}>
-                        {requestLog.is_stream ? 'Streaming' : 'Non-streaming'}
+                        {requestLog.is_stream
+                            ? translate('request_logs.stream.streaming')
+                            : translate('request_logs.stream.nonStreaming')}
                     </div>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>Created</Text>
+                    <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        {translate('request_logs.fields.created')}
+                    </Text>
                     <div>
                         <DateTimeDisplay dateString={requestLog.created_at} />
                     </div>
@@ -233,7 +249,7 @@ function OverviewStrip({
                 <Col span={24}>
                     <Space size={4}>
                         <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
-                            Request ID
+                            {translate('request_logs.fields.requestId')}
                         </Text>
                         <Text className="gp-live-mono" style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}>
                             {requestLog.request_id}
@@ -242,8 +258,13 @@ function OverviewStrip({
                             type="text"
                             size="small"
                             icon={<CopyOutlined />}
-                            onClick={() => onCopy(requestLog.request_id, 'Request ID')}
-                            aria-label="Copy request ID"
+                            onClick={() =>
+                                onCopy(
+                                    requestLog.request_id,
+                                    translate('request_logs.fields.requestId'),
+                                )
+                            }
+                            aria-label={translate('request_logs.actions.copyRequestId')}
                         />
                     </Space>
                 </Col>
@@ -271,20 +292,25 @@ function MetricsStrip({
     model?: string;
     isSuccessful: boolean;
 }) {
+    const { translate } = useTranslation();
     return (
         <div>
             <div className="gp-section-title" style={{ marginBottom: 8 }}>
-                Performance & usage
+                {translate('request_logs.details.performanceUsage')}
             </div>
             <div className="gp-kpi-strip">
                 <div className="gp-kpi-cell">
-                    <div className="gp-kpi-label">API duration</div>
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.apiDuration')}
+                    </div>
                     <div className="gp-kpi-value" style={{ fontSize: 18 }}>
                         {formatDuration(durationMs)}
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
-                    <div className="gp-kpi-label">Total time</div>
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.totalTime')}
+                    </div>
                     <div
                         className="gp-kpi-value"
                         style={{
@@ -296,7 +322,9 @@ function MetricsStrip({
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
-                    <div className="gp-kpi-label">Attempts</div>
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.attemptsLabel')}
+                    </div>
                     <div
                         className="gp-kpi-value"
                         style={{
@@ -308,20 +336,26 @@ function MetricsStrip({
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
-                    <div className="gp-kpi-label">Total tokens</div>
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.totalTokens')}
+                    </div>
                     <div className="gp-kpi-value" style={{ fontSize: 18, color: 'var(--gp-accent)' }}>
                         {formatTokenCount(totalTokens)}
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
-                    <div className="gp-kpi-label">Prompt / completion</div>
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.promptCompletion')}
+                    </div>
                     <div className="gp-kpi-value" style={{ fontSize: 16 }}>
                         {formatTokenCount(promptTokens)} / {formatTokenCount(completionTokens)}
                     </div>
                 </div>
                 {model ? (
                     <div className="gp-kpi-cell">
-                        <div className="gp-kpi-label">Model</div>
+                        <div className="gp-kpi-label">
+                            {translate('request_logs.metrics.model')}
+                        </div>
                         <Tag color="blue" style={{ borderRadius: 2, marginTop: 4 }}>
                             {model}
                         </Tag>
@@ -380,7 +414,7 @@ function PayloadPanel({
     data,
     filename,
     isError = false,
-    emptyLabel = 'No data',
+    emptyLabel,
     onCopy,
     onDownload,
 }: {
@@ -392,6 +426,8 @@ function PayloadPanel({
     onCopy: (text: string, label: string) => void;
     onDownload: (data: unknown, filename: string) => void;
 }) {
+    const { translate } = useTranslation();
+    const resolvedEmpty = emptyLabel ?? translate('request_logs.payload.noData');
     const hasData = data && Object.keys(data).length > 0;
     const { body, truncated, hasBody } = extractPayloadBody(data);
     const headersMeta = splitPayloadMeta(data);
@@ -413,20 +449,24 @@ function PayloadPanel({
                     <span style={{ fontWeight: 500 }}>{title}</span>
                     {isError ? (
                         <Tag color="error" style={{ borderRadius: 2 }}>
-                            Error
+                            {translate('request_logs.payload.error')}
                         </Tag>
                     ) : null}
                     {hasBody ? (
                         <Tag color="processing" style={{ borderRadius: 2 }}>
-                            Body captured{truncated ? ' · truncated' : ''}
+                            {truncated
+                                ? translate('request_logs.payload.bodyTruncated')
+                                : translate('request_logs.payload.bodyCaptured')}
                         </Tag>
                     ) : (
-                        <Tag style={{ borderRadius: 2 }}>Headers only</Tag>
+                        <Tag style={{ borderRadius: 2 }}>
+                            {translate('request_logs.payload.headersOnly')}
+                        </Tag>
                     )}
                 </Space>
                 {hasData ? (
                     <Space>
-                        <Tooltip title={`Copy ${title}`}>
+                        <Tooltip title={translate('request_logs.clipboard.copyNamed', { title })}>
                             <Button
                                 type="text"
                                 size="small"
@@ -434,7 +474,7 @@ function PayloadPanel({
                                 onClick={() => onCopy(fullJson, title)}
                             />
                         </Tooltip>
-                        <Tooltip title={`Download ${title}`}>
+                        <Tooltip title={translate('request_logs.clipboard.downloadNamed', { title })}>
                             <Button
                                 type="text"
                                 size="small"
@@ -447,7 +487,7 @@ function PayloadPanel({
             </div>
             {!hasData ? (
                 <Text type="secondary" style={{ padding: 12, display: 'block' }}>
-                    {emptyLabel}
+                    {resolvedEmpty}
                 </Text>
             ) : (
                 <Collapse
@@ -456,7 +496,7 @@ function PayloadPanel({
                     items={[
                         {
                             key: 'body',
-                            label: 'Body',
+                            label: translate('request_logs.fields.body'),
                             children: hasBody ? (
                                 <div
                                     style={{
@@ -477,15 +517,16 @@ function PayloadPanel({
                                     type="secondary"
                                     style={{ padding: '0 12px 12px', display: 'block', fontSize: 12 }}
                                 >
-                                    Body not stored.{' '}
-                                    <Link href="/settings">Enable in Settings → Observability</Link>
-                                    .
+                                    {translate('request_logs.payload.bodyNotStored')}{' '}
+                                    <Link href="/settings">
+                                        {translate('request_logs.payload.enableInSettings')}
+                                    </Link>
                                 </Text>
                             ),
                         },
                         {
                             key: 'headers',
-                            label: 'Headers & meta',
+                            label: translate('request_logs.fields.headersMeta'),
                             children: (
                                 <div style={{ padding: '0 8px 8px' }}>
                                     <JsonTreeViewer
@@ -505,6 +546,7 @@ function PayloadPanel({
 
 function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
     const { token } = useToken();
+    const { translate } = useTranslation();
     const apiKeyIds = useMemo(
         () =>
             [
@@ -549,12 +591,15 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
                 <Space>
                     <BugOutlined style={{ color: 'var(--gp-accent)' }} />
                     <span className="gp-section-title" style={{ margin: 0 }}>
-                        Retry timeline
+                        {translate('request_logs.retries.title')}
                     </span>
                     <Badge count={retryAttempts.length} color={token.colorWarning} />
                 </Space>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                    {retryAttempts.length} retries · {totalDuration}ms
+                    {translate('request_logs.retries.summary', {
+                        count: retryAttempts.length,
+                        ms: totalDuration,
+                    })}
                 </Text>
             </Space>
             <div
@@ -568,23 +613,29 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
                 }}
             >
                 <InfoCircleOutlined style={{ marginRight: 6 }} />
-                All entries below are failed attempts. Final outcome is the request status above.
+                {translate('request_logs.retries.hint')}
             </div>
             {apiKeysLoading ? (
-                <Text type="secondary">Loading API key names…</Text>
+                <Text type="secondary">{translate('request_logs.retries.loadingKeys')}</Text>
             ) : (
                 <Timeline
                     items={retryAttempts.map((attempt, index) => {
                         const joinedName = attempt.api_key_id
                             ? apiKeyMap.get(attempt.api_key_id)
                             : undefined;
-                        const displayName = formatKeyLabel({
+                        const resolved = resolveKeyLabel({
                             joined: joinedName
                                 ? { name: joinedName, deleted_at: null }
                                 : null,
                             embeddedName: attempt.api_key_name,
                             id: attempt.api_key_id,
                         });
+                        const displayName =
+                            resolved.isRemoved && resolved.label !== '—'
+                                ? translate('request_logs.identity.removedLabel', {
+                                      name: resolved.label,
+                                  })
+                                : resolved.label;
 
                         return {
                             color: token.colorError,
@@ -592,7 +643,9 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
                                 <div className="gp-panel-sunken" style={{ padding: 10 }}>
                                     <Space wrap>
                                         <Text strong>
-                                            Attempt #{attempt.attempt_number || index + 1}
+                                            {translate('request_logs.retries.attempt', {
+                                                number: attempt.attempt_number || index + 1,
+                                            })}
                                         </Text>
                                         <Tag color="blue" style={{ borderRadius: 2 }}>
                                             {displayName}

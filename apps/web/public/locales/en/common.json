@@ -460,7 +460,150 @@
     },
     "request_logs": {
         "request_logs": "Logs",
-        "titles": { "list": "Logs", "show": "Show Log" }
+        "titles": {
+            "list": "Logs",
+            "show": "Show Log",
+            "details": "Request Log Details"
+        },
+        "fields": {
+            "keys": "Keys",
+            "status": "Status",
+            "type": "Type",
+            "format": "Format",
+            "stream": "Stream",
+            "performance": "Performance",
+            "tokens": "Tokens",
+            "created": "Created",
+            "requestId": "Request ID",
+            "body": "Body",
+            "headersMeta": "Headers & meta",
+            "apiFormat": "API Format",
+            "dateRange": "Date range",
+            "proxy": "Proxy",
+            "api": "API"
+        },
+        "placeholders": {
+            "searchRequestId": "Search request ID…",
+            "selectFormat": "Select format",
+            "selectStatus": "Select status",
+            "selectStream": "Select stream type",
+            "searchApiKey": "Search API key by name…",
+            "searchProxyKey": "Search proxy key by name…"
+        },
+        "identity": {
+            "apiKey": "API key",
+            "proxyKey": "Proxy key",
+            "authenticated": "Authenticated user",
+            "anonymous": "Anonymous",
+            "userId": "User ID",
+            "copyUserId": "Copy user ID",
+            "copyKeyId": "Copy {title} ID",
+            "keyId": "{title} ID",
+            "user": "User",
+            "removed": "Removed",
+            "removedLabel": "{name} (removed)",
+            "removedSuffix": " · removed",
+            "notUsed": "Not used on this request.",
+            "removedFromVault": "Removed from vault · name from key record.",
+            "recordGone": "Key record no longer exists.",
+            "provider": "Provider",
+            "lifetimeTokens": "Lifetime tokens {count}",
+            "noUser": "No user on this request.",
+            "authenticatedTag": "Authenticated"
+        },
+        "status": {
+            "success": "Success",
+            "failed": "Failed",
+            "successful": "Successful"
+        },
+        "stream": {
+            "yes": "Yes",
+            "no": "No",
+            "streaming": "Streaming",
+            "nonStreaming": "Non-streaming"
+        },
+        "live": {
+            "pause": "Pause",
+            "resume": "Resume",
+            "onMessage": "Live updates on — table refreshes when new request logs arrive.",
+            "offMessage": "Live updates paused — resume to auto-refresh on new logs."
+        },
+        "retention": "Detailed request logs older than 90 days are removed automatically. Lifetime usage totals on API keys and proxy keys are kept.",
+        "filters": {
+            "title": "Filters",
+            "reset": "Reset",
+            "collapse": "Collapse filters",
+            "expand": "Expand filters",
+            "apiKeyActive": "API key filtered",
+            "proxyKeyActive": "Proxy key filtered",
+            "statusTag": "Status: {status}",
+            "formatTag": "Format: {format}",
+            "clickToEdit": "Click Filters to edit"
+        },
+        "actions": {
+            "viewDetails": "View details",
+            "copyRequestId": "Copy request ID",
+            "close": "Close",
+            "back": "Back to Request Logs"
+        },
+        "notFound": {
+            "title": "Request Log Not Found",
+            "description": "The requested log could not be found or you don't have permission to view it."
+        },
+        "clipboard": {
+            "copied": "Copied to Clipboard",
+            "copiedDesc": "{label} has been copied to clipboard.",
+            "downloadStarted": "Download Started",
+            "downloadStartedDesc": "{filename} has been downloaded.",
+            "copyNamed": "Copy {title}",
+            "downloadNamed": "Download {title}"
+        },
+        "metrics": {
+            "api": "API: {duration}",
+            "total": "Total: {duration}",
+            "attempts": "Attempts:",
+            "severity": "Severity: {level}",
+            "retries": "{count, plural, one {# retry} other {# retries}}",
+            "apiDuration": "API duration",
+            "totalTime": "Total time",
+            "attemptsLabel": "Attempts",
+            "totalTokens": "Total tokens",
+            "promptCompletion": "Prompt / completion",
+            "model": "Model"
+        },
+        "severity": {
+            "success": "Success",
+            "minor": "Minor Issue",
+            "moderate": "Moderate Issue",
+            "high": "High Issue",
+            "critical": "Critical Issue",
+            "severe": "Severe Issue",
+            "extreme": "Extreme Issue"
+        },
+        "details": {
+            "overview": "Overview",
+            "performanceUsage": "Performance & usage"
+        },
+        "payload": {
+            "request": "Request",
+            "response": "Response",
+            "error": "Error",
+            "bodyCaptured": "Body captured",
+            "bodyTruncated": "Body captured · truncated",
+            "headersOnly": "Headers only",
+            "noData": "No data",
+            "noResponse": "No response data",
+            "noError": "No error details",
+            "bodyNotStored": "Body not stored.",
+            "enableInSettings": "Enable in Settings → Observability"
+        },
+        "retries": {
+            "title": "Retry timeline",
+            "summary": "{count, plural, one {# retry} other {# retries}} · {ms}ms",
+            "hint": "All entries below are failed attempts. Final outcome is the request status above.",
+            "loadingKeys": "Loading API key names…",
+            "attempt": "Attempt #{number}"
+        }
     },
     "user_settings": {
         "user_settings": "Settings",

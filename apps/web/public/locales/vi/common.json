@@ -460,7 +460,150 @@
     },
     "request_logs": {
         "request_logs": "Nhật ký",
-        "titles": { "list": "Nhật ký", "show": "Xem nhật ký" }
+        "titles": {
+            "list": "Nhật ký",
+            "show": "Xem nhật ký",
+            "details": "Chi tiết nhật ký"
+        },
+        "fields": {
+            "keys": "Khóa",
+            "status": "Trạng thái",
+            "type": "Loại",
+            "format": "Định dạng",
+            "stream": "Stream",
+            "performance": "Hiệu năng",
+            "tokens": "Token",
+            "created": "Thời gian",
+            "requestId": "Request ID",
+            "body": "Nội dung",
+            "headersMeta": "Header & meta",
+            "apiFormat": "Định dạng API",
+            "dateRange": "Khoảng thời gian",
+            "proxy": "Proxy",
+            "api": "API"
+        },
+        "placeholders": {
+            "searchRequestId": "Tìm request ID…",
+            "selectFormat": "Chọn định dạng",
+            "selectStatus": "Chọn trạng thái",
+            "selectStream": "Chọn kiểu stream",
+            "searchApiKey": "Tìm khóa API theo tên…",
+            "searchProxyKey": "Tìm khóa proxy theo tên…"
+        },
+        "identity": {
+            "apiKey": "Khóa API",
+            "proxyKey": "Khóa proxy",
+            "authenticated": "Người dùng đã xác thực",
+            "anonymous": "Ẩn danh",
+            "userId": "User ID",
+            "copyUserId": "Sao chép user ID",
+            "copyKeyId": "Sao chép ID {title}",
+            "keyId": "ID {title}",
+            "user": "Người dùng",
+            "removed": "Đã xóa",
+            "removedLabel": "{name} (đã xóa)",
+            "removedSuffix": " · đã xóa",
+            "notUsed": "Không dùng trong request này.",
+            "removedFromVault": "Đã xóa khỏi vault · tên lấy từ bản ghi khóa.",
+            "recordGone": "Bản ghi khóa không còn tồn tại.",
+            "provider": "Nhà cung cấp",
+            "lifetimeTokens": "Token suốt đời {count}",
+            "noUser": "Không có người dùng trên request này.",
+            "authenticatedTag": "Đã xác thực"
+        },
+        "status": {
+            "success": "Thành công",
+            "failed": "Thất bại",
+            "successful": "Thành công"
+        },
+        "stream": {
+            "yes": "Có",
+            "no": "Không",
+            "streaming": "Streaming",
+            "nonStreaming": "Không stream"
+        },
+        "live": {
+            "pause": "Tạm dừng",
+            "resume": "Tiếp tục",
+            "onMessage": "Đang cập nhật trực tiếp — bảng làm mới khi có nhật ký mới.",
+            "offMessage": "Đã tạm dừng cập nhật trực tiếp — bấm tiếp tục để tự làm mới."
+        },
+        "retention": "Nhật ký chi tiết cũ hơn 90 ngày sẽ bị xóa tự động. Tổng mức dùng suốt đời trên khóa API và khóa proxy được giữ lại.",
+        "filters": {
+            "title": "Bộ lọc",
+            "reset": "Đặt lại",
+            "collapse": "Thu gọn bộ lọc",
+            "expand": "Mở rộng bộ lọc",
+            "apiKeyActive": "Đã lọc khóa API",
+            "proxyKeyActive": "Đã lọc khóa proxy",
+            "statusTag": "Trạng thái: {status}",
+            "formatTag": "Định dạng: {format}",
+            "clickToEdit": "Bấm Bộ lọc để chỉnh"
+        },
+        "actions": {
+            "viewDetails": "Xem chi tiết",
+            "copyRequestId": "Sao chép request ID",
+            "close": "Đóng",
+            "back": "Quay lại nhật ký"
+        },
+        "notFound": {
+            "title": "Không tìm thấy nhật ký",
+            "description": "Không tìm thấy nhật ký này hoặc bạn không có quyền xem."
+        },
+        "clipboard": {
+            "copied": "Đã sao chép",
+            "copiedDesc": "Đã sao chép {label} vào clipboard.",
+            "downloadStarted": "Đã bắt đầu tải xuống",
+            "downloadStartedDesc": "Đã tải {filename}.",
+            "copyNamed": "Sao chép {title}",
+            "downloadNamed": "Tải {title}"
+        },
+        "metrics": {
+            "api": "API: {duration}",
+            "total": "Tổng: {duration}",
+            "attempts": "Số lần thử:",
+            "severity": "Mức độ: {level}",
+            "retries": "{count, plural, one {# lần thử lại} other {# lần thử lại}}",
+            "apiDuration": "Thời gian API",
+            "totalTime": "Tổng thời gian",
+            "attemptsLabel": "Số lần thử",
+            "totalTokens": "Tổng token",
+            "promptCompletion": "Prompt / completion",
+            "model": "Model"
+        },
+        "severity": {
+            "success": "Thành công",
+            "minor": "Vấn đề nhỏ",
+            "moderate": "Vấn đề vừa",
+            "high": "Vấn đề cao",
+            "critical": "Nghiêm trọng",
+            "severe": "Rất nghiêm trọng",
+            "extreme": "Cực kỳ nghiêm trọng"
+        },
+        "details": {
+            "overview": "Tổng quan",
+            "performanceUsage": "Hiệu năng & mức dùng"
+        },
+        "payload": {
+            "request": "Request",
+            "response": "Response",
+            "error": "Lỗi",
+            "bodyCaptured": "Đã lưu nội dung",
+            "bodyTruncated": "Đã lưu nội dung · bị cắt",
+            "headersOnly": "Chỉ header",
+            "noData": "Không có dữ liệu",
+            "noResponse": "Không có dữ liệu response",
+            "noError": "Không có chi tiết lỗi",
+            "bodyNotStored": "Nội dung chưa được lưu.",
+            "enableInSettings": "Bật trong Cài đặt → Giám sát"
+        },
+        "retries": {
+            "title": "Dòng thời gian thử lại",
+            "summary": "{count, plural, one {# lần thử lại} other {# lần thử lại}} · {ms}ms",
+            "hint": "Tất cả mục bên dưới là các lần thử thất bại. Kết quả cuối là trạng thái request ở trên.",
+            "loadingKeys": "Đang tải tên khóa API…",
+            "attempt": "Lần thử #{number}"
+        }
     },
     "user_settings": {
         "user_settings": "Cài đặt",

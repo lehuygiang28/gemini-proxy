@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
-import { useGo, type LiveModeProps } from '@refinedev/core';
+import { useGo, useTranslation, type LiveModeProps } from '@refinedev/core';
 import {
     Table,
     Space,
@@ -34,7 +34,7 @@ import {
 } from '@ant-design/icons';
 import { DateTimeDisplay } from '@/components/common';
 import { ConnectionStatusBadge } from '@/features/observability';
-import { KeyCombobox, formatKeyLabel } from '@/features/request-logs';
+import { KeyCombobox, resolveKeyLabel } from '@/features/request-logs';
 import type { RequestLog } from '@/types/request-log.types';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
@@ -43,7 +43,6 @@ import {
     formatDuration,
     formatTokenCount,
     getAttemptCountColor,
-    getAttemptCountSeverity,
     getRequestTypeColor,
     getRequestType,
 } from '@/utils/table-helpers';
@@ -85,12 +84,23 @@ function countActiveFilters(values: RequestLogSearch | undefined): number {
     return count;
 }
 
+function getAttemptSeverityKey(attemptCount: number): string {
+    if (attemptCount === 1) return 'request_logs.severity.success';
+    if (attemptCount <= 2) return 'request_logs.severity.minor';
+    if (attemptCount <= 4) return 'request_logs.severity.moderate';
+    if (attemptCount <= 5) return 'request_logs.severity.high';
+    if (attemptCount <= 10) return 'request_logs.severity.critical';
+    if (attemptCount <= 20) return 'request_logs.severity.severe';
+    return 'request_logs.severity.extreme';
+}
+
 /**
  * Request logs history with Refine liveMode auto updates.
  */
 export default function RequestLogsListPage() {
     const { token } = useToken();
     const go = useGo();
+    const { translate } = useTranslation();
     const [isLive, setIsLive] = useState(true);
     const [filtersOpen, setFiltersOpen] = useState(true);
     const [formValues, setFormValues] = useState<RequestLogSearch>({});
@@ -241,18 +251,29 @@ export default function RequestLogsListPage() {
         [],
     );
 
+    const formatRemovedKeyLabel = useCallback(
+        (input: { joined?: { name: string; deleted_at: string | null } | null; id?: string | null }) => {
+            const resolved = resolveKeyLabel(input);
+            if (resolved.isRemoved && resolved.label !== '—') {
+                return translate('request_logs.identity.removedLabel', { name: resolved.label });
+            }
+            return resolved.label;
+        },
+        [translate],
+    );
+
     const tableColumns = useMemo(
         () => [
             {
-                title: 'Keys',
+                title: translate('request_logs.fields.keys'),
                 key: 'keys',
                 width: 200,
                 render: (_: unknown, record: ListRequestLog) => {
-                    const proxy = formatKeyLabel({
+                    const proxy = formatRemovedKeyLabel({
                         joined: record.proxy_api_keys,
                         id: record.proxy_key_id,
                     });
-                    const api = formatKeyLabel({
+                    const api = formatRemovedKeyLabel({
                         joined: record.api_keys,
                         id: record.api_key_id,
                     });
@@ -267,7 +288,7 @@ export default function RequestLogsListPage() {
                                         color: 'var(--gp-text-muted)',
                                     }}
                                 >
-                                    Proxy
+                                    {translate('request_logs.fields.proxy')}
                                 </span>
                                 <span style={{ fontSize: 13, color: 'var(--gp-text)' }}>{proxy}</span>
                             </div>
@@ -279,7 +300,7 @@ export default function RequestLogsListPage() {
                                         color: 'var(--gp-text-muted)',
                                     }}
                                 >
-                                    API
+                                    {translate('request_logs.fields.api')}
                                 </span>
                                 <span style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
                                     {api}
@@ -290,19 +311,21 @@ export default function RequestLogsListPage() {
                 },
             },
             {
-                title: 'Status',
+                title: translate('request_logs.fields.status'),
                 dataIndex: 'is_successful',
                 key: 'is_successful',
                 width: 96,
                 render: (value: boolean) => (
                     <Tag color={value ? 'success' : 'error'} style={{ borderRadius: 2 }}>
-                        {value ? 'Success' : 'Failed'}
+                        {value
+                            ? translate('request_logs.status.success')
+                            : translate('request_logs.status.failed')}
                     </Tag>
                 ),
                 sorter: true,
             },
             {
-                title: 'Type',
+                title: translate('request_logs.fields.type'),
                 dataIndex: 'api_format',
                 key: 'api_format',
                 width: 88,
@@ -314,19 +337,21 @@ export default function RequestLogsListPage() {
                 sorter: true,
             },
             {
-                title: 'Stream',
+                title: translate('request_logs.fields.stream'),
                 dataIndex: 'is_stream',
                 key: 'is_stream',
                 width: 72,
                 render: (value: boolean) => (
                     <Tag color={value ? 'processing' : 'default'} style={{ borderRadius: 2 }}>
-                        {value ? 'Yes' : 'No'}
+                        {value
+                            ? translate('request_logs.stream.yes')
+                            : translate('request_logs.stream.no')}
                     </Tag>
                 ),
                 sorter: true,
             },
             {
-                title: 'Performance',
+                title: translate('request_logs.fields.performance'),
                 key: 'performance',
                 width: 140,
                 render: (_: unknown, record: ListRequestLog) => {
@@ -336,13 +361,23 @@ export default function RequestLogsListPage() {
                         : 0;
                     return (
                         <div style={{ fontSize: token.fontSizeSM }}>
-                            <div>API: {formatDuration(metrics.duration_ms)}</div>
-                            <div>Total: {formatDuration(metrics.total_response_time_ms)}</div>
+                            <div>
+                                {translate('request_logs.metrics.api', {
+                                    duration: formatDuration(metrics.duration_ms),
+                                })}
+                            </div>
+                            <div>
+                                {translate('request_logs.metrics.total', {
+                                    duration: formatDuration(metrics.total_response_time_ms),
+                                })}
+                            </div>
                             <Tooltip
-                                title={`Severity: ${getAttemptCountSeverity(metrics.attempt_count)}`}
+                                title={translate('request_logs.metrics.severity', {
+                                    level: translate(getAttemptSeverityKey(metrics.attempt_count)),
+                                })}
                             >
                                 <span>
-                                    Attempts:{' '}
+                                    {translate('request_logs.metrics.attempts')}{' '}
                                     <Tag
                                         color={getAttemptCountColor(metrics.attempt_count)}
                                         style={{ borderRadius: 2 }}
@@ -353,7 +388,7 @@ export default function RequestLogsListPage() {
                             </Tooltip>
                             {retryCount > 0 && (
                                 <div style={{ color: token.colorError }}>
-                                    {retryCount} retr{retryCount > 1 ? 'ies' : 'y'}
+                                    {translate('request_logs.metrics.retries', { count: retryCount })}
                                 </div>
                             )}
                         </div>
@@ -361,7 +396,7 @@ export default function RequestLogsListPage() {
                 },
             },
             {
-                title: 'Tokens',
+                title: translate('request_logs.fields.tokens'),
                 key: 'token_usage',
                 width: 80,
                 render: (_: unknown, record: ListRequestLog) => {
@@ -378,7 +413,7 @@ export default function RequestLogsListPage() {
                 },
             },
             {
-                title: 'Created',
+                title: translate('request_logs.fields.created'),
                 dataIndex: 'created_at',
                 key: 'created_at',
                 width: 150,
@@ -386,7 +421,7 @@ export default function RequestLogsListPage() {
                 render: (value: string | null) => <DateTimeDisplay dateString={value} />,
             },
             {
-                title: 'Request ID',
+                title: translate('request_logs.fields.requestId'),
                 dataIndex: 'request_id',
                 key: 'request_id',
                 width: 130,
@@ -400,7 +435,7 @@ export default function RequestLogsListPage() {
                                 {value.slice(0, 8)}…{value.slice(-4)}
                             </span>
                         </Tooltip>
-                        <Tooltip title="Copy request ID">
+                        <Tooltip title={translate('request_logs.actions.copyRequestId')}>
                             <Button
                                 type="text"
                                 size="small"
@@ -409,7 +444,7 @@ export default function RequestLogsListPage() {
                                     event.stopPropagation();
                                     handleCopyRequestId(value);
                                 }}
-                                aria-label="Copy request ID"
+                                aria-label={translate('request_logs.actions.copyRequestId')}
                             />
                         </Tooltip>
                     </Space>
@@ -420,7 +455,7 @@ export default function RequestLogsListPage() {
                 key: 'actions',
                 width: 48,
                 render: (_: unknown, record: ListRequestLog) => (
-                    <Tooltip title="View details">
+                    <Tooltip title={translate('request_logs.actions.viewDetails')}>
                         <Button
                             type="text"
                             icon={<EyeOutlined />}
@@ -430,14 +465,14 @@ export default function RequestLogsListPage() {
                 ),
             },
         ],
-        [token, handleViewDetails, handleCopyRequestId],
+        [token, handleViewDetails, handleCopyRequestId, translate, formatRemovedKeyLabel],
     );
 
     return (
         <List
             title={
                 <Space>
-                    <span>Logs</span>
+                    <span>{translate('request_logs.titles.list')}</span>
                     {tableProps.pagination && (
                         <Badge
                             count={tableProps.pagination.total}
@@ -451,20 +486,22 @@ export default function RequestLogsListPage() {
             headerButtons={
                 <Space>
                     <Button icon={<DashboardOutlined />} onClick={() => go({ to: '/dashboard' })}>
-                        Console
+                        {translate('dashboard.dashboard')}
                     </Button>
                     <Button
                         icon={isLive ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                         onClick={() => setIsLive((value) => !value)}
                     >
-                        {isLive ? 'Pause' : 'Resume'}
+                        {isLive
+                            ? translate('request_logs.live.pause')
+                            : translate('request_logs.live.resume')}
                     </Button>
                     <Button
                         icon={<ReloadOutlined />}
                         onClick={() => void tableQuery.refetch()}
                         loading={tableQuery.isFetching}
                     >
-                        Refresh
+                        {translate('buttons.refresh')}
                     </Button>
                 </Space>
             }
@@ -475,10 +512,10 @@ export default function RequestLogsListPage() {
                 style={{ marginBottom: 12 }}
                 message={
                     isLive
-                        ? 'Live updates on — table refreshes when new request logs arrive.'
-                        : 'Live updates paused — resume to auto-refresh on new logs.'
+                        ? translate('request_logs.live.onMessage')
+                        : translate('request_logs.live.offMessage')
                 }
-                description="Detailed request logs older than 90 days are removed automatically. Lifetime usage totals on API keys and proxy keys are kept."
+                description={translate('request_logs.retention')}
             />
 
             <div className="gp-panel" style={{ marginBottom: 12, padding: 16 }}>
@@ -490,7 +527,7 @@ export default function RequestLogsListPage() {
                             icon={<FilterOutlined />}
                             onClick={toggleFilters}
                         >
-                            Filters
+                            {translate('request_logs.filters.title')}
                         </Button>
                         {activeFilterCount > 0 ? (
                             <Badge
@@ -504,7 +541,7 @@ export default function RequestLogsListPage() {
                             size="small"
                             type="text"
                         >
-                            Reset
+                            {translate('request_logs.filters.reset')}
                         </Button>
                     </Space>
                     <Button
@@ -512,7 +549,11 @@ export default function RequestLogsListPage() {
                         size="small"
                         icon={filtersOpen ? <UpOutlined /> : <DownOutlined />}
                         onClick={toggleFilters}
-                        aria-label={filtersOpen ? 'Collapse filters' : 'Expand filters'}
+                        aria-label={
+                            filtersOpen
+                                ? translate('request_logs.filters.collapse')
+                                : translate('request_logs.filters.expand')
+                        }
                     />
                 </Space>
 
@@ -527,7 +568,7 @@ export default function RequestLogsListPage() {
                                 }}
                                 style={{ borderRadius: 2 }}
                             >
-                                API key filtered
+                                {translate('request_logs.filters.apiKeyActive')}
                             </Tag>
                         ) : null}
                         {formValues.proxy_key_id ? (
@@ -539,7 +580,7 @@ export default function RequestLogsListPage() {
                                 }}
                                 style={{ borderRadius: 2 }}
                             >
-                                Proxy key filtered
+                                {translate('request_logs.filters.proxyKeyActive')}
                             </Tag>
                         ) : null}
                         {formValues.is_successful !== undefined &&
@@ -552,7 +593,11 @@ export default function RequestLogsListPage() {
                                 }}
                                 style={{ borderRadius: 2 }}
                             >
-                                Status: {formValues.is_successful ? 'Success' : 'Failed'}
+                                {translate('request_logs.filters.statusTag', {
+                                    status: formValues.is_successful
+                                        ? translate('request_logs.status.success')
+                                        : translate('request_logs.status.failed'),
+                                })}
                             </Tag>
                         ) : null}
                         {formValues.api_format ? (
@@ -564,7 +609,9 @@ export default function RequestLogsListPage() {
                                 }}
                                 style={{ borderRadius: 2 }}
                             >
-                                Format: {formValues.api_format}
+                                {translate('request_logs.filters.formatTag', {
+                                    format: formValues.api_format,
+                                })}
                             </Tag>
                         ) : null}
                         {formValues.request_id ? (
@@ -576,11 +623,11 @@ export default function RequestLogsListPage() {
                                 }}
                                 style={{ borderRadius: 2 }}
                             >
-                                Request ID
+                                {translate('request_logs.fields.requestId')}
                             </Tag>
                         ) : null}
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                            Click Filters to edit
+                            {translate('request_logs.filters.clickToEdit')}
                         </Text>
                     </Space>
                 ) : null}
@@ -596,56 +643,106 @@ export default function RequestLogsListPage() {
                     >
                         <Row gutter={[12, 8]}>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="Request ID" name="request_id">
+                                <Form.Item
+                                    label={translate('request_logs.fields.requestId')}
+                                    name="request_id"
+                                >
                                     <Search
-                                        placeholder="Search request ID…"
+                                        placeholder={translate(
+                                            'request_logs.placeholders.searchRequestId',
+                                        )}
                                         allowClear
                                         enterButton={<SearchOutlined />}
                                     />
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="API Format" name="api_format">
-                                    <Select placeholder="Select format" allowClear>
+                                <Form.Item
+                                    label={translate('request_logs.fields.apiFormat')}
+                                    name="api_format"
+                                >
+                                    <Select
+                                        placeholder={translate(
+                                            'request_logs.placeholders.selectFormat',
+                                        )}
+                                        allowClear
+                                    >
                                         <Select.Option value="gemini">Gemini</Select.Option>
                                         <Select.Option value="openai">OpenAI</Select.Option>
                                     </Select>
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="Status" name="is_successful">
-                                    <Select placeholder="Select status" allowClear>
-                                        <Select.Option value={true}>Successful</Select.Option>
-                                        <Select.Option value={false}>Failed</Select.Option>
+                                <Form.Item
+                                    label={translate('request_logs.fields.status')}
+                                    name="is_successful"
+                                >
+                                    <Select
+                                        placeholder={translate(
+                                            'request_logs.placeholders.selectStatus',
+                                        )}
+                                        allowClear
+                                    >
+                                        <Select.Option value={true}>
+                                            {translate('request_logs.status.successful')}
+                                        </Select.Option>
+                                        <Select.Option value={false}>
+                                            {translate('request_logs.status.failed')}
+                                        </Select.Option>
                                     </Select>
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="Stream" name="is_stream">
-                                    <Select placeholder="Select stream type" allowClear>
-                                        <Select.Option value={true}>Streaming</Select.Option>
-                                        <Select.Option value={false}>Non-streaming</Select.Option>
+                                <Form.Item
+                                    label={translate('request_logs.fields.stream')}
+                                    name="is_stream"
+                                >
+                                    <Select
+                                        placeholder={translate(
+                                            'request_logs.placeholders.selectStream',
+                                        )}
+                                        allowClear
+                                    >
+                                        <Select.Option value={true}>
+                                            {translate('request_logs.stream.streaming')}
+                                        </Select.Option>
+                                        <Select.Option value={false}>
+                                            {translate('request_logs.stream.nonStreaming')}
+                                        </Select.Option>
                                     </Select>
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="API key" name="api_key_id">
+                                <Form.Item
+                                    label={translate('request_logs.identity.apiKey')}
+                                    name="api_key_id"
+                                >
                                     <KeyCombobox
                                         resource="api_keys"
-                                        placeholder="Search API key by name…"
+                                        placeholder={translate(
+                                            'request_logs.placeholders.searchApiKey',
+                                        )}
                                     />
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={6}>
-                                <Form.Item label="Proxy key" name="proxy_key_id">
+                                <Form.Item
+                                    label={translate('request_logs.identity.proxyKey')}
+                                    name="proxy_key_id"
+                                >
                                     <KeyCombobox
                                         resource="proxy_api_keys"
-                                        placeholder="Search proxy key by name…"
+                                        placeholder={translate(
+                                            'request_logs.placeholders.searchProxyKey',
+                                        )}
                                     />
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12} md={12}>
-                                <Form.Item label="Date range" name="date_range">
+                                <Form.Item
+                                    label={translate('request_logs.fields.dateRange')}
+                                    name="date_range"
+                                >
                                     <RangePicker
                                         style={{ width: '100%' }}
                                         showTime

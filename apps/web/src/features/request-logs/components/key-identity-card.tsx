@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Space, Tag, Typography } from 'antd';
 import { CopyOutlined, KeyOutlined, SafetyOutlined } from '@ant-design/icons';
+import { useTranslation } from '@refinedev/core';
 import { formatTokenCount } from '@/utils/table-helpers';
 import { resolveKeyLabel } from '../resolve-key-label';
 
@@ -28,7 +29,11 @@ export type KeyIdentityCardProps = {
  * Name-first key identity for log detail. Never replaces body with a warning Alert.
  */
 export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCardProps) {
-    const title = kind === 'api' ? 'API key' : 'Proxy key';
+    const { translate } = useTranslation();
+    const title =
+        kind === 'api'
+            ? translate('request_logs.identity.apiKey')
+            : translate('request_logs.identity.proxyKey');
     const Icon = kind === 'api' ? KeyOutlined : SafetyOutlined;
     const resolved = resolveKeyLabel({
         joined: joined ? { name: joined.name, deleted_at: joined.deleted_at } : null,
@@ -45,13 +50,15 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                     </span>
                 </Space>
                 {resolved.isRemoved && keyId ? (
-                    <Tag style={{ borderRadius: 2, margin: 0 }}>Removed</Tag>
+                    <Tag style={{ borderRadius: 2, margin: 0 }}>
+                        {translate('request_logs.identity.removed')}
+                    </Tag>
                 ) : joined && !joined.deleted_at ? (
                     <Tag
                         color={joined.is_active ? 'success' : 'error'}
                         style={{ borderRadius: 2, margin: 0 }}
                     >
-                        {joined.is_active ? 'Active' : 'Inactive'}
+                        {translate(joined.is_active ? 'common.active' : 'common.inactive')}
                     </Tag>
                 ) : null}
             </Space>
@@ -60,7 +67,7 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                 <>
                     <Text style={{ color: 'var(--gp-text-muted)' }}>—</Text>
                     <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gp-text-muted)' }}>
-                        Not used on this request.
+                        {translate('request_logs.identity.notUsed')}
                     </div>
                 </>
             ) : (
@@ -79,23 +86,25 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                             type="text"
                             size="small"
                             icon={<CopyOutlined />}
-                            onClick={() => onCopy(keyId, `${title} ID`)}
-                            aria-label={`Copy ${title} ID`}
+                            onClick={() =>
+                                onCopy(keyId, translate('request_logs.identity.keyId', { title }))
+                            }
+                            aria-label={translate('request_logs.identity.copyKeyId', { title })}
                         />
                     </Space>
                     {resolved.isRemoved && joined ? (
                         <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gp-text-muted)' }}>
-                            Removed from vault · name from key record.
+                            {translate('request_logs.identity.removedFromVault')}
                         </div>
                     ) : null}
                     {resolved.isRemoved && !joined ? (
                         <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gp-text-muted)' }}>
-                            Key record no longer exists.
+                            {translate('request_logs.identity.recordGone')}
                         </div>
                     ) : null}
                     {joined && !joined.deleted_at && kind === 'api' && joined.provider ? (
                         <div style={{ marginTop: 8, fontSize: 12, color: 'var(--gp-text-secondary)' }}>
-                            Provider{' '}
+                            {translate('request_logs.identity.provider')}{' '}
                             <Tag color="blue" style={{ borderRadius: 2 }}>
                                 {joined.provider}
                             </Tag>
@@ -103,7 +112,9 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                     ) : null}
                     {joined && !joined.deleted_at && joined.total_tokens != null ? (
                         <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gp-text-secondary)' }}>
-                            Lifetime tokens {formatTokenCount(joined.total_tokens)}
+                            {translate('request_logs.identity.lifetimeTokens', {
+                                count: formatTokenCount(joined.total_tokens),
+                            })}
                         </div>
                     ) : null}
                 </>
