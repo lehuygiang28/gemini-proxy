@@ -807,7 +807,7 @@
             "github": "Kho GitHub",
             "issues": "Báo cáo sự cố",
             "builtWith": "Xây dựng với",
-            "copyright": "© {year} Gemini Proxy • Làm với ❤️ bởi"
+            "copyright": "© {year} Gemini Proxy • Made with ❤️ by"
         },
         "architecture": {
             "heading": "Kiến trúc",
