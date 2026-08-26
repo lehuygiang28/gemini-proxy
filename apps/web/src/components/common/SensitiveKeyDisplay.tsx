@@ -1,6 +1,8 @@
+'use client';
+
 import React from 'react';
 import { Button, Tooltip, Space, Input, theme } from 'antd';
-import { useNotification } from '@refinedev/core';
+import { useNotification, useTranslation } from '@refinedev/core';
 import { EyeOutlined, EyeInvisibleOutlined, CopyOutlined } from '@ant-design/icons';
 import { maskSensitiveKey, copyToClipboard } from '@/utils/table-helpers';
 
@@ -20,10 +22,14 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
     showCopyButton = true,
 }) => {
     const notification = useNotification();
+    const { translate } = useTranslation();
     const { token } = useToken();
 
     const actions = [
-        <Tooltip key="toggle" title={isRevealed ? 'Hide Key' : 'Reveal Key'}>
+        <Tooltip
+            key="toggle"
+            title={translate(isRevealed ? 'common.hideKey' : 'common.revealKey')}
+        >
             <Button
                 type="text"
                 size="small"
@@ -37,19 +43,19 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
         if (copyToClipboard(value)) {
             notification.open({
                 type: 'success',
-                message: 'Copied to clipboard',
+                message: translate('common.copiedToClipboard'),
             });
         } else {
             notification.open({
                 type: 'error',
-                message: 'Failed to copy, try again later',
+                message: translate('common.copyFailedRetry'),
             });
         }
     };
 
     if (showCopyButton) {
         actions.push(
-            <Tooltip key="copy" title="Copy to clipboard">
+            <Tooltip key="copy" title={translate('common.copyToClipboard')}>
                 <Button type="text" size="small" icon={<CopyOutlined />} onClick={copyHandler} />
             </Tooltip>,
         );

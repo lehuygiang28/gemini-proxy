@@ -132,7 +132,10 @@ export function KeyHealthPanel({
                                         item.kind === 'api'
                                             ? translate('observability.apiKey')
                                             : translate('observability.proxyKey'),
-                                    count: formatTokenCount(item.totalTokens),
+                                    count: formatTokenCount(
+                                        item.totalTokens,
+                                        translate('common.na'),
+                                    ),
                                     fails: item.failureCount,
                                 })}
                             </Text>

@@ -332,7 +332,10 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                                     },
                                 ]}
                             >
-                                <Input placeholder="you@example.com" autoComplete="email" />
+                                <Input
+                                    placeholder={translate('common.emailPlaceholder')}
+                                    autoComplete="email"
+                                />
                             </Form.Item>
                         ) : null}
 

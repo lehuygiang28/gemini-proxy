@@ -322,7 +322,9 @@ export function AccountSettingsForm() {
                                 <span className="gp-account-current-label">
                                     {translate('account.currentEmail')}
                                 </span>
-                                <span className="gp-account-current-value">{emailLabel || '—'}</span>
+                                <span className="gp-account-current-value">
+                                    {emailLabel || translate('common.na')}
+                                </span>
                             </div>
                             <Form
                                 form={emailForm}

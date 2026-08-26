@@ -3,9 +3,9 @@ import { PROVIDERS } from '@/constants/providers';
 import type { PerformanceMetrics, UsageMetadata } from '@gemini-proxy/database';
 
 // Token formatting utilities
-export const formatTokenCount = (count?: number): string => {
+export const formatTokenCount = (count?: number, emptyLabel = ''): string => {
     if (count === null || count === undefined) {
-        return `N/A`;
+        return emptyLabel;
     }
     if (count >= 1000000) {
         return `${(count / 1000000).toFixed(1)}M`;
@@ -16,9 +16,9 @@ export const formatTokenCount = (count?: number): string => {
     return count.toString();
 };
 
-export const formatDuration = (durationMs?: number): string => {
+export const formatDuration = (durationMs?: number, emptyLabel = ''): string => {
     if (durationMs === null || durationMs === undefined) {
-        return `N/A`;
+        return emptyLabel;
     }
     if (durationMs < 1000) {
         return `${durationMs}ms`;

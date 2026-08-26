@@ -107,7 +107,7 @@ export function ObservabilitySettingsForm() {
     };
 
     if (identityLoading || !userId) {
-        return <Text type="secondary">{translate('account.loading')}</Text>;
+        return <Text type="secondary">{translate('loading')}</Text>;
     }
 
     return (

@@ -355,6 +355,7 @@ export default function ProxyApiKeysListPage() {
                                                         {translate('proxy_api_keys.tokens.total', {
                                                             count: formatTokenCount(
                                                                 record.total_tokens,
+                                                                translate('common.na'),
                                                             ),
                                                         })}
                                                     </span>
@@ -369,6 +370,7 @@ export default function ProxyApiKeysListPage() {
                                                         {translate('proxy_api_keys.tokens.prompt', {
                                                             count: formatTokenCount(
                                                                 record.prompt_tokens,
+                                                                translate('common.na'),
                                                             ),
                                                         })}
                                                     </span>
@@ -379,6 +381,7 @@ export default function ProxyApiKeysListPage() {
                                                             {
                                                                 count: formatTokenCount(
                                                                     record.completion_tokens,
+                                                                    translate('common.na'),
                                                                 ),
                                                             },
                                                         )}

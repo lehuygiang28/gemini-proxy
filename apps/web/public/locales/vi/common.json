@@ -885,6 +885,13 @@
         "inactive": "Tắt",
         "enable": "Bấm để bật",
         "disable": "Bấm để tắt",
-        "genericError": "Đã xảy ra lỗi"
+        "genericError": "Đã xảy ra lỗi",
+        "successRate": "Tỷ lệ thành công: {rate}%",
+        "hideKey": "Ẩn khóa",
+        "revealKey": "Hiện khóa",
+        "copyToClipboard": "Sao chép vào clipboard",
+        "copiedToClipboard": "Đã sao chép vào clipboard",
+        "copyFailedRetry": "Không thể sao chép, thử lại sau",
+        "emailPlaceholder": "you@example.com"
     }
 }

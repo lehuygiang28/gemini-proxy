@@ -885,6 +885,13 @@
         "inactive": "Inactive",
         "enable": "Click to enable",
         "disable": "Click to disable",
-        "genericError": "Something went wrong"
+        "genericError": "Something went wrong",
+        "successRate": "Success Rate: {rate}%",
+        "hideKey": "Hide Key",
+        "revealKey": "Reveal Key",
+        "copyToClipboard": "Copy to clipboard",
+        "copiedToClipboard": "Copied to clipboard",
+        "copyFailedRetry": "Failed to copy, try again later",
+        "emailPlaceholder": "you@example.com"
     }
 }

@@ -75,12 +75,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
 
     const handleLogout = useCallback(() => {
         if (warnWhen) {
-            const confirmed = window.confirm(
-                translate(
-                    'warnWhenUnsavedChanges',
-                    'Are you sure you want to leave? You have unsaved changes.',
-                ),
-            );
+            const confirmed = window.confirm(translate('warnWhenUnsavedChanges'));
             if (!confirmed) {
                 return;
             }

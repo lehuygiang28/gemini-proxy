@@ -113,7 +113,10 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                     {joined && !joined.deleted_at && joined.total_tokens != null ? (
                         <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gp-text-secondary)' }}>
                             {translate('request_logs.identity.lifetimeTokens', {
-                                count: formatTokenCount(joined.total_tokens),
+                                count: formatTokenCount(
+                                    joined.total_tokens,
+                                    translate('common.na'),
+                                ),
                             })}
                         </div>
                     ) : null}

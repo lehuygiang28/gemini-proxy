@@ -128,18 +128,31 @@ export default function ProxyApiKeysShowPage() {
                                 label={translate('proxy_api_keys.tokens.totalTokens')}
                             >
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(record.total_tokens)}
+                                    {formatTokenCount(
+                                        record.total_tokens,
+                                        translate('common.na'),
+                                    )}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item
                                 label={translate('proxy_api_keys.tokens.promptTokens')}
                             >
-                                <Text>{formatTokenCount(record.prompt_tokens)}</Text>
+                                <Text>
+                                    {formatTokenCount(
+                                        record.prompt_tokens,
+                                        translate('common.na'),
+                                    )}
+                                </Text>
                             </Descriptions.Item>
                             <Descriptions.Item
                                 label={translate('proxy_api_keys.tokens.completionTokens')}
                             >
-                                <Text>{formatTokenCount(record.completion_tokens)}</Text>
+                                <Text>
+                                    {formatTokenCount(
+                                        record.completion_tokens,
+                                        translate('common.na'),
+                                    )}
+                                </Text>
                             </Descriptions.Item>
                         </Descriptions>
                     </Card>

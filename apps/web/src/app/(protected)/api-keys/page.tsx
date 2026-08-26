@@ -352,7 +352,10 @@ export default function ApiKeysListPage() {
                                         <div style={{ fontSize: token.fontSizeSM }}>
                                             <span style={{ color: token.colorInfo }}>
                                                 {translate('api_keys.tokens.total', {
-                                                    count: formatTokenCount(record.total_tokens),
+                                                    count: formatTokenCount(
+                                                        record.total_tokens,
+                                                        translate('common.na'),
+                                                    ),
                                                 })}
                                             </span>
                                         </div>
@@ -364,7 +367,10 @@ export default function ApiKeysListPage() {
                                         >
                                             <span>
                                                 {translate('api_keys.tokens.prompt', {
-                                                    count: formatTokenCount(record.prompt_tokens),
+                                                    count: formatTokenCount(
+                                                        record.prompt_tokens,
+                                                        translate('common.na'),
+                                                    ),
                                                 })}
                                             </span>
                                             {' | '}
@@ -372,6 +378,7 @@ export default function ApiKeysListPage() {
                                                 {translate('api_keys.tokens.completion', {
                                                     count: formatTokenCount(
                                                         record.completion_tokens,
+                                                        translate('common.na'),
                                                     ),
                                                 })}
                                             </span>

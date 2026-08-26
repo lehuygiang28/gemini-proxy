@@ -304,7 +304,7 @@ function MetricsStrip({
                         {translate('request_logs.metrics.apiDuration')}
                     </div>
                     <div className="gp-kpi-value" style={{ fontSize: 18 }}>
-                        {formatDuration(durationMs)}
+                        {formatDuration(durationMs, translate('common.na'))}
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
@@ -318,7 +318,7 @@ function MetricsStrip({
                             color: isSuccessful ? 'var(--gp-success)' : 'var(--gp-text)',
                         }}
                     >
-                        {formatDuration(totalMs)}
+                        {formatDuration(totalMs, translate('common.na'))}
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
@@ -340,7 +340,7 @@ function MetricsStrip({
                         {translate('request_logs.metrics.totalTokens')}
                     </div>
                     <div className="gp-kpi-value" style={{ fontSize: 18, color: 'var(--gp-accent)' }}>
-                        {formatTokenCount(totalTokens)}
+                        {formatTokenCount(totalTokens, translate('common.na'))}
                     </div>
                 </div>
                 <div className="gp-kpi-cell">
@@ -348,7 +348,8 @@ function MetricsStrip({
                         {translate('request_logs.metrics.promptCompletion')}
                     </div>
                     <div className="gp-kpi-value" style={{ fontSize: 16 }}>
-                        {formatTokenCount(promptTokens)} / {formatTokenCount(completionTokens)}
+                        {formatTokenCount(promptTokens, translate('common.na'))} /{' '}
+                        {formatTokenCount(completionTokens, translate('common.na'))}
                     </div>
                 </div>
                 {model ? (

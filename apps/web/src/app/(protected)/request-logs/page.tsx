@@ -363,12 +363,18 @@ export default function RequestLogsListPage() {
                         <div style={{ fontSize: token.fontSizeSM }}>
                             <div>
                                 {translate('request_logs.metrics.api', {
-                                    duration: formatDuration(metrics.duration_ms),
+                                    duration: formatDuration(
+                                        metrics.duration_ms,
+                                        translate('common.na'),
+                                    ),
                                 })}
                             </div>
                             <div>
                                 {translate('request_logs.metrics.total', {
-                                    duration: formatDuration(metrics.total_response_time_ms),
+                                    duration: formatDuration(
+                                        metrics.total_response_time_ms,
+                                        translate('common.na'),
+                                    ),
                                 })}
                             </div>
                             <Tooltip
@@ -403,10 +409,15 @@ export default function RequestLogsListPage() {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     return (
                         <div style={{ fontSize: token.fontSizeSM }}>
-                            <div>{formatTokenCount(usage.total_tokens)}</div>
+                            <div>
+                                {formatTokenCount(usage.total_tokens, translate('common.na'))}
+                            </div>
                             <div style={{ color: token.colorTextSecondary }}>
-                                {formatTokenCount(usage.prompt_tokens)} /{' '}
-                                {formatTokenCount(usage.completion_tokens)}
+                                {formatTokenCount(usage.prompt_tokens, translate('common.na'))} /{' '}
+                                {formatTokenCount(
+                                    usage.completion_tokens,
+                                    translate('common.na'),
+                                )}
                             </div>
                         </div>
                     );

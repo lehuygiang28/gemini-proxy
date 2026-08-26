@@ -90,7 +90,7 @@ export function buildConsoleKpiItems(
         {
             key: 'latency',
             label: translate('observability.kpi.avgLatency'),
-            value: formatDuration(input.avgResponseMs),
+            value: formatDuration(input.avgResponseMs, translate('common.na')),
             tone: 'default',
         },
         {
@@ -125,26 +125,26 @@ export function buildTokenUsageKpiItems(
         {
             key: 'input-tokens',
             label: translate('observability.kpi.inputTokens'),
-            value: formatTokenCount(input.promptTokens),
+            value: formatTokenCount(input.promptTokens, translate('common.na')),
             hint: periodHint,
         },
         {
             key: 'output-tokens',
             label: translate('observability.kpi.outputTokens'),
-            value: formatTokenCount(input.completionTokens),
+            value: formatTokenCount(input.completionTokens, translate('common.na')),
             hint: periodHint,
         },
         {
             key: 'cache-tokens',
             label: translate('observability.kpi.cacheTokens'),
-            value: formatTokenCount(input.cacheTokens),
+            value: formatTokenCount(input.cacheTokens, translate('common.na')),
             tone: 'default',
             hint: periodHint,
         },
         {
             key: 'total-tokens',
             label: translate('observability.kpi.totalTokens'),
-            value: formatTokenCount(input.totalTokens),
+            value: formatTokenCount(input.totalTokens, translate('common.na')),
             tone: 'accent',
             hint: periodHint,
         },
