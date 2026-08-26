@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert, Card, Space, Spin, Typography, theme } from 'antd';
+import { useTranslation } from '@refinedev/core';
 import { AuthPage } from '@components/auth-page';
 import { supabaseBrowserClient } from '@utils/supabase/client';
 
@@ -13,9 +14,13 @@ type GateState = 'loading' | 'ready' | 'error';
  * Handles: cookie session, ?code= exchange, hash tokens, PASSWORD_RECOVERY event.
  */
 export function UpdatePasswordClient() {
+    const { translate } = useTranslation();
     const { token } = theme.useToken();
     const [state, setState] = useState<GateState>('loading');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const invalidLinkMessage = translate('pages.updatePassword.invalidLink');
+    const validateFailedMessage = translate('pages.updatePassword.validateFailed');
 
     useEffect(() => {
         let cancelled = false;
@@ -59,10 +64,7 @@ export function UpdatePasswordClient() {
                         code,
                     );
                     if (error) {
-                        finishError(
-                            error.message ||
-                                'Reset link is invalid or expired. Request a new one.',
-                        );
+                        finishError(error.message || invalidLinkMessage);
                         return;
                     }
                     window.history.replaceState({}, '', '/update-password');
@@ -84,17 +86,13 @@ export function UpdatePasswordClient() {
                         if (data.session) {
                             finishReady();
                         } else {
-                            finishError(
-                                'Reset link is invalid or expired. Request a new one.',
-                            );
+                            finishError(invalidLinkMessage);
                         }
                     });
                 }, 2000);
             } catch (error: unknown) {
                 const message =
-                    error instanceof Error
-                        ? error.message
-                        : 'Could not validate the reset link.';
+                    error instanceof Error ? error.message : validateFailedMessage;
                 finishError(message);
             }
         })();
@@ -106,7 +104,7 @@ export function UpdatePasswordClient() {
             }
             authListener.subscription.unsubscribe();
         };
-    }, []);
+    }, [invalidLinkMessage, validateFailedMessage]);
 
     if (state === 'ready') {
         return <AuthPage type="updatePassword" />;
@@ -134,13 +132,13 @@ export function UpdatePasswordClient() {
             >
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
                     <Typography.Title level={3} style={{ marginBottom: 0 }}>
-                        Set a new password
+                        {translate('pages.updatePassword.title')}
                     </Typography.Title>
                     {state === 'loading' ? (
                         <Space>
                             <Spin size="small" />
                             <Typography.Text type="secondary">
-                                Validating your reset link…
+                                {translate('pages.updatePassword.validating')}
                             </Typography.Text>
                         </Space>
                     ) : null}
@@ -148,9 +146,13 @@ export function UpdatePasswordClient() {
                         <>
                             <Alert type="error" showIcon message={errorMessage} />
                             <Typography.Text>
-                                <Link href="/forgot-password">Request a new reset link</Link>
+                                <Link href="/forgot-password">
+                                    {translate('pages.updatePassword.requestNewLink')}
+                                </Link>
                                 {' · '}
-                                <Link href="/login">Back to sign in</Link>
+                                <Link href="/login">
+                                    {translate('pages.forgotPassword.buttons.backToSignIn')}
+                                </Link>
                             </Typography.Text>
                         </>
                     ) : null}

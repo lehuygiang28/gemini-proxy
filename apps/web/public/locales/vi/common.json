@@ -14,7 +14,8 @@
             "errors": {
                 "requiredEmail": "Email là bắt buộc",
                 "requiredPassword": "Mật khẩu là bắt buộc",
-                "validEmail": "Địa chỉ email không hợp lệ"
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "failed": "Đăng nhập thất bại"
             },
             "buttons": {
                 "submit": "Đăng nhập",
@@ -28,10 +29,12 @@
         "forgotPassword": {
             "title": "Quên mật khẩu?",
             "subtitle": "Nhập email để nhận liên kết đặt lại.",
+            "infoSent": "Đã gửi email đặt lại mật khẩu. Kiểm tra hộp thư của bạn.",
             "fields": { "email": "Email" },
             "errors": {
                 "requiredEmail": "Email là bắt buộc",
-                "validEmail": "Địa chỉ email không hợp lệ"
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "failed": "Không gửi được email đặt lại"
             },
             "buttons": {
                 "submit": "Gửi liên kết đặt lại",
@@ -42,6 +45,7 @@
         "register": {
             "title": "Đăng ký tài khoản",
             "subtitle": "Tạo tài khoản bằng email và mật khẩu.",
+            "infoCreated": "Đã tạo tài khoản. Kiểm tra email để xác nhận, rồi đăng nhập.",
             "fields": {
                 "email": "Email",
                 "password": "Mật khẩu"
@@ -50,7 +54,8 @@
                 "requiredEmail": "Email là bắt buộc",
                 "requiredPassword": "Mật khẩu là bắt buộc",
                 "validEmail": "Địa chỉ email không hợp lệ",
-                "minPassword": "Ít nhất 8 ký tự"
+                "minPassword": "Ít nhất 8 ký tự",
+                "failed": "Đăng ký thất bại"
             },
             "buttons": {
                 "submit": "Tạo tài khoản",
@@ -65,6 +70,7 @@
             "invalidLink": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
             "validateFailed": "Không thể xác thực liên kết đặt lại.",
             "requestNewLink": "Yêu cầu liên kết đặt lại mới",
+            "infoUpdated": "Đã cập nhật mật khẩu. Đăng nhập bằng mật khẩu mới.",
             "fields": {
                 "password": "Mật khẩu mới",
                 "confirmPassword": "Xác nhận mật khẩu"
@@ -73,7 +79,8 @@
                 "requiredPassword": "Mật khẩu là bắt buộc",
                 "requiredConfirmPassword": "Xác nhận mật khẩu là bắt buộc",
                 "confirmPasswordNotMatch": "Mật khẩu không khớp",
-                "minPassword": "Ít nhất 8 ký tự"
+                "minPassword": "Ít nhất 8 ký tự",
+                "failed": "Không cập nhật được mật khẩu"
             },
             "buttons": {
                 "submit": "Cập nhật mật khẩu",
@@ -204,6 +211,7 @@
         "active": "Bật",
         "inactive": "Tắt",
         "enable": "Bấm để bật",
-        "disable": "Bấm để tắt"
+        "disable": "Bấm để tắt",
+        "genericError": "Đã xảy ra lỗi"
     }
 }

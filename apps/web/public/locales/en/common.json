@@ -14,7 +14,8 @@
             "errors": {
                 "requiredEmail": "Email is required",
                 "requiredPassword": "Password is required",
-                "validEmail": "Invalid email address"
+                "validEmail": "Invalid email address",
+                "failed": "Login failed"
             },
             "buttons": {
                 "submit": "Sign in",
@@ -28,10 +29,12 @@
         "forgotPassword": {
             "title": "Forgot your password?",
             "subtitle": "Enter your email to receive a reset link.",
+            "infoSent": "Password reset email sent. Check your inbox.",
             "fields": { "email": "Email" },
             "errors": {
                 "requiredEmail": "Email is required",
-                "validEmail": "Invalid email address"
+                "validEmail": "Invalid email address",
+                "failed": "Failed to send reset email"
             },
             "buttons": {
                 "submit": "Send reset link",
@@ -42,6 +45,7 @@
         "register": {
             "title": "Sign up for your account",
             "subtitle": "Create an account with your email and a password.",
+            "infoCreated": "Account created. Check your email to confirm, then sign in.",
             "fields": {
                 "email": "Email",
                 "password": "Password"
@@ -50,7 +54,8 @@
                 "requiredEmail": "Email is required",
                 "requiredPassword": "Password is required",
                 "validEmail": "Invalid email address",
-                "minPassword": "At least 8 characters"
+                "minPassword": "At least 8 characters",
+                "failed": "Register failed"
             },
             "buttons": {
                 "submit": "Create account",
@@ -65,6 +70,7 @@
             "invalidLink": "Reset link is invalid or expired. Request a new one.",
             "validateFailed": "Could not validate the reset link.",
             "requestNewLink": "Request a new reset link",
+            "infoUpdated": "Password updated. Sign in with your new password.",
             "fields": {
                 "password": "New password",
                 "confirmPassword": "Confirm password"
@@ -73,7 +79,8 @@
                 "requiredPassword": "Password required",
                 "requiredConfirmPassword": "Confirm password is required",
                 "confirmPasswordNotMatch": "Passwords do not match",
-                "minPassword": "At least 8 characters"
+                "minPassword": "At least 8 characters",
+                "failed": "Failed to update password"
             },
             "buttons": {
                 "submit": "Update password",
@@ -204,6 +211,7 @@
         "active": "Active",
         "inactive": "Inactive",
         "enable": "Click to enable",
-        "disable": "Click to disable"
+        "disable": "Click to disable",
+        "genericError": "Something went wrong"
     }
 }

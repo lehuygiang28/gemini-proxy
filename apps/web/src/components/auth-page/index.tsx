@@ -10,6 +10,7 @@ import {
     useRegister,
     useForgotPassword,
     useUpdatePassword,
+    useTranslation,
 } from '@refinedev/core';
 import { LanguageSwitcher } from '@components/language-switcher';
 
@@ -17,6 +18,7 @@ type AuthType = NonNullable<AuthPageProps['type']>;
 
 export const AuthPage = (props: Partial<AuthPageProps>) => {
     const type: AuthType = (props.type as AuthType) ?? 'login';
+    const { translate } = useTranslation();
     const router = useRouter();
     const { token } = theme.useToken();
 
@@ -41,25 +43,37 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
             setErrorMessage(decodeURIComponent(error));
         }
         if (params.get('registered') === '1') {
-            setInfoMessage('Account created. Check your email to confirm, then sign in.');
+            setInfoMessage(translate('pages.register.infoCreated'));
         }
         if (params.get('passwordUpdated') === '1') {
-            setInfoMessage('Password updated. Sign in with your new password.');
+            setInfoMessage(translate('pages.updatePassword.infoUpdated'));
         }
-    }, []);
+    }, [translate]);
 
     const titles = useMemo(() => {
         switch (type) {
             case 'register':
-                return { title: 'Create your account', submit: 'Create account' };
+                return {
+                    title: translate('pages.register.title'),
+                    submit: translate('pages.register.buttons.submit'),
+                };
             case 'forgotPassword':
-                return { title: 'Reset your password', submit: 'Send reset link' };
+                return {
+                    title: translate('pages.forgotPassword.title'),
+                    submit: translate('pages.forgotPassword.buttons.submit'),
+                };
             case 'updatePassword':
-                return { title: 'Set a new password', submit: 'Update password' };
+                return {
+                    title: translate('pages.updatePassword.title'),
+                    submit: translate('pages.updatePassword.buttons.submit'),
+                };
             default:
-                return { title: 'Sign in to your account', submit: 'Sign in' };
+                return {
+                    title: translate('pages.login.title'),
+                    submit: translate('pages.login.buttons.submit'),
+                };
         }
-    }, [type]);
+    }, [type, translate]);
 
     const redirectAfterAuth = useCallback(
         async (path: string) => {
@@ -86,7 +100,12 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                                             () => resolve(),
                                         );
                                     } else {
-                                        reject(new Error(res?.error?.message ?? 'Login failed'));
+                                        reject(
+                                            new Error(
+                                                res?.error?.message ??
+                                                    translate('pages.login.errors.failed'),
+                                            ),
+                                        );
                                     }
                                 },
                                 onError: (err: unknown) => reject(err as Error),
@@ -105,13 +124,18 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                                             void redirectAfterAuth(target).then(() => resolve());
                                         } else {
                                             setInfoMessage(
-                                                'Account created. Check your email to confirm, then sign in.',
+                                                translate('pages.register.infoCreated'),
                                             );
                                             router.push(target);
                                             resolve();
                                         }
                                     } else {
-                                        reject(new Error(res?.error?.message ?? 'Register failed'));
+                                        reject(
+                                            new Error(
+                                                res?.error?.message ??
+                                                    translate('pages.register.errors.failed'),
+                                            ),
+                                        );
                                     }
                                 },
                                 onError: (err: unknown) => reject(err as Error),
@@ -126,13 +150,16 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                                 onSuccess: (res) => {
                                     if (res?.success) {
                                         setInfoMessage(
-                                            'Password reset email sent. Check your inbox.',
+                                            translate('pages.forgotPassword.infoSent'),
                                         );
                                         resolve();
                                     } else {
                                         reject(
                                             new Error(
-                                                res?.error?.message ?? 'Failed to send reset email',
+                                                res?.error?.message ??
+                                                    translate(
+                                                        'pages.forgotPassword.errors.failed',
+                                                    ),
                                             ),
                                         );
                                     }
@@ -153,7 +180,10 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                                     } else {
                                         reject(
                                             new Error(
-                                                res?.error?.message ?? 'Failed to update password',
+                                                res?.error?.message ??
+                                                    translate(
+                                                        'pages.updatePassword.errors.failed',
+                                                    ),
                                             ),
                                         );
                                     }
@@ -165,7 +195,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                 }
             } catch (e: unknown) {
                 const err = e as Error;
-                setErrorMessage(err?.message ?? 'Something went wrong');
+                setErrorMessage(err?.message ?? translate('common.genericError'));
             }
         },
         [
@@ -176,6 +206,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
             updatePassword,
             router,
             redirectAfterAuth,
+            translate,
         ],
     );
 
@@ -183,33 +214,41 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
         if (type === 'login') {
             return (
                 <Space size={8} split={<span>•</span>}>
-                    <Link href="/register">Create account</Link>
-                    <Link href="/forgot-password">Forgot password?</Link>
+                    <Link href="/register">{translate('pages.login.buttons.createAccount')}</Link>
+                    <Link href="/forgot-password">
+                        {translate('pages.login.buttons.forgotPassword')}
+                    </Link>
                 </Space>
             );
         }
         if (type === 'register') {
             return (
                 <Space size={8} split={<span>•</span>}>
-                    <Link href="/login">Have an account? Sign in</Link>
-                    <Link href="/forgot-password">Forgot password?</Link>
+                    <Link href="/login">{translate('pages.register.buttons.haveAccount')}</Link>
+                    <Link href="/forgot-password">
+                        {translate('pages.register.buttons.forgotPassword')}
+                    </Link>
                 </Space>
             );
         }
         if (type === 'updatePassword') {
             return (
                 <Space size={8} split={<span>•</span>}>
-                    <Link href="/login">Back to sign in</Link>
+                    <Link href="/login">
+                        {translate('pages.updatePassword.buttons.backToSignIn')}
+                    </Link>
                 </Space>
             );
         }
         return (
             <Space size={8} split={<span>•</span>}>
-                <Link href="/login">Back to sign in</Link>
-                <Link href="/register">Create account</Link>
+                <Link href="/login">
+                    {translate('pages.forgotPassword.buttons.backToSignIn')}
+                </Link>
+                <Link href="/register">{translate('pages.login.buttons.createAccount')}</Link>
             </Space>
         );
-    }, [type]);
+    }, [type, translate]);
 
     return (
         <div
@@ -240,13 +279,12 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                             {titles.title}
                         </Typography.Title>
                         <Typography.Text type="secondary">
-                            {type === 'login' && 'Use your email and password to continue.'}
-                            {type === 'register' &&
-                                'Create an account with your email and a password.'}
+                            {type === 'login' && translate('pages.login.subtitle')}
+                            {type === 'register' && translate('pages.register.subtitle')}
                             {type === 'forgotPassword' &&
-                                'Enter your email to receive a reset link.'}
+                                translate('pages.forgotPassword.subtitle')}
                             {type === 'updatePassword' &&
-                                'Choose a new password for your account.'}
+                                translate('pages.updatePassword.subtitle')}
                         </Typography.Text>
                     </div>
 
@@ -264,10 +302,34 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                         {type !== 'updatePassword' ? (
                             <Form.Item
                                 name="email"
-                                label="Email"
+                                label={translate(
+                                    type === 'forgotPassword'
+                                        ? 'pages.forgotPassword.fields.email'
+                                        : type === 'register'
+                                          ? 'pages.register.fields.email'
+                                          : 'pages.login.fields.email',
+                                )}
                                 rules={[
-                                    { required: true, message: 'Please enter your email' },
-                                    { type: 'email', message: 'Please enter a valid email' },
+                                    {
+                                        required: true,
+                                        message: translate(
+                                            type === 'forgotPassword'
+                                                ? 'pages.forgotPassword.errors.requiredEmail'
+                                                : type === 'register'
+                                                  ? 'pages.register.errors.requiredEmail'
+                                                  : 'pages.login.errors.requiredEmail',
+                                        ),
+                                    },
+                                    {
+                                        type: 'email',
+                                        message: translate(
+                                            type === 'forgotPassword'
+                                                ? 'pages.forgotPassword.errors.validEmail'
+                                                : type === 'register'
+                                                  ? 'pages.register.errors.validEmail'
+                                                  : 'pages.login.errors.validEmail',
+                                        ),
+                                    },
                                 ]}
                             >
                                 <Input placeholder="you@example.com" autoComplete="email" />
@@ -277,11 +339,35 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                         {type !== 'forgotPassword' ? (
                             <Form.Item
                                 name="password"
-                                label={type === 'updatePassword' ? 'New password' : 'Password'}
+                                label={translate(
+                                    type === 'updatePassword'
+                                        ? 'pages.updatePassword.fields.password'
+                                        : type === 'register'
+                                          ? 'pages.register.fields.password'
+                                          : 'pages.login.fields.password',
+                                )}
                                 rules={[
-                                    { required: true, message: 'Please enter your password' },
+                                    {
+                                        required: true,
+                                        message: translate(
+                                            type === 'updatePassword'
+                                                ? 'pages.updatePassword.errors.requiredPassword'
+                                                : type === 'register'
+                                                  ? 'pages.register.errors.requiredPassword'
+                                                  : 'pages.login.errors.requiredPassword',
+                                        ),
+                                    },
                                     ...(type === 'updatePassword' || type === 'register'
-                                        ? [{ min: 8, message: 'At least 8 characters' }]
+                                        ? [
+                                              {
+                                                  min: 8,
+                                                  message: translate(
+                                                      type === 'updatePassword'
+                                                          ? 'pages.updatePassword.errors.minPassword'
+                                                          : 'pages.register.errors.minPassword',
+                                                  ),
+                                              },
+                                          ]
                                         : []),
                                 ]}
                             >
@@ -297,17 +383,26 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                         {type === 'updatePassword' ? (
                             <Form.Item
                                 name="confirmPassword"
-                                label="Confirm password"
+                                label={translate('pages.updatePassword.fields.confirmPassword')}
                                 dependencies={['password']}
                                 rules={[
-                                    { required: true, message: 'Confirm your password' },
+                                    {
+                                        required: true,
+                                        message: translate(
+                                            'pages.updatePassword.errors.requiredConfirmPassword',
+                                        ),
+                                    },
                                     ({ getFieldValue }) => ({
                                         validator(_, value) {
                                             if (!value || getFieldValue('password') === value) {
                                                 return Promise.resolve();
                                             }
                                             return Promise.reject(
-                                                new Error('Passwords do not match'),
+                                                new Error(
+                                                    translate(
+                                                        'pages.updatePassword.errors.confirmPasswordNotMatch',
+                                                    ),
+                                                ),
                                             );
                                         },
                                     }),
