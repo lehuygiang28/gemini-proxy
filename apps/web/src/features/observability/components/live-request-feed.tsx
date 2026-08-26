@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty, Spin, Tag, Tooltip } from 'antd';
+import { useTranslation } from '@refinedev/core';
 import type { Tables } from '@gemini-proxy/database';
 import {
     extractPerformanceMetrics,
@@ -32,16 +33,6 @@ interface LiveRequestFeedProps {
     onRowClick?: (log: LiveFeedLog) => void;
 }
 
-function formatClock(iso: string): string {
-    const date = new Date(iso);
-    return date.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-    });
-}
-
 function shortModel(model: string | null): string {
     if (!model) {
         return '—';
@@ -53,9 +44,10 @@ function shortModel(model: string | null): string {
 function keyLabel(
     joined: { name: string; deleted_at: string | null } | null | undefined,
     fallbackId: string | null,
+    removedLabel: (name: string) => string,
 ): string {
     if (joined?.name) {
-        return joined.deleted_at ? `${joined.name} (removed)` : joined.name;
+        return joined.deleted_at ? removedLabel(joined.name) : joined.name;
     }
     if (fallbackId) {
         return `${fallbackId.slice(0, 8)}…`;
@@ -67,6 +59,18 @@ function keyLabel(
  * Presentational live feed — model + key names over opaque IDs.
  */
 export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveRequestFeedProps) {
+    const { translate, getLocale } = useTranslation();
+    const locale = getLocale();
+    const clockFormat = useMemo(
+        () =>
+            new Intl.DateTimeFormat(locale, {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }),
+        [locale],
+    );
     const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
     const previousIds = useRef<Set<string>>(new Set());
 
@@ -85,20 +89,22 @@ export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveReque
     }, [logs]);
 
     const rows = useMemo(() => logs, [logs]);
+    const formatRemovedName = (name: string): string =>
+        translate('request_logs.identity.removedLabel', { name });
 
     return (
         <div className="gp-panel-sunken">
             <div style={{ padding: '12px 12px 0' }}>
-                <div className="gp-section-title">Live request feed</div>
+                <div className="gp-section-title">{translate('observability.liveFeedTitle')}</div>
             </div>
             <div className="gp-live-feed gp-scrollable">
                 <div className="gp-live-feed-header">
-                    <span>Time</span>
-                    <span>Status</span>
-                    <span>Model</span>
-                    <span>Key</span>
-                    <span>Latency</span>
-                    <span>Tokens</span>
+                    <span>{translate('observability.columns.time')}</span>
+                    <span>{translate('observability.columns.status')}</span>
+                    <span>{translate('observability.columns.model')}</span>
+                    <span>{translate('observability.columns.key')}</span>
+                    <span>{translate('observability.columns.latency')}</span>
+                    <span>{translate('observability.columns.tokens')}</span>
                 </div>
                 {loading && rows.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 48 }}>
@@ -107,7 +113,7 @@ export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveReque
                 ) : rows.length === 0 ? (
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="Waiting for requests"
+                        description={translate('observability.waitingRequests')}
                         style={{ padding: 32 }}
                     />
                 ) : (
@@ -117,10 +123,14 @@ export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveReque
                         const status = log.is_successful ? 'ok' : 'fail';
                         const formatLabel = getRequestType(log.api_format);
                         const formatLine = log.is_stream
-                            ? `${formatLabel} · stream`
+                            ? translate('observability.streamFormat', { format: formatLabel })
                             : formatLabel;
-                        const proxyName = keyLabel(log.proxy_api_keys, log.proxy_key_id);
-                        const apiName = keyLabel(log.api_keys, log.api_key_id);
+                        const proxyName = keyLabel(
+                            log.proxy_api_keys,
+                            log.proxy_key_id,
+                            formatRemovedName,
+                        );
+                        const apiName = keyLabel(log.api_keys, log.api_key_id, formatRemovedName);
                         const model = shortModel(usage.model);
                         const tokenPrimary =
                             usage.total_tokens > 0 ? formatTokenCount(usage.total_tokens) : '—';
@@ -128,6 +138,9 @@ export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveReque
                             usage.total_tokens > 0
                                 ? `${formatTokenCount(usage.prompt_tokens)} / ${formatTokenCount(usage.completion_tokens)}`
                                 : null;
+                        const requestTitle = translate('observability.requestTitle', {
+                            id: log.request_id,
+                        });
 
                         return (
                             <div
@@ -146,22 +159,24 @@ export function LiveRequestFeed({ logs, loading = false, onRowClick }: LiveReque
                             >
                                 <Tooltip title={new Date(log.created_at).toISOString()}>
                                     <span className="gp-live-mono">
-                                        {formatClock(log.created_at)}
+                                        {clockFormat.format(new Date(log.created_at))}
                                     </span>
                                 </Tooltip>
                                 <Tag
                                     color={log.is_successful ? 'success' : 'error'}
                                     style={{ margin: 0, borderRadius: 2 }}
                                 >
-                                    {log.is_successful ? 'OK' : 'Fail'}
+                                    {log.is_successful
+                                        ? translate('observability.ok')
+                                        : translate('observability.fail')}
                                 </Tag>
-                                <Tooltip title={`Request ${log.request_id}`}>
+                                <Tooltip title={requestTitle}>
                                     <span className="gp-live-cell">
                                         <span className="gp-live-primary">{model}</span>
                                         <span className="gp-live-secondary">{formatLine}</span>
                                     </span>
                                 </Tooltip>
-                                <Tooltip title={`Request ${log.request_id}`}>
+                                <Tooltip title={requestTitle}>
                                     <span className="gp-live-cell">
                                         <span className="gp-live-primary">{proxyName}</span>
                                         <span className="gp-live-secondary">{apiName}</span>

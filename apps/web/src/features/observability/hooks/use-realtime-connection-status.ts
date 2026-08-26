@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabaseBrowserClient } from '@utils/supabase/client';
 
-export type RealtimeConnectionLabel = 'Live' | 'Connecting' | 'Paused' | 'Offline';
-
 export type RealtimeConnectionState = 'live' | 'connecting' | 'paused' | 'offline';
 
 interface UseRealtimeConnectionStatusOptions {
@@ -11,7 +9,6 @@ interface UseRealtimeConnectionStatusOptions {
 
 interface UseRealtimeConnectionStatusResult {
     state: RealtimeConnectionState;
-    label: RealtimeConnectionLabel;
 }
 
 /**
@@ -39,13 +36,13 @@ export function useRealtimeConnectionStatus(
     }, []);
 
     if (paused) {
-        return { state: 'paused', label: 'Paused' };
+        return { state: 'paused' };
     }
     if (isConnecting && !socketConnected) {
-        return { state: 'connecting', label: 'Connecting' };
+        return { state: 'connecting' };
     }
     if (socketConnected) {
-        return { state: 'live', label: 'Live' };
+        return { state: 'live' };
     }
-    return { state: 'offline', label: 'Offline' };
+    return { state: 'offline' };
 }

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Empty, Spin, Typography } from 'antd';
+import { useTranslation } from '@refinedev/core';
 import type { Tables } from '@gemini-proxy/database';
 import { calculateSuccessRate, formatTokenCount } from '@/utils/table-helpers';
 import { KeyHealthBadge } from './key-health-badge';
@@ -44,6 +45,7 @@ export function KeyHealthPanel({
     onOpenApiKey,
     onOpenProxyKey,
 }: KeyHealthPanelProps) {
+    const { translate } = useTranslation();
     const items = useMemo(() => {
         const mapped: HealthItem[] = [
             ...apiKeys.map((key) => ({
@@ -81,7 +83,7 @@ export function KeyHealthPanel({
     return (
         <div className="gp-panel" style={{ minHeight: 320 }}>
             <div style={{ padding: '12px 12px 0' }}>
-                <div className="gp-section-title">Key health</div>
+                <div className="gp-section-title">{translate('observability.keyHealthTitle')}</div>
             </div>
             {loading && items.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 48 }}>
@@ -90,7 +92,7 @@ export function KeyHealthPanel({
             ) : items.length === 0 ? (
                 <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No keys yet"
+                    description={translate('observability.noKeys')}
                     style={{ padding: 32 }}
                 />
             ) : (
@@ -125,9 +127,14 @@ export function KeyHealthPanel({
                                 {item.name}
                             </div>
                             <Text type="secondary" style={{ fontSize: 11 }}>
-                                {item.kind === 'api' ? 'API key' : 'Proxy key'} ·{' '}
-                                {formatTokenCount(item.totalTokens)} tokens · {item.failureCount}{' '}
-                                fails
+                                {translate('observability.keyMeta', {
+                                    kind:
+                                        item.kind === 'api'
+                                            ? translate('observability.apiKey')
+                                            : translate('observability.proxyKey'),
+                                    count: formatTokenCount(item.totalTokens),
+                                    fails: item.failureCount,
+                                })}
                             </Text>
                         </div>
                         <KeyHealthBadge
