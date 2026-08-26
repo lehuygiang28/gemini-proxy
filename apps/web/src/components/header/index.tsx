@@ -14,6 +14,7 @@ import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { AccountSettingsModal } from '@/features/settings';
+import { LanguageSwitcher } from '@components/language-switcher';
 
 const { useToken } = theme;
 
@@ -120,6 +121,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
     return (
         <AntdLayout.Header style={headerStyles}>
             <Space size={12} align="center">
+                <LanguageSwitcher />
                 <Switch
                     checkedChildren="🌛"
                     unCheckedChildren="🔆"

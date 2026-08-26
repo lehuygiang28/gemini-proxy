@@ -9,6 +9,7 @@ import { TechStackSection } from './TechStackSection';
 import { DeploymentSection } from './DeploymentSection';
 import { ArchitectureSection } from './ArchitectureSection';
 import { FooterSection } from './FooterSection';
+import { LanguageSwitcher } from '@components/language-switcher';
 
 const { useToken } = theme;
 
@@ -22,6 +23,15 @@ export const LandingPage: React.FC = () => {
                 background: token.colorBgLayout,
             }}
         >
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    padding: token.padding,
+                }}
+            >
+                <LanguageSwitcher />
+            </div>
             <HeroSection />
             <FeaturesSection />
             <CodeExamplesSection />

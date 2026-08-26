@@ -7,6 +7,8 @@ import { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { DevtoolsProvider } from '@providers/devtools';
@@ -80,20 +82,24 @@ export default async function RootLayout({
     const cookieStore = await cookies();
     const theme = cookieStore.get(THEME_COOKIE_NAME);
     const defaultMode = theme?.value === 'light' ? 'light' : 'dark';
+    const locale = await getLocale();
+    const messages = await getMessages();
 
     return (
         <html
-            lang="en"
+            lang={locale}
             data-theme={defaultMode}
             className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
         >
             <body className="gp-scrollable-root" style={{ fontFamily: 'var(--gp-font-sans)' }}>
                 <Suspense>
                     <AntdRegistry>
-                        <ColorModeContextProvider defaultMode={defaultMode}>
-                            <DevtoolsProvider>
-                                <RefineProvider>{children}</RefineProvider>
-                            </DevtoolsProvider>
+                        <ColorModeContextProvider defaultMode={defaultMode} locale={locale}>
+                            <NextIntlClientProvider locale={locale} messages={messages}>
+                                <DevtoolsProvider>
+                                    <RefineProvider>{children}</RefineProvider>
+                                </DevtoolsProvider>
+                            </NextIntlClientProvider>
                         </ColorModeContextProvider>
                     </AntdRegistry>
                 </Suspense>

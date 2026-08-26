@@ -9,9 +9,11 @@ import {
     SettingOutlined,
 } from '@ant-design/icons';
 import { useNotificationProvider } from '@refinedev/antd';
-import { Refine } from '@refinedev/core';
+import { Refine, type I18nProvider } from '@refinedev/core';
 import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
 import routerProvider from '@refinedev/nextjs-router';
+import { useLocale, useTranslations } from 'next-intl';
+import { setUserLocale } from '@i18n';
 import { authProviderClient } from '@providers/auth-provider/auth-provider.client';
 import { dataProvider } from '@providers/data-provider';
 import { createLiveProvider } from '@providers/live-provider';
@@ -23,6 +25,20 @@ const appLiveProvider = createLiveProvider(supabaseBrowserClient);
  * Client-only Refine shell — liveProvider must not be constructed in a Server Component.
  */
 export function RefineProvider({ children }: PropsWithChildren) {
+    const t = useTranslations();
+    const i18nProvider: I18nProvider = {
+        translate: (key: string, options?: unknown, defaultMessage?: string) => {
+            if (typeof options === 'string') {
+                return t(key, { defaultMessage: options });
+            }
+            return t(key, {
+                ...(options as Record<string, unknown> | undefined),
+                defaultMessage,
+            });
+        },
+        changeLocale: setUserLocale,
+        getLocale: useLocale,
+    };
     return (
         <RefineKbarProvider>
             <Refine
@@ -31,6 +47,7 @@ export function RefineProvider({ children }: PropsWithChildren) {
                 dataProvider={dataProvider}
                 liveProvider={appLiveProvider}
                 notificationProvider={useNotificationProvider}
+                i18nProvider={i18nProvider}
                 options={{
                     syncWithLocation: true,
                     warnWhenUnsavedChanges: true,

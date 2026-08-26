@@ -11,6 +11,7 @@ import {
     useForgotPassword,
     useUpdatePassword,
 } from '@refinedev/core';
+import { LanguageSwitcher } from '@components/language-switcher';
 
 type AuthType = NonNullable<AuthPageProps['type']>;
 
@@ -231,6 +232,9 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
                 variant="borderless"
             >
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <LanguageSwitcher />
+                    </div>
                     <div>
                         <Typography.Title level={3} style={{ marginBottom: 0 }}>
                             {titles.title}

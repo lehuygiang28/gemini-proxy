@@ -6,6 +6,7 @@ import { RefineThemes } from '@refinedev/antd';
 import Cookies from 'js-cookie';
 import { THEME_COOKIE_NAME } from '@constants';
 import { buildSignalDeckTheme } from '@constants/observability-theme';
+import { resolveAntdLocale } from '@i18n/antd-locale';
 
 export type ColorMode = 'dark' | 'light';
 
@@ -19,11 +20,12 @@ export const ColorModeContext = createContext<ColorModeContextType>({} as ColorM
 
 type ColorModeContextProviderProps = {
     defaultMode?: ColorMode;
+    locale?: string;
 };
 
 export const ColorModeContextProvider: React.FC<
     PropsWithChildren<ColorModeContextProviderProps>
-> = ({ children, defaultMode }) => {
+> = ({ children, defaultMode, locale }) => {
     const [isMounted, setIsMounted] = useState(false);
     const [mode, setModeState] = useState(defaultMode || 'dark');
 
@@ -74,6 +76,7 @@ export const ColorModeContextProvider: React.FC<
         >
             <ConfigProvider
                 theme={themeConfig(RefineThemes.Blue)}
+                locale={resolveAntdLocale(locale ?? 'en')}
                 warning={{
                     strict: false,
                 }}

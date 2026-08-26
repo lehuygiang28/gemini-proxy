@@ -1,0 +1,155 @@
+{
+    "pages": {
+        "login": {
+            "title": "Đăng nhập vào tài khoản",
+            "subtitle": "Dùng email và mật khẩu để tiếp tục.",
+            "signin": "Đăng nhập",
+            "signup": "Đăng ký",
+            "register": "Đăng ký",
+            "divider": "hoặc",
+            "fields": {
+                "email": "Email",
+                "password": "Mật khẩu"
+            },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ"
+            },
+            "buttons": {
+                "submit": "Đăng nhập",
+                "forgotPassword": "Quên mật khẩu?",
+                "noAccount": "Chưa có tài khoản?",
+                "haveAccount": "Đã có tài khoản?",
+                "rememberMe": "Ghi nhớ đăng nhập",
+                "createAccount": "Tạo tài khoản"
+            }
+        },
+        "forgotPassword": {
+            "title": "Quên mật khẩu?",
+            "subtitle": "Nhập email để nhận liên kết đặt lại.",
+            "fields": { "email": "Email" },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ"
+            },
+            "buttons": {
+                "submit": "Gửi liên kết đặt lại",
+                "haveAccount": "Đã có tài khoản?",
+                "backToSignIn": "Quay lại đăng nhập"
+            }
+        },
+        "register": {
+            "title": "Đăng ký tài khoản",
+            "subtitle": "Tạo tài khoản bằng email và mật khẩu.",
+            "fields": {
+                "email": "Email",
+                "password": "Mật khẩu"
+            },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "minPassword": "Ít nhất 8 ký tự"
+            },
+            "buttons": {
+                "submit": "Tạo tài khoản",
+                "haveAccount": "Đã có tài khoản? Đăng nhập",
+                "forgotPassword": "Quên mật khẩu?"
+            }
+        },
+        "updatePassword": {
+            "title": "Cập nhật mật khẩu",
+            "subtitle": "Chọn mật khẩu mới cho tài khoản.",
+            "validating": "Đang xác thực liên kết đặt lại…",
+            "invalidLink": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+            "validateFailed": "Không thể xác thực liên kết đặt lại.",
+            "requestNewLink": "Yêu cầu liên kết đặt lại mới",
+            "fields": {
+                "password": "Mật khẩu mới",
+                "confirmPassword": "Xác nhận mật khẩu"
+            },
+            "errors": {
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "requiredConfirmPassword": "Xác nhận mật khẩu là bắt buộc",
+                "confirmPasswordNotMatch": "Mật khẩu không khớp",
+                "minPassword": "Ít nhất 8 ký tự"
+            },
+            "buttons": {
+                "submit": "Cập nhật mật khẩu",
+                "backToSignIn": "Quay lại đăng nhập"
+            }
+        },
+        "error": {
+            "info": "Có thể bạn đã quên thêm component {action} vào tài nguyên {resource}.",
+            "404": "Trang bạn truy cập không tồn tại.",
+            "resource404": "Bạn đã tạo tài nguyên {resource} chưa?",
+            "backHome": "Về trang chủ"
+        }
+    },
+    "actions": {
+        "list": "Danh sách",
+        "create": "Tạo",
+        "edit": "Sửa",
+        "show": "Xem",
+        "delete": "Xóa",
+        "save": "Lưu",
+        "cancel": "Hủy"
+    },
+    "buttons": {
+        "create": "Tạo",
+        "save": "Lưu",
+        "logout": "Đăng xuất",
+        "delete": "Xóa",
+        "edit": "Sửa",
+        "cancel": "Hủy",
+        "confirm": "Bạn có chắc không?",
+        "filter": "Lọc",
+        "clear": "Xóa bộ lọc",
+        "refresh": "Làm mới",
+        "show": "Xem",
+        "undo": "Hoàn tác",
+        "import": "Nhập",
+        "clone": "Nhân bản",
+        "notAccessTitle": "Bạn không có quyền truy cập"
+    },
+    "warnWhenUnsavedChanges": "Bạn có chắc muốn rời đi? Các thay đổi chưa được lưu.",
+    "notifications": {
+        "success": "Thành công",
+        "error": "Lỗi (mã trạng thái: {statusCode})",
+        "undoable": "Bạn còn {seconds} giây để hoàn tác",
+        "createSuccess": "Đã tạo {resource} thành công",
+        "createError": "Có lỗi khi tạo {resource} (mã trạng thái: {statusCode})",
+        "deleteSuccess": "Đã xóa {resource} thành công",
+        "deleteError": "Có lỗi khi xóa {resource} (mã trạng thái: {statusCode})",
+        "editSuccess": "Đã sửa {resource} thành công",
+        "editError": "Có lỗi khi sửa {resource} (mã trạng thái: {statusCode})",
+        "importProgress": "Đang nhập: {processed}/{total}"
+    },
+    "loading": "Đang tải",
+    "tags": { "clone": "Nhân bản" },
+    "table": { "actions": "Thao tác" },
+    "autoSave": {
+        "success": "đã lưu",
+        "error": "tự động lưu thất bại",
+        "loading": "đang lưu...",
+        "idle": "đang chờ thay đổi"
+    },
+    "documentTitle": {
+        "default": "Gemini Proxy",
+        "suffix": " | Gemini Proxy"
+    },
+    "languageSwitcher": {
+        "en": "English",
+        "vi": "Tiếng Việt",
+        "label": "Ngôn ngữ"
+    },
+    "common": {
+        "never": "Chưa từng",
+        "na": "N/A",
+        "active": "Bật",
+        "inactive": "Tắt",
+        "enable": "Bấm để bật",
+        "disable": "Bấm để tắt"
+    }
+}
