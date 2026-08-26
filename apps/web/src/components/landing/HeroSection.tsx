@@ -24,7 +24,7 @@ export const HeroSection: React.FC = () => {
     return (
         <div
             style={{
-                paddingTop: token.paddingXL + token.controlHeight,
+                paddingTop: `calc(max(${token.paddingXL}px, env(safe-area-inset-top)) + ${token.controlHeight}px)`,
                 paddingBottom: token.paddingXL,
                 paddingLeft: token.paddingLG,
                 paddingRight: token.paddingLG,

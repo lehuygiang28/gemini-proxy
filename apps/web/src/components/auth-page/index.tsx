@@ -74,7 +74,7 @@ export const AuthPage = (props: Partial<AuthPageProps>) => {
         const params = new URLSearchParams(window.location.search);
         const error = params.get('error');
         if (error) {
-            setErrorMessage(resolveAuthErrorMessage(decodeURIComponent(error), type, translate));
+            setErrorMessage(resolveAuthErrorMessage(error, type, translate));
         }
         if (params.get('registered') === '1') {
             setInfoMessage(translate('pages.register.infoCreated'));
