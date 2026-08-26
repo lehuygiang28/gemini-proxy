@@ -1,9 +1,6 @@
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
-import {
-    createSupabaseRouteHandlerClient,
-    safeNextPath,
-} from '@utils/supabase/route-handler';
+import { createSupabaseRouteHandlerClient, safeNextPath } from '@utils/supabase/route-handler';
 
 /**
  * Email OTP / recovery confirmation (token_hash).
@@ -45,7 +42,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (error) {
-        return errorRedirect(error.message || 'auth_confirm_failed');
+        return errorRedirect('auth_confirm_failed');
     }
 
     return response;

@@ -1,0 +1,907 @@
+{
+    "pages": {
+        "login": {
+            "title": "Sign in to your account",
+            "subtitle": "Use your email and password to continue.",
+            "signin": "Sign in",
+            "signup": "Sign up",
+            "register": "Register",
+            "divider": "or",
+            "fields": {
+                "email": "Email",
+                "password": "Password"
+            },
+            "errors": {
+                "requiredEmail": "Email is required",
+                "requiredPassword": "Password is required",
+                "validEmail": "Invalid email address",
+                "failed": "Login failed"
+            },
+            "buttons": {
+                "submit": "Sign in",
+                "forgotPassword": "Forgot password?",
+                "noAccount": "Don't have an account?",
+                "haveAccount": "Have an account?",
+                "rememberMe": "Remember me",
+                "createAccount": "Create account"
+            }
+        },
+        "forgotPassword": {
+            "title": "Forgot your password?",
+            "subtitle": "Enter your email to receive a reset link.",
+            "infoSent": "Password reset email sent. Check your inbox.",
+            "fields": { "email": "Email" },
+            "errors": {
+                "requiredEmail": "Email is required",
+                "validEmail": "Invalid email address",
+                "failed": "Failed to send reset email"
+            },
+            "buttons": {
+                "submit": "Send reset link",
+                "haveAccount": "Have an account?",
+                "backToSignIn": "Back to sign in"
+            }
+        },
+        "register": {
+            "title": "Sign up for your account",
+            "subtitle": "Create an account with your email and a password.",
+            "infoCreated": "Account created. Check your email to confirm, then sign in.",
+            "fields": {
+                "email": "Email",
+                "password": "Password"
+            },
+            "errors": {
+                "requiredEmail": "Email is required",
+                "requiredPassword": "Password is required",
+                "validEmail": "Invalid email address",
+                "minPassword": "At least 8 characters",
+                "failed": "Register failed"
+            },
+            "buttons": {
+                "submit": "Create account",
+                "haveAccount": "Have an account? Sign in",
+                "forgotPassword": "Forgot password?"
+            }
+        },
+        "updatePassword": {
+            "title": "Update password",
+            "subtitle": "Choose a new password for your account.",
+            "validating": "Validating your reset link…",
+            "invalidLink": "Reset link is invalid or expired. Request a new one.",
+            "validateFailed": "Could not validate the reset link.",
+            "requestNewLink": "Request a new reset link",
+            "infoUpdated": "Password updated. Sign in with your new password.",
+            "fields": {
+                "password": "New password",
+                "confirmPassword": "Confirm password"
+            },
+            "errors": {
+                "requiredPassword": "Password required",
+                "requiredConfirmPassword": "Confirm password is required",
+                "confirmPasswordNotMatch": "Passwords do not match",
+                "minPassword": "At least 8 characters",
+                "failed": "Failed to update password"
+            },
+            "buttons": {
+                "submit": "Update password",
+                "backToSignIn": "Back to sign in"
+            }
+        },
+        "error": {
+            "info": "You may have forgotten to add the {action} component to {resource} resource.",
+            "404": "Sorry, the page you visited does not exist.",
+            "resource404": "Are you sure you have created the {resource} resource.",
+            "backHome": "Back Home"
+        },
+        "auth": {
+            "errors": {
+                "missingAuthCode": "Missing sign-in code. Try signing in again.",
+                "callbackFailed": "Sign-in confirmation failed. Try again.",
+                "missingAuthToken": "Missing confirmation token. Request a new link.",
+                "confirmFailed": "Email confirmation failed. Request a new link."
+            }
+        }
+    },
+    "actions": {
+        "list": "List",
+        "create": "Create",
+        "edit": "Edit",
+        "show": "Show",
+        "delete": "Delete",
+        "save": "Save",
+        "cancel": "Cancel"
+    },
+    "buttons": {
+        "create": "Create",
+        "save": "Save",
+        "logout": "Logout",
+        "delete": "Delete",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "confirm": "Are you sure?",
+        "filter": "Filter",
+        "clear": "Clear",
+        "refresh": "Refresh",
+        "show": "Show",
+        "undo": "Undo",
+        "import": "Import",
+        "clone": "Clone",
+        "notAccessTitle": "You don't have permission to access"
+    },
+    "warnWhenUnsavedChanges": "Are you sure you want to leave? You have unsaved changes.",
+    "notifications": {
+        "success": "Successful",
+        "error": "Error (status code: {statusCode})",
+        "undoable": "You have {seconds} seconds to undo",
+        "createSuccess": "Successfully created {resource}",
+        "createError": "There was an error creating {resource} (status code: {statusCode})",
+        "deleteSuccess": "Successfully deleted {resource}",
+        "deleteError": "Error when deleting {resource} (status code: {statusCode})",
+        "editSuccess": "Successfully edited {resource}",
+        "editError": "Error when editing {resource} (status code: {statusCode})",
+        "importProgress": "Importing: {processed}/{total}"
+    },
+    "loading": "Loading",
+    "tags": { "clone": "Clone" },
+    "table": { "actions": "Actions" },
+    "autoSave": {
+        "success": "saved",
+        "error": "auto save failure",
+        "loading": "saving...",
+        "idle": "waiting for changes"
+    },
+    "documentTitle": {
+        "default": "Gemini Proxy",
+        "suffix": " | Gemini Proxy",
+        "dashboard": { "list": "Console | Gemini Proxy" },
+        "api_keys": {
+            "list": "API Keys | Gemini Proxy",
+            "show": "#{id} API Key | Gemini Proxy",
+            "edit": "#{id} Edit API Key | Gemini Proxy",
+            "create": "Create API Key | Gemini Proxy"
+        },
+        "proxy_api_keys": {
+            "list": "Proxy API Keys | Gemini Proxy",
+            "show": "#{id} Proxy API Key | Gemini Proxy",
+            "edit": "#{id} Edit Proxy API Key | Gemini Proxy",
+            "create": "Create Proxy API Key | Gemini Proxy"
+        },
+        "request_logs": {
+            "list": "Logs | Gemini Proxy",
+            "show": "#{id} Log | Gemini Proxy"
+        },
+        "user_settings": { "list": "Settings | Gemini Proxy" }
+    },
+    "header": {
+        "account": "Account",
+        "settings": "Settings",
+        "logout": "Logout",
+        "accountMenu": "Account menu"
+    },
+    "dashboard": {
+        "dashboard": "Console",
+        "titles": { "list": "Console" }
+    },
+    "api_keys": {
+        "api_keys": "API Keys",
+        "titles": {
+            "list": "API Keys",
+            "create": "Create API Key",
+            "edit": "Edit API Key",
+            "show": "Show API Key"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Name",
+            "apiKey": "API Key",
+            "apiKeyValue": "API Key Value",
+            "provider": "Provider",
+            "status": "Status",
+            "health": "Health",
+            "usage": "Usage Statistics",
+            "tokens": "Token Usage",
+            "lastUsed": "Last Used",
+            "lastError": "Last Error",
+            "created": "Created",
+            "updated": "Last Updated",
+            "details": "API Key Details",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Search API key names...",
+            "allProviders": "All Providers",
+            "allStatus": "All Status",
+            "nameExample": "e.g., My App Key",
+            "selectProvider": "Select provider",
+            "keyName": "Key Name",
+            "apiKey": "API Key"
+        },
+        "filters": {
+            "title": "Filters & Search",
+            "reset": "Reset",
+            "searchByName": "Search by Name"
+        },
+        "tokens": {
+            "total": "Total: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Total Tokens",
+            "promptTokens": "Prompt Tokens",
+            "completionTokens": "Completion Tokens"
+        },
+        "actions": {
+            "viewLogs": "View logs for this key",
+            "viewDetails": "View Details",
+            "edit": "Edit API Key",
+            "delete": "Delete API Key"
+        },
+        "delete": {
+            "title": "Delete API Key",
+            "description": "Key is deactivated and hidden. Request logs stay linked."
+        },
+        "empty": "No API keys found",
+        "notFound": "API Key not found",
+        "notifications": {
+            "statusUpdated": "Status Updated",
+            "enabled": "API key \"{name}\" enabled successfully",
+            "disabled": "API key \"{name}\" disabled successfully",
+            "updateFailed": "Update Failed",
+            "updateFailedDesc": "Failed to update API key status",
+            "deleted": "API Key Deleted",
+            "deletedDesc": "API key \"{name}\" removed. Request logs are kept.",
+            "deleteFailed": "Delete Failed",
+            "deleteFailedDesc": "Failed to delete API key"
+        },
+        "errors": {
+            "enterName": "Please enter a name",
+            "selectProvider": "Please select a provider",
+            "missingName": "Missing name",
+            "missingApiKey": "Missing API key"
+        },
+        "edit": {
+            "editing": "Editing {name}",
+            "subtitle": "Modify the details of your existing API key.",
+            "keyImmutable": "The API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "basicInfo": "Basic Information",
+            "settings": "Settings"
+        },
+        "show": {
+            "security": "Security",
+            "timestamps": "Timestamps"
+        },
+        "create": {
+            "manual": "Manual Entry",
+            "bulkPaste": "Bulk Paste",
+            "importJson": "Import JSON",
+            "bulkPlaceholder": "Paste API keys here, separated by commas, spaces, new lines, semicolons, or pipes.\n\nExamples:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nOr:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nEach key should be at least 10 characters long.",
+            "jsonPlaceholder": "Paste a JSON array of API keys.\n\nExamples:\n\nSimple array:\n[\"AIzaXXXXXXXXXXXXXXXXXXXX1\", \"AIzaXXXXXXXXXXXXXXXXXXXX2\"]\n\nObject array:\n[\n  {\"name\": \"Gproxy key 1\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX1\"},\n  {\"name\": \"Gproxy key 2\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX2\"}\n]\n\nSupported fields: name/title/label, api_key_value/apiKey/key/value",
+            "addKey": "Add API Key",
+            "importKeys": "Import Keys",
+            "backToImport": "Back to Import",
+            "saveKeys": "Save API Keys",
+            "dragJson": "Click or drag a JSON file to this area to load",
+            "securityTitle": "Security Notice",
+            "securityBody": "API keys are sensitive. Ensure you are importing them from a trusted source.",
+            "reviewTitle": "Review API Keys",
+            "reviewBody": "Review and edit your API keys before saving. Invalid keys will be highlighted.",
+            "valid": "Valid",
+            "invalid": "Invalid",
+            "invalidDetected": "Invalid Keys Detected",
+            "invalidDetectedDesc": "Some keys have invalid formats and will be skipped during save.",
+            "importTitle": "Import Google AI Keys",
+            "importSubtitle": "Follow the steps to import Google AI keys into your account.",
+            "bulkImportedName": "Bulk Imported Key {index}",
+            "jsonImportedName": "JSON Imported Key {index}",
+            "successDesc": "API keys created successfully!",
+            "errorTitle": "Error",
+            "errorDesc": "Error creating API keys: {message}",
+            "jsonLoaded": "JSON file loaded successfully!",
+            "readFileFailed": "Failed to read file.",
+            "steps": {
+                "import": "Import Keys",
+                "importDesc": "Choose how you want to import your keys.",
+                "review": "Review & Edit",
+                "reviewDesc": "Review and edit your API keys before saving.",
+                "save": "Save",
+                "saveDesc": "Save the keys to your account."
+            },
+            "help": {
+                "title": "Supported Import Formats",
+                "bulkTitle": "Bulk Paste Format",
+                "bulkBody": "Paste multiple API keys separated by any of these characters:",
+                "commas": "Commas",
+                "newLines": "New lines",
+                "semicolons": "Semicolons",
+                "pipes": "Pipes",
+                "tabs": "Tabs",
+                "jsonTitle": "JSON Format",
+                "jsonBody": "JSON array with strings or objects. Supported object fields:",
+                "forName": "for the key name",
+                "forKey": "for the API key",
+                "jsonExamples": "JSON Examples",
+                "simpleArray": "Simple string array:",
+                "objectArray": "Object array with name and key:",
+                "altFields": "Object array with different field names:",
+                "validationTitle": "Validation Rules",
+                "validationBody": "All API keys must be at least 10 characters long and not empty. Invalid keys will be highlighted in the review step."
+            },
+            "errors": {
+                "tooShort": "API key is too short or empty",
+                "invalidJson": "Invalid JSON Format",
+                "invalidJsonDesc": "Please provide a valid JSON array.",
+                "noKeys": "No Keys Found",
+                "noKeysDesc": "No valid API keys found in the input.",
+                "authRequired": "Authentication Required",
+                "authRequiredDesc": "Please log in to create API keys.",
+                "noValid": "No Valid Keys",
+                "noValidDesc": "No valid API keys to save."
+            }
+        }
+    },
+    "proxy_api_keys": {
+        "proxy_api_keys": "Proxy API Keys",
+        "titles": {
+            "list": "Proxy API Keys",
+            "create": "Create Proxy API Key",
+            "edit": "Edit Proxy API Key",
+            "show": "Show Proxy API Key"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Name",
+            "proxyKey": "Proxy API Key",
+            "proxyKeyValue": "Proxy API Key Value",
+            "status": "Status",
+            "health": "Health",
+            "usage": "Usage Statistics",
+            "tokens": "Token Usage",
+            "lastUsed": "Last Used",
+            "lastError": "Last Error",
+            "created": "Created",
+            "updated": "Last Updated",
+            "details": "Proxy API Key Details",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Search proxy API key names...",
+            "allStatus": "All Status",
+            "nameExample": "e.g., My App Key",
+            "enterOrGenerate": "Enter your API key or generate one below"
+        },
+        "tabs": {
+            "keys": "Keys",
+            "quickstart": "Quick start"
+        },
+        "filters": {
+            "title": "Filters",
+            "reset": "Reset",
+            "searchByName": "Search by Name"
+        },
+        "tokens": {
+            "total": "Total: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Total Tokens",
+            "promptTokens": "Prompt Tokens",
+            "completionTokens": "Completion Tokens"
+        },
+        "actions": {
+            "viewLogs": "View logs for this key",
+            "viewDetails": "View Details",
+            "edit": "Edit Proxy API Key",
+            "delete": "Delete Proxy API Key"
+        },
+        "delete": {
+            "title": "Delete Proxy API Key",
+            "description": "Key is deactivated and hidden. Request logs stay linked."
+        },
+        "empty": "No proxy API keys found",
+        "notFound": "Proxy API Key not found",
+        "notifications": {
+            "statusUpdated": "Status Updated",
+            "enabled": "Proxy API key \"{name}\" enabled successfully",
+            "disabled": "Proxy API key \"{name}\" disabled successfully",
+            "updateFailed": "Update Failed",
+            "updateFailedDesc": "Failed to update proxy API key status",
+            "deleted": "Proxy API Key Deleted",
+            "deletedDesc": "Proxy API key \"{name}\" removed. Request logs are kept.",
+            "deleteFailed": "Delete Failed",
+            "deleteFailedDesc": "Failed to delete proxy API key"
+        },
+        "errors": {
+            "enterName": "Please enter a name",
+            "enterOrGenerate": "Please enter or generate a proxy API key"
+        },
+        "edit": {
+            "editing": "Editing {name}",
+            "subtitle": "Modify the details of your existing proxy API key.",
+            "keyImmutable": "The proxy API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "basicInfo": "Basic Information",
+            "settings": "Settings"
+        },
+        "show": {
+            "security": "Security",
+            "timestamps": "Timestamps"
+        },
+        "create": {
+            "subtitle": "Follow the steps to create a new proxy API key for your application.",
+            "stepName": "Name",
+            "stepNameDesc": "Give your key a descriptive name.",
+            "stepGenerate": "Generate Key",
+            "stepGenerateDesc": "Create a secure and unique proxy API key.",
+            "stepStatus": "Set Status",
+            "stepStatusDesc": "Decide if the key should be active immediately.",
+            "generateKey": "Generate Secure Key",
+            "copyClipboard": "Copy to Clipboard",
+            "copyWarning": "Please copy this key and store it securely. You will not be able to see it again.",
+            "copied": "Copied to clipboard",
+            "copiedDesc": "API key has been copied to your clipboard.",
+            "copyFailed": "Copy failed",
+            "copyFailedDesc": "Unable to copy to clipboard. Please copy manually.",
+            "authRequired": "Authentication Required",
+            "authRequiredDesc": "Please log in to create proxy API keys."
+        }
+    },
+    "proxy_quickstart": {
+        "empty": "Create an active proxy key first",
+        "selectKey": "Select key",
+        "selectKeyWarning": "Select a proxy key",
+        "copy": "Copy",
+        "copied": "Copied",
+        "openaiBase": "OpenAI base",
+        "openaiChat": "OpenAI chat",
+        "geminiBase": "Gemini base",
+        "geminiV1beta": "Gemini v1beta",
+        "apiKey": "API key",
+        "openaiAuth": "OpenAI auth",
+        "geminiAuth": "Gemini auth",
+        "sdkOpenai": "OpenAI SDK",
+        "sdkGemini": "Gemini SDK",
+        "curlOpenai": "curl OpenAI",
+        "curlGemini": "curl Gemini",
+        "copyAria": "Copy {label}",
+        "endpoints": "Endpoints",
+        "proxyKey": "Proxy key",
+        "snippet": "Snippet"
+    },
+    "request_logs": {
+        "request_logs": "Logs",
+        "titles": {
+            "list": "Logs",
+            "show": "Show Log",
+            "details": "Request Log Details"
+        },
+        "fields": {
+            "keys": "Keys",
+            "status": "Status",
+            "type": "Type",
+            "format": "Format",
+            "stream": "Stream",
+            "performance": "Performance",
+            "tokens": "Tokens",
+            "created": "Created",
+            "requestId": "Request ID",
+            "body": "Body",
+            "headersMeta": "Headers & meta",
+            "apiFormat": "API Format",
+            "dateRange": "Date range",
+            "proxy": "Proxy",
+            "api": "API"
+        },
+        "placeholders": {
+            "searchRequestId": "Search request ID…",
+            "selectFormat": "Select format",
+            "selectStatus": "Select status",
+            "selectStream": "Select stream type",
+            "searchApiKey": "Search API key by name…",
+            "searchProxyKey": "Search proxy key by name…"
+        },
+        "identity": {
+            "apiKey": "API key",
+            "proxyKey": "Proxy key",
+            "authenticated": "Authenticated user",
+            "anonymous": "Anonymous",
+            "userId": "User ID",
+            "copyUserId": "Copy user ID",
+            "copyKeyId": "Copy {title} ID",
+            "keyId": "{title} ID",
+            "user": "User",
+            "removed": "Removed",
+            "removedLabel": "{name} (removed)",
+            "removedSuffix": " · removed",
+            "notUsed": "Not used on this request.",
+            "removedFromVault": "Removed from vault · name from key record.",
+            "recordGone": "Key record no longer exists.",
+            "provider": "Provider",
+            "lifetimeTokens": "Lifetime tokens {count}",
+            "noUser": "No user on this request.",
+            "authenticatedTag": "Authenticated"
+        },
+        "status": {
+            "success": "Success",
+            "failed": "Failed",
+            "successful": "Successful"
+        },
+        "stream": {
+            "yes": "Yes",
+            "no": "No",
+            "streaming": "Streaming",
+            "nonStreaming": "Non-streaming"
+        },
+        "live": {
+            "pause": "Pause",
+            "resume": "Resume",
+            "onMessage": "Live updates on — table refreshes when new request logs arrive.",
+            "offMessage": "Live updates paused — resume to auto-refresh on new logs."
+        },
+        "retention": "Detailed request logs older than 90 days are removed automatically. Lifetime usage totals on API keys and proxy keys are kept.",
+        "filters": {
+            "title": "Filters",
+            "reset": "Reset",
+            "collapse": "Collapse filters",
+            "expand": "Expand filters",
+            "apiKeyActive": "API key filtered",
+            "proxyKeyActive": "Proxy key filtered",
+            "statusTag": "Status: {status}",
+            "formatTag": "Format: {format}",
+            "clickToEdit": "Click Filters to edit"
+        },
+        "actions": {
+            "viewDetails": "View details",
+            "copyRequestId": "Copy request ID",
+            "close": "Close",
+            "back": "Back to Request Logs"
+        },
+        "empty": "No request logs found",
+        "notFound": {
+            "title": "Request Log Not Found",
+            "description": "The requested log could not be found or you don't have permission to view it."
+        },
+        "clipboard": {
+            "copied": "Copied to Clipboard",
+            "copiedDesc": "{label} has been copied to clipboard.",
+            "downloadStarted": "Download Started",
+            "downloadStartedDesc": "{filename} has been downloaded.",
+            "copyNamed": "Copy {title}",
+            "downloadNamed": "Download {title}"
+        },
+        "metrics": {
+            "api": "API: {duration}",
+            "total": "Total: {duration}",
+            "attempts": "Attempts:",
+            "severity": "Severity: {level}",
+            "retries": "{count, plural, one {# retry} other {# retries}}",
+            "apiDuration": "API duration",
+            "totalTime": "Total time",
+            "attemptsLabel": "Attempts",
+            "totalTokens": "Total tokens",
+            "promptCompletion": "Prompt / completion",
+            "model": "Model"
+        },
+        "severity": {
+            "success": "Success",
+            "minor": "Minor Issue",
+            "moderate": "Moderate Issue",
+            "high": "High Issue",
+            "critical": "Critical Issue",
+            "severe": "Severe Issue",
+            "extreme": "Extreme Issue"
+        },
+        "details": {
+            "overview": "Overview",
+            "performanceUsage": "Performance & usage"
+        },
+        "payload": {
+            "request": "Request",
+            "response": "Response",
+            "error": "Error",
+            "bodyCaptured": "Body captured",
+            "bodyTruncated": "Body captured · truncated",
+            "headersOnly": "Headers only",
+            "noData": "No data",
+            "noResponse": "No response data",
+            "noError": "No error details",
+            "bodyNotStored": "Body not stored.",
+            "enableInSettings": "Enable in Settings → Observability"
+        },
+        "retries": {
+            "title": "Retry timeline",
+            "summary": "{count, plural, one {# retry} other {# retries}} · {ms}ms",
+            "hint": "All entries below are failed attempts. Final outcome is the request status above.",
+            "loadingKeys": "Loading API key names…",
+            "attempt": "Attempt #{number}"
+        }
+    },
+    "user_settings": {
+        "user_settings": "Settings",
+        "titles": { "list": "Settings" }
+    },
+    "observability": {
+        "title": "Console",
+        "subtitle": "Ops overview, live request feed, and key health",
+        "pause": "Pause",
+        "resume": "Resume",
+        "refresh": "Refresh",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "last90": "Last 90 days",
+        "kpi": {
+            "requests": "Requests",
+            "requestsHint": "Period-scoped request count",
+            "successRate": "Success rate",
+            "avgLatency": "Avg latency",
+            "activeKeys": "Active keys",
+            "retryRate": "Retry rate",
+            "inputTokens": "Input tokens",
+            "outputTokens": "Output tokens",
+            "cacheTokens": "Cache tokens",
+            "totalTokens": "Total tokens",
+            "periodHint": "Last {days} days from request logs",
+            "periodHintDefault": "Period-scoped from request logs"
+        },
+        "hourlyTitle": "Requests by hour (last 24h)",
+        "formatTitle": "By format",
+        "liveFeedTitle": "Live request feed",
+        "keyHealthTitle": "Key health",
+        "columns": {
+            "time": "Time",
+            "status": "Status",
+            "model": "Model",
+            "key": "Key",
+            "latency": "Latency",
+            "tokens": "Tokens"
+        },
+        "streamFormat": "{format} · stream",
+        "requestTitle": "Request {id}",
+        "keyMeta": "{kind} · {count} tokens · {fails, plural, one {# fail} other {# fails}}",
+        "healthDisabled": "disabled",
+        "statsFailed": "Some statistics failed to load",
+        "statsFailedDesc": "Live feed may still work. Use Refresh to retry failed RPCs.",
+        "emptyHourly": "No hourly data",
+        "emptyFormat": "No format data",
+        "waitingRequests": "Waiting for requests",
+        "ok": "OK",
+        "fail": "Fail",
+        "noKeys": "No keys yet",
+        "apiKey": "API key",
+        "proxyKey": "Proxy key",
+        "successRateTitle": "Success {rate}%",
+        "realtimeTitle": "Realtime: {label}",
+        "connection": {
+            "live": "Live",
+            "connecting": "Connecting",
+            "paused": "Paused",
+            "offline": "Offline"
+        }
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Control detailed request logging and console preferences.",
+        "tabs": { "observability": "Observability", "appearance": "Appearance" },
+        "appearance": {
+            "title": "Appearance",
+            "colorMode": "Color mode",
+            "dark": "Dark",
+            "light": "Light",
+            "hint": "Stored in a browser cookie. Does not affect request logging."
+        },
+        "observability": {
+            "saved": "Settings saved",
+            "savedDesc": "Observability preferences updated for new request logs.",
+            "saveFailed": "Failed to save settings",
+            "banner": "Detailed log bodies are off by default",
+            "bannerDesc": "When enabled, sanitized request/response bodies are stored on new logs (up to {kib} KiB). Streaming responses are included when the proxy buffers the full upstream body for token parsing. Bodies may contain prompts or completions — enable only if you accept the storage and privacy trade-off.",
+            "detailed": "Detailed observability",
+            "detailedExtra": "Master switch. When off, logs stay headers-only (current default).",
+            "saveRequest": "Save request bodies",
+            "saveRequestExtra": "Save the JSON/text sent to the model on each log (request_data.body).",
+            "saveResponse": "Save response bodies",
+            "saveResponseExtra": "Save the model response on each log, including streamed output (response_data.body).",
+            "reset": "Reset to defaults"
+        }
+    },
+    "account": {
+        "title": "Account",
+        "profile": "Profile",
+        "email": "Email",
+        "security": "Security",
+        "sectionsAria": "Account sections",
+        "signInRequired": "Sign in to manage your account.",
+        "loading": "Loading account…",
+        "displayName": "Display name",
+        "displayNamePlaceholder": "Your name",
+        "maxChars": "Max {max} characters",
+        "profileUpdated": "Profile updated",
+        "profileUpdatedDesc": "Your display name was saved.",
+        "profileFailed": "Profile update failed",
+        "profileDesc": "Set how your name appears across Gemini Proxy.",
+        "newEmail": "New email",
+        "currentEmail": "Current email",
+        "currentPassword": "Current password",
+        "emailRequested": "Email change requested",
+        "emailRequestedDesc": "Check your inbox to confirm the new email (and the old one if Secure email change is enabled).",
+        "emailFailed": "Email change failed",
+        "emailDesc": "Update the email on your account. You will confirm the change via email before it takes effect.",
+        "emailHint": "Confirmation emails may be sent to both your old and new address.",
+        "updateEmail": "Update email",
+        "newPassword": "New password",
+        "confirmPassword": "Confirm new password",
+        "passwordUpdated": "Password updated",
+        "passwordUpdatedDesc": "Your password was changed successfully.",
+        "passwordFailed": "Password change failed",
+        "securityDesc": "Confirm with your current password, then choose a new one.",
+        "updatePassword": "Update password",
+        "enterEmail": "Enter an email",
+        "validEmail": "Enter a valid email",
+        "enterCurrentPassword": "Enter your current password",
+        "enterNewPassword": "Enter a new password",
+        "minPassword": "At least 8 characters",
+        "confirmRequired": "Confirm your new password",
+        "mismatch": "Passwords do not match",
+        "noEmail": "No email on this account"
+    },
+    "landing": {
+        "meta": {
+            "title": "Gemini Proxy - API Key Management",
+            "description": "Production-ready admin for managing provider API keys, proxy keys, and request logs built with Ant Design and Supabase"
+        },
+        "hero": {
+            "badgeMit": "MIT License",
+            "tagline": "Production-Ready API Proxy for Google Gemini",
+            "body": "Secure key management, intelligent load balancing, comprehensive monitoring, and seamless streaming. Deploy anywhere with our multi-platform support.",
+            "getStarted": "Get Started",
+            "github": "View on GitHub"
+        },
+        "features": {
+            "heading": "Core Features",
+            "subheading": "Everything you need to manage, monitor, and scale your Gemini API usage",
+            "apiKeys": {
+                "title": "API Key Management",
+                "body": "Secure storage and intelligent rotation of multiple Google Gemini API keys with real-time usage tracking.",
+                "t1": "Secure Storage",
+                "t2": "Key Rotation",
+                "t3": "Usage Analytics"
+            },
+            "loadBalancing": {
+                "title": "Load Balancing",
+                "body": "Intelligent request distribution across multiple API keys with automatic failover and retry mechanisms.",
+                "t1": "Auto Distribution",
+                "t2": "Failover",
+                "t3": "Retry Logic"
+            },
+            "monitoring": {
+                "title": "Monitoring & Analytics",
+                "body": "Real-time request logging, performance metrics, cost tracking, and comprehensive dashboards.",
+                "t1": "Real-time Logs",
+                "t2": "Performance Metrics",
+                "t3": "Cost Tracking"
+            },
+            "security": {
+                "title": "Security & Access Control",
+                "body": "Proxy API key management, request authentication, rate limiting, and secure environment handling.",
+                "t1": "Authentication",
+                "t2": "Rate Limiting",
+                "t3": "Secure Storage"
+            },
+            "logging": {
+                "title": "Comprehensive Logging",
+                "body": "Detailed request/response logs with performance metrics, retry attempts, and export capabilities.",
+                "t1": "Request Logs",
+                "t2": "Response Tracking",
+                "t3": "Export Data"
+            },
+            "platforms": {
+                "title": "Multi-Platform Support",
+                "body": "Deploy anywhere with support for Next.js, Vercel, Cloudflare, Appwrite, and standalone servers.",
+                "t1": "Next.js",
+                "t2": "Vercel",
+                "t3": "Cloudflare"
+            }
+        },
+        "footer": {
+            "blurb": "Production-ready proxy for Google Gemini with secure key management, intelligent load balancing, and comprehensive monitoring.",
+            "quickLinks": "Quick Links",
+            "dashboard": "Dashboard",
+            "github": "GitHub Repository",
+            "issues": "Report Issues",
+            "builtWith": "Built With",
+            "copyright": "© {year} Gemini Proxy • Made with ❤️ by"
+        },
+        "architecture": {
+            "heading": "Architecture",
+            "subheading": "Simple, secure, and scalable architecture for production use",
+            "howItWorks": "How It Works",
+            "yourApp": "Your Application",
+            "yourAppBody": "Makes API requests using your preferred SDK",
+            "proxyBody": "Intelligently routes requests to healthy API keys, logs request/response data, and manages load balancing",
+            "geminiApi": "Google Gemini API",
+            "geminiApiBody": "Processes your AI requests",
+            "dataStorage": "Data Storage",
+            "dataStorageBody": "All data is securely stored in Supabase PostgreSQL with Row Level Security (RLS) enabled for maximum protection. API keys, request logs, and analytics are stored with proper access controls and are accessible only to authorized users.",
+            "security": "Security Features",
+            "securityBody": "Built with enterprise-grade security including RLS policies, typed RPCs, secure environment handling, and comprehensive audit logging for compliance."
+        },
+        "deployment": {
+            "heading": "Deployment Options",
+            "subheading": "Choose the deployment option that best fits your needs",
+            "platforms": "Supported Platforms:",
+            "web": {
+                "title": "Next.js Web App",
+                "badge": "Full-Stack",
+                "body": "Complete solution with web interface + API proxy in one deployment. Built-in dashboard for managing API keys and monitoring.",
+                "t1": "Web Dashboard",
+                "t2": "API Proxy",
+                "t3": "User Management"
+            },
+            "api": {
+                "title": "Standalone API",
+                "badge": "API-Only",
+                "body": "Lightweight Node.js API server with minimal resource usage. Perfect for custom deployments and microservices.",
+                "t1": "Lightweight",
+                "t2": "Customizable",
+                "t3": "Scalable"
+            },
+            "edge": {
+                "title": "Edge Functions",
+                "badge": "Serverless",
+                "body": "Deploy to Vercel, Cloudflare, or Appwrite for global CDN distribution and automatic scaling.",
+                "t1": "Global CDN",
+                "t2": "Auto-scaling",
+                "t3": "Low Latency"
+            }
+        },
+        "tech": {
+            "heading": "Tech Stack",
+            "subheading": "Built with modern, production-ready technologies",
+            "nextDesc": "React framework with App Router",
+            "reactDesc": "UI library for building interfaces",
+            "tsDesc": "Typed JavaScript at any scale",
+            "refineDesc": "React-based admin panel framework",
+            "antdDesc": "Enterprise UI design language",
+            "supabaseDesc": "Open source Firebase alternative",
+            "honoDesc": "Lightweight web framework",
+            "categoryFramework": "Framework",
+            "categoryLibrary": "Library",
+            "categoryLanguage": "Language",
+            "categoryUi": "UI Library",
+            "categoryDatabase": "Database"
+        },
+        "examples": {
+            "heading": "Integration Examples",
+            "subheading": "Get started in minutes with our comprehensive SDK examples",
+            "quickStart": "Quick Start Examples",
+            "copy": "Copy",
+            "copied": "Copied!",
+            "officialSdk": "Official SDK",
+            "compatible": "Compatible",
+            "modern": "Modern",
+            "googleDesc": "Use the official Google Generative AI SDK with our proxy endpoint:",
+            "openaiDesc": "Use OpenAI-compatible clients with our proxy endpoint:",
+            "aiSdkDesc": "Use Vercel AI SDK with our proxy endpoint (note the /v1beta path):"
+        }
+    },
+    "languageSwitcher": {
+        "en": "English",
+        "vi": "Tiếng Việt",
+        "label": "Language",
+        "ariaLabel": "{label}: {locale}"
+    },
+    "common": {
+        "never": "Never",
+        "na": "N/A",
+        "active": "Active",
+        "inactive": "Inactive",
+        "enable": "Click to enable",
+        "disable": "Click to disable",
+        "genericError": "Something went wrong",
+        "successRate": "Success Rate: {rate}%",
+        "hideKey": "Hide Key",
+        "revealKey": "Reveal Key",
+        "copyToClipboard": "Copy to clipboard",
+        "copiedToClipboard": "Copied to clipboard",
+        "copyFailedRetry": "Failed to copy, try again later",
+        "emailPlaceholder": "you@example.com"
+    }
+}

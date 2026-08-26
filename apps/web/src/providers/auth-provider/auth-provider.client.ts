@@ -16,7 +16,7 @@ function normalizeSupabaseError(error: AuthError): NormalizedAuthError {
     const maybeWithStatus = error as unknown as { status?: number };
     return {
         name: error.name ?? 'AuthError',
-        message: error.message ?? 'Auth error',
+        message: error.message ?? '',
         code: maybeWithCode.code,
         status: typeof maybeWithStatus.status === 'number' ? maybeWithStatus.status : undefined,
     };
@@ -72,7 +72,7 @@ export const authProviderClient: AuthProvider = {
             success: false,
             error: {
                 name: 'AuthError',
-                message: 'Invalid username or password',
+                message: '',
             },
         };
     },
@@ -123,7 +123,7 @@ export const authProviderClient: AuthProvider = {
                 success: false,
                 error: {
                     name: err.name ?? 'AuthError',
-                    message: err.message ?? 'Register failed',
+                    message: '',
                 },
             };
         }
@@ -200,7 +200,7 @@ export const authProviderClient: AuthProvider = {
         return {
             id: user.id,
             email: user.email,
-            name: metadata?.display_name?.trim() || user.email || 'User',
+            name: metadata?.display_name?.trim() || user.email || '',
             avatar: metadata?.avatar_url || undefined,
         };
     },

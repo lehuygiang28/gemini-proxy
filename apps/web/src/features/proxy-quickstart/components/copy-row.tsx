@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Button, Tooltip } from 'antd';
 import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
 
@@ -39,6 +40,7 @@ function maskSecret(value: string): string {
  * Single-line label + value + copy control.
  */
 export function CopyRow({ label, value, mono = true, masked = false }: CopyRowProps) {
+    const { translate } = useTranslation();
     const [copied, setCopied] = useState(false);
 
     const handleCopy = useCallback(async () => {
@@ -70,7 +72,7 @@ export function CopyRow({ label, value, mono = true, masked = false }: CopyRowPr
                 icon={copied ? <CheckOutlined /> : <CopyOutlined />}
                 onClick={() => void handleCopy()}
                 disabled={!value}
-                aria-label={`Copy ${label}`}
+                aria-label={translate('proxy_quickstart.copyAria', { label })}
             />
         </div>
     );

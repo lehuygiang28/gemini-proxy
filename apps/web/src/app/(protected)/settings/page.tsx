@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { List } from '@refinedev/antd';
+import { useTranslation } from '@refinedev/core';
 import { Tabs, Typography } from 'antd';
 import { AppearanceSettings, ObservabilitySettingsForm } from '@/features/settings';
 
@@ -23,6 +24,7 @@ function resolveTab(raw: string | null): TabKey {
  * Account profile lives in the header Account modal.
  */
 export default function SettingsPage() {
+    const { translate } = useTranslation();
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -32,22 +34,22 @@ export default function SettingsPage() {
         () => [
             {
                 key: 'observability',
-                label: 'Observability',
+                label: translate('settings.tabs.observability'),
                 children: <ObservabilitySettingsForm />,
             },
             {
                 key: 'appearance',
-                label: 'Appearance',
+                label: translate('settings.tabs.appearance'),
                 children: <AppearanceSettings />,
             },
         ],
-        [],
+        [translate],
     );
 
     return (
-        <List title={<Title level={4}>Settings</Title>}>
+        <List title={<Title level={4}>{translate('settings.title')}</Title>}>
             <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                Control detailed request logging and console preferences.
+                {translate('settings.subtitle')}
             </Paragraph>
             <Tabs
                 activeKey={activeTab}

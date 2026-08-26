@@ -1,0 +1,907 @@
+{
+    "pages": {
+        "login": {
+            "title": "Đăng nhập vào tài khoản",
+            "subtitle": "Dùng email và mật khẩu để tiếp tục.",
+            "signin": "Đăng nhập",
+            "signup": "Đăng ký",
+            "register": "Đăng ký",
+            "divider": "hoặc",
+            "fields": {
+                "email": "Email",
+                "password": "Mật khẩu"
+            },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "failed": "Đăng nhập thất bại"
+            },
+            "buttons": {
+                "submit": "Đăng nhập",
+                "forgotPassword": "Quên mật khẩu?",
+                "noAccount": "Chưa có tài khoản?",
+                "haveAccount": "Đã có tài khoản?",
+                "rememberMe": "Ghi nhớ đăng nhập",
+                "createAccount": "Tạo tài khoản"
+            }
+        },
+        "forgotPassword": {
+            "title": "Quên mật khẩu?",
+            "subtitle": "Nhập email để nhận liên kết đặt lại.",
+            "infoSent": "Đã gửi email đặt lại mật khẩu. Kiểm tra hộp thư của bạn.",
+            "fields": { "email": "Email" },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "failed": "Không gửi được email đặt lại"
+            },
+            "buttons": {
+                "submit": "Gửi liên kết đặt lại",
+                "haveAccount": "Đã có tài khoản?",
+                "backToSignIn": "Quay lại đăng nhập"
+            }
+        },
+        "register": {
+            "title": "Đăng ký tài khoản",
+            "subtitle": "Tạo tài khoản bằng email và mật khẩu.",
+            "infoCreated": "Đã tạo tài khoản. Kiểm tra email để xác nhận, rồi đăng nhập.",
+            "fields": {
+                "email": "Email",
+                "password": "Mật khẩu"
+            },
+            "errors": {
+                "requiredEmail": "Email là bắt buộc",
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "validEmail": "Địa chỉ email không hợp lệ",
+                "minPassword": "Ít nhất 8 ký tự",
+                "failed": "Đăng ký thất bại"
+            },
+            "buttons": {
+                "submit": "Tạo tài khoản",
+                "haveAccount": "Đã có tài khoản? Đăng nhập",
+                "forgotPassword": "Quên mật khẩu?"
+            }
+        },
+        "updatePassword": {
+            "title": "Cập nhật mật khẩu",
+            "subtitle": "Chọn mật khẩu mới cho tài khoản.",
+            "validating": "Đang xác thực liên kết đặt lại…",
+            "invalidLink": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+            "validateFailed": "Không thể xác thực liên kết đặt lại.",
+            "requestNewLink": "Yêu cầu liên kết đặt lại mới",
+            "infoUpdated": "Đã cập nhật mật khẩu. Đăng nhập bằng mật khẩu mới.",
+            "fields": {
+                "password": "Mật khẩu mới",
+                "confirmPassword": "Xác nhận mật khẩu"
+            },
+            "errors": {
+                "requiredPassword": "Mật khẩu là bắt buộc",
+                "requiredConfirmPassword": "Xác nhận mật khẩu là bắt buộc",
+                "confirmPasswordNotMatch": "Mật khẩu không khớp",
+                "minPassword": "Ít nhất 8 ký tự",
+                "failed": "Không cập nhật được mật khẩu"
+            },
+            "buttons": {
+                "submit": "Cập nhật mật khẩu",
+                "backToSignIn": "Quay lại đăng nhập"
+            }
+        },
+        "error": {
+            "info": "Có thể bạn đã quên thêm component {action} vào tài nguyên {resource}.",
+            "404": "Trang bạn truy cập không tồn tại.",
+            "resource404": "Bạn đã tạo tài nguyên {resource} chưa?",
+            "backHome": "Về trang chủ"
+        },
+        "auth": {
+            "errors": {
+                "missingAuthCode": "Thiếu mã đăng nhập. Hãy đăng nhập lại.",
+                "callbackFailed": "Xác nhận đăng nhập thất bại. Hãy thử lại.",
+                "missingAuthToken": "Thiếu mã xác nhận. Hãy yêu cầu liên kết mới.",
+                "confirmFailed": "Xác nhận email thất bại. Hãy yêu cầu liên kết mới."
+            }
+        }
+    },
+    "actions": {
+        "list": "Danh sách",
+        "create": "Tạo",
+        "edit": "Sửa",
+        "show": "Xem",
+        "delete": "Xóa",
+        "save": "Lưu",
+        "cancel": "Hủy"
+    },
+    "buttons": {
+        "create": "Tạo",
+        "save": "Lưu",
+        "logout": "Đăng xuất",
+        "delete": "Xóa",
+        "edit": "Sửa",
+        "cancel": "Hủy",
+        "confirm": "Bạn có chắc không?",
+        "filter": "Lọc",
+        "clear": "Xóa bộ lọc",
+        "refresh": "Làm mới",
+        "show": "Xem",
+        "undo": "Hoàn tác",
+        "import": "Nhập",
+        "clone": "Nhân bản",
+        "notAccessTitle": "Bạn không có quyền truy cập"
+    },
+    "warnWhenUnsavedChanges": "Bạn có chắc muốn rời đi? Các thay đổi chưa được lưu.",
+    "notifications": {
+        "success": "Thành công",
+        "error": "Lỗi (mã trạng thái: {statusCode})",
+        "undoable": "Bạn còn {seconds} giây để hoàn tác",
+        "createSuccess": "Đã tạo {resource} thành công",
+        "createError": "Có lỗi khi tạo {resource} (mã trạng thái: {statusCode})",
+        "deleteSuccess": "Đã xóa {resource} thành công",
+        "deleteError": "Có lỗi khi xóa {resource} (mã trạng thái: {statusCode})",
+        "editSuccess": "Đã sửa {resource} thành công",
+        "editError": "Có lỗi khi sửa {resource} (mã trạng thái: {statusCode})",
+        "importProgress": "Đang nhập: {processed}/{total}"
+    },
+    "loading": "Đang tải",
+    "tags": { "clone": "Nhân bản" },
+    "table": { "actions": "Thao tác" },
+    "autoSave": {
+        "success": "đã lưu",
+        "error": "tự động lưu thất bại",
+        "loading": "đang lưu...",
+        "idle": "đang chờ thay đổi"
+    },
+    "documentTitle": {
+        "default": "Gemini Proxy",
+        "suffix": " | Gemini Proxy",
+        "dashboard": { "list": "Bảng điều khiển | Gemini Proxy" },
+        "api_keys": {
+            "list": "Khóa API | Gemini Proxy",
+            "show": "#{id} Khóa API | Gemini Proxy",
+            "edit": "#{id} Sửa khóa API | Gemini Proxy",
+            "create": "Tạo khóa API | Gemini Proxy"
+        },
+        "proxy_api_keys": {
+            "list": "Khóa proxy | Gemini Proxy",
+            "show": "#{id} Khóa proxy | Gemini Proxy",
+            "edit": "#{id} Sửa khóa proxy | Gemini Proxy",
+            "create": "Tạo khóa proxy | Gemini Proxy"
+        },
+        "request_logs": {
+            "list": "Nhật ký | Gemini Proxy",
+            "show": "#{id} Nhật ký | Gemini Proxy"
+        },
+        "user_settings": { "list": "Cài đặt | Gemini Proxy" }
+    },
+    "header": {
+        "account": "Tài khoản",
+        "settings": "Cài đặt",
+        "logout": "Đăng xuất",
+        "accountMenu": "Menu tài khoản"
+    },
+    "dashboard": {
+        "dashboard": "Bảng điều khiển",
+        "titles": { "list": "Bảng điều khiển" }
+    },
+    "api_keys": {
+        "api_keys": "Khóa API",
+        "titles": {
+            "list": "Khóa API",
+            "create": "Tạo khóa API",
+            "edit": "Sửa khóa API",
+            "show": "Xem khóa API"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Tên",
+            "apiKey": "Khóa API",
+            "apiKeyValue": "Giá trị khóa API",
+            "provider": "Nhà cung cấp",
+            "status": "Trạng thái",
+            "health": "Sức khỏe",
+            "usage": "Thống kê sử dụng",
+            "tokens": "Token",
+            "lastUsed": "Dùng lần cuối",
+            "lastError": "Lỗi gần nhất",
+            "created": "Ngày tạo",
+            "updated": "Cập nhật lần cuối",
+            "details": "Chi tiết khóa API",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Tìm tên khóa API...",
+            "allProviders": "Tất cả nhà cung cấp",
+            "allStatus": "Tất cả trạng thái",
+            "nameExample": "vd. Khóa ứng dụng của tôi",
+            "selectProvider": "Chọn nhà cung cấp",
+            "keyName": "Tên khóa",
+            "apiKey": "Khóa API"
+        },
+        "filters": {
+            "title": "Bộ lọc và tìm kiếm",
+            "reset": "Đặt lại",
+            "searchByName": "Tìm theo tên"
+        },
+        "tokens": {
+            "total": "Tổng: {count}",
+            "prompt": "Đầu vào: {count}",
+            "completion": "Đầu ra: {count}",
+            "totalTokens": "Tổng token",
+            "promptTokens": "Token đầu vào",
+            "completionTokens": "Token đầu ra"
+        },
+        "actions": {
+            "viewLogs": "Xem nhật ký của khóa này",
+            "viewDetails": "Xem chi tiết",
+            "edit": "Sửa khóa API",
+            "delete": "Xóa khóa API"
+        },
+        "delete": {
+            "title": "Xóa khóa API",
+            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+        },
+        "empty": "Không tìm thấy khóa API",
+        "notFound": "Không tìm thấy khóa API",
+        "notifications": {
+            "statusUpdated": "Đã cập nhật trạng thái",
+            "enabled": "Đã bật khóa API \"{name}\" thành công",
+            "disabled": "Đã tắt khóa API \"{name}\" thành công",
+            "updateFailed": "Cập nhật thất bại",
+            "updateFailedDesc": "Không cập nhật được trạng thái khóa API",
+            "deleted": "Đã xóa khóa API",
+            "deletedDesc": "Đã gỡ khóa API \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deleteFailed": "Xóa thất bại",
+            "deleteFailedDesc": "Không xóa được khóa API"
+        },
+        "errors": {
+            "enterName": "Vui lòng nhập tên",
+            "selectProvider": "Vui lòng chọn nhà cung cấp",
+            "missingName": "Thiếu tên",
+            "missingApiKey": "Thiếu khóa API"
+        },
+        "edit": {
+            "editing": "Đang sửa {name}",
+            "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
+            "keyImmutable": "Không thể đổi giá trị khóa API vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "basicInfo": "Thông tin cơ bản",
+            "settings": "Cài đặt"
+        },
+        "show": {
+            "security": "Bảo mật",
+            "timestamps": "Dấu thời gian"
+        },
+        "create": {
+            "manual": "Nhập thủ công",
+            "bulkPaste": "Dán hàng loạt",
+            "importJson": "Nhập JSON",
+            "bulkPlaceholder": "Dán khóa API vào đây, phân tách bằng dấu phẩy, khoảng trắng, dòng mới, dấu chấm phẩy hoặc dấu ống.\n\nVí dụ:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nHoặc:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nMỗi khóa phải dài ít nhất 10 ký tự.",
+            "jsonPlaceholder": "Dán mảng JSON các khóa API.\n\nVí dụ:\n\nMảng chuỗi:\n[\"AIzaXXXXXXXXXXXXXXXXXXXX1\", \"AIzaXXXXXXXXXXXXXXXXXXXX2\"]\n\nMảng đối tượng:\n[\n  {\"name\": \"Gproxy key 1\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX1\"},\n  {\"name\": \"Gproxy key 2\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX2\"}\n]\n\nCác trường hỗ trợ: name/title/label, api_key_value/apiKey/key/value",
+            "addKey": "Thêm khóa API",
+            "importKeys": "Nhập khóa",
+            "backToImport": "Quay lại nhập",
+            "saveKeys": "Lưu khóa API",
+            "dragJson": "Bấm hoặc kéo tệp JSON vào đây để tải",
+            "securityTitle": "Lưu ý bảo mật",
+            "securityBody": "Khóa API là thông tin nhạy cảm. Chỉ nhập từ nguồn đáng tin cậy.",
+            "reviewTitle": "Xem lại khóa API",
+            "reviewBody": "Xem và chỉnh sửa khóa API trước khi lưu. Các khóa không hợp lệ sẽ được đánh dấu.",
+            "valid": "Hợp lệ",
+            "invalid": "Không hợp lệ",
+            "invalidDetected": "Phát hiện khóa không hợp lệ",
+            "invalidDetectedDesc": "Một số khóa có định dạng không hợp lệ và sẽ bị bỏ qua khi lưu.",
+            "importTitle": "Nhập khóa Google AI",
+            "importSubtitle": "Làm theo các bước để nhập khóa Google AI vào tài khoản của bạn.",
+            "bulkImportedName": "Khóa nhập hàng loạt {index}",
+            "jsonImportedName": "Khóa nhập JSON {index}",
+            "successDesc": "Đã tạo khóa API thành công!",
+            "errorTitle": "Lỗi",
+            "errorDesc": "Lỗi khi tạo khóa API: {message}",
+            "jsonLoaded": "Đã tải tệp JSON thành công!",
+            "readFileFailed": "Không đọc được tệp.",
+            "steps": {
+                "import": "Nhập khóa",
+                "importDesc": "Chọn cách bạn muốn nhập khóa.",
+                "review": "Xem và sửa",
+                "reviewDesc": "Xem và chỉnh sửa khóa API trước khi lưu.",
+                "save": "Lưu",
+                "saveDesc": "Lưu khóa vào tài khoản của bạn."
+            },
+            "help": {
+                "title": "Định dạng nhập được hỗ trợ",
+                "bulkTitle": "Định dạng dán hàng loạt",
+                "bulkBody": "Dán nhiều khóa API, phân tách bằng bất kỳ ký tự nào sau đây:",
+                "commas": "Dấu phẩy",
+                "newLines": "Dòng mới",
+                "semicolons": "Dấu chấm phẩy",
+                "pipes": "Dấu ống",
+                "tabs": "Tab",
+                "jsonTitle": "Định dạng JSON",
+                "jsonBody": "Mảng JSON gồm chuỗi hoặc đối tượng. Các trường đối tượng được hỗ trợ:",
+                "forName": "cho tên khóa",
+                "forKey": "cho khóa API",
+                "jsonExamples": "Ví dụ JSON",
+                "simpleArray": "Mảng chuỗi đơn giản:",
+                "objectArray": "Mảng đối tượng với tên và khóa:",
+                "altFields": "Mảng đối tượng với tên trường khác:",
+                "validationTitle": "Quy tắc xác thực",
+                "validationBody": "Mọi khóa API phải dài ít nhất 10 ký tự và không được để trống. Khóa không hợp lệ sẽ được đánh dấu ở bước xem lại."
+            },
+            "errors": {
+                "tooShort": "Khóa API quá ngắn hoặc trống",
+                "invalidJson": "Định dạng JSON không hợp lệ",
+                "invalidJsonDesc": "Hãy cung cấp một mảng JSON hợp lệ.",
+                "noKeys": "Không tìm thấy khóa",
+                "noKeysDesc": "Không tìm thấy khóa API hợp lệ trong dữ liệu nhập.",
+                "authRequired": "Cần đăng nhập",
+                "authRequiredDesc": "Hãy đăng nhập để tạo khóa API.",
+                "noValid": "Không có khóa hợp lệ",
+                "noValidDesc": "Không có khóa API hợp lệ để lưu."
+            }
+        }
+    },
+    "proxy_api_keys": {
+        "proxy_api_keys": "Khóa proxy",
+        "titles": {
+            "list": "Khóa proxy",
+            "create": "Tạo khóa proxy",
+            "edit": "Sửa khóa proxy",
+            "show": "Xem khóa proxy"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Tên",
+            "proxyKey": "Khóa proxy",
+            "proxyKeyValue": "Giá trị khóa proxy",
+            "status": "Trạng thái",
+            "health": "Sức khỏe",
+            "usage": "Thống kê sử dụng",
+            "tokens": "Token",
+            "lastUsed": "Dùng lần cuối",
+            "lastError": "Lỗi gần nhất",
+            "created": "Ngày tạo",
+            "updated": "Cập nhật lần cuối",
+            "details": "Chi tiết khóa proxy",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Tìm tên khóa proxy...",
+            "allStatus": "Tất cả trạng thái",
+            "nameExample": "vd. Khóa ứng dụng của tôi",
+            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới"
+        },
+        "tabs": {
+            "keys": "Khóa",
+            "quickstart": "Bắt đầu nhanh"
+        },
+        "filters": {
+            "title": "Bộ lọc",
+            "reset": "Đặt lại",
+            "searchByName": "Tìm theo tên"
+        },
+        "tokens": {
+            "total": "Tổng: {count}",
+            "prompt": "Đầu vào: {count}",
+            "completion": "Đầu ra: {count}",
+            "totalTokens": "Tổng token",
+            "promptTokens": "Token đầu vào",
+            "completionTokens": "Token đầu ra"
+        },
+        "actions": {
+            "viewLogs": "Xem nhật ký của khóa này",
+            "viewDetails": "Xem chi tiết",
+            "edit": "Sửa khóa proxy",
+            "delete": "Xóa khóa proxy"
+        },
+        "delete": {
+            "title": "Xóa khóa proxy",
+            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+        },
+        "empty": "Không tìm thấy khóa proxy",
+        "notFound": "Không tìm thấy khóa proxy",
+        "notifications": {
+            "statusUpdated": "Đã cập nhật trạng thái",
+            "enabled": "Đã bật khóa proxy \"{name}\" thành công",
+            "disabled": "Đã tắt khóa proxy \"{name}\" thành công",
+            "updateFailed": "Cập nhật thất bại",
+            "updateFailedDesc": "Không cập nhật được trạng thái khóa proxy",
+            "deleted": "Đã xóa khóa proxy",
+            "deletedDesc": "Đã gỡ khóa proxy \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deleteFailed": "Xóa thất bại",
+            "deleteFailedDesc": "Không xóa được khóa proxy"
+        },
+        "errors": {
+            "enterName": "Vui lòng nhập tên",
+            "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy"
+        },
+        "edit": {
+            "editing": "Đang sửa {name}",
+            "subtitle": "Chỉnh sửa thông tin khóa proxy hiện có.",
+            "keyImmutable": "Không thể đổi giá trị khóa proxy vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "basicInfo": "Thông tin cơ bản",
+            "settings": "Cài đặt"
+        },
+        "show": {
+            "security": "Bảo mật",
+            "timestamps": "Dấu thời gian"
+        },
+        "create": {
+            "subtitle": "Làm theo các bước để tạo khóa proxy mới cho ứng dụng của bạn.",
+            "stepName": "Tên",
+            "stepNameDesc": "Đặt tên mô tả cho khóa của bạn.",
+            "stepGenerate": "Tạo khóa",
+            "stepGenerateDesc": "Tạo khóa proxy an toàn và duy nhất.",
+            "stepStatus": "Đặt trạng thái",
+            "stepStatusDesc": "Quyết định khóa có được bật ngay hay không.",
+            "generateKey": "Tạo khóa an toàn",
+            "copyClipboard": "Sao chép",
+            "copyWarning": "Hãy sao chép khóa này và lưu trữ an toàn. Bạn sẽ không xem lại được khóa.",
+            "copied": "Đã sao chép",
+            "copiedDesc": "Khóa API đã được sao chép vào clipboard.",
+            "copyFailed": "Sao chép thất bại",
+            "copyFailedDesc": "Không thể sao chép. Hãy sao chép thủ công.",
+            "authRequired": "Cần đăng nhập",
+            "authRequiredDesc": "Hãy đăng nhập để tạo khóa proxy."
+        }
+    },
+    "proxy_quickstart": {
+        "empty": "Hãy tạo khóa proxy đang bật trước",
+        "selectKey": "Chọn khóa",
+        "selectKeyWarning": "Chọn một khóa proxy",
+        "copy": "Sao chép",
+        "copied": "Đã sao chép",
+        "openaiBase": "OpenAI base",
+        "openaiChat": "OpenAI chat",
+        "geminiBase": "Gemini base",
+        "geminiV1beta": "Gemini v1beta",
+        "apiKey": "Khóa API",
+        "openaiAuth": "OpenAI auth",
+        "geminiAuth": "Gemini auth",
+        "sdkOpenai": "OpenAI SDK",
+        "sdkGemini": "Gemini SDK",
+        "curlOpenai": "curl OpenAI",
+        "curlGemini": "curl Gemini",
+        "copyAria": "Sao chép {label}",
+        "endpoints": "Endpoint",
+        "proxyKey": "Khóa proxy",
+        "snippet": "Đoạn mã"
+    },
+    "request_logs": {
+        "request_logs": "Nhật ký",
+        "titles": {
+            "list": "Nhật ký",
+            "show": "Xem nhật ký",
+            "details": "Chi tiết nhật ký"
+        },
+        "fields": {
+            "keys": "Khóa",
+            "status": "Trạng thái",
+            "type": "Loại",
+            "format": "Định dạng",
+            "stream": "Stream",
+            "performance": "Hiệu năng",
+            "tokens": "Token",
+            "created": "Thời gian",
+            "requestId": "Mã request",
+            "body": "Nội dung",
+            "headersMeta": "Header & meta",
+            "apiFormat": "Định dạng API",
+            "dateRange": "Khoảng thời gian",
+            "proxy": "Proxy",
+            "api": "API"
+        },
+        "placeholders": {
+            "searchRequestId": "Tìm request ID…",
+            "selectFormat": "Chọn định dạng",
+            "selectStatus": "Chọn trạng thái",
+            "selectStream": "Chọn kiểu stream",
+            "searchApiKey": "Tìm khóa API theo tên…",
+            "searchProxyKey": "Tìm khóa proxy theo tên…"
+        },
+        "identity": {
+            "apiKey": "Khóa API",
+            "proxyKey": "Khóa proxy",
+            "authenticated": "Người dùng đã xác thực",
+            "anonymous": "Ẩn danh",
+            "userId": "User ID",
+            "copyUserId": "Sao chép user ID",
+            "copyKeyId": "Sao chép ID {title}",
+            "keyId": "ID {title}",
+            "user": "Người dùng",
+            "removed": "Đã xóa",
+            "removedLabel": "{name} (đã xóa)",
+            "removedSuffix": " · đã xóa",
+            "notUsed": "Không dùng trong request này.",
+            "removedFromVault": "Đã xóa khỏi vault · tên lấy từ bản ghi khóa.",
+            "recordGone": "Bản ghi khóa không còn tồn tại.",
+            "provider": "Nhà cung cấp",
+            "lifetimeTokens": "Token suốt đời {count}",
+            "noUser": "Không có người dùng trên request này.",
+            "authenticatedTag": "Đã xác thực"
+        },
+        "status": {
+            "success": "Thành công",
+            "failed": "Thất bại",
+            "successful": "Thành công"
+        },
+        "stream": {
+            "yes": "Có",
+            "no": "Không",
+            "streaming": "Streaming",
+            "nonStreaming": "Không stream"
+        },
+        "live": {
+            "pause": "Tạm dừng",
+            "resume": "Tiếp tục",
+            "onMessage": "Đang cập nhật trực tiếp — bảng làm mới khi có nhật ký mới.",
+            "offMessage": "Đã tạm dừng cập nhật trực tiếp — bấm tiếp tục để tự làm mới."
+        },
+        "retention": "Nhật ký chi tiết cũ hơn 90 ngày sẽ bị xóa tự động. Tổng mức dùng suốt đời trên khóa API và khóa proxy được giữ lại.",
+        "filters": {
+            "title": "Bộ lọc",
+            "reset": "Đặt lại",
+            "collapse": "Thu gọn bộ lọc",
+            "expand": "Mở rộng bộ lọc",
+            "apiKeyActive": "Đã lọc khóa API",
+            "proxyKeyActive": "Đã lọc khóa proxy",
+            "statusTag": "Trạng thái: {status}",
+            "formatTag": "Định dạng: {format}",
+            "clickToEdit": "Bấm Bộ lọc để chỉnh"
+        },
+        "actions": {
+            "viewDetails": "Xem chi tiết",
+            "copyRequestId": "Sao chép request ID",
+            "close": "Đóng",
+            "back": "Quay lại nhật ký"
+        },
+        "empty": "Không tìm thấy nhật ký",
+        "notFound": {
+            "title": "Không tìm thấy nhật ký",
+            "description": "Không tìm thấy nhật ký này hoặc bạn không có quyền xem."
+        },
+        "clipboard": {
+            "copied": "Đã sao chép",
+            "copiedDesc": "Đã sao chép {label} vào clipboard.",
+            "downloadStarted": "Đã bắt đầu tải xuống",
+            "downloadStartedDesc": "Đã tải {filename}.",
+            "copyNamed": "Sao chép {title}",
+            "downloadNamed": "Tải {title}"
+        },
+        "metrics": {
+            "api": "API: {duration}",
+            "total": "Tổng: {duration}",
+            "attempts": "Số lần thử:",
+            "severity": "Mức độ: {level}",
+            "retries": "{count, plural, one {# lần thử lại} other {# lần thử lại}}",
+            "apiDuration": "Thời gian API",
+            "totalTime": "Tổng thời gian",
+            "attemptsLabel": "Số lần thử",
+            "totalTokens": "Tổng token",
+            "promptCompletion": "Đầu vào / đầu ra",
+            "model": "Model"
+        },
+        "severity": {
+            "success": "Thành công",
+            "minor": "Vấn đề nhỏ",
+            "moderate": "Vấn đề vừa",
+            "high": "Vấn đề cao",
+            "critical": "Nghiêm trọng",
+            "severe": "Rất nghiêm trọng",
+            "extreme": "Cực kỳ nghiêm trọng"
+        },
+        "details": {
+            "overview": "Tổng quan",
+            "performanceUsage": "Hiệu năng & mức dùng"
+        },
+        "payload": {
+            "request": "Request",
+            "response": "Response",
+            "error": "Lỗi",
+            "bodyCaptured": "Đã lưu nội dung",
+            "bodyTruncated": "Đã lưu nội dung · bị cắt",
+            "headersOnly": "Chỉ header",
+            "noData": "Không có dữ liệu",
+            "noResponse": "Không có dữ liệu response",
+            "noError": "Không có chi tiết lỗi",
+            "bodyNotStored": "Nội dung chưa được lưu.",
+            "enableInSettings": "Bật trong Cài đặt → Giám sát"
+        },
+        "retries": {
+            "title": "Dòng thời gian thử lại",
+            "summary": "{count, plural, one {# lần thử lại} other {# lần thử lại}} · {ms}ms",
+            "hint": "Tất cả mục bên dưới là các lần thử thất bại. Kết quả cuối là trạng thái request ở trên.",
+            "loadingKeys": "Đang tải tên khóa API…",
+            "attempt": "Lần thử #{number}"
+        }
+    },
+    "user_settings": {
+        "user_settings": "Cài đặt",
+        "titles": { "list": "Cài đặt" }
+    },
+    "observability": {
+        "title": "Bảng điều khiển",
+        "subtitle": "Tổng quan vận hành, luồng request trực tiếp và sức khỏe khóa",
+        "pause": "Tạm dừng",
+        "resume": "Tiếp tục",
+        "refresh": "Làm mới",
+        "last7": "7 ngày qua",
+        "last30": "30 ngày qua",
+        "last90": "90 ngày qua",
+        "kpi": {
+            "requests": "Request",
+            "requestsHint": "Số request trong kỳ",
+            "successRate": "Tỷ lệ thành công",
+            "avgLatency": "Độ trễ TB",
+            "activeKeys": "Khóa đang bật",
+            "retryRate": "Tỷ lệ thử lại",
+            "inputTokens": "Token đầu vào",
+            "outputTokens": "Token đầu ra",
+            "cacheTokens": "Token cache",
+            "totalTokens": "Tổng token",
+            "periodHint": "{days} ngày gần nhất từ nhật ký request",
+            "periodHintDefault": "Trong kỳ từ nhật ký request"
+        },
+        "hourlyTitle": "Request theo giờ (24 giờ qua)",
+        "formatTitle": "Theo định dạng",
+        "liveFeedTitle": "Luồng request trực tiếp",
+        "keyHealthTitle": "Sức khỏe khóa",
+        "columns": {
+            "time": "Thời gian",
+            "status": "Trạng thái",
+            "model": "Model",
+            "key": "Khóa",
+            "latency": "Độ trễ",
+            "tokens": "Token"
+        },
+        "streamFormat": "{format} · stream",
+        "requestTitle": "Request {id}",
+        "keyMeta": "{kind} · {count} token · {fails, plural, one {# lần thất bại} other {# lần thất bại}}",
+        "healthDisabled": "tắt",
+        "statsFailed": "Một số thống kê không tải được",
+        "statsFailedDesc": "Luồng trực tiếp vẫn có thể hoạt động. Bấm Làm mới để thử lại các RPC thất bại.",
+        "emptyHourly": "Không có dữ liệu theo giờ",
+        "emptyFormat": "Không có dữ liệu định dạng",
+        "waitingRequests": "Đang chờ request",
+        "ok": "OK",
+        "fail": "Thất bại",
+        "noKeys": "Chưa có khóa",
+        "apiKey": "Khóa API",
+        "proxyKey": "Khóa proxy",
+        "successRateTitle": "Thành công {rate}%",
+        "realtimeTitle": "Realtime: {label}",
+        "connection": {
+            "live": "Trực tiếp",
+            "connecting": "Đang kết nối",
+            "paused": "Tạm dừng",
+            "offline": "Ngoại tuyến"
+        }
+    },
+    "settings": {
+        "title": "Cài đặt",
+        "subtitle": "Kiểm soát ghi nhật ký request chi tiết và tùy chọn bảng điều khiển.",
+        "tabs": { "observability": "Giám sát", "appearance": "Giao diện" },
+        "appearance": {
+            "title": "Giao diện",
+            "colorMode": "Chế độ màu",
+            "dark": "Tối",
+            "light": "Sáng",
+            "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi nhật ký request."
+        },
+        "observability": {
+            "saved": "Đã lưu cài đặt",
+            "savedDesc": "Tùy chọn giám sát đã được cập nhật cho nhật ký request mới.",
+            "saveFailed": "Lưu cài đặt thất bại",
+            "banner": "Lưu body nhật ký chi tiết mặc định tắt",
+            "bannerDesc": "Khi bật, body request/response đã được làm sạch sẽ được lưu trên nhật ký mới (tối đa {kib} KiB). Phản hồi streaming được đưa vào khi proxy đệm toàn bộ body upstream để phân tích token. Body có thể chứa prompt hoặc completion — chỉ bật nếu bạn chấp nhận đánh đổi về lưu trữ và quyền riêng tư.",
+            "detailed": "Giám sát chi tiết",
+            "detailedExtra": "Công tắc chính. Khi tắt, nhật ký chỉ lưu headers (mặc định hiện tại).",
+            "saveRequest": "Lưu body request",
+            "saveRequestExtra": "Lưu JSON/text gửi tới model trên mỗi nhật ký (request_data.body).",
+            "saveResponse": "Lưu body response",
+            "saveResponseExtra": "Lưu phản hồi model trên mỗi nhật ký, kể cả dữ liệu streaming (response_data.body).",
+            "reset": "Đặt lại mặc định"
+        }
+    },
+    "account": {
+        "title": "Tài khoản",
+        "profile": "Hồ sơ",
+        "email": "Email",
+        "security": "Bảo mật",
+        "sectionsAria": "Các mục tài khoản",
+        "signInRequired": "Đăng nhập để quản lý tài khoản.",
+        "loading": "Đang tải tài khoản…",
+        "displayName": "Tên hiển thị",
+        "displayNamePlaceholder": "Tên của bạn",
+        "maxChars": "Tối đa {max} ký tự",
+        "profileUpdated": "Đã cập nhật hồ sơ",
+        "profileUpdatedDesc": "Tên hiển thị đã được lưu.",
+        "profileFailed": "Cập nhật hồ sơ thất bại",
+        "profileDesc": "Đặt tên hiển thị của bạn trên Gemini Proxy.",
+        "newEmail": "Email mới",
+        "currentEmail": "Email hiện tại",
+        "currentPassword": "Mật khẩu hiện tại",
+        "emailRequested": "Đã yêu cầu đổi email",
+        "emailRequestedDesc": "Kiểm tra hộp thư để xác nhận email mới (và email cũ nếu đổi email an toàn đang bật).",
+        "emailFailed": "Đổi email thất bại",
+        "emailDesc": "Cập nhật email của tài khoản. Bạn sẽ xác nhận thay đổi qua email trước khi có hiệu lực.",
+        "emailHint": "Email xác nhận có thể được gửi tới cả địa chỉ cũ và mới.",
+        "updateEmail": "Cập nhật email",
+        "newPassword": "Mật khẩu mới",
+        "confirmPassword": "Xác nhận mật khẩu mới",
+        "passwordUpdated": "Đã cập nhật mật khẩu",
+        "passwordUpdatedDesc": "Mật khẩu đã được đổi thành công.",
+        "passwordFailed": "Đổi mật khẩu thất bại",
+        "securityDesc": "Xác nhận bằng mật khẩu hiện tại, rồi chọn mật khẩu mới.",
+        "updatePassword": "Cập nhật mật khẩu",
+        "enterEmail": "Nhập email",
+        "validEmail": "Nhập email hợp lệ",
+        "enterCurrentPassword": "Nhập mật khẩu hiện tại",
+        "enterNewPassword": "Nhập mật khẩu mới",
+        "minPassword": "Ít nhất 8 ký tự",
+        "confirmRequired": "Xác nhận mật khẩu mới",
+        "mismatch": "Mật khẩu không khớp",
+        "noEmail": "Tài khoản này không có email"
+    },
+    "landing": {
+        "meta": {
+            "title": "Gemini Proxy - Quản lý khóa API",
+            "description": "Admin sẵn sàng production để quản lý khóa API nhà cung cấp, khóa proxy và nhật ký request, xây dựng với Ant Design và Supabase"
+        },
+        "hero": {
+            "badgeMit": "Giấy phép MIT",
+            "tagline": "Proxy API sẵn sàng production cho Google Gemini",
+            "body": "Quản lý khóa an toàn, cân bằng tải thông minh, giám sát toàn diện và streaming liền mạch. Triển khai mọi nơi với hỗ trợ đa nền tảng.",
+            "getStarted": "Bắt đầu",
+            "github": "Xem trên GitHub"
+        },
+        "features": {
+            "heading": "Tính năng cốt lõi",
+            "subheading": "Mọi thứ bạn cần để quản lý, giám sát và mở rộng việc sử dụng Gemini API",
+            "apiKeys": {
+                "title": "Quản lý khóa API",
+                "body": "Lưu trữ an toàn và luân chuyển thông minh nhiều khóa API Google Gemini kèm theo dõi sử dụng theo thời gian thực.",
+                "t1": "Lưu trữ an toàn",
+                "t2": "Luân chuyển khóa",
+                "t3": "Phân tích sử dụng"
+            },
+            "loadBalancing": {
+                "title": "Cân bằng tải",
+                "body": "Phân phối request thông minh giữa nhiều khóa API với cơ chế failover và retry tự động.",
+                "t1": "Phân phối tự động",
+                "t2": "Failover",
+                "t3": "Logic retry"
+            },
+            "monitoring": {
+                "title": "Giám sát & phân tích",
+                "body": "Ghi nhật ký request theo thời gian thực, chỉ số hiệu năng, theo dõi chi phí và dashboard toàn diện.",
+                "t1": "Nhật ký thời gian thực",
+                "t2": "Chỉ số hiệu năng",
+                "t3": "Theo dõi chi phí"
+            },
+            "security": {
+                "title": "Bảo mật & kiểm soát truy cập",
+                "body": "Quản lý khóa API proxy, xác thực request, giới hạn tốc độ và xử lý môi trường an toàn.",
+                "t1": "Xác thực",
+                "t2": "Giới hạn tốc độ",
+                "t3": "Lưu trữ an toàn"
+            },
+            "logging": {
+                "title": "Ghi nhật ký toàn diện",
+                "body": "Nhật ký request/response chi tiết kèm chỉ số hiệu năng, số lần retry và khả năng xuất dữ liệu.",
+                "t1": "Nhật ký request",
+                "t2": "Theo dõi response",
+                "t3": "Xuất dữ liệu"
+            },
+            "platforms": {
+                "title": "Hỗ trợ đa nền tảng",
+                "body": "Triển khai mọi nơi với hỗ trợ Next.js, Vercel, Cloudflare, Appwrite và máy chủ độc lập.",
+                "t1": "Next.js",
+                "t2": "Vercel",
+                "t3": "Cloudflare"
+            }
+        },
+        "footer": {
+            "blurb": "Proxy sẵn sàng production cho Google Gemini với quản lý khóa an toàn, cân bằng tải thông minh và giám sát toàn diện.",
+            "quickLinks": "Liên kết nhanh",
+            "dashboard": "Bảng điều khiển",
+            "github": "Kho GitHub",
+            "issues": "Báo cáo sự cố",
+            "builtWith": "Xây dựng với",
+            "copyright": "© {year} Gemini Proxy • Made with ❤️ by"
+        },
+        "architecture": {
+            "heading": "Kiến trúc",
+            "subheading": "Kiến trúc đơn giản, an toàn và có thể mở rộng cho môi trường production",
+            "howItWorks": "Cách hoạt động",
+            "yourApp": "Ứng dụng của bạn",
+            "yourAppBody": "Gửi request API bằng SDK bạn chọn",
+            "proxyBody": "Định tuyến thông minh request tới các khóa API khỏe mạnh, ghi nhật ký dữ liệu request/response và quản lý cân bằng tải",
+            "geminiApi": "Google Gemini API",
+            "geminiApiBody": "Xử lý các request AI của bạn",
+            "dataStorage": "Lưu trữ dữ liệu",
+            "dataStorageBody": "Mọi dữ liệu được lưu an toàn trong Supabase PostgreSQL với Row Level Security (RLS) để bảo vệ tối đa. Khóa API, nhật ký request và phân tích được lưu với kiểm soát truy cập phù hợp và chỉ người dùng được ủy quyền mới truy cập được.",
+            "security": "Tính năng bảo mật",
+            "securityBody": "Xây dựng với bảo mật cấp doanh nghiệp gồm chính sách RLS, RPC có kiểu, xử lý môi trường an toàn và nhật ký kiểm toán toàn diện cho tuân thủ."
+        },
+        "deployment": {
+            "heading": "Tùy chọn triển khai",
+            "subheading": "Chọn tùy chọn triển khai phù hợp nhất với nhu cầu của bạn",
+            "platforms": "Nền tảng hỗ trợ:",
+            "web": {
+                "title": "Ứng dụng web Next.js",
+                "badge": "Full-Stack",
+                "body": "Giải pháp đầy đủ với giao diện web + API proxy trong một lần triển khai. Dashboard tích hợp để quản lý khóa API và giám sát.",
+                "t1": "Dashboard web",
+                "t2": "API Proxy",
+                "t3": "Quản lý người dùng"
+            },
+            "api": {
+                "title": "API độc lập",
+                "badge": "Chỉ API",
+                "body": "Máy chủ API Node.js nhẹ với tài nguyên tối thiểu. Phù hợp cho triển khai tùy chỉnh và microservices.",
+                "t1": "Nhẹ",
+                "t2": "Tùy biến",
+                "t3": "Mở rộng được"
+            },
+            "edge": {
+                "title": "Edge Functions",
+                "badge": "Serverless",
+                "body": "Triển khai lên Vercel, Cloudflare hoặc Appwrite để phân phối CDN toàn cầu và tự động mở rộng.",
+                "t1": "CDN toàn cầu",
+                "t2": "Tự động mở rộng",
+                "t3": "Độ trễ thấp"
+            }
+        },
+        "tech": {
+            "heading": "Công nghệ",
+            "subheading": "Xây dựng với các công nghệ hiện đại, sẵn sàng cho production",
+            "nextDesc": "Framework React với App Router",
+            "reactDesc": "Thư viện UI để xây dựng giao diện",
+            "tsDesc": "JavaScript có kiểu ở mọi quy mô",
+            "refineDesc": "Framework admin panel dựa trên React",
+            "antdDesc": "Ngôn ngữ thiết kế UI doanh nghiệp",
+            "supabaseDesc": "Thay thế Firebase mã nguồn mở",
+            "honoDesc": "Framework web nhẹ",
+            "categoryFramework": "Framework",
+            "categoryLibrary": "Thư viện",
+            "categoryLanguage": "Ngôn ngữ",
+            "categoryUi": "Thư viện UI",
+            "categoryDatabase": "Cơ sở dữ liệu"
+        },
+        "examples": {
+            "heading": "Ví dụ tích hợp",
+            "subheading": "Bắt đầu trong vài phút với các ví dụ SDK đầy đủ",
+            "quickStart": "Ví dụ bắt đầu nhanh",
+            "copy": "Sao chép",
+            "copied": "Đã sao chép!",
+            "officialSdk": "SDK chính thức",
+            "compatible": "Tương thích",
+            "modern": "Hiện đại",
+            "googleDesc": "Dùng SDK Google Generative AI chính thức với endpoint proxy của chúng tôi:",
+            "openaiDesc": "Dùng client tương thích OpenAI với endpoint proxy của chúng tôi:",
+            "aiSdkDesc": "Dùng Vercel AI SDK với endpoint proxy của chúng tôi (lưu ý đường dẫn /v1beta):"
+        }
+    },
+    "languageSwitcher": {
+        "en": "English",
+        "vi": "Tiếng Việt",
+        "label": "Ngôn ngữ",
+        "ariaLabel": "{label}: {locale}"
+    },
+    "common": {
+        "never": "Chưa từng",
+        "na": "—",
+        "active": "Bật",
+        "inactive": "Tắt",
+        "enable": "Bấm để bật",
+        "disable": "Bấm để tắt",
+        "genericError": "Đã xảy ra lỗi",
+        "successRate": "Tỷ lệ thành công: {rate}%",
+        "hideKey": "Ẩn khóa",
+        "revealKey": "Hiện khóa",
+        "copyToClipboard": "Sao chép vào clipboard",
+        "copiedToClipboard": "Đã sao chép vào clipboard",
+        "copyFailedRetry": "Không thể sao chép, thử lại sau",
+        "emailPlaceholder": "you@example.com"
+    }
+}

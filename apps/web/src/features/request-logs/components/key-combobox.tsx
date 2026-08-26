@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Select } from 'antd';
-import { useList } from '@refinedev/core';
+import { useList, useTranslation } from '@refinedev/core';
 import type { Tables } from '@gemini-proxy/database';
 
 type KeyRow = Pick<Tables<'api_keys'>, 'id' | 'name' | 'deleted_at'>;
@@ -24,6 +24,7 @@ export function KeyCombobox({
     placeholder,
     allowClear = true,
 }: KeyComboboxProps) {
+    const { translate } = useTranslation();
     const { result, query } = useList<KeyRow>({
         resource,
         pagination: { currentPage: 1, pageSize: 200 },
@@ -33,15 +34,16 @@ export function KeyCombobox({
 
     const options = useMemo(() => {
         const keys = result?.data ?? [];
+        const removedMark = translate('request_logs.identity.removedSuffix');
         return keys.map((key) => {
             const shortId = key.id.slice(0, 8);
-            const removed = key.deleted_at ? ' · removed' : '';
+            const removed = key.deleted_at ? removedMark : '';
             return {
                 value: key.id,
                 label: `${key.name} · ${shortId}${removed}`,
             };
         });
-    }, [result?.data]);
+    }, [result?.data, translate]);
 
     return (
         <Select

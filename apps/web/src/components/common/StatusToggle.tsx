@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
 import { Badge, Switch, Tooltip, Space } from 'antd';
-import { getStatusValue, getStatusText } from '@/utils/table-helpers';
+import { useTranslation } from '@refinedev/core';
+import { getStatusValue } from '@/utils/table-helpers';
 
 interface StatusToggleProps {
     isActive: boolean;
@@ -13,10 +16,15 @@ export const StatusToggle: React.FC<StatusToggleProps> = ({
     onToggle,
     loading = false,
 }) => {
+    const { translate } = useTranslation();
+
     return (
         <Space align="center">
-            <Badge status={getStatusValue(isActive)} text={getStatusText(isActive)} />
-            <Tooltip title={isActive ? 'Click to disable' : 'Click to enable'}>
+            <Badge
+                status={getStatusValue(isActive)}
+                text={translate(isActive ? 'common.active' : 'common.inactive')}
+            />
+            <Tooltip title={translate(isActive ? 'common.disable' : 'common.enable')}>
                 <Switch checked={isActive} size="small" onChange={onToggle} loading={loading} />
             </Tooltip>
         </Space>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Space, Tag, Typography } from 'antd';
 import { CopyOutlined, UserOutlined } from '@ant-design/icons';
-import { useGetIdentity } from '@refinedev/core';
+import { useGetIdentity, useTranslation } from '@refinedev/core';
 
 const { Text } = Typography;
 
@@ -20,28 +20,32 @@ export type UserIdentityCardProps = {
  * Shows session email when the log belongs to the current user; ID is secondary.
  */
 export function UserIdentityCard({ userId, onCopy }: UserIdentityCardProps) {
+    const { translate } = useTranslation();
     const { data: identity } = useGetIdentity<Identity>();
     const isCurrentUser = Boolean(userId && identity?.id && userId === identity.id);
+    const authenticatedLabel = translate('request_logs.identity.authenticated');
     const primaryLabel = isCurrentUser
-        ? identity?.email || identity?.name || 'Authenticated user'
+        ? identity?.email || identity?.name || authenticatedLabel
         : userId
-          ? 'Authenticated user'
-          : 'Anonymous';
+          ? authenticatedLabel
+          : translate('request_logs.identity.anonymous');
 
     return (
         <div className="gp-panel" style={{ padding: 12, height: '100%' }}>
             <Space style={{ marginBottom: 8 }}>
                 <UserOutlined style={{ color: 'var(--gp-accent)' }} />
                 <span className="gp-section-title" style={{ margin: 0 }}>
-                    User
+                    {translate('request_logs.identity.user')}
                 </span>
             </Space>
 
             {!userId ? (
                 <>
-                    <Text style={{ color: 'var(--gp-text-muted)' }}>Anonymous</Text>
+                    <Text style={{ color: 'var(--gp-text-muted)' }}>
+                        {translate('request_logs.identity.anonymous')}
+                    </Text>
                     <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gp-text-muted)' }}>
-                        No user on this request.
+                        {translate('request_logs.identity.noUser')}
                     </div>
                 </>
             ) : (
@@ -57,13 +61,13 @@ export function UserIdentityCard({ userId, onCopy }: UserIdentityCardProps) {
                             type="text"
                             size="small"
                             icon={<CopyOutlined />}
-                            onClick={() => onCopy(userId, 'User ID')}
-                            aria-label="Copy user ID"
+                            onClick={() => onCopy(userId, translate('request_logs.identity.userId'))}
+                            aria-label={translate('request_logs.identity.copyUserId')}
                         />
                     </Space>
                     <div style={{ marginTop: 8 }}>
                         <Tag color="success" style={{ borderRadius: 2 }}>
-                            Authenticated
+                            {translate('request_logs.identity.authenticatedTag')}
                         </Tag>
                     </div>
                 </>

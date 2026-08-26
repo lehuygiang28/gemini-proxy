@@ -2,7 +2,7 @@
 
 import { ColorModeContext } from '@contexts/color-mode';
 import type { RefineThemedLayoutHeaderProps } from '@refinedev/antd';
-import { useGetIdentity, useLogout, useWarnAboutChange, useTranslate } from '@refinedev/core';
+import { useGetIdentity, useLogout, useWarnAboutChange, useTranslation } from '@refinedev/core';
 import {
     DownOutlined,
     LogoutOutlined,
@@ -14,6 +14,7 @@ import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { AccountSettingsModal } from '@/features/settings';
+import { LanguageSwitcher } from '@components/language-switcher';
 
 const { useToken } = theme;
 
@@ -33,16 +34,16 @@ function initialsFrom(user?: IUser | null): string {
     return source.slice(0, 2).toUpperCase();
 }
 
-function displayNameFrom(user?: IUser | null): string {
+function displayNameFrom(user: IUser | null | undefined, fallback: string): string {
     const name = user?.name?.trim();
     const email = user?.email?.trim();
     if (name && email && name.toLowerCase() !== email.toLowerCase()) {
         return name;
     }
     if (email) {
-        return email.split('@')[0] || 'Account';
+        return email.split('@')[0] || fallback;
     }
-    return name || 'Account';
+    return name || fallback;
 }
 
 export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true }) => {
@@ -52,7 +53,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
     const router = useRouter();
     const { mutate: logout } = useLogout();
     const { warnWhen, setWarnWhen } = useWarnAboutChange();
-    const translate = useTranslate();
+    const { translate } = useTranslation();
     const [accountOpen, setAccountOpen] = useState(false);
 
     const headerStyles: React.CSSProperties = {
@@ -74,12 +75,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
 
     const handleLogout = useCallback(() => {
         if (warnWhen) {
-            const confirmed = window.confirm(
-                translate(
-                    'warnWhenUnsavedChanges',
-                    'Are you sure you want to leave? You have unsaved changes.',
-                ),
-            );
+            const confirmed = window.confirm(translate('warnWhenUnsavedChanges'));
             if (!confirmed) {
                 return;
             }
@@ -93,33 +89,34 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
             {
                 key: 'account',
                 icon: <UserOutlined />,
-                label: 'Account',
+                label: translate('header.account'),
                 onClick: () => setAccountOpen(true),
             },
             {
                 key: 'settings',
                 icon: <SettingOutlined />,
-                label: 'Settings',
+                label: translate('header.settings'),
                 onClick: () => router.push('/settings'),
             },
             { type: 'divider' },
             {
                 key: 'logout',
                 icon: <LogoutOutlined />,
-                label: 'Logout',
+                label: translate('header.logout'),
                 danger: true,
                 onClick: () => handleLogout(),
             },
         ],
-        [router, handleLogout],
+        [router, handleLogout, translate],
     );
 
-    const primaryLabel = displayNameFrom(user);
+    const primaryLabel = displayNameFrom(user, translate('header.account'));
     const email = user?.email?.trim();
 
     return (
         <AntdLayout.Header style={headerStyles}>
             <Space size={12} align="center">
+                <LanguageSwitcher />
                 <Switch
                     checkedChildren="🌛"
                     unCheckedChildren="🔆"
@@ -164,7 +161,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
                             <button
                                 type="button"
                                 className="gp-user-menu-trigger"
-                                aria-label="Account menu"
+                                aria-label={translate('header.accountMenu')}
                                 aria-haspopup="menu"
                             >
                                 <Avatar

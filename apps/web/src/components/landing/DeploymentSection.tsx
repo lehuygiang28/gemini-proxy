@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useContext } from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Card, Space, Badge, Tag, theme } from 'antd';
 import { RocketOutlined, ApiOutlined, CloudOutlined } from '@ant-design/icons';
 import { FaNodeJs, FaCloudflare, FaAws } from 'react-icons/fa';
@@ -21,6 +22,7 @@ const { useToken } = theme;
 export const DeploymentSection: React.FC = () => {
     const { token } = useToken();
     const { mode } = useContext(ColorModeContext);
+    const { translate } = useTranslation();
 
     // Theme-aware color helper
     const getThemeAwareColor = (lightColor: string, darkColor: string) => {
@@ -47,14 +49,13 @@ export const DeploymentSection: React.FC = () => {
     const deploymentOptions = [
         {
             icon: <RocketOutlined style={{ color: token.colorPrimary, fontSize: '20px' }} />,
-            title: '🎯 Next.js Web App',
-            badge: <Badge color="green" text="Full-Stack" />,
-            description:
-                'Complete solution with web interface + API proxy in one deployment. Built-in dashboard for managing API keys and monitoring.',
+            title: translate('landing.deployment.web.title'),
+            badge: <Badge color="green" text={translate('landing.deployment.web.badge')} />,
+            description: translate('landing.deployment.web.body'),
             tags: [
-                { color: 'blue', text: 'Web Dashboard' },
-                { color: 'green', text: 'API Proxy' },
-                { color: 'purple', text: 'User Management' },
+                { color: 'blue', text: translate('landing.deployment.web.t1') },
+                { color: 'green', text: translate('landing.deployment.web.t2') },
+                { color: 'purple', text: translate('landing.deployment.web.t3') },
             ],
             platforms: [
                 {
@@ -77,14 +78,13 @@ export const DeploymentSection: React.FC = () => {
         },
         {
             icon: <ApiOutlined style={{ color: token.colorSuccess, fontSize: '20px' }} />,
-            title: '⚡ Standalone API',
-            badge: <Badge color="blue" text="API-Only" />,
-            description:
-                'Lightweight Node.js API server with minimal resource usage. Perfect for custom deployments and microservices.',
+            title: translate('landing.deployment.api.title'),
+            badge: <Badge color="blue" text={translate('landing.deployment.api.badge')} />,
+            description: translate('landing.deployment.api.body'),
             tags: [
-                { color: 'orange', text: 'Lightweight' },
-                { color: 'blue', text: 'Customizable' },
-                { color: 'green', text: 'Scalable' },
+                { color: 'orange', text: translate('landing.deployment.api.t1') },
+                { color: 'blue', text: translate('landing.deployment.api.t2') },
+                { color: 'green', text: translate('landing.deployment.api.t3') },
             ],
             platforms: [
                 {
@@ -111,14 +111,13 @@ export const DeploymentSection: React.FC = () => {
         },
         {
             icon: <CloudOutlined style={{ color: token.colorWarning, fontSize: '20px' }} />,
-            title: '🚀 Edge Functions',
-            badge: <Badge color="purple" text="Serverless" />,
-            description:
-                'Deploy to Vercel, Cloudflare, or Appwrite for global CDN distribution and automatic scaling.',
+            title: translate('landing.deployment.edge.title'),
+            badge: <Badge color="purple" text={translate('landing.deployment.edge.badge')} />,
+            description: translate('landing.deployment.edge.body'),
             tags: [
-                { color: 'blue', text: 'Global CDN' },
-                { color: 'green', text: 'Auto-scaling' },
-                { color: 'orange', text: 'Low Latency' },
+                { color: 'blue', text: translate('landing.deployment.edge.t1') },
+                { color: 'green', text: translate('landing.deployment.edge.t2') },
+                { color: 'orange', text: translate('landing.deployment.edge.t3') },
             ],
             platforms: [
                 {
@@ -160,10 +159,10 @@ export const DeploymentSection: React.FC = () => {
             <Row justify="center" style={{ marginBottom: token.marginXL }}>
                 <Col xs={24} md={20} lg={16} style={{ textAlign: 'center' }}>
                     <Title level={2} style={{ marginBottom: token.marginMD }}>
-                        🌐 Deployment Options
+                        🌐 {translate('landing.deployment.heading')}
                     </Title>
                     <Paragraph style={{ fontSize: '1.1rem', color: token.colorTextSecondary }}>
-                        Choose the deployment option that best fits your needs
+                        {translate('landing.deployment.subheading')}
                     </Paragraph>
                 </Col>
             </Row>
@@ -208,7 +207,7 @@ export const DeploymentSection: React.FC = () => {
                                                 marginBottom: token.marginSM,
                                             }}
                                         >
-                                            Supported Platforms:
+                                            {translate('landing.deployment.platforms')}
                                         </Paragraph>
                                         <Space wrap size={[12, 12]}>
                                             {option.platforms.map((platform, platformIndex) => (

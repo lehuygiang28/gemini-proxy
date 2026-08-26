@@ -2,6 +2,7 @@
 
 import React, { useContext } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Space, Tag, Divider, theme } from 'antd';
 import { GithubOutlined, StarOutlined } from '@ant-design/icons';
 import { SiNextdotjs, SiTypescript, SiSupabase, SiAntdesign, SiRefine } from 'react-icons/si';
@@ -13,6 +14,7 @@ const { useToken } = theme;
 export const FooterSection: React.FC = () => {
     const { token } = useToken();
     const { mode } = useContext(ColorModeContext);
+    const { translate } = useTranslation();
 
     // Theme-aware color helper
     const getThemeAwareColor = (lightColor: string, darkColor: string) => {
@@ -40,8 +42,7 @@ export const FooterSection: React.FC = () => {
                                 🚀 Gemini Proxy
                             </Title>
                             <Paragraph style={{ color: token.colorTextSecondary, margin: 0 }}>
-                                Production-ready proxy for Google Gemini with secure key management,
-                                intelligent load balancing, and comprehensive monitoring.
+                                {translate('landing.footer.blurb')}
                             </Paragraph>
                         </Col>
                         <Col xs={24} md={8}>
@@ -49,25 +50,25 @@ export const FooterSection: React.FC = () => {
                                 level={5}
                                 style={{ color: token.colorText, marginBottom: token.marginMD }}
                             >
-                                🔗 Quick Links
+                                🔗 {translate('landing.footer.quickLinks')}
                             </Title>
                             <Space direction="vertical" size="small">
                                 <Link href="/dashboard" style={{ color: token.colorTextSecondary }}>
-                                    Dashboard
+                                    {translate('landing.footer.dashboard')}
                                 </Link>
                                 <Link
                                     href="https://github.com/lehuygiang28/gemini-proxy"
                                     target="_blank"
                                     style={{ color: token.colorTextSecondary }}
                                 >
-                                    GitHub Repository
+                                    {translate('landing.footer.github')}
                                 </Link>
                                 <Link
                                     href="https://github.com/lehuygiang28/gemini-proxy/issues"
                                     target="_blank"
                                     style={{ color: token.colorTextSecondary }}
                                 >
-                                    Report Issues
+                                    {translate('landing.footer.issues')}
                                 </Link>
                             </Space>
                         </Col>
@@ -76,7 +77,7 @@ export const FooterSection: React.FC = () => {
                                 level={5}
                                 style={{ color: token.colorText, marginBottom: token.marginMD }}
                             >
-                                🛠️ Built With
+                                🛠️ {translate('landing.footer.builtWith')}
                             </Title>
                             <Space wrap size={[12, 12]}>
                                 <Tag
@@ -193,7 +194,9 @@ export const FooterSection: React.FC = () => {
                     <Row justify="space-between" align="middle">
                         <Col>
                             <Text style={{ color: token.colorTextSecondary }}>
-                                © {new Date().getFullYear()} Gemini Proxy • Made with ❤️ by{' '}
+                                {translate('landing.footer.copyright', {
+                                    year: new Date().getFullYear(),
+                                })}{' '}
                                 <Link
                                     href="https://github.com/lehuygiang28"
                                     target="_blank"

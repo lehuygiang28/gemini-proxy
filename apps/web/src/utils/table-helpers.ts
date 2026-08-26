@@ -3,9 +3,9 @@ import { PROVIDERS } from '@/constants/providers';
 import type { PerformanceMetrics, UsageMetadata } from '@gemini-proxy/database';
 
 // Token formatting utilities
-export const formatTokenCount = (count?: number): string => {
+export const formatTokenCount = (count?: number, emptyLabel = ''): string => {
     if (count === null || count === undefined) {
-        return `N/A`;
+        return emptyLabel;
     }
     if (count >= 1000000) {
         return `${(count / 1000000).toFixed(1)}M`;
@@ -16,9 +16,9 @@ export const formatTokenCount = (count?: number): string => {
     return count.toString();
 };
 
-export const formatDuration = (durationMs?: number): string => {
+export const formatDuration = (durationMs?: number, emptyLabel = ''): string => {
     if (durationMs === null || durationMs === undefined) {
-        return `N/A`;
+        return emptyLabel;
     }
     if (durationMs < 1000) {
         return `${durationMs}ms`;
@@ -29,10 +29,6 @@ export const formatDuration = (durationMs?: number): string => {
 // Status utilities
 export const getStatusValue = (isActive: boolean): PresetStatusColorType => {
     return isActive ? 'success' : 'error';
-};
-
-export const getStatusText = (isActive: boolean): string => {
-    return isActive ? 'Active' : 'Inactive';
 };
 
 // Provider utilities
@@ -95,14 +91,14 @@ export const maskSensitiveKey = (key: string, isRevealed: boolean): string => {
 };
 
 // Date formatting utilities
-export const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString();
+export const formatDate = (dateString: string | null | undefined, locale: string): string => {
+    if (!dateString) return '';
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(dateString));
 };
 
-export const formatTime = (dateString: string | null | undefined): string => {
+export const formatTime = (dateString: string | null | undefined, locale: string): string => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleTimeString();
+    return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(new Date(dateString));
 };
 
 // JSON display utilities
@@ -140,16 +136,6 @@ export const getAttemptCountColor = (attemptCount: number): string => {
     if (attemptCount <= 10) return 'red';
     if (attemptCount <= 20) return 'magenta';
     return 'purple';
-};
-
-export const getAttemptCountSeverity = (attemptCount: number): string => {
-    if (attemptCount === 1) return 'Success';
-    if (attemptCount <= 2) return 'Minor Issue';
-    if (attemptCount <= 4) return 'Moderate Issue';
-    if (attemptCount <= 5) return 'High Issue';
-    if (attemptCount <= 10) return 'Critical Issue';
-    if (attemptCount <= 20) return 'Severe Issue';
-    return 'Extreme Issue';
 };
 
 // Performance metrics utilities

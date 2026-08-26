@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Create, useForm } from '@refinedev/antd';
-import { useCreateMany, useGo, useNotification, useGetIdentity } from '@refinedev/core';
+import { useCreateMany, useGo, useNotification, useGetIdentity, useTranslation } from '@refinedev/core';
 import {
     Card,
     Form,
@@ -52,6 +52,7 @@ export default function ApiKeyCreatePage() {
     const { token } = useToken();
     const go = useGo();
     const notification = useNotification();
+    const { translate } = useTranslation();
     const { data: user, isPending: isUserLoading } = useGetIdentity<User>();
 
     // Multi-step state management
@@ -71,16 +72,16 @@ export default function ApiKeyCreatePage() {
             onSuccess: () => {
                 notification.open({
                     type: 'success',
-                    message: 'Success',
-                    description: 'API keys created successfully!',
+                    message: translate('notifications.success'),
+                    description: translate('api_keys.create.successDesc'),
                 });
                 go({ to: '/api-keys', type: 'replace' });
             },
             onError: (error) => {
                 notification.open({
                     type: 'error',
-                    message: 'Error',
-                    description: `Error creating API keys: ${error.message}`,
+                    message: translate('api_keys.create.errorTitle'),
+                    description: translate('api_keys.create.errorDesc', { message: error.message }),
                 });
             },
         },
@@ -114,7 +115,7 @@ export default function ApiKeyCreatePage() {
                         api_key_value: key.api_key_value,
                         provider: 'googleaistudio',
                         isValid,
-                        error: isValid ? undefined : 'API key is too short or empty',
+                        error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
                 });
             } else if (activeTab === 'bulk' && values.bulk_keys) {
@@ -127,11 +128,11 @@ export default function ApiKeyCreatePage() {
                     const isValid = isValidApiKey(key);
                     parsedKeys.push({
                         id: generateKeyId(),
-                        name: `Bulk Imported Key ${index + 1}`,
+                        name: translate('api_keys.create.bulkImportedName', { index: index + 1 }),
                         api_key_value: key,
                         provider: 'googleaistudio',
                         isValid,
-                        error: isValid ? undefined : 'API key is too short or empty',
+                        error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
                 });
             } else if (activeTab === 'json' && values.json_keys) {
@@ -140,7 +141,9 @@ export default function ApiKeyCreatePage() {
                     if (Array.isArray(parsedJson)) {
                         parsedJson.forEach((item, index) => {
                             let apiKey = '';
-                            let name = `JSON Imported Key ${index + 1}`;
+                            let name = translate('api_keys.create.jsonImportedName', {
+                                index: index + 1,
+                            });
 
                             if (typeof item === 'string') {
                                 apiKey = item;
@@ -161,15 +164,17 @@ export default function ApiKeyCreatePage() {
                                 api_key_value: apiKey,
                                 provider: 'googleaistudio',
                                 isValid,
-                                error: isValid ? undefined : 'API key is too short or empty',
+                                error: isValid
+                                    ? undefined
+                                    : translate('api_keys.create.errors.tooShort'),
                             });
                         });
                     }
                 } catch (error) {
                     notification.open({
                         type: 'error',
-                        message: 'Invalid JSON Format',
-                        description: 'Please provide a valid JSON array.',
+                        message: translate('api_keys.create.errors.invalidJson'),
+                        description: translate('api_keys.create.errors.invalidJsonDesc'),
                     });
                     return [];
                 }
@@ -177,7 +182,7 @@ export default function ApiKeyCreatePage() {
 
             return parsedKeys;
         },
-        [activeTab, isValidApiKey, generateKeyId, notification],
+        [activeTab, isValidApiKey, generateKeyId, notification, translate],
     );
 
     // Handle import step - parse keys and move to review
@@ -188,15 +193,15 @@ export default function ApiKeyCreatePage() {
         if (keys.length === 0) {
             notification.open({
                 type: 'error',
-                message: 'No Keys Found',
-                description: 'No valid API keys found in the input.',
+                message: translate('api_keys.create.errors.noKeys'),
+                description: translate('api_keys.create.errors.noKeysDesc'),
             });
             return;
         }
 
         setParsedKeys(keys);
         setCurrentStep('review');
-    }, [form, parseKeysFromInput, notification]);
+    }, [form, parseKeysFromInput, notification, translate]);
 
     // Handle review step - update key details
     const handleKeyUpdate = useCallback((keyId: string, updates: Partial<ParsedApiKey>) => {
@@ -215,8 +220,8 @@ export default function ApiKeyCreatePage() {
         if (!user?.id) {
             notification.open({
                 type: 'error',
-                message: 'Authentication Required',
-                description: 'Please log in to create API keys.',
+                message: translate('api_keys.create.errors.authRequired'),
+                description: translate('api_keys.create.errors.authRequiredDesc'),
             });
             return;
         }
@@ -226,8 +231,8 @@ export default function ApiKeyCreatePage() {
         if (validKeys.length === 0) {
             notification.open({
                 type: 'error',
-                message: 'No Valid Keys',
-                description: 'No valid API keys to save.',
+                message: translate('api_keys.create.errors.noValid'),
+                description: translate('api_keys.create.errors.noValidDesc'),
             });
             return;
         }
@@ -243,7 +248,7 @@ export default function ApiKeyCreatePage() {
             resource: 'api_keys',
             values: keysToCreate,
         });
-    }, [parsedKeys, mutate, notification, user?.id]);
+    }, [parsedKeys, mutate, notification, user?.id, translate]);
 
     // Handle JSON file upload
     const handleJsonUpload = useCallback(
@@ -255,21 +260,21 @@ export default function ApiKeyCreatePage() {
                     form.setFieldsValue({ json_keys: content });
                     notification.open({
                         type: 'success',
-                        message: 'Success',
-                        description: 'JSON file loaded successfully!',
+                        message: translate('notifications.success'),
+                        description: translate('api_keys.create.jsonLoaded'),
                     });
                 } catch (error) {
                     notification.open({
                         type: 'error',
-                        message: 'Error',
-                        description: 'Failed to read file.',
+                        message: translate('api_keys.create.errorTitle'),
+                        description: translate('api_keys.create.readFileFailed'),
                     });
                 }
             };
             reader.readAsText(file);
             return false; // Prevent upload
         },
-        [form, notification],
+        [form, notification, translate],
     );
 
     // Render format help section
@@ -283,57 +288,60 @@ export default function ApiKeyCreatePage() {
                         label: (
                             <Space>
                                 <InfoCircleOutlined />
-                                <span>Supported Import Formats</span>
+                                <span>{translate('api_keys.create.help.title')}</span>
                             </Space>
                         ),
                         children: (
                             <div>
-                                <Title level={5}>Bulk Paste Format</Title>
-                                <Paragraph>
-                                    Paste multiple API keys separated by any of these characters:
-                                </Paragraph>
+                                <Title level={5}>{translate('api_keys.create.help.bulkTitle')}</Title>
+                                <Paragraph>{translate('api_keys.create.help.bulkBody')}</Paragraph>
                                 <ul>
                                     <li>
-                                        Commas: <code>key1, key2, key3</code>
+                                        {translate('api_keys.create.help.commas')}:{' '}
+                                        <code>key1, key2, key3</code>
                                     </li>
                                     <li>
-                                        New lines:{' '}
+                                        {translate('api_keys.create.help.newLines')}:{' '}
                                         <code>
                                             key1{'\n'}key2{'\n'}key3
                                         </code>
                                     </li>
                                     <li>
-                                        Semicolons: <code>key1; key2; key3</code>
+                                        {translate('api_keys.create.help.semicolons')}:{' '}
+                                        <code>key1; key2; key3</code>
                                     </li>
                                     <li>
-                                        Pipes: <code>key1 | key2 | key3</code>
+                                        {translate('api_keys.create.help.pipes')}:{' '}
+                                        <code>key1 | key2 | key3</code>
                                     </li>
                                     <li>
-                                        Tabs: <code>key1 key2 key3</code>
+                                        {translate('api_keys.create.help.tabs')}:{' '}
+                                        <code>key1 key2 key3</code>
                                     </li>
                                 </ul>
 
                                 <Divider />
 
-                                <Title level={5}>JSON Format</Title>
-                                <Paragraph>
-                                    JSON array with strings or objects. Supported object fields:
-                                </Paragraph>
+                                <Title level={5}>{translate('api_keys.create.help.jsonTitle')}</Title>
+                                <Paragraph>{translate('api_keys.create.help.jsonBody')}</Paragraph>
                                 <ul>
                                     <li>
-                                        <code>name</code> or <code>title</code> or{' '}
-                                        <code>label</code> - for the key name
+                                        <code>name</code> / <code>title</code> / <code>label</code>{' '}
+                                        — {translate('api_keys.create.help.forName')}
                                     </li>
                                     <li>
-                                        <code>api_key_value</code> or <code>apiKey</code> or{' '}
-                                        <code>key</code> or <code>value</code> - for the API key
+                                        <code>api_key_value</code> / <code>apiKey</code> /{' '}
+                                        <code>key</code> / <code>value</code> —{' '}
+                                        {translate('api_keys.create.help.forKey')}
                                     </li>
                                 </ul>
 
-                                <Title level={5}>JSON Examples</Title>
+                                <Title level={5}>
+                                    {translate('api_keys.create.help.jsonExamples')}
+                                </Title>
 
                                 <Paragraph>
-                                    <strong>Simple string array:</strong>
+                                    <strong>{translate('api_keys.create.help.simpleArray')}</strong>
                                 </Paragraph>
                                 <pre
                                     style={{
@@ -346,7 +354,7 @@ export default function ApiKeyCreatePage() {
                                 </pre>
 
                                 <Paragraph>
-                                    <strong>Object array with name and key:</strong>
+                                    <strong>{translate('api_keys.create.help.objectArray')}</strong>
                                 </Paragraph>
                                 <pre
                                     style={{
@@ -362,7 +370,7 @@ export default function ApiKeyCreatePage() {
                                 </pre>
 
                                 <Paragraph>
-                                    <strong>Object array with different field names:</strong>
+                                    <strong>{translate('api_keys.create.help.altFields')}</strong>
                                 </Paragraph>
                                 <pre
                                     style={{
@@ -378,8 +386,8 @@ export default function ApiKeyCreatePage() {
                                 </pre>
 
                                 <Alert
-                                    message="Validation Rules"
-                                    description="All API keys must be at least 10 characters long and not empty. Invalid keys will be highlighted in the review step."
+                                    message={translate('api_keys.create.help.validationTitle')}
+                                    description={translate('api_keys.create.help.validationBody')}
                                     type="info"
                                     showIcon
                                     style={{ marginTop: token.marginLG }}
@@ -404,7 +412,7 @@ export default function ApiKeyCreatePage() {
                         items={[
                             {
                                 key: 'manual',
-                                label: 'Manual Entry',
+                                label: translate('api_keys.create.manual'),
                                 children: (
                                     <Form.List name="keys">
                                         {(fields, { add, remove }) => (
@@ -424,11 +432,17 @@ export default function ApiKeyCreatePage() {
                                                             rules={[
                                                                 {
                                                                     required: true,
-                                                                    message: 'Missing name',
+                                                                    message: translate(
+                                                                        'api_keys.errors.missingName',
+                                                                    ),
                                                                 },
                                                             ]}
                                                         >
-                                                            <Input placeholder="Key Name" />
+                                                            <Input
+                                                                placeholder={translate(
+                                                                    'api_keys.placeholders.keyName',
+                                                                )}
+                                                            />
                                                         </Form.Item>
                                                         <Form.Item
                                                             {...restField}
@@ -436,11 +450,17 @@ export default function ApiKeyCreatePage() {
                                                             rules={[
                                                                 {
                                                                     required: true,
-                                                                    message: 'Missing API key',
+                                                                    message: translate(
+                                                                        'api_keys.errors.missingApiKey',
+                                                                    ),
                                                                 },
                                                             ]}
                                                         >
-                                                            <Input.Password placeholder="API Key" />
+                                                            <Input.Password
+                                                                placeholder={translate(
+                                                                    'api_keys.placeholders.apiKey',
+                                                                )}
+                                                            />
                                                         </Form.Item>
                                                         <DeleteOutlined
                                                             onClick={() => remove(name)}
@@ -455,7 +475,7 @@ export default function ApiKeyCreatePage() {
                                                         block
                                                         icon={<PlusOutlined />}
                                                     >
-                                                        Add API Key
+                                                        {translate('api_keys.create.addKey')}
                                                     </Button>
                                                 </Form.Item>
                                             </>
@@ -465,48 +485,29 @@ export default function ApiKeyCreatePage() {
                             },
                             {
                                 key: 'bulk',
-                                label: 'Bulk Paste',
+                                label: translate('api_keys.create.bulkPaste'),
                                 children: (
                                     <Form.Item name="bulk_keys">
                                         <Input.TextArea
                                             rows={10}
-                                            placeholder={`Paste API keys here, separated by commas, spaces, new lines, semicolons, or pipes.
-
-Examples:
-AIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3
-
-Or:
-AIzaXXXXXXXXXXXXXXXXXXXX1
-AIzaXXXXXXXXXXXXXXXXXXXX2
-AIzaXXXXXXXXXXXXXXXXXXXX3
-
-Each key should be at least 10 characters long.`}
+                                            placeholder={translate(
+                                                'api_keys.create.bulkPlaceholder',
+                                            )}
                                         />
                                     </Form.Item>
                                 ),
                             },
                             {
                                 key: 'json',
-                                label: 'Import JSON',
+                                label: translate('api_keys.create.importJson'),
                                 children: (
                                     <>
                                         <Form.Item name="json_keys">
                                             <Input.TextArea
                                                 rows={10}
-                                                placeholder={`Paste a JSON array of API keys.
-
-Examples:
-
-Simple array:
-["AIzaXXXXXXXXXXXXXXXXXXXX1", "AIzaXXXXXXXXXXXXXXXXXXXX2"]
-
-Object array:
-[
-  {"name": "Gproxy key 1", "key": "AIzaXXXXXXXXXXXXXXXXXXXX1"},
-  {"name": "Gproxy key 2", "key": "AIzaXXXXXXXXXXXXXXXXXXXX2"}
-]
-
-Supported fields: name/title/label, api_key_value/apiKey/key/value`}
+                                                placeholder={translate(
+                                                    'api_keys.create.jsonPlaceholder',
+                                                )}
                                             />
                                         </Form.Item>
                                         <Dragger
@@ -517,7 +518,7 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                                                 <UploadOutlined />
                                             </p>
                                             <p className="ant-upload-text">
-                                                Click or drag a JSON file to this area to load
+                                                {translate('api_keys.create.dragJson')}
                                             </p>
                                         </Dragger>
                                     </>
@@ -527,8 +528,8 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                     />
                 </Form>
                 <Alert
-                    message="Security Notice"
-                    description="API keys are sensitive. Ensure you are importing them from a trusted source."
+                    message={translate('api_keys.create.securityTitle')}
+                    description={translate('api_keys.create.securityBody')}
                     type="warning"
                     showIcon
                     style={{ marginTop: token.marginLG }}
@@ -541,19 +542,19 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
     const renderReviewStep = () => {
         const columns = [
             {
-                title: 'Name',
+                title: translate('api_keys.fields.name'),
                 dataIndex: 'name',
                 key: 'name',
                 render: (text: string, record: ParsedApiKey) => (
                     <Input
                         value={text}
                         onChange={(e) => handleKeyUpdate(record.id, { name: e.target.value })}
-                        placeholder="Key Name"
+                        placeholder={translate('api_keys.placeholders.keyName')}
                     />
                 ),
             },
             {
-                title: 'API Key',
+                title: translate('api_keys.fields.apiKey'),
                 dataIndex: 'api_key_value',
                 key: 'api_key_value',
                 render: (text: string, record: ParsedApiKey) => (
@@ -565,12 +566,12 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                                 isValid: isValidApiKey(e.target.value),
                             })
                         }
-                        placeholder="API Key"
+                        placeholder={translate('api_keys.placeholders.apiKey')}
                     />
                 ),
             },
             {
-                title: 'Status',
+                title: translate('api_keys.fields.status'),
                 dataIndex: 'isValid',
                 key: 'isValid',
                 render: (isValid: boolean) => (
@@ -578,12 +579,14 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                         color={isValid ? 'green' : 'red'}
                         icon={isValid ? <CheckOutlined /> : <ExclamationCircleOutlined />}
                     >
-                        {isValid ? 'Valid' : 'Invalid'}
+                        {isValid
+                            ? translate('api_keys.create.valid')
+                            : translate('api_keys.create.invalid')}
                     </Tag>
                 ),
             },
             {
-                title: 'Actions',
+                title: translate('table.actions'),
                 key: 'actions',
                 render: (_: unknown, record: ParsedApiKey) => (
                     <Button
@@ -599,10 +602,9 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
         return (
             <Card variant="borderless">
                 <div style={{ marginBottom: token.marginLG }}>
-                    <Title level={4}>Review API Keys</Title>
+                    <Title level={4}>{translate('api_keys.create.reviewTitle')}</Title>
                     <Paragraph type="secondary">
-                        Review and edit your API keys before saving. Invalid keys will be
-                        highlighted.
+                        {translate('api_keys.create.reviewBody')}
                     </Paragraph>
                 </div>
                 <Table
@@ -614,8 +616,8 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                 />
                 {parsedKeys.some((key) => !key.isValid) && (
                     <Alert
-                        message="Invalid Keys Detected"
-                        description="Some keys have invalid formats and will be skipped during save."
+                        message={translate('api_keys.create.invalidDetected')}
+                        description={translate('api_keys.create.invalidDetectedDesc')}
                         type="warning"
                         showIcon
                         style={{ marginTop: token.marginLG }}
@@ -649,18 +651,20 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
                         loading={isUserLoading}
                         disabled={!user?.id}
                     >
-                        Import Keys
+                        {translate('api_keys.create.importKeys')}
                     </Button>
                 ) : currentStep === 'review' ? (
                     <Space>
-                        <Button onClick={() => setCurrentStep('import')}>Back to Import</Button>
+                        <Button onClick={() => setCurrentStep('import')}>
+                            {translate('api_keys.create.backToImport')}
+                        </Button>
                         <Button
                             type="primary"
                             onClick={handleSave}
                             loading={isUserLoading}
                             disabled={!user?.id}
                         >
-                            Save API Keys
+                            {translate('api_keys.create.saveKeys')}
                         </Button>
                     </Space>
                 ) : null
@@ -669,20 +673,23 @@ Supported fields: name/title/label, api_key_value/apiKey/key/value`}
             <Row gutter={12}>
                 <Col xs={24} lg={8}>
                     <Card variant="borderless">
-                        <Title level={5}>Import Google AI Keys</Title>
+                        <Title level={5}>{translate('api_keys.create.importTitle')}</Title>
                         <Paragraph type="secondary">
-                            Follow the steps to import Google AI keys into your account.
+                            {translate('api_keys.create.importSubtitle')}
                         </Paragraph>
                         <Steps direction="vertical" size="small" current={getCurrentStepNumber()}>
                             <Steps.Step
-                                title="Import Keys"
-                                description="Choose how you want to import your keys."
+                                title={translate('api_keys.create.steps.import')}
+                                description={translate('api_keys.create.steps.importDesc')}
                             />
                             <Steps.Step
-                                title="Review & Edit"
-                                description="Review and edit your API keys before saving."
+                                title={translate('api_keys.create.steps.review')}
+                                description={translate('api_keys.create.steps.reviewDesc')}
                             />
-                            <Steps.Step title="Save" description="Save the keys to your account." />
+                            <Steps.Step
+                                title={translate('api_keys.create.steps.save')}
+                                description={translate('api_keys.create.steps.saveDesc')}
+                            />
                         </Steps>
                     </Card>
                 </Col>

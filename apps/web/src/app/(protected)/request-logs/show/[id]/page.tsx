@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useGo, useResourceParams, useOne } from '@refinedev/core';
+import { useGo, useResourceParams, useOne, useTranslation } from '@refinedev/core';
 import { Button, Alert, Spin, theme } from 'antd';
 import { Show } from '@refinedev/antd';
 import { RequestLogDetails } from '@/components/RequestLogDetails';
@@ -12,6 +12,7 @@ const { useToken } = theme;
 
 export default function RequestLogShowPage() {
     const { token } = useToken();
+    const { translate } = useTranslation();
     const { id: requestId } = useResourceParams();
     const go = useGo();
 
@@ -45,13 +46,13 @@ export default function RequestLogShowPage() {
     if (isError || !requestLog) {
         return (
             <Alert
-                message="Request Log Not Found"
-                description="The requested log could not be found or you don't have permission to view it."
+                message={translate('request_logs.notFound.title')}
+                description={translate('request_logs.notFound.description')}
                 type="error"
                 showIcon
                 action={
                     <Button onClick={() => go({ to: '/request-logs' })}>
-                        Back to Request Logs
+                        {translate('request_logs.actions.back')}
                     </Button>
                 }
             />

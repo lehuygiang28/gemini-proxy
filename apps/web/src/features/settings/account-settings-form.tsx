@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { Alert, Avatar, Button, Form, Input, Typography } from 'antd';
-import { useGetIdentity, useNotification } from '@refinedev/core';
+import { useGetIdentity, useNotification, useTranslation } from '@refinedev/core';
 import { supabaseBrowserClient } from '@utils/supabase/client';
 
 const { Text } = Typography;
@@ -39,12 +39,6 @@ type NavItem = {
     icon: React.ReactNode;
 };
 
-const NAV_ITEMS: readonly NavItem[] = [
-    { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-    { key: 'email', label: 'Email', icon: <MailOutlined /> },
-    { key: 'security', label: 'Security', icon: <LockOutlined /> },
-] as const;
-
 function initialsFrom(identity?: Identity | null): string {
     const source = identity?.name?.trim() || identity?.email?.trim() || '?';
     const parts = source.split(/[\s@._-]+/).filter(Boolean);
@@ -54,16 +48,16 @@ function initialsFrom(identity?: Identity | null): string {
     return source.slice(0, 2).toUpperCase();
 }
 
-function displayNameFrom(identity?: Identity | null): string {
+function displayNameFrom(identity: Identity | null | undefined, fallback: string): string {
     const name = identity?.name?.trim();
     const email = identity?.email?.trim();
     if (name && email && name.toLowerCase() !== email.toLowerCase()) {
         return name;
     }
     if (email) {
-        return email.split('@')[0] || 'Account';
+        return email.split('@')[0] || fallback;
     }
-    return name || 'Account';
+    return name || fallback;
 }
 
 /**
@@ -71,6 +65,7 @@ function displayNameFrom(identity?: Identity | null): string {
  * Clerk-inspired split layout: left nav + active section pane.
  */
 export function AccountSettingsForm() {
+    const { translate } = useTranslation();
     const [activeSection, setActiveSection] = useState<AccountSection>('profile');
     const [profileForm] = Form.useForm<ProfileFormValues>();
     const [emailForm] = Form.useForm<EmailFormValues>();
@@ -81,13 +76,21 @@ export function AccountSettingsForm() {
     const [savingEmail, setSavingEmail] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
 
+    const navItems: readonly NavItem[] = useMemo(
+        () => [
+            { key: 'profile', label: translate('account.profile'), icon: <UserOutlined /> },
+            { key: 'email', label: translate('account.email'), icon: <MailOutlined /> },
+            { key: 'security', label: translate('account.security'), icon: <LockOutlined /> },
+        ],
+        [translate],
+    );
+
     useEffect(() => {
         if (!identity) {
             return;
         }
         profileForm.setFieldsValue({
-            displayName:
-                identity.name && identity.name !== identity.email ? identity.name : '',
+            displayName: identity.name && identity.name !== identity.email ? identity.name : '',
         });
         emailForm.setFieldsValue({
             email: identity.email ?? '',
@@ -112,15 +115,14 @@ export function AccountSettingsForm() {
             await refreshIdentity();
             notification.open?.({
                 type: 'success',
-                message: 'Profile updated',
-                description: 'Your display name was saved.',
+                message: translate('account.profileUpdated'),
+                description: translate('account.profileUpdatedDesc'),
             });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Failed to update profile';
             notification.open?.({
                 type: 'error',
-                message: 'Profile update failed',
-                description: message,
+                message: translate('account.profileFailed'),
+                description: translate('common.genericError'),
             });
         } finally {
             setSavingProfile(false);
@@ -130,7 +132,7 @@ export function AccountSettingsForm() {
     const reauthenticate = async (password: string) => {
         const email = identity?.email;
         if (!email) {
-            throw new Error('No email on this account');
+            throw new Error(translate('account.noEmail'));
         }
         const { error } = await supabaseBrowserClient.auth.signInWithPassword({
             email,
@@ -155,16 +157,19 @@ export function AccountSettingsForm() {
             await refreshIdentity();
             notification.open?.({
                 type: 'success',
-                message: 'Email change requested',
-                description:
-                    'Check your inbox to confirm the new email (and the old one if Secure email change is enabled).',
+                message: translate('account.emailRequested'),
+                description: translate('account.emailRequestedDesc'),
             });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Failed to change email';
+            const noEmail = translate('account.noEmail');
+            const description =
+                error instanceof Error && error.message === noEmail
+                    ? noEmail
+                    : translate('common.genericError');
             notification.open?.({
                 type: 'error',
-                message: 'Email change failed',
-                description: message,
+                message: translate('account.emailFailed'),
+                description,
             });
         } finally {
             setSavingEmail(false);
@@ -184,15 +189,19 @@ export function AccountSettingsForm() {
             passwordForm.resetFields();
             notification.open?.({
                 type: 'success',
-                message: 'Password updated',
-                description: 'Your password was changed successfully.',
+                message: translate('account.passwordUpdated'),
+                description: translate('account.passwordUpdatedDesc'),
             });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Failed to change password';
+            const noEmail = translate('account.noEmail');
+            const description =
+                error instanceof Error && error.message === noEmail
+                    ? noEmail
+                    : translate('common.genericError');
             notification.open?.({
                 type: 'error',
-                message: 'Password change failed',
-                description: message,
+                message: translate('account.passwordFailed'),
+                description,
             });
         } finally {
             setSavingPassword(false);
@@ -203,7 +212,7 @@ export function AccountSettingsForm() {
         return (
             <div className="gp-account-layout">
                 <Text type="secondary" className="gp-account-status">
-                    Loading account…
+                    {translate('account.loading')}
                 </Text>
             </div>
         );
@@ -213,13 +222,13 @@ export function AccountSettingsForm() {
         return (
             <div className="gp-account-layout">
                 <div className="gp-account-status">
-                    <Alert type="warning" showIcon message="Sign in to manage your account." />
+                    <Alert type="warning" showIcon message={translate('account.signInRequired')} />
                 </div>
             </div>
         );
     }
 
-    const primaryLabel = displayNameFrom(identity);
+    const primaryLabel = displayNameFrom(identity, translate('account.title'));
     const emailLabel = identity.email?.trim() || '';
 
     return (
@@ -237,8 +246,11 @@ export function AccountSettingsForm() {
             </div>
 
             <div className="gp-account-body">
-                <nav className="gp-account-nav gp-scrollable" aria-label="Account sections">
-                    {NAV_ITEMS.map((item) => {
+                <nav
+                    className="gp-account-nav gp-scrollable"
+                    aria-label={translate('account.sectionsAria')}
+                >
+                    {navItems.map((item) => {
                         const isActive = activeSection === item.key;
                         return (
                             <button
@@ -259,13 +271,19 @@ export function AccountSettingsForm() {
 
                 <div className="gp-account-pane gp-scrollable">
                     {activeSection === 'profile' ? (
-                        <section className="gp-account-section" aria-labelledby="gp-account-profile-title">
+                        <section
+                            className="gp-account-section"
+                            aria-labelledby="gp-account-profile-title"
+                        >
                             <header className="gp-account-section-header">
-                                <h3 id="gp-account-profile-title" className="gp-account-section-title">
-                                    Profile
+                                <h3
+                                    id="gp-account-profile-title"
+                                    className="gp-account-section-title"
+                                >
+                                    {translate('account.profile')}
                                 </h3>
                                 <p className="gp-account-section-desc">
-                                    Set how your name appears across Gemini Proxy.
+                                    {translate('account.profileDesc')}
                                 </p>
                             </header>
                             <Form
@@ -277,23 +295,29 @@ export function AccountSettingsForm() {
                             >
                                 <Form.Item
                                     name="displayName"
-                                    label="Display name"
+                                    label={translate('account.displayName')}
                                     rules={[
                                         {
                                             max: DISPLAY_NAME_MAX,
-                                            message: `Max ${DISPLAY_NAME_MAX} characters`,
+                                            message: translate('account.maxChars', {
+                                                max: DISPLAY_NAME_MAX,
+                                            }),
                                         },
                                     ]}
                                 >
                                     <Input
-                                        placeholder="Your name"
+                                        placeholder={translate('account.displayNamePlaceholder')}
                                         maxLength={DISPLAY_NAME_MAX}
                                         showCount
                                     />
                                 </Form.Item>
                                 <div className="gp-account-section-actions">
-                                    <Button type="primary" htmlType="submit" loading={savingProfile}>
-                                        Save
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={savingProfile}
+                                    >
+                                        {translate('buttons.save')}
                                     </Button>
                                 </div>
                             </Form>
@@ -301,19 +325,28 @@ export function AccountSettingsForm() {
                     ) : null}
 
                     {activeSection === 'email' ? (
-                        <section className="gp-account-section" aria-labelledby="gp-account-email-title">
+                        <section
+                            className="gp-account-section"
+                            aria-labelledby="gp-account-email-title"
+                        >
                             <header className="gp-account-section-header">
-                                <h3 id="gp-account-email-title" className="gp-account-section-title">
-                                    Email
+                                <h3
+                                    id="gp-account-email-title"
+                                    className="gp-account-section-title"
+                                >
+                                    {translate('account.email')}
                                 </h3>
                                 <p className="gp-account-section-desc">
-                                    Update the email on your account. You&apos;ll confirm the change
-                                    via email before it takes effect.
+                                    {translate('account.emailDesc')}
                                 </p>
                             </header>
                             <div className="gp-account-current-row">
-                                <span className="gp-account-current-label">Current email</span>
-                                <span className="gp-account-current-value">{emailLabel || '—'}</span>
+                                <span className="gp-account-current-label">
+                                    {translate('account.currentEmail')}
+                                </span>
+                                <span className="gp-account-current-value">
+                                    {emailLabel || translate('common.na')}
+                                </span>
                             </div>
                             <Form
                                 form={emailForm}
@@ -324,29 +357,35 @@ export function AccountSettingsForm() {
                             >
                                 <Form.Item
                                     name="email"
-                                    label="New email"
+                                    label={translate('account.newEmail')}
                                     rules={[
-                                        { required: true, message: 'Enter an email' },
-                                        { type: 'email', message: 'Enter a valid email' },
+                                        {
+                                            required: true,
+                                            message: translate('account.enterEmail'),
+                                        },
+                                        { type: 'email', message: translate('account.validEmail') },
                                     ]}
                                 >
                                     <Input autoComplete="email" />
                                 </Form.Item>
                                 <Form.Item
                                     name="currentPassword"
-                                    label="Current password"
+                                    label={translate('account.currentPassword')}
                                     rules={[
-                                        { required: true, message: 'Enter your current password' },
+                                        {
+                                            required: true,
+                                            message: translate('account.enterCurrentPassword'),
+                                        },
                                     ]}
                                 >
                                     <Input.Password autoComplete="current-password" />
                                 </Form.Item>
                                 <p className="gp-account-section-hint">
-                                    Confirmation emails may be sent to both your old and new address.
+                                    {translate('account.emailHint')}
                                 </p>
                                 <div className="gp-account-section-actions">
                                     <Button type="primary" htmlType="submit" loading={savingEmail}>
-                                        Update email
+                                        {translate('account.updateEmail')}
                                     </Button>
                                 </div>
                             </Form>
@@ -363,10 +402,10 @@ export function AccountSettingsForm() {
                                     id="gp-account-security-title"
                                     className="gp-account-section-title"
                                 >
-                                    Security
+                                    {translate('account.security')}
                                 </h3>
                                 <p className="gp-account-section-desc">
-                                    Confirm with your current password, then choose a new one.
+                                    {translate('account.securityDesc')}
                                 </p>
                             </header>
                             <Form
@@ -378,29 +417,38 @@ export function AccountSettingsForm() {
                             >
                                 <Form.Item
                                     name="currentPassword"
-                                    label="Current password"
+                                    label={translate('account.currentPassword')}
                                     rules={[
-                                        { required: true, message: 'Enter your current password' },
+                                        {
+                                            required: true,
+                                            message: translate('account.enterCurrentPassword'),
+                                        },
                                     ]}
                                 >
                                     <Input.Password autoComplete="current-password" />
                                 </Form.Item>
                                 <Form.Item
                                     name="newPassword"
-                                    label="New password"
+                                    label={translate('account.newPassword')}
                                     rules={[
-                                        { required: true, message: 'Enter a new password' },
-                                        { min: 8, message: 'At least 8 characters' },
+                                        {
+                                            required: true,
+                                            message: translate('account.enterNewPassword'),
+                                        },
+                                        { min: 8, message: translate('account.minPassword') },
                                     ]}
                                 >
                                     <Input.Password autoComplete="new-password" />
                                 </Form.Item>
                                 <Form.Item
                                     name="confirmPassword"
-                                    label="Confirm new password"
+                                    label={translate('account.confirmPassword')}
                                     dependencies={['newPassword']}
                                     rules={[
-                                        { required: true, message: 'Confirm your new password' },
+                                        {
+                                            required: true,
+                                            message: translate('account.confirmRequired'),
+                                        },
                                         ({ getFieldValue }) => ({
                                             validator(_, value) {
                                                 if (
@@ -410,7 +458,7 @@ export function AccountSettingsForm() {
                                                     return Promise.resolve();
                                                 }
                                                 return Promise.reject(
-                                                    new Error('Passwords do not match'),
+                                                    new Error(translate('account.mismatch')),
                                                 );
                                             },
                                         }),
@@ -424,7 +472,7 @@ export function AccountSettingsForm() {
                                         htmlType="submit"
                                         loading={savingPassword}
                                     >
-                                        Update password
+                                        {translate('account.updatePassword')}
                                     </Button>
                                 </div>
                             </Form>

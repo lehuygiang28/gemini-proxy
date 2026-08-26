@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@refinedev/core';
 
 interface KeyHealthBadgeProps {
     isActive: boolean;
@@ -24,15 +25,16 @@ function resolveHealthState(
  * Compact key health chip for lists and the health panel.
  */
 export function KeyHealthBadge({ isActive, successRate, failureCount }: KeyHealthBadgeProps) {
+    const { translate } = useTranslation();
     const state = resolveHealthState(isActive, successRate, failureCount);
     const label =
-        state === 'disabled'
-            ? 'disabled'
-            : state === 'degraded'
-              ? `${successRate}%`
-              : `${successRate}%`;
+        state === 'disabled' ? translate('observability.healthDisabled') : `${successRate}%`;
     return (
-        <span className="gp-chip" data-state={state} title={`Success ${successRate}%`}>
+        <span
+            className="gp-chip"
+            data-state={state}
+            title={translate('observability.successRateTitle', { rate: successRate })}
+        >
             <span className="gp-chip-dot" />
             {label}
         </span>

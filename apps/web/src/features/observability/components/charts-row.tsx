@@ -12,6 +12,7 @@ import {
     YAxis,
 } from 'recharts';
 import { Empty, Spin } from 'antd';
+import { useTranslation } from '@refinedev/core';
 
 interface ChartsRowProps {
     requestsByHour?: Record<string, number>;
@@ -34,6 +35,7 @@ export function ChartsRow({
     requestsByFormat = {},
     loading = false,
 }: ChartsRowProps) {
+    const { translate } = useTranslation();
     const hourSeries = useMemo(() => {
         return Array.from({ length: 24 }, (_, hour) => {
             const key = String(hour);
@@ -53,17 +55,21 @@ export function ChartsRow({
 
     const hasHourData = hourSeries.some((point) => point.count > 0);
     const hasFormatData = formatSeries.some((point) => point.value > 0);
+    const requestsLabel = translate('observability.kpi.requests');
 
     return (
         <div className="gp-charts-row">
             <div className="gp-panel" style={{ padding: 16, minHeight: 260 }}>
-                <div className="gp-section-title">Requests by hour (last 24h)</div>
+                <div className="gp-section-title">{translate('observability.hourlyTitle')}</div>
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 48 }}>
                         <Spin />
                     </div>
                 ) : !hasHourData ? (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No hourly data" />
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description={translate('observability.emptyHourly')}
+                    />
                 ) : (
                     <ResponsiveContainer width="100%" height={200}>
                         <BarChart
@@ -92,19 +98,27 @@ export function ChartsRow({
                                     fontSize: 12,
                                 }}
                             />
-                            <Bar dataKey="count" fill="var(--gp-chart-1)" radius={[2, 2, 0, 0]} />
+                            <Bar
+                                dataKey="count"
+                                name={requestsLabel}
+                                fill="var(--gp-chart-1)"
+                                radius={[2, 2, 0, 0]}
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 )}
             </div>
             <div className="gp-panel" style={{ padding: 16, minHeight: 260 }}>
-                <div className="gp-section-title">By format</div>
+                <div className="gp-section-title">{translate('observability.formatTitle')}</div>
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 48 }}>
                         <Spin />
                     </div>
                 ) : !hasFormatData ? (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No format data" />
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description={translate('observability.emptyFormat')}
+                    />
                 ) : (
                     <ResponsiveContainer width="100%" height={200}>
                         <PieChart>

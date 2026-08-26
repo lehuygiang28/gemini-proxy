@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Card, Space, Tabs, Badge, Button, theme } from 'antd';
 import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -11,6 +12,7 @@ const { useToken } = theme;
 
 export const CodeExamplesSection: React.FC = () => {
     const { token } = useToken();
+    const { translate } = useTranslation();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<string>('google-genai');
 
@@ -71,7 +73,9 @@ export const CodeExamplesSection: React.FC = () => {
                         border: `1px solid ${token.colorBorder}`,
                     }}
                 >
-                    {copiedCode === code ? 'Copied!' : 'Copy'}
+                    {copiedCode === code
+                        ? translate('landing.examples.copied')
+                        : translate('landing.examples.copy')}
                 </Button>
             </div>
         );
@@ -83,10 +87,10 @@ export const CodeExamplesSection: React.FC = () => {
             label: (
                 <Space>
                     <span style={{ fontWeight: 600 }}>@google/genai</span>
-                    <Badge color="blue" text="Official SDK" />
+                    <Badge color="blue" text={translate('landing.examples.officialSdk')} />
                 </Space>
             ),
-            description: 'Use the official Google Generative AI SDK with our proxy endpoint:',
+            description: translate('landing.examples.googleDesc'),
             code: `import { GoogleGenAI } from '@google/genai';
 
 const genAI = new GoogleGenAI({
@@ -110,10 +114,10 @@ console.log(response.text);`,
             label: (
                 <Space>
                     <span style={{ fontWeight: 600 }}>OpenAI SDK</span>
-                    <Badge color="green" text="Compatible" />
+                    <Badge color="green" text={translate('landing.examples.compatible')} />
                 </Space>
             ),
-            description: 'Use OpenAI-compatible clients with our proxy endpoint:',
+            description: translate('landing.examples.openaiDesc'),
             code: `import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -138,10 +142,10 @@ for await (const chunk of chatCompletion) {
             label: (
                 <Space>
                     <span style={{ fontWeight: 600 }}>Vercel AI SDK</span>
-                    <Badge color="purple" text="Modern" />
+                    <Badge color="purple" text={translate('landing.examples.modern')} />
                 </Space>
             ),
-            description: 'Use Vercel AI SDK with our proxy endpoint (note the /v1beta path):',
+            description: translate('landing.examples.aiSdkDesc'),
             code: `import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
@@ -173,10 +177,10 @@ console.log(text);`,
             <Row justify="center" style={{ marginBottom: token.marginXL }}>
                 <Col xs={24} md={20} lg={16} style={{ textAlign: 'center' }}>
                     <Title level={2} style={{ marginBottom: token.marginMD }}>
-                        💻 Integration Examples
+                        💻 {translate('landing.examples.heading')}
                     </Title>
                     <Paragraph style={{ fontSize: '1.1rem', color: token.colorTextSecondary }}>
-                        Get started in minutes with our comprehensive SDK examples
+                        {translate('landing.examples.subheading')}
                     </Paragraph>
                 </Col>
             </Row>
@@ -194,7 +198,7 @@ console.log(text);`,
                                         fontWeight: 600,
                                     }}
                                 >
-                                    🚀 Quick Start Examples
+                                    🚀 {translate('landing.examples.quickStart')}
                                 </span>
                             </Space>
                         }

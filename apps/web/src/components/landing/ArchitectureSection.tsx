@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Card, Space, Badge, Divider, theme } from 'antd';
 
 const { Title, Paragraph } = Typography;
@@ -8,6 +9,7 @@ const { useToken } = theme;
 
 export const ArchitectureSection: React.FC = () => {
     const { token } = useToken();
+    const { translate } = useTranslation();
 
     const SectionCard: React.FC<
         React.PropsWithChildren<{ title: React.ReactNode; extra?: React.ReactNode }>
@@ -36,10 +38,10 @@ export const ArchitectureSection: React.FC = () => {
             <Row justify="center" style={{ marginBottom: token.marginXL }}>
                 <Col xs={24} md={20} lg={16} style={{ textAlign: 'center' }}>
                     <Title level={2} style={{ marginBottom: token.marginMD }}>
-                        🏗️ Architecture
+                        🏗️ {translate('landing.architecture.heading')}
                     </Title>
                     <Paragraph style={{ fontSize: '1.1rem', color: token.colorTextSecondary }}>
-                        Simple, secure, and scalable architecture for production use
+                        {translate('landing.architecture.subheading')}
                     </Paragraph>
                 </Col>
             </Row>
@@ -57,7 +59,7 @@ export const ArchitectureSection: React.FC = () => {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    🔄 How It Works
+                                    🔄 {translate('landing.architecture.howItWorks')}
                                 </span>
                             </Space>
                         }
@@ -79,12 +81,12 @@ export const ArchitectureSection: React.FC = () => {
                                             marginBottom: token.marginSM,
                                         }}
                                     >
-                                        Your Application
+                                        {translate('landing.architecture.yourApp')}
                                     </Title>
                                     <Paragraph
                                         style={{ color: token.colorTextSecondary, margin: 0 }}
                                     >
-                                        Makes API requests using your preferred SDK
+                                        {translate('landing.architecture.yourAppBody')}
                                     </Paragraph>
                                 </div>
                             </Col>
@@ -112,8 +114,7 @@ export const ArchitectureSection: React.FC = () => {
                                     <Paragraph
                                         style={{ color: token.colorTextSecondary, margin: 0 }}
                                     >
-                                        Intelligently routes requests to healthy API keys, logs
-                                        request/response data, and manages load balancing
+                                        {translate('landing.architecture.proxyBody')}
                                     </Paragraph>
                                 </div>
                             </Col>
@@ -136,12 +137,12 @@ export const ArchitectureSection: React.FC = () => {
                                             marginBottom: token.marginSM,
                                         }}
                                     >
-                                        Google Gemini API
+                                        {translate('landing.architecture.geminiApi')}
                                     </Title>
                                     <Paragraph
                                         style={{ color: token.colorTextSecondary, margin: 0 }}
                                     >
-                                        Processes your AI requests
+                                        {translate('landing.architecture.geminiApiBody')}
                                     </Paragraph>
                                 </div>
                             </Col>
@@ -158,13 +159,10 @@ export const ArchitectureSection: React.FC = () => {
                                         marginBottom: token.marginMD,
                                     }}
                                 >
-                                    📊 Data Storage
+                                    📊 {translate('landing.architecture.dataStorage')}
                                 </Title>
                                 <Paragraph style={{ color: token.colorTextSecondary }}>
-                                    All data is securely stored in Supabase PostgreSQL with Row
-                                    Level Security (RLS) enabled for maximum protection. API keys,
-                                    request logs, and analytics are stored with proper access
-                                    controls and are accessible only to authorized users.
+                                    {translate('landing.architecture.dataStorageBody')}
                                 </Paragraph>
                             </Col>
                             <Col xs={24} md={12}>
@@ -175,12 +173,10 @@ export const ArchitectureSection: React.FC = () => {
                                         marginBottom: token.marginMD,
                                     }}
                                 >
-                                    🔒 Security Features
+                                    🔒 {translate('landing.architecture.security')}
                                 </Title>
                                 <Paragraph style={{ color: token.colorTextSecondary }}>
-                                    Built with enterprise-grade security including RLS policies,
-                                    typed RPCs, secure environment handling, and comprehensive audit
-                                    logging for compliance.
+                                    {translate('landing.architecture.securityBody')}
                                 </Paragraph>
                             </Col>
                         </Row>

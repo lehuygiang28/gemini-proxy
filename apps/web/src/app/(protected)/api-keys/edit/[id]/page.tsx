@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Edit, useForm } from '@refinedev/antd';
+import { useTranslation } from '@refinedev/core';
 import {
     Form,
     Input,
@@ -24,6 +25,7 @@ const { Title, Paragraph } = Typography;
 type ApiKeyUpdate = TablesUpdate<'api_keys'>;
 
 export default function ApiKeysEditPage() {
+    const { translate } = useTranslation();
     const { formProps, saveButtonProps, query } = useForm<ApiKeyUpdate>({
         resource: 'api_keys',
         action: 'edit',
@@ -48,71 +50,86 @@ export default function ApiKeysEditPage() {
     }
 
     return (
-        <Edit saveButtonProps={saveButtonProps} title={<Title level={4}>Edit API Key</Title>}>
+        <Edit
+            saveButtonProps={saveButtonProps}
+            title={<Title level={4}>{translate('api_keys.titles.edit')}</Title>}
+        >
             <Row gutter={12}>
                 <Col xs={24} lg={8}>
                     <Card variant="borderless">
-                        <Title level={5}>Editing {apiKeyData?.name}</Title>
-                        <Paragraph type="secondary">
-                            Modify the details of your existing API key.
-                        </Paragraph>
-                        <Alert
-                            message="The API key value cannot be changed for security reasons. If you need a new key, please create one."
-                            type="info"
-                            showIcon
-                        />
+                        <Title level={5}>
+                            {translate('api_keys.edit.editing', { name: apiKeyData?.name ?? '' })}
+                        </Title>
+                        <Paragraph type="secondary">{translate('api_keys.edit.subtitle')}</Paragraph>
+                        <Alert message={translate('api_keys.edit.keyImmutable')} type="info" showIcon />
                     </Card>
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
                         <Form {...formProps} layout="vertical">
                             <Divider orientation="left">
-                                <InfoCircleOutlined /> Basic Information
+                                <InfoCircleOutlined /> {translate('api_keys.edit.basicInfo')}
                             </Divider>
                             <Row gutter={12}>
                                 <Col span={12}>
                                     <Form.Item
-                                        label="Name"
+                                        label={translate('api_keys.fields.name')}
                                         name="name"
                                         rules={[
                                             {
                                                 required: true,
-                                                message: 'Please enter a name',
+                                                message: translate('api_keys.errors.enterName'),
                                             },
                                         ]}
                                     >
-                                        <Input placeholder="e.g., My App Key" />
+                                        <Input
+                                            placeholder={translate(
+                                                'api_keys.placeholders.nameExample',
+                                            )}
+                                        />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
                                     <Form.Item
-                                        label="Provider"
+                                        label={translate('api_keys.fields.provider')}
                                         name="provider"
                                         rules={[
                                             {
                                                 required: true,
-                                                message: 'Please select a provider',
+                                                message: translate('api_keys.errors.selectProvider'),
                                             },
                                         ]}
                                     >
                                         <Select
-                                            placeholder="Select provider"
+                                            placeholder={translate(
+                                                'api_keys.placeholders.selectProvider',
+                                            )}
                                             options={PROVIDER_OPTIONS}
                                         />
                                     </Form.Item>
                                 </Col>
                             </Row>
                             <Divider orientation="left">
-                                <KeyOutlined /> API Key
+                                <KeyOutlined /> {translate('api_keys.fields.apiKey')}
                             </Divider>
-                            <Form.Item label="API Key Value" name="api_key_value">
+                            <Form.Item
+                                label={translate('api_keys.fields.apiKeyValue')}
+                                name="api_key_value"
+                            >
                                 <Input readOnly disabled />
                             </Form.Item>
                             <Divider orientation="left">
-                                <SettingOutlined /> Settings
+                                <SettingOutlined /> {translate('api_keys.edit.settings')}
                             </Divider>
-                            <Form.Item label="Status" name="is_active" valuePropName="checked">
-                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                            <Form.Item
+                                label={translate('api_keys.fields.status')}
+                                name="is_active"
+                                valuePropName="checked"
+                            >
+                                <Switch
+                                    checkedChildren={translate('common.active')}
+                                    unCheckedChildren={translate('common.inactive')}
+                                />
                             </Form.Item>
                         </Form>
                     </Card>

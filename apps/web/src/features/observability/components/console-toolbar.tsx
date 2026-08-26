@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Select, Space, Typography } from 'antd';
 import { PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from '@refinedev/core';
 import { ConnectionStatusBadge } from './connection-status-badge';
 
 const { Title, Text } = Typography;
@@ -25,6 +26,7 @@ export function ConsoleToolbar({
     onRefresh,
     onToggleLive,
 }: ConsoleToolbarProps) {
+    const { translate } = useTranslation();
     return (
         <div
             style={{
@@ -38,9 +40,9 @@ export function ConsoleToolbar({
         >
             <div>
                 <Title level={3} style={{ margin: 0 }}>
-                    Console
+                    {translate('observability.title')}
                 </Title>
-                <Text type="secondary">Ops overview, live request feed, and key health</Text>
+                <Text type="secondary">{translate('observability.subtitle')}</Text>
             </div>
             <Space wrap>
                 <ConnectionStatusBadge paused={!isLive} />
@@ -49,19 +51,19 @@ export function ConsoleToolbar({
                     onChange={onDaysChange}
                     style={{ width: 140 }}
                     options={[
-                        { label: 'Last 7 days', value: 7 },
-                        { label: 'Last 30 days', value: 30 },
-                        { label: 'Last 90 days', value: 90 },
+                        { label: translate('observability.last7'), value: 7 },
+                        { label: translate('observability.last30'), value: 30 },
+                        { label: translate('observability.last90'), value: 90 },
                     ]}
                 />
                 <Button
                     icon={isLive ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                     onClick={onToggleLive}
                 >
-                    {isLive ? 'Pause' : 'Resume'}
+                    {isLive ? translate('observability.pause') : translate('observability.resume')}
                 </Button>
                 <Button icon={<ReloadOutlined />} onClick={onRefresh} loading={isRefreshing}>
-                    Refresh
+                    {translate('observability.refresh')}
                 </Button>
             </Space>
         </div>

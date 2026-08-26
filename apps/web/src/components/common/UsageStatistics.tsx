@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
 import { Typography, Space, Statistic, Row, Col, theme } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from '@refinedev/core';
 import { calculateSuccessRate } from '@/utils/table-helpers';
 
 const { Text } = Typography;
@@ -13,6 +16,7 @@ interface UsageStatisticsProps {
 
 export const UsageStatistics: React.FC<UsageStatisticsProps> = ({ successCount, failureCount }) => {
     const { token } = useToken();
+    const { translate } = useTranslation();
     const successRate = calculateSuccessRate(successCount, failureCount);
 
     return (
@@ -34,7 +38,7 @@ export const UsageStatistics: React.FC<UsageStatisticsProps> = ({ successCount, 
                 </Col>
             </Row>
             <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                Success Rate: {successRate}%
+                {translate('common.successRate', { rate: successRate })}
             </Text>
         </Space>
     );

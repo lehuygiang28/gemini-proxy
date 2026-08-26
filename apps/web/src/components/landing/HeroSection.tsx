@@ -2,6 +2,7 @@
 
 import React, { useContext } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Button, Space, Badge, theme } from 'antd';
 import { RocketOutlined, GithubOutlined } from '@ant-design/icons';
 import { SiNextdotjs, SiTypescript, SiSupabase, SiAntdesign } from 'react-icons/si';
@@ -13,6 +14,7 @@ const { useToken } = theme;
 export const HeroSection: React.FC = () => {
     const { token } = useToken();
     const { mode } = useContext(ColorModeContext);
+    const { translate } = useTranslation();
 
     // Theme-aware color helper
     const getThemeAwareColor = (lightColor: string, darkColor: string) => {
@@ -22,7 +24,7 @@ export const HeroSection: React.FC = () => {
     return (
         <div
             style={{
-                paddingTop: token.paddingXL,
+                paddingTop: `calc(max(${token.paddingXL}px, env(safe-area-inset-top)) + ${token.controlHeight}px)`,
                 paddingBottom: token.paddingXL,
                 paddingLeft: token.paddingLG,
                 paddingRight: token.paddingLG,
@@ -37,7 +39,7 @@ export const HeroSection: React.FC = () => {
                             color="green"
                             text={
                                 <Space size={4}>
-                                    <span>MIT License</span>
+                                    <span>{translate('landing.hero.badgeMit')}</span>
                                 </Space>
                             }
                         />
@@ -108,7 +110,7 @@ export const HeroSection: React.FC = () => {
                             marginBottom: token.marginLG,
                         }}
                     >
-                        Production-Ready API Proxy for Google Gemini
+                        {translate('landing.hero.tagline')}
                     </Title>
 
                     <Paragraph
@@ -121,8 +123,7 @@ export const HeroSection: React.FC = () => {
                             margin: '0 auto',
                         }}
                     >
-                        Secure key management, intelligent load balancing, comprehensive monitoring,
-                        and seamless streaming. Deploy anywhere with our multi-platform support.
+                        {translate('landing.hero.body')}
                     </Paragraph>
 
                     <Space
@@ -144,7 +145,7 @@ export const HeroSection: React.FC = () => {
                                     fontWeight: 600,
                                 }}
                             >
-                                Get Started
+                                {translate('landing.hero.getStarted')}
                             </Button>
                         </Link>
                         <Link href="https://github.com/lehuygiang28/gemini-proxy" target="_blank">
@@ -159,7 +160,7 @@ export const HeroSection: React.FC = () => {
                                     fontSize: '16px',
                                 }}
                             >
-                                View on GitHub
+                                {translate('landing.hero.github')}
                             </Button>
                         </Link>
                     </Space>

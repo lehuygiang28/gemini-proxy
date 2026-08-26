@@ -59,84 +59,92 @@ export function KpiStrip({ items, loading = false }: KpiStripProps) {
     );
 }
 
-export function buildConsoleKpiItems(input: {
-    totalRequests?: number;
-    successRate?: number;
-    avgResponseMs?: number;
-    activeKeys?: number;
-    retryRate?: number;
-}): KpiItem[] {
+type ObservabilityTranslate = (key: string, options?: Record<string, unknown>) => string;
+
+export function buildConsoleKpiItems(
+    input: {
+        totalRequests?: number;
+        successRate?: number;
+        avgResponseMs?: number;
+        activeKeys?: number;
+        retryRate?: number;
+    },
+    translate: ObservabilityTranslate,
+): KpiItem[] {
     const successRate = Math.round(input.successRate ?? 0);
     const retryRate = Math.round(input.retryRate ?? 0);
     return [
         {
             key: 'requests',
-            label: 'Requests',
+            label: translate('observability.kpi.requests'),
             value: input.totalRequests ?? 0,
             tone: 'accent',
-            hint: 'Period-scoped request count',
+            hint: translate('observability.kpi.requestsHint'),
         },
         {
             key: 'success',
-            label: 'Success rate',
+            label: translate('observability.kpi.successRate'),
             value: `${successRate}%`,
             tone: successRate >= 95 ? 'success' : successRate >= 80 ? 'warn' : 'error',
         },
         {
             key: 'latency',
-            label: 'Avg latency',
-            value: formatDuration(input.avgResponseMs),
+            label: translate('observability.kpi.avgLatency'),
+            value: formatDuration(input.avgResponseMs, translate('common.na')),
             tone: 'default',
         },
         {
             key: 'keys',
-            label: 'Active keys',
+            label: translate('observability.kpi.activeKeys'),
             value: input.activeKeys ?? 0,
         },
         {
             key: 'retry',
-            label: 'Retry rate',
+            label: translate('observability.kpi.retryRate'),
             value: `${retryRate}%`,
             tone: retryRate > 20 ? 'error' : retryRate > 10 ? 'warn' : 'success',
         },
     ];
 }
 
-export function buildTokenUsageKpiItems(input: {
-    promptTokens?: number;
-    completionTokens?: number;
-    cacheTokens?: number;
-    totalTokens?: number;
-    periodDays?: number;
-}): KpiItem[] {
+export function buildTokenUsageKpiItems(
+    input: {
+        promptTokens?: number;
+        completionTokens?: number;
+        cacheTokens?: number;
+        totalTokens?: number;
+        periodDays?: number;
+    },
+    translate: ObservabilityTranslate,
+): KpiItem[] {
     const periodHint =
         input.periodDays != null
-            ? `Last ${input.periodDays} days from request logs`
-            : 'Period-scoped from request logs';
+            ? translate('observability.kpi.periodHint', { days: input.periodDays })
+            : translate('observability.kpi.periodHintDefault');
     return [
         {
             key: 'input-tokens',
-            label: 'Input tokens',
-            value: formatTokenCount(input.promptTokens),
+            label: translate('observability.kpi.inputTokens'),
+            value: formatTokenCount(input.promptTokens, translate('common.na')),
             hint: periodHint,
         },
         {
             key: 'output-tokens',
-            label: 'Output tokens',
-            value: formatTokenCount(input.completionTokens),
+            label: translate('observability.kpi.outputTokens'),
+            value: formatTokenCount(input.completionTokens, translate('common.na')),
             hint: periodHint,
         },
         {
             key: 'cache-tokens',
-            label: 'Cache tokens',
-            value: formatTokenCount(input.cacheTokens),
+            label: translate('observability.kpi.cacheTokens'),
+            value: formatTokenCount(input.cacheTokens, translate('common.na')),
             tone: 'default',
             hint: periodHint,
         },
         {
             key: 'total-tokens',
-            label: 'Total tokens',
-            value: formatTokenCount(input.totalTokens),
+            label: translate('observability.kpi.totalTokens'),
+            value: formatTokenCount(input.totalTokens, translate('common.na')),
             tone: 'accent',
             hint: periodHint,
         },

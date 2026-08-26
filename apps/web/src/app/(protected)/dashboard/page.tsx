@@ -2,7 +2,7 @@
 
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Alert } from 'antd';
-import { useGo, useList, type LiveModeProps } from '@refinedev/core';
+import { useGo, useList, useTranslation, type LiveModeProps } from '@refinedev/core';
 import type { Tables } from '@gemini-proxy/database';
 import {
     useDashboardStatistics,
@@ -126,6 +126,7 @@ const ConsoleLists = forwardRef<ConsoleListsHandle, ConsoleListsProps>(
  */
 export default function ConsolePage() {
     const go = useGo();
+    const { translate } = useTranslation();
     const listsRef = useRef<ConsoleListsHandle>(null);
     const [selectedDays, setSelectedDays] = useState(7);
     const [isLive, setIsLive] = useState(true);
@@ -234,26 +235,32 @@ export default function ConsolePage() {
 
     const kpiItems = useMemo(
         () =>
-            buildConsoleKpiItems({
-                totalRequests: dashboardStats?.total_requests,
-                successRate: dashboardStats?.success_rate,
-                avgResponseMs: dashboardStats?.avg_response_time_ms,
-                activeKeys: dashboardStats?.active_keys,
-                retryRate: retryStats?.retry_rate,
-            }),
-        [dashboardStats, retryStats],
+            buildConsoleKpiItems(
+                {
+                    totalRequests: dashboardStats?.total_requests,
+                    successRate: dashboardStats?.success_rate,
+                    avgResponseMs: dashboardStats?.avg_response_time_ms,
+                    activeKeys: dashboardStats?.active_keys,
+                    retryRate: retryStats?.retry_rate,
+                },
+                translate,
+            ),
+        [dashboardStats, retryStats, translate],
     );
 
     const tokenKpiItems = useMemo(
         () =>
-            buildTokenUsageKpiItems({
-                promptTokens: requestLogsStats?.prompt_tokens,
-                completionTokens: requestLogsStats?.completion_tokens,
-                cacheTokens: requestLogsStats?.cache_tokens,
-                totalTokens: requestLogsStats?.total_tokens,
-                periodDays: requestLogsStats?.period_days ?? selectedDays,
-            }),
-        [requestLogsStats, selectedDays],
+            buildTokenUsageKpiItems(
+                {
+                    promptTokens: requestLogsStats?.prompt_tokens,
+                    completionTokens: requestLogsStats?.completion_tokens,
+                    cacheTokens: requestLogsStats?.cache_tokens,
+                    totalTokens: requestLogsStats?.total_tokens,
+                    periodDays: requestLogsStats?.period_days ?? selectedDays,
+                },
+                translate,
+            ),
+        [requestLogsStats, selectedDays, translate],
     );
 
     return (
@@ -276,8 +283,8 @@ export default function ConsolePage() {
                     <Alert
                         type="warning"
                         showIcon
-                        message="Some statistics failed to load"
-                        description="Live feed may still work. Use Refresh to retry failed RPCs."
+                        message={translate('observability.statsFailed')}
+                        description={translate('observability.statsFailedDesc')}
                     />
                 )}
 
