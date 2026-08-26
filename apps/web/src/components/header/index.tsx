@@ -34,16 +34,16 @@ function initialsFrom(user?: IUser | null): string {
     return source.slice(0, 2).toUpperCase();
 }
 
-function displayNameFrom(user?: IUser | null): string {
+function displayNameFrom(user: IUser | null | undefined, fallback: string): string {
     const name = user?.name?.trim();
     const email = user?.email?.trim();
     if (name && email && name.toLowerCase() !== email.toLowerCase()) {
         return name;
     }
     if (email) {
-        return email.split('@')[0] || 'Account';
+        return email.split('@')[0] || fallback;
     }
-    return name || 'Account';
+    return name || fallback;
 }
 
 export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true }) => {
@@ -115,7 +115,7 @@ export const Header: React.FC<RefineThemedLayoutHeaderProps> = ({ sticky = true 
         [router, handleLogout, translate],
     );
 
-    const primaryLabel = displayNameFrom(user);
+    const primaryLabel = displayNameFrom(user, translate('header.account'));
     const email = user?.email?.trim();
 
     return (

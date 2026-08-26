@@ -7,6 +7,7 @@ import {
     useGetIdentity,
     useList,
     useNotification,
+    useTranslation,
     useUpdate,
 } from '@refinedev/core';
 import {
@@ -24,6 +25,7 @@ type Identity = { id?: string };
  * Observability toggles persisted on user_settings (id = auth user id).
  */
 export function ObservabilitySettingsForm() {
+    const { translate } = useTranslation();
     const [form] = Form.useForm<UserSettingsFormValues>();
     const { data: identity, isLoading: identityLoading } = useGetIdentity<Identity>();
     const userId = identity?.id;
@@ -87,14 +89,17 @@ export function ObservabilitySettingsForm() {
             await query.refetch();
             notification.open({
                 type: 'success',
-                message: 'Settings saved',
-                description: 'Observability preferences updated for new request logs.',
+                message: translate('settings.observability.saved'),
+                description: translate('settings.observability.savedDesc'),
             });
         } catch (error) {
             notification.open({
                 type: 'error',
-                message: 'Failed to save settings',
-                description: error instanceof Error ? error.message : 'Unknown error',
+                message: translate('settings.observability.saveFailed'),
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : translate('common.genericError'),
             });
         } finally {
             setSaving(false);
@@ -102,26 +107,20 @@ export function ObservabilitySettingsForm() {
     };
 
     if (identityLoading || !userId) {
-        return <Text type="secondary">Loading account…</Text>;
+        return <Text type="secondary">{translate('account.loading')}</Text>;
     }
 
     return (
         <div className="gp-panel" style={{ padding: 16 }}>
-            <div className="gp-section-title">Observability</div>
+            <div className="gp-section-title">{translate('settings.tabs.observability')}</div>
             <Alert
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Detailed log bodies are off by default"
-                description={
-                    <>
-                        When enabled, sanitized request/response bodies are stored on new logs (up
-                        to {Math.round(PAYLOAD_BODY_MAX_CHARS / 1024)} KiB). Streaming responses are
-                        included when the proxy buffers the full upstream body for token parsing.
-                        Bodies may contain prompts or completions — enable only if you accept the
-                        storage and privacy trade-off.
-                    </>
-                }
+                message={translate('settings.observability.banner')}
+                description={translate('settings.observability.bannerDesc', {
+                    kib: Math.round(PAYLOAD_BODY_MAX_CHARS / 1024),
+                })}
             />
             <Form
                 form={form}
@@ -131,39 +130,39 @@ export function ObservabilitySettingsForm() {
                 disabled={query.isLoading || saving}
             >
                 <Form.Item
-                    label="Detailed observability"
+                    label={translate('settings.observability.detailed')}
                     name="detailed_observability"
                     valuePropName="checked"
-                    extra="Master switch. When off, logs stay headers-only (current default)."
+                    extra={translate('settings.observability.detailedExtra')}
                 >
                     <Switch />
                 </Form.Item>
                 <Form.Item
-                    label="Save request bodies"
+                    label={translate('settings.observability.saveRequest')}
                     name="save_request_body"
                     valuePropName="checked"
-                    extra="Persist the outbound request JSON/text on request_logs.request_data.body."
+                    extra={translate('settings.observability.saveRequestExtra')}
                 >
                     <Switch disabled={!detailed} />
                 </Form.Item>
                 <Form.Item
-                    label="Save response bodies"
+                    label={translate('settings.observability.saveResponse')}
                     name="save_response_body"
                     valuePropName="checked"
-                    extra="Persist the AI response (including streamed wire format) on response_data.body."
+                    extra={translate('settings.observability.saveResponseExtra')}
                 >
                     <Switch disabled={!detailed} />
                 </Form.Item>
                 <Space>
                     <Button type="primary" htmlType="submit" loading={saving}>
-                        Save
+                        {translate('buttons.save')}
                     </Button>
                     <Button
                         onClick={() => {
                             form.setFieldsValue(DEFAULT_USER_SETTINGS);
                         }}
                     >
-                        Reset to defaults
+                        {translate('settings.observability.reset')}
                     </Button>
                 </Space>
             </Form>

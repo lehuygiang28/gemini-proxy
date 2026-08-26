@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Modal } from 'antd';
 import { AccountSettingsForm } from './account-settings-form';
 
@@ -13,9 +14,10 @@ type AccountSettingsModalProps = {
  * Clerk-style account popup — profile / email / security outside Settings tabs.
  */
 export function AccountSettingsModal({ open, onClose }: AccountSettingsModalProps) {
+    const { translate } = useTranslation();
     return (
         <Modal
-            title="Account"
+            title={translate('account.title')}
             open={open}
             onCancel={onClose}
             footer={null}
