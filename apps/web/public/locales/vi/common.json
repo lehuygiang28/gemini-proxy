@@ -181,6 +181,154 @@
             "create": "Tạo khóa API",
             "edit": "Sửa khóa API",
             "show": "Xem khóa API"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Tên",
+            "apiKey": "Khóa API",
+            "apiKeyValue": "Giá trị khóa API",
+            "provider": "Nhà cung cấp",
+            "status": "Trạng thái",
+            "health": "Sức khỏe",
+            "usage": "Thống kê sử dụng",
+            "tokens": "Token",
+            "lastUsed": "Dùng lần cuối",
+            "lastError": "Lỗi gần nhất",
+            "created": "Ngày tạo",
+            "updated": "Cập nhật lần cuối",
+            "details": "Chi tiết khóa API",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Tìm tên khóa API...",
+            "allProviders": "Tất cả nhà cung cấp",
+            "allStatus": "Tất cả trạng thái",
+            "nameExample": "vd. Khóa ứng dụng của tôi",
+            "selectProvider": "Chọn nhà cung cấp",
+            "keyName": "Tên khóa",
+            "apiKey": "Khóa API"
+        },
+        "filters": {
+            "title": "Bộ lọc và tìm kiếm",
+            "reset": "Đặt lại",
+            "searchByName": "Tìm theo tên"
+        },
+        "tokens": {
+            "total": "Tổng: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Tổng token",
+            "promptTokens": "Token prompt",
+            "completionTokens": "Token completion"
+        },
+        "actions": {
+            "viewLogs": "Xem nhật ký của khóa này",
+            "viewDetails": "Xem chi tiết",
+            "edit": "Sửa khóa API",
+            "delete": "Xóa khóa API"
+        },
+        "delete": {
+            "title": "Xóa khóa API",
+            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+        },
+        "empty": "Không tìm thấy khóa API",
+        "notFound": "Không tìm thấy khóa API",
+        "notifications": {
+            "statusUpdated": "Đã cập nhật trạng thái",
+            "enabled": "Đã bật khóa API \"{name}\" thành công",
+            "disabled": "Đã tắt khóa API \"{name}\" thành công",
+            "updateFailed": "Cập nhật thất bại",
+            "updateFailedDesc": "Không cập nhật được trạng thái khóa API",
+            "deleted": "Đã xóa khóa API",
+            "deletedDesc": "Đã gỡ khóa API \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deleteFailed": "Xóa thất bại",
+            "deleteFailedDesc": "Không xóa được khóa API"
+        },
+        "errors": {
+            "enterName": "Vui lòng nhập tên",
+            "selectProvider": "Vui lòng chọn nhà cung cấp",
+            "missingName": "Thiếu tên",
+            "missingApiKey": "Thiếu khóa API"
+        },
+        "edit": {
+            "editing": "Đang sửa {name}",
+            "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
+            "keyImmutable": "Không thể đổi giá trị khóa API vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "basicInfo": "Thông tin cơ bản",
+            "settings": "Cài đặt"
+        },
+        "show": {
+            "security": "Bảo mật",
+            "timestamps": "Dấu thời gian"
+        },
+        "create": {
+            "manual": "Nhập thủ công",
+            "bulkPaste": "Dán hàng loạt",
+            "importJson": "Nhập JSON",
+            "bulkPlaceholder": "Dán khóa API vào đây, phân tách bằng dấu phẩy, khoảng trắng, dòng mới, dấu chấm phẩy hoặc dấu ống.\n\nVí dụ:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nHoặc:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nMỗi khóa phải dài ít nhất 10 ký tự.",
+            "jsonPlaceholder": "Dán mảng JSON các khóa API.\n\nVí dụ:\n\nMảng chuỗi:\n[\"AIzaXXXXXXXXXXXXXXXXXXXX1\", \"AIzaXXXXXXXXXXXXXXXXXXXX2\"]\n\nMảng đối tượng:\n[\n  {\"name\": \"Gproxy key 1\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX1\"},\n  {\"name\": \"Gproxy key 2\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX2\"}\n]\n\nCác trường hỗ trợ: name/title/label, api_key_value/apiKey/key/value",
+            "addKey": "Thêm khóa API",
+            "importKeys": "Nhập khóa",
+            "backToImport": "Quay lại nhập",
+            "saveKeys": "Lưu khóa API",
+            "dragJson": "Bấm hoặc kéo tệp JSON vào đây để tải",
+            "securityTitle": "Lưu ý bảo mật",
+            "securityBody": "Khóa API là thông tin nhạy cảm. Chỉ nhập từ nguồn đáng tin cậy.",
+            "reviewTitle": "Xem lại khóa API",
+            "reviewBody": "Xem và chỉnh sửa khóa API trước khi lưu. Các khóa không hợp lệ sẽ được đánh dấu.",
+            "valid": "Hợp lệ",
+            "invalid": "Không hợp lệ",
+            "invalidDetected": "Phát hiện khóa không hợp lệ",
+            "invalidDetectedDesc": "Một số khóa có định dạng không hợp lệ và sẽ bị bỏ qua khi lưu.",
+            "importTitle": "Nhập khóa Google AI",
+            "importSubtitle": "Làm theo các bước để nhập khóa Google AI vào tài khoản của bạn.",
+            "bulkImportedName": "Khóa nhập hàng loạt {index}",
+            "jsonImportedName": "Khóa nhập JSON {index}",
+            "successDesc": "Đã tạo khóa API thành công!",
+            "errorTitle": "Lỗi",
+            "errorDesc": "Lỗi khi tạo khóa API: {message}",
+            "jsonLoaded": "Đã tải tệp JSON thành công!",
+            "readFileFailed": "Không đọc được tệp.",
+            "steps": {
+                "import": "Nhập khóa",
+                "importDesc": "Chọn cách bạn muốn nhập khóa.",
+                "review": "Xem và sửa",
+                "reviewDesc": "Xem và chỉnh sửa khóa API trước khi lưu.",
+                "save": "Lưu",
+                "saveDesc": "Lưu khóa vào tài khoản của bạn."
+            },
+            "help": {
+                "title": "Định dạng nhập được hỗ trợ",
+                "bulkTitle": "Định dạng dán hàng loạt",
+                "bulkBody": "Dán nhiều khóa API, phân tách bằng bất kỳ ký tự nào sau đây:",
+                "commas": "Dấu phẩy",
+                "newLines": "Dòng mới",
+                "semicolons": "Dấu chấm phẩy",
+                "pipes": "Dấu ống",
+                "tabs": "Tab",
+                "jsonTitle": "Định dạng JSON",
+                "jsonBody": "Mảng JSON gồm chuỗi hoặc đối tượng. Các trường đối tượng được hỗ trợ:",
+                "forName": "cho tên khóa",
+                "forKey": "cho khóa API",
+                "jsonExamples": "Ví dụ JSON",
+                "simpleArray": "Mảng chuỗi đơn giản:",
+                "objectArray": "Mảng đối tượng với tên và khóa:",
+                "altFields": "Mảng đối tượng với tên trường khác:",
+                "validationTitle": "Quy tắc xác thực",
+                "validationBody": "Mọi khóa API phải dài ít nhất 10 ký tự và không được để trống. Khóa không hợp lệ sẽ được đánh dấu ở bước xem lại."
+            },
+            "errors": {
+                "tooShort": "Khóa API quá ngắn hoặc trống",
+                "invalidJson": "Định dạng JSON không hợp lệ",
+                "invalidJsonDesc": "Hãy cung cấp một mảng JSON hợp lệ.",
+                "noKeys": "Không tìm thấy khóa",
+                "noKeysDesc": "Không tìm thấy khóa API hợp lệ trong dữ liệu nhập.",
+                "authRequired": "Cần đăng nhập",
+                "authRequiredDesc": "Hãy đăng nhập để tạo khóa API.",
+                "noValid": "Không có khóa hợp lệ",
+                "noValidDesc": "Không có khóa API hợp lệ để lưu."
+            }
         }
     },
     "proxy_api_keys": {

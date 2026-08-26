@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { List, CreateButton, EditButton, ShowButton, useTable } from '@refinedev/antd';
-import { useGo, useUpdate } from '@refinedev/core';
+import { useGo, useUpdate, useTranslation } from '@refinedev/core';
 import { buildSoftDeleteKeyValues } from '@/utils/soft-delete-key';
 import {
     Table,
@@ -56,6 +56,7 @@ interface IApiKeySearch {
 export default function ApiKeysListPage() {
     const { token } = useToken();
     const go = useGo();
+    const { translate } = useTranslation();
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
     const { mutate: updateApiKey } = useUpdate({
         resource: API_KEYS_RESOURCE,
@@ -133,17 +134,22 @@ export default function ApiKeysListPage() {
                 mutationMode: 'optimistic',
                 successNotification: {
                     type: 'success',
-                    message: 'Status Updated',
-                    description: `API key "${record.name}" ${checked ? 'enabled' : 'disabled'} successfully`,
+                    message: translate('api_keys.notifications.statusUpdated'),
+                    description: translate(
+                        checked
+                            ? 'api_keys.notifications.enabled'
+                            : 'api_keys.notifications.disabled',
+                        { name: record.name },
+                    ),
                 },
                 errorNotification: {
                     type: 'error',
-                    message: 'Update Failed',
-                    description: 'Failed to update API key status',
+                    message: translate('api_keys.notifications.updateFailed'),
+                    description: translate('api_keys.notifications.updateFailedDesc'),
                 },
             });
         },
-        [updateApiKey],
+        [updateApiKey, translate],
     );
 
     const handleDelete = useCallback(
@@ -154,21 +160,23 @@ export default function ApiKeysListPage() {
                 values: buildSoftDeleteKeyValues('api', record.id),
                 successNotification: {
                     type: 'success',
-                    message: 'API Key Deleted',
-                    description: `API key "${record.name}" removed. Request logs are kept.`,
+                    message: translate('api_keys.notifications.deleted'),
+                    description: translate('api_keys.notifications.deletedDesc', {
+                        name: record.name,
+                    }),
                 },
                 errorNotification: {
                     type: 'error',
-                    message: 'Delete Failed',
-                    description: 'Failed to delete API key',
+                    message: translate('api_keys.notifications.deleteFailed'),
+                    description: translate('api_keys.notifications.deleteFailedDesc'),
                 },
             });
         },
-        [updateApiKey],
+        [updateApiKey, translate],
     );
 
     return (
-        <List headerButtons={<CreateButton />} title="API Keys Management" breadcrumb={false}>
+        <List headerButtons={<CreateButton />} title={translate('api_keys.titles.list')} breadcrumb={false}>
             {/* Filters */}
             <Card
                 styles={{
@@ -178,7 +186,7 @@ export default function ApiKeysListPage() {
                 title={
                     <Space>
                         <FilterOutlined />
-                        <Text strong>Filters & Search</Text>
+                        <Text strong>{translate('api_keys.filters.title')}</Text>
                     </Space>
                 }
                 extra={
@@ -190,16 +198,16 @@ export default function ApiKeysListPage() {
                         }}
                         size="small"
                     >
-                        Reset
+                        {translate('api_keys.filters.reset')}
                     </Button>
                 }
             >
                 <Form {...searchFormProps} layout="vertical">
                     <Row gutter={[token.marginMD, token.marginMD]}>
                         <Col xs={24} sm={12} md={10}>
-                            <Form.Item name="name" label="Search by Name">
+                            <Form.Item name="name" label={translate('api_keys.filters.searchByName')}>
                                 <Search
-                                    placeholder="Search API key names..."
+                                    placeholder={translate('api_keys.placeholders.searchName')}
                                     allowClear
                                     enterButton={<SearchOutlined />}
                                     onSearch={() => searchFormProps.form?.submit()}
@@ -207,19 +215,26 @@ export default function ApiKeysListPage() {
                             </Form.Item>
                         </Col>
                         <Col xs={24} sm={12} md={7}>
-                            <Form.Item name="provider" label="Provider">
+                            <Form.Item name="provider" label={translate('api_keys.fields.provider')}>
                                 <Select
-                                    placeholder="All Providers"
+                                    placeholder={translate('api_keys.placeholders.allProviders')}
                                     allowClear
                                     options={PROVIDER_OPTIONS}
                                 />
                             </Form.Item>
                         </Col>
                         <Col xs={24} sm={12} md={7}>
-                            <Form.Item name="is_active" label="Status">
-                                <Select placeholder="All Status" allowClear>
-                                    <Select.Option value={true}>Active</Select.Option>
-                                    <Select.Option value={false}>Inactive</Select.Option>
+                            <Form.Item name="is_active" label={translate('api_keys.fields.status')}>
+                                <Select
+                                    placeholder={translate('api_keys.placeholders.allStatus')}
+                                    allowClear
+                                >
+                                    <Select.Option value={true}>
+                                        {translate('common.active')}
+                                    </Select.Option>
+                                    <Select.Option value={false}>
+                                        {translate('common.inactive')}
+                                    </Select.Option>
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -237,7 +252,7 @@ export default function ApiKeysListPage() {
                     size="middle"
                     columns={[
                         {
-                            title: 'API Key Details',
+                            title: translate('api_keys.fields.details'),
                             dataIndex: 'name',
                             sorter: true,
                             width: 200,
@@ -248,13 +263,15 @@ export default function ApiKeysListPage() {
                                         {value}
                                     </Text>
                                     <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                                        ID: {record.id.slice(0, 8)}...
+                                        {translate('api_keys.fields.idShort', {
+                                            id: record.id.slice(0, 8),
+                                        })}
                                     </Text>
                                 </Space>
                             ),
                         },
                         {
-                            title: 'API Key',
+                            title: translate('api_keys.fields.apiKey'),
                             dataIndex: 'api_key_value',
                             width: 300,
                             render: (value: string, record: ApiKey) => (
@@ -266,7 +283,7 @@ export default function ApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Provider',
+                            title: translate('api_keys.fields.provider'),
                             dataIndex: 'provider',
                             width: 120,
                             render: (value: string) => (
@@ -279,7 +296,7 @@ export default function ApiKeysListPage() {
                             })),
                         },
                         {
-                            title: 'Status',
+                            title: translate('api_keys.fields.status'),
                             dataIndex: 'is_active',
                             width: 120,
                             render: (value: boolean, record: ApiKey) => (
@@ -291,7 +308,7 @@ export default function ApiKeysListPage() {
                             sorter: true,
                         },
                         {
-                            title: 'Health',
+                            title: translate('api_keys.fields.health'),
                             key: 'health',
                             width: 100,
                             render: (_: unknown, record: ApiKey) => (
@@ -312,7 +329,7 @@ export default function ApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Usage Statistics',
+                            title: translate('api_keys.fields.usage'),
                             dataIndex: 'success_count',
                             sorter: true,
                             width: 150,
@@ -324,7 +341,7 @@ export default function ApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Token Usage',
+                            title: translate('api_keys.fields.tokens'),
                             key: 'token_usage',
                             dataIndex: 'total_tokens',
                             sorter: true,
@@ -334,7 +351,9 @@ export default function ApiKeysListPage() {
                                     <div>
                                         <div style={{ fontSize: token.fontSizeSM }}>
                                             <span style={{ color: token.colorInfo }}>
-                                                Total: {formatTokenCount(record.total_tokens)}
+                                                {translate('api_keys.tokens.total', {
+                                                    count: formatTokenCount(record.total_tokens),
+                                                })}
                                             </span>
                                         </div>
                                         <div
@@ -344,12 +363,17 @@ export default function ApiKeysListPage() {
                                             }}
                                         >
                                             <span>
-                                                Prompt: {formatTokenCount(record.prompt_tokens)}
+                                                {translate('api_keys.tokens.prompt', {
+                                                    count: formatTokenCount(record.prompt_tokens),
+                                                })}
                                             </span>
                                             {' | '}
                                             <span>
-                                                Completion:{' '}
-                                                {formatTokenCount(record.completion_tokens)}
+                                                {translate('api_keys.tokens.completion', {
+                                                    count: formatTokenCount(
+                                                        record.completion_tokens,
+                                                    ),
+                                                })}
                                             </span>
                                         </div>
                                     </div>
@@ -357,7 +381,7 @@ export default function ApiKeysListPage() {
                             },
                         },
                         {
-                            title: 'Last Used',
+                            title: translate('api_keys.fields.lastUsed'),
                             dataIndex: 'last_used_at',
                             width: 140,
                             sorter: true,
@@ -366,7 +390,7 @@ export default function ApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Last Error',
+                            title: translate('api_keys.fields.lastError'),
                             dataIndex: 'last_error_at',
                             width: 140,
                             sorter: true,
@@ -375,13 +399,13 @@ export default function ApiKeysListPage() {
                             ),
                         },
                         {
-                            title: 'Actions',
+                            title: translate('table.actions'),
                             dataIndex: 'actions',
                             width: 160,
                             fixed: 'right',
                             render: (_: unknown, record: ApiKey) => (
                                 <Space size="small">
-                                    <Tooltip title="View logs for this key">
+                                    <Tooltip title={translate('api_keys.actions.viewLogs')}>
                                         <Button
                                             size="small"
                                             type="text"
@@ -393,27 +417,27 @@ export default function ApiKeysListPage() {
                                             }
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Edit API Key">
+                                    <Tooltip title={translate('api_keys.actions.edit')}>
                                         <EditButton
                                             hideText
                                             recordItemId={record.id}
                                             size="small"
                                         />
                                     </Tooltip>
-                                    <Tooltip title="View Details">
+                                    <Tooltip title={translate('api_keys.actions.viewDetails')}>
                                         <ShowButton
                                             hideText
                                             recordItemId={record.id}
                                             size="small"
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Delete API Key">
+                                    <Tooltip title={translate('api_keys.actions.delete')}>
                                         <Popconfirm
-                                            title="Delete API Key"
-                                            description="Key is deactivated and hidden. Request logs stay linked."
+                                            title={translate('api_keys.delete.title')}
+                                            description={translate('api_keys.delete.description')}
                                             onConfirm={() => handleDelete(record)}
-                                            okText="Delete"
-                                            cancelText="Cancel"
+                                            okText={translate('buttons.delete')}
+                                            cancelText={translate('buttons.cancel')}
                                             okType="danger"
                                         >
                                             <Button
@@ -432,7 +456,7 @@ export default function ApiKeysListPage() {
                         emptyText: (
                             <Empty
                                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                description="No API keys found"
+                                description={translate('api_keys.empty')}
                             />
                         ),
                     }}

@@ -181,6 +181,154 @@
             "create": "Create API Key",
             "edit": "Edit API Key",
             "show": "Show API Key"
+        },
+        "fields": {
+            "id": "ID",
+            "idShort": "ID: {id}...",
+            "name": "Name",
+            "apiKey": "API Key",
+            "apiKeyValue": "API Key Value",
+            "provider": "Provider",
+            "status": "Status",
+            "health": "Health",
+            "usage": "Usage Statistics",
+            "tokens": "Token Usage",
+            "lastUsed": "Last Used",
+            "lastError": "Last Error",
+            "created": "Created",
+            "updated": "Last Updated",
+            "details": "API Key Details",
+            "metadata": "Metadata"
+        },
+        "placeholders": {
+            "searchName": "Search API key names...",
+            "allProviders": "All Providers",
+            "allStatus": "All Status",
+            "nameExample": "e.g., My App Key",
+            "selectProvider": "Select provider",
+            "keyName": "Key Name",
+            "apiKey": "API Key"
+        },
+        "filters": {
+            "title": "Filters & Search",
+            "reset": "Reset",
+            "searchByName": "Search by Name"
+        },
+        "tokens": {
+            "total": "Total: {count}",
+            "prompt": "Prompt: {count}",
+            "completion": "Completion: {count}",
+            "totalTokens": "Total Tokens",
+            "promptTokens": "Prompt Tokens",
+            "completionTokens": "Completion Tokens"
+        },
+        "actions": {
+            "viewLogs": "View logs for this key",
+            "viewDetails": "View Details",
+            "edit": "Edit API Key",
+            "delete": "Delete API Key"
+        },
+        "delete": {
+            "title": "Delete API Key",
+            "description": "Key is deactivated and hidden. Request logs stay linked."
+        },
+        "empty": "No API keys found",
+        "notFound": "API Key not found",
+        "notifications": {
+            "statusUpdated": "Status Updated",
+            "enabled": "API key \"{name}\" enabled successfully",
+            "disabled": "API key \"{name}\" disabled successfully",
+            "updateFailed": "Update Failed",
+            "updateFailedDesc": "Failed to update API key status",
+            "deleted": "API Key Deleted",
+            "deletedDesc": "API key \"{name}\" removed. Request logs are kept.",
+            "deleteFailed": "Delete Failed",
+            "deleteFailedDesc": "Failed to delete API key"
+        },
+        "errors": {
+            "enterName": "Please enter a name",
+            "selectProvider": "Please select a provider",
+            "missingName": "Missing name",
+            "missingApiKey": "Missing API key"
+        },
+        "edit": {
+            "editing": "Editing {name}",
+            "subtitle": "Modify the details of your existing API key.",
+            "keyImmutable": "The API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "basicInfo": "Basic Information",
+            "settings": "Settings"
+        },
+        "show": {
+            "security": "Security",
+            "timestamps": "Timestamps"
+        },
+        "create": {
+            "manual": "Manual Entry",
+            "bulkPaste": "Bulk Paste",
+            "importJson": "Import JSON",
+            "bulkPlaceholder": "Paste API keys here, separated by commas, spaces, new lines, semicolons, or pipes.\n\nExamples:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nOr:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nEach key should be at least 10 characters long.",
+            "jsonPlaceholder": "Paste a JSON array of API keys.\n\nExamples:\n\nSimple array:\n[\"AIzaXXXXXXXXXXXXXXXXXXXX1\", \"AIzaXXXXXXXXXXXXXXXXXXXX2\"]\n\nObject array:\n[\n  {\"name\": \"Gproxy key 1\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX1\"},\n  {\"name\": \"Gproxy key 2\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX2\"}\n]\n\nSupported fields: name/title/label, api_key_value/apiKey/key/value",
+            "addKey": "Add API Key",
+            "importKeys": "Import Keys",
+            "backToImport": "Back to Import",
+            "saveKeys": "Save API Keys",
+            "dragJson": "Click or drag a JSON file to this area to load",
+            "securityTitle": "Security Notice",
+            "securityBody": "API keys are sensitive. Ensure you are importing them from a trusted source.",
+            "reviewTitle": "Review API Keys",
+            "reviewBody": "Review and edit your API keys before saving. Invalid keys will be highlighted.",
+            "valid": "Valid",
+            "invalid": "Invalid",
+            "invalidDetected": "Invalid Keys Detected",
+            "invalidDetectedDesc": "Some keys have invalid formats and will be skipped during save.",
+            "importTitle": "Import Google AI Keys",
+            "importSubtitle": "Follow the steps to import Google AI keys into your account.",
+            "bulkImportedName": "Bulk Imported Key {index}",
+            "jsonImportedName": "JSON Imported Key {index}",
+            "successDesc": "API keys created successfully!",
+            "errorTitle": "Error",
+            "errorDesc": "Error creating API keys: {message}",
+            "jsonLoaded": "JSON file loaded successfully!",
+            "readFileFailed": "Failed to read file.",
+            "steps": {
+                "import": "Import Keys",
+                "importDesc": "Choose how you want to import your keys.",
+                "review": "Review & Edit",
+                "reviewDesc": "Review and edit your API keys before saving.",
+                "save": "Save",
+                "saveDesc": "Save the keys to your account."
+            },
+            "help": {
+                "title": "Supported Import Formats",
+                "bulkTitle": "Bulk Paste Format",
+                "bulkBody": "Paste multiple API keys separated by any of these characters:",
+                "commas": "Commas",
+                "newLines": "New lines",
+                "semicolons": "Semicolons",
+                "pipes": "Pipes",
+                "tabs": "Tabs",
+                "jsonTitle": "JSON Format",
+                "jsonBody": "JSON array with strings or objects. Supported object fields:",
+                "forName": "for the key name",
+                "forKey": "for the API key",
+                "jsonExamples": "JSON Examples",
+                "simpleArray": "Simple string array:",
+                "objectArray": "Object array with name and key:",
+                "altFields": "Object array with different field names:",
+                "validationTitle": "Validation Rules",
+                "validationBody": "All API keys must be at least 10 characters long and not empty. Invalid keys will be highlighted in the review step."
+            },
+            "errors": {
+                "tooShort": "API key is too short or empty",
+                "invalidJson": "Invalid JSON Format",
+                "invalidJsonDesc": "Please provide a valid JSON array.",
+                "noKeys": "No Keys Found",
+                "noKeysDesc": "No valid API keys found in the input.",
+                "authRequired": "Authentication Required",
+                "authRequiredDesc": "Please log in to create API keys.",
+                "noValid": "No Valid Keys",
+                "noValidDesc": "No valid API keys to save."
+            }
         }
     },
     "proxy_api_keys": {
