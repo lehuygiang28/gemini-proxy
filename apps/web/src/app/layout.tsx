@@ -8,7 +8,7 @@ import { cookies } from 'next/headers';
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getMessages } from 'next-intl/server';
+import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 
 import { ColorModeContextProvider } from '@contexts/color-mode';
 import { DevtoolsProvider } from '@providers/devtools';
@@ -29,41 +29,45 @@ const ibmPlexMono = IBM_Plex_Mono({
     display: 'swap',
 });
 
-export const metadata: Metadata = {
-    title: 'Gemini Proxy - API Key Management',
-    description:
-        'Production-ready admin for managing provider API keys, proxy keys, and request logs built with Ant Design and Supabase',
-    icons: {
-        icon: '/favicon.ico',
-    },
-    applicationName: 'Gemini Proxy',
-    authors: [
-        { name: 'Lê Huy Giang', url: 'mailto:lehuygiang28@gmail.com' },
-        { name: 'Lê Huy Giang', url: 'https://github.com/lehuygiang28' },
-    ],
-    keywords: [
-        'API Management',
-        'Proxy',
-        'AI',
-        'Gemini',
-        'OpenAI',
-        'Google',
-        'Github',
-        'Gemini proxy',
-        'Gemini polling',
-        'Gemini balance',
-        'Gemini rotate',
-        'lehuygiang28',
-        'lehuygiang28/gemini-proxy',
-    ],
-    robots: 'index, follow',
-    openGraph: {
-        title: 'Gemini Proxy - API Key Management',
-        description:
-            'Production-ready admin for managing Gemini API keys, proxy keys, and request logs built with Ant Design and Supabase',
-        type: 'website',
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const t = await getTranslations();
+    const title = t('landing.meta.title');
+    const description = t('landing.meta.description');
+
+    return {
+        title,
+        description,
+        icons: {
+            icon: '/favicon.ico',
+        },
+        applicationName: 'Gemini Proxy',
+        authors: [
+            { name: 'Lê Huy Giang', url: 'mailto:lehuygiang28@gmail.com' },
+            { name: 'Lê Huy Giang', url: 'https://github.com/lehuygiang28' },
+        ],
+        keywords: [
+            'API Management',
+            'Proxy',
+            'AI',
+            'Gemini',
+            'OpenAI',
+            'Google',
+            'Github',
+            'Gemini proxy',
+            'Gemini polling',
+            'Gemini balance',
+            'Gemini rotate',
+            'lehuygiang28',
+            'lehuygiang28/gemini-proxy',
+        ],
+        robots: 'index, follow',
+        openGraph: {
+            title,
+            description,
+            type: 'website',
+        },
+    };
+}
 
 export const viewport: Viewport = {
     width: 'device-width',

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useContext } from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Card, theme, Tag } from 'antd';
 import {
     SiNextdotjs,
@@ -19,6 +20,7 @@ const { useToken } = theme;
 export const TechStackSection: React.FC = () => {
     const { token } = useToken();
     const { mode } = useContext(ColorModeContext);
+    const { translate } = useTranslation();
 
     // Theme-aware color helper
     const getThemeAwareColor = (lightColor: string, darkColor: string) => {
@@ -33,58 +35,58 @@ export const TechStackSection: React.FC = () => {
                     style={{ fontSize: '28px', color: getThemeAwareColor('#000000', '#FFFFFF') }}
                 />
             ),
-            description: 'React framework with App Router',
+            description: translate('landing.tech.nextDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Framework',
+            category: translate('landing.tech.categoryFramework'),
         },
         {
             name: 'React 19',
             icon: <FaReact style={{ fontSize: '28px', color: '#61DAFB' }} />,
-            description: 'UI library for building interfaces',
+            description: translate('landing.tech.reactDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Library',
+            category: translate('landing.tech.categoryLibrary'),
         },
         {
             name: 'TypeScript',
             icon: <SiTypescript style={{ fontSize: '28px', color: '#3178C6' }} />,
-            description: 'Typed JavaScript at any scale',
+            description: translate('landing.tech.tsDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Language',
+            category: translate('landing.tech.categoryLanguage'),
         },
         {
             name: 'Refine v5',
             icon: <SiRefine style={{ fontSize: '28px', color: '#00FFFF' }} />,
-            description: 'React-based admin panel framework',
+            description: translate('landing.tech.refineDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Framework',
+            category: translate('landing.tech.categoryFramework'),
         },
         {
             name: 'Ant Design',
             icon: <SiAntdesign style={{ fontSize: '28px', color: '#1890FF' }} />,
-            description: 'Enterprise UI design language',
+            description: translate('landing.tech.antdDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'UI Library',
+            category: translate('landing.tech.categoryUi'),
         },
         {
             name: 'Supabase',
             icon: <SiSupabase style={{ fontSize: '28px', color: '#3ECF8E' }} />,
-            description: 'Open source Firebase alternative',
+            description: translate('landing.tech.supabaseDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Database',
+            category: translate('landing.tech.categoryDatabase'),
         },
         {
             name: 'Hono',
             icon: <SiHono style={{ fontSize: '28px', color: '#FF6B35' }} />,
-            description: 'Lightweight web framework',
+            description: translate('landing.tech.honoDesc'),
             color: token.colorText,
             bgColor: token.colorFillQuaternary,
-            category: 'Framework',
+            category: translate('landing.tech.categoryFramework'),
         },
     ];
 
@@ -100,10 +102,10 @@ export const TechStackSection: React.FC = () => {
             <Row justify="center" style={{ marginBottom: token.marginXL }}>
                 <Col xs={24} md={20} lg={16} style={{ textAlign: 'center' }}>
                     <Title level={2} style={{ marginBottom: token.marginMD }}>
-                        🛠️ Tech Stack
+                        🛠️ {translate('landing.tech.heading')}
                     </Title>
                     <Paragraph style={{ fontSize: '1.1rem', color: token.colorTextSecondary }}>
-                        Built with modern, production-ready technologies
+                        {translate('landing.tech.subheading')}
                     </Paragraph>
                 </Col>
             </Row>

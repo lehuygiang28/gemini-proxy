@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from '@refinedev/core';
 import { Row, Col, Typography, Card, Space, Tag, theme } from 'antd';
 import {
     KeyOutlined,
@@ -17,6 +18,7 @@ const { useToken } = theme;
 
 export const FeaturesSection: React.FC = () => {
     const { token } = useToken();
+    const { translate } = useTranslation();
 
     const SectionCard: React.FC<
         React.PropsWithChildren<{ title: React.ReactNode; extra?: React.ReactNode }>
@@ -38,68 +40,62 @@ export const FeaturesSection: React.FC = () => {
     const features = [
         {
             icon: <KeyOutlined style={{ color: token.colorPrimary, fontSize: '20px' }} />,
-            title: '🔑 API Key Management',
-            description:
-                'Secure storage and intelligent rotation of multiple Google Gemini API keys with real-time usage tracking.',
+            title: translate('landing.features.apiKeys.title'),
+            description: translate('landing.features.apiKeys.body'),
             tags: [
-                { color: 'blue', text: 'Secure Storage' },
-                { color: 'green', text: 'Key Rotation' },
-                { color: 'purple', text: 'Usage Analytics' },
+                { color: 'blue', text: translate('landing.features.apiKeys.t1') },
+                { color: 'green', text: translate('landing.features.apiKeys.t2') },
+                { color: 'purple', text: translate('landing.features.apiKeys.t3') },
             ],
         },
         {
             icon: <ThunderboltOutlined style={{ color: token.colorSuccess, fontSize: '20px' }} />,
-            title: '⚡ Load Balancing',
-            description:
-                'Intelligent request distribution across multiple API keys with automatic failover and retry mechanisms.',
+            title: translate('landing.features.loadBalancing.title'),
+            description: translate('landing.features.loadBalancing.body'),
             tags: [
-                { color: 'green', text: 'Auto Distribution' },
-                { color: 'orange', text: 'Failover' },
-                { color: 'red', text: 'Retry Logic' },
+                { color: 'green', text: translate('landing.features.loadBalancing.t1') },
+                { color: 'orange', text: translate('landing.features.loadBalancing.t2') },
+                { color: 'red', text: translate('landing.features.loadBalancing.t3') },
             ],
         },
         {
             icon: <BarChartOutlined style={{ color: token.colorWarning, fontSize: '20px' }} />,
-            title: '📊 Monitoring & Analytics',
-            description:
-                'Real-time request logging, performance metrics, cost tracking, and comprehensive dashboards.',
+            title: translate('landing.features.monitoring.title'),
+            description: translate('landing.features.monitoring.body'),
             tags: [
-                { color: 'blue', text: 'Real-time Logs' },
-                { color: 'green', text: 'Performance Metrics' },
-                { color: 'purple', text: 'Cost Tracking' },
+                { color: 'blue', text: translate('landing.features.monitoring.t1') },
+                { color: 'green', text: translate('landing.features.monitoring.t2') },
+                { color: 'purple', text: translate('landing.features.monitoring.t3') },
             ],
         },
         {
             icon: <SafetyOutlined style={{ color: token.colorError, fontSize: '20px' }} />,
-            title: '🛡️ Security & Access Control',
-            description:
-                'Proxy API key management, request authentication, rate limiting, and secure environment handling.',
+            title: translate('landing.features.security.title'),
+            description: translate('landing.features.security.body'),
             tags: [
-                { color: 'red', text: 'Authentication' },
-                { color: 'orange', text: 'Rate Limiting' },
-                { color: 'blue', text: 'Secure Storage' },
+                { color: 'red', text: translate('landing.features.security.t1') },
+                { color: 'orange', text: translate('landing.features.security.t2') },
+                { color: 'blue', text: translate('landing.features.security.t3') },
             ],
         },
         {
             icon: <FileTextOutlined style={{ color: token.colorInfo, fontSize: '20px' }} />,
-            title: '📝 Comprehensive Logging',
-            description:
-                'Detailed request/response logs with performance metrics, retry attempts, and export capabilities.',
+            title: translate('landing.features.logging.title'),
+            description: translate('landing.features.logging.body'),
             tags: [
-                { color: 'green', text: 'Request Logs' },
-                { color: 'blue', text: 'Response Tracking' },
-                { color: 'purple', text: 'Export Data' },
+                { color: 'green', text: translate('landing.features.logging.t1') },
+                { color: 'blue', text: translate('landing.features.logging.t2') },
+                { color: 'purple', text: translate('landing.features.logging.t3') },
             ],
         },
         {
             icon: <GlobalOutlined style={{ color: token.colorPrimary, fontSize: '20px' }} />,
-            title: '🌍 Multi-Platform Support',
-            description:
-                'Deploy anywhere with support for Next.js, Vercel, Cloudflare, Appwrite, and standalone servers.',
+            title: translate('landing.features.platforms.title'),
+            description: translate('landing.features.platforms.body'),
             tags: [
-                { color: 'blue', text: 'Next.js' },
-                { color: 'green', text: 'Vercel' },
-                { color: 'orange', text: 'Cloudflare' },
+                { color: 'blue', text: translate('landing.features.platforms.t1') },
+                { color: 'green', text: translate('landing.features.platforms.t2') },
+                { color: 'orange', text: translate('landing.features.platforms.t3') },
             ],
         },
     ];
@@ -109,10 +105,10 @@ export const FeaturesSection: React.FC = () => {
             <Row justify="center" style={{ marginBottom: token.marginXL }}>
                 <Col xs={24} md={20} lg={16} style={{ textAlign: 'center' }}>
                     <Title level={2} style={{ marginBottom: token.marginMD }}>
-                        🚀 Core Features
+                        🚀 {translate('landing.features.heading')}
                     </Title>
                     <Paragraph style={{ fontSize: '1.1rem', color: token.colorTextSecondary }}>
-                        Everything you need to manage, monitor, and scale your Gemini API usage
+                        {translate('landing.features.subheading')}
                     </Paragraph>
                 </Col>
             </Row>

@@ -733,6 +733,146 @@
         "mismatch": "Passwords do not match",
         "noEmail": "No email on this account"
     },
+    "landing": {
+        "meta": {
+            "title": "Gemini Proxy - API Key Management",
+            "description": "Production-ready admin for managing provider API keys, proxy keys, and request logs built with Ant Design and Supabase"
+        },
+        "hero": {
+            "badgeMit": "MIT License",
+            "tagline": "Production-Ready API Proxy for Google Gemini",
+            "body": "Secure key management, intelligent load balancing, comprehensive monitoring, and seamless streaming. Deploy anywhere with our multi-platform support.",
+            "getStarted": "Get Started",
+            "github": "View on GitHub"
+        },
+        "features": {
+            "heading": "Core Features",
+            "subheading": "Everything you need to manage, monitor, and scale your Gemini API usage",
+            "apiKeys": {
+                "title": "API Key Management",
+                "body": "Secure storage and intelligent rotation of multiple Google Gemini API keys with real-time usage tracking.",
+                "t1": "Secure Storage",
+                "t2": "Key Rotation",
+                "t3": "Usage Analytics"
+            },
+            "loadBalancing": {
+                "title": "Load Balancing",
+                "body": "Intelligent request distribution across multiple API keys with automatic failover and retry mechanisms.",
+                "t1": "Auto Distribution",
+                "t2": "Failover",
+                "t3": "Retry Logic"
+            },
+            "monitoring": {
+                "title": "Monitoring & Analytics",
+                "body": "Real-time request logging, performance metrics, cost tracking, and comprehensive dashboards.",
+                "t1": "Real-time Logs",
+                "t2": "Performance Metrics",
+                "t3": "Cost Tracking"
+            },
+            "security": {
+                "title": "Security & Access Control",
+                "body": "Proxy API key management, request authentication, rate limiting, and secure environment handling.",
+                "t1": "Authentication",
+                "t2": "Rate Limiting",
+                "t3": "Secure Storage"
+            },
+            "logging": {
+                "title": "Comprehensive Logging",
+                "body": "Detailed request/response logs with performance metrics, retry attempts, and export capabilities.",
+                "t1": "Request Logs",
+                "t2": "Response Tracking",
+                "t3": "Export Data"
+            },
+            "platforms": {
+                "title": "Multi-Platform Support",
+                "body": "Deploy anywhere with support for Next.js, Vercel, Cloudflare, Appwrite, and standalone servers.",
+                "t1": "Next.js",
+                "t2": "Vercel",
+                "t3": "Cloudflare"
+            }
+        },
+        "footer": {
+            "blurb": "Production-ready proxy for Google Gemini with secure key management, intelligent load balancing, and comprehensive monitoring.",
+            "quickLinks": "Quick Links",
+            "dashboard": "Dashboard",
+            "github": "GitHub Repository",
+            "issues": "Report Issues",
+            "builtWith": "Built With",
+            "copyright": "© {year} Gemini Proxy • Made with ❤️ by"
+        },
+        "architecture": {
+            "heading": "Architecture",
+            "subheading": "Simple, secure, and scalable architecture for production use",
+            "howItWorks": "How It Works",
+            "yourApp": "Your Application",
+            "yourAppBody": "Makes API requests using your preferred SDK",
+            "proxyBody": "Intelligently routes requests to healthy API keys, logs request/response data, and manages load balancing",
+            "geminiApi": "Google Gemini API",
+            "geminiApiBody": "Processes your AI requests",
+            "dataStorage": "Data Storage",
+            "dataStorageBody": "All data is securely stored in Supabase PostgreSQL with Row Level Security (RLS) enabled for maximum protection. API keys, request logs, and analytics are stored with proper access controls and are accessible only to authorized users.",
+            "security": "Security Features",
+            "securityBody": "Built with enterprise-grade security including RLS policies, typed RPCs, secure environment handling, and comprehensive audit logging for compliance."
+        },
+        "deployment": {
+            "heading": "Deployment Options",
+            "subheading": "Choose the deployment option that best fits your needs",
+            "platforms": "Supported Platforms:",
+            "web": {
+                "title": "Next.js Web App",
+                "badge": "Full-Stack",
+                "body": "Complete solution with web interface + API proxy in one deployment. Built-in dashboard for managing API keys and monitoring.",
+                "t1": "Web Dashboard",
+                "t2": "API Proxy",
+                "t3": "User Management"
+            },
+            "api": {
+                "title": "Standalone API",
+                "badge": "API-Only",
+                "body": "Lightweight Node.js API server with minimal resource usage. Perfect for custom deployments and microservices.",
+                "t1": "Lightweight",
+                "t2": "Customizable",
+                "t3": "Scalable"
+            },
+            "edge": {
+                "title": "Edge Functions",
+                "badge": "Serverless",
+                "body": "Deploy to Vercel, Cloudflare, or Appwrite for global CDN distribution and automatic scaling.",
+                "t1": "Global CDN",
+                "t2": "Auto-scaling",
+                "t3": "Low Latency"
+            }
+        },
+        "tech": {
+            "heading": "Tech Stack",
+            "subheading": "Built with modern, production-ready technologies",
+            "nextDesc": "React framework with App Router",
+            "reactDesc": "UI library for building interfaces",
+            "tsDesc": "Typed JavaScript at any scale",
+            "refineDesc": "React-based admin panel framework",
+            "antdDesc": "Enterprise UI design language",
+            "supabaseDesc": "Open source Firebase alternative",
+            "honoDesc": "Lightweight web framework",
+            "categoryFramework": "Framework",
+            "categoryLibrary": "Library",
+            "categoryLanguage": "Language",
+            "categoryUi": "UI Library",
+            "categoryDatabase": "Database"
+        },
+        "examples": {
+            "heading": "Integration Examples",
+            "subheading": "Get started in minutes with our comprehensive SDK examples",
+            "quickStart": "Quick Start Examples",
+            "copy": "Copy",
+            "copied": "Copied!",
+            "officialSdk": "Official SDK",
+            "compatible": "Compatible",
+            "modern": "Modern",
+            "googleDesc": "Use the official Google Generative AI SDK with our proxy endpoint:",
+            "openaiDesc": "Use OpenAI-compatible clients with our proxy endpoint:",
+            "aiSdkDesc": "Use Vercel AI SDK with our proxy endpoint (note the /v1beta path):"
+        }
+    },
     "languageSwitcher": {
         "en": "English",
         "vi": "Tiếng Việt",
