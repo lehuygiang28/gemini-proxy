@@ -66,6 +66,7 @@ if [ "${GEMINI_PROXY_SEED_DEMO:-1}" = "1" ]; then
     seed_status="000"
     for _attempt in $(seq 1 30); do
         seed_status="$(curl -s -o /dev/null -w '%{http_code}' \
+            --connect-timeout 5 --max-time 15 \
             -X POST "${SUPABASE_API_URL}/auth/v1/admin/users" \
             -H "apikey: ${SERVICE_KEY}" -H "Authorization: Bearer ${SERVICE_KEY}" \
             -H "Content-Type: application/json" \
