@@ -16,7 +16,12 @@ ensure_docker_installed() {
     if ! command -v dockerd >/dev/null 2>&1 || ! command -v fuse-overlayfs >/dev/null 2>&1; then
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -y
-        sudo apt-get install -y docker.io fuse-overlayfs
+        # --force-confold/confdef keep existing conffiles (e.g. /etc/fuse.conf)
+        # without an interactive prompt that would otherwise abort dpkg.
+        sudo apt-get install -y \
+            -o Dpkg::Options::=--force-confold \
+            -o Dpkg::Options::=--force-confdef \
+            docker.io fuse-overlayfs
     fi
 
     # The default overlayfs snapshotter cannot extract some image layers in this
