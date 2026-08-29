@@ -70,7 +70,10 @@ if [ "${GEMINI_PROXY_SEED_DEMO:-1}" = "1" ]; then
         "SELECT id FROM auth.users WHERE email='${DEMO_EMAIL}' LIMIT 1;" 2>/dev/null | tr -d '[:space:]')"
 
     if [ -n "$local_uid" ]; then
-        docker exec supabase_db_gemini-proxy psql -U postgres >/dev/null 2>&1 <<SQL || true
+        # `docker exec` needs -i to forward the heredoc on stdin; without it the
+        # SQL is silently dropped. Let psql output/errors surface, but keep a
+        # seeding hiccup from aborting the whole start.
+        docker exec -i supabase_db_gemini-proxy psql -U postgres -v ON_ERROR_STOP=1 <<SQL || echo "WARN: demo key seeding failed" >&2
 INSERT INTO public.proxy_api_keys (user_id, proxy_key_value, name, is_active)
 VALUES ('${local_uid}', '${DEMO_PROXY_KEY}', 'Local Demo Proxy Key', true)
 ON CONFLICT DO NOTHING;
@@ -78,6 +81,8 @@ INSERT INTO public.api_keys (user_id, name, api_key_value, provider, is_active)
 VALUES ('${local_uid}', 'Local Demo Gemini Key', 'AIzaLOCALPLACEHOLDERKEY0000000000000000', 'googleaistudio', true)
 ON CONFLICT DO NOTHING;
 SQL
+    else
+        echo "WARN: demo user id not found; skipping key seeding" >&2
     fi
 fi
 
