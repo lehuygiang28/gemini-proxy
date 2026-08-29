@@ -60,29 +60,53 @@ EOF
 # dashboard can be logged into and the proxy exercised immediately.
 if [ "${GEMINI_PROXY_SEED_DEMO:-1}" = "1" ]; then
     echo "==> Seeding demo user and keys (idempotent)"
-    curl -s -X POST "${SUPABASE_API_URL}/auth/v1/admin/users" \
-        -H "apikey: ${SERVICE_KEY}" -H "Authorization: Bearer ${SERVICE_KEY}" \
-        -H "Content-Type: application/json" \
-        -d "{\"email\":\"${DEMO_EMAIL}\",\"password\":\"${DEMO_PASSWORD}\",\"email_confirm\":true}" \
-        >/dev/null || true
 
-    local_uid="$(docker exec supabase_db_gemini-proxy psql -U postgres -tAc \
+    # Create the demo auth user, retrying until the auth endpoint is ready.
+    # 200/201 = created; 409/422 = already exists — both count as success.
+    seed_status="000"
+    for _attempt in $(seq 1 30); do
+        seed_status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST "${SUPABASE_API_URL}/auth/v1/admin/users" \
+            -H "apikey: ${SERVICE_KEY}" -H "Authorization: Bearer ${SERVICE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${DEMO_EMAIL}\",\"password\":\"${DEMO_PASSWORD}\",\"email_confirm\":true}" \
+            2>/dev/null || echo "000")"
+        case "$seed_status" in
+            200 | 201 | 409 | 422) break ;;
+            *) sleep 2 ;;
+        esac
+    done
+    case "$seed_status" in
+        200 | 201 | 409 | 422) ;;
+        *)
+            echo "ERROR: demo user creation failed (last HTTP status: ${seed_status})" >&2
+            exit 1
+            ;;
+    esac
+
+    demo_uid="$(docker exec supabase_db_gemini-proxy psql -U postgres -tAc \
         "SELECT id FROM auth.users WHERE email='${DEMO_EMAIL}' LIMIT 1;" 2>/dev/null | tr -d '[:space:]')"
+    if [ -z "$demo_uid" ]; then
+        echo "ERROR: demo user '${DEMO_EMAIL}' not found after creation" >&2
+        exit 1
+    fi
 
-    if [ -n "$local_uid" ]; then
-        # `docker exec` needs -i to forward the heredoc on stdin; without it the
-        # SQL is silently dropped. Let psql output/errors surface, but keep a
-        # seeding hiccup from aborting the whole start.
-        docker exec -i supabase_db_gemini-proxy psql -U postgres -v ON_ERROR_STOP=1 <<SQL || echo "WARN: demo key seeding failed" >&2
+    # `docker exec` needs -i to forward the heredoc on stdin; ON_ERROR_STOP plus
+    # set -e make a seeding failure abort the start instead of passing silently.
+    docker exec -i supabase_db_gemini-proxy psql -U postgres -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO public.proxy_api_keys (user_id, proxy_key_value, name, is_active)
-VALUES ('${local_uid}', '${DEMO_PROXY_KEY}', 'Local Demo Proxy Key', true)
+VALUES ('${demo_uid}', '${DEMO_PROXY_KEY}', 'Local Demo Proxy Key', true)
 ON CONFLICT DO NOTHING;
 INSERT INTO public.api_keys (user_id, name, api_key_value, provider, is_active)
-VALUES ('${local_uid}', 'Local Demo Gemini Key', 'AIzaLOCALPLACEHOLDERKEY0000000000000000', 'googleaistudio', true)
+VALUES ('${demo_uid}', 'Local Demo Gemini Key', 'AIzaLOCALPLACEHOLDERKEY0000000000000000', 'googleaistudio', true)
 ON CONFLICT DO NOTHING;
 SQL
-    else
-        echo "WARN: demo user id not found; skipping key seeding" >&2
+
+    seeded_proxy_keys="$(docker exec supabase_db_gemini-proxy psql -U postgres -tAc \
+        "SELECT count(*) FROM public.proxy_api_keys WHERE proxy_key_value='${DEMO_PROXY_KEY}';" 2>/dev/null | tr -d '[:space:]')"
+    if [ "${seeded_proxy_keys:-0}" -lt 1 ]; then
+        echo "ERROR: demo proxy key was not seeded" >&2
+        exit 1
     fi
 fi
 
