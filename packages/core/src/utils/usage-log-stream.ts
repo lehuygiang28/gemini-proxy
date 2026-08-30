@@ -9,26 +9,32 @@ export type UsageLogComplete = (
 
 /**
  * Forward the provider body to the client immediately while parsing usage
- * incrementally. Persist runs in flush() so the isolate stays alive for the
- * stream itself; waitUntil only covers the DB write.
+ * incrementally. Persist runs in flush() / cancel() so the isolate stays alive
+ * for the stream itself; callers should register only DB work with waitUntil.
  */
 export function attachUsageLogging(params: {
     response: Response;
     headers: Headers;
     apiFormat: ProxyApiFormat;
     onComplete: UsageLogComplete;
-    waitUntil: (operation: Promise<void>) => void;
 }): Response {
-    const { response, headers, apiFormat, onComplete, waitUntil } = params;
+    const { response, headers, apiFormat, onComplete } = params;
     const body = response.body;
     if (!body) {
-        const persist = onComplete(null, null);
-        waitUntil(persist);
+        void onComplete(null, null);
         return new Response(null, { status: response.status, headers });
     }
     const parser = new UsageStreamParser(apiFormat);
     const decoder = new TextDecoder();
     let responseText = '';
+    let settled = false;
+    const settle = async (): Promise<void> => {
+        if (settled) {
+            return;
+        }
+        settled = true;
+        await onComplete(parser.finish(), responseText || null);
+    };
     const transform = new TransformStream<Uint8Array, Uint8Array>({
         transform(chunk, controller) {
             controller.enqueue(chunk);
@@ -42,12 +48,36 @@ export function attachUsageLogging(params: {
             }
         },
         async flush() {
-            const persist = onComplete(parser.finish(), responseText || null);
-            waitUntil(persist);
-            await persist;
+            await settle();
         },
     });
-    return new Response(body.pipeThrough(transform), {
+    const upstream = body.pipeThrough(transform);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+    const loggedBody = new ReadableStream<Uint8Array>({
+        async start(controller) {
+            reader = upstream.getReader();
+            try {
+                for (;;) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        controller.close();
+                        return;
+                    }
+                    controller.enqueue(value);
+                }
+            } catch (error) {
+                controller.error(error);
+            }
+        },
+        async cancel() {
+            await settle();
+            if (reader) {
+                await reader.cancel();
+                reader = null;
+            }
+        },
+    });
+    return new Response(loggedBody, {
         status: response.status,
         headers,
     });

@@ -123,6 +123,7 @@ function mapOpenAIUsage(
  */
 export class UsageStreamParser {
     private buffer = '';
+    private plainBody = '';
     private readonly decoder = new TextDecoder();
     private last: ParsedUsageMetadata | null = null;
     private sawDataPrefix = false;
@@ -141,6 +142,9 @@ export class UsageStreamParser {
     finish(): ParsedUsageMetadata | null {
         this.buffer += this.decoder.decode();
         this.consumeCompleteLines();
+        if (!this.sawDataPrefix && this.plainBody) {
+            this.tryParseJsonDocument(this.plainBody);
+        }
         const leftover = this.buffer.trim();
         if (leftover) {
             if (leftover.startsWith('data:')) {
@@ -171,6 +175,10 @@ export class UsageStreamParser {
         if (trimmed.startsWith('data:')) {
             this.sawDataPrefix = true;
             this.tryParseDataLine(trimmed.slice(5).trim());
+            return;
+        }
+        if (!this.sawDataPrefix) {
+            this.plainBody += (this.plainBody ? '\n' : '') + line;
         }
     }
 

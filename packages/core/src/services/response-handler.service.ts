@@ -41,9 +41,6 @@ export class ResponseHandlerService {
             response,
             headers: filteredHeaders,
             apiFormat: proxyRequestDataParsed.apiFormat,
-            waitUntil: (operation) => {
-                void executeWithWaitUntil(c, operation);
-            },
             onComplete: async (usage, responseText) => {
                 await BackgroundService.handleRequestSuccess({
                     c,
@@ -63,7 +60,9 @@ export class ResponseHandlerService {
                     usage,
                     responseText,
                 });
-                await BackgroundService.executeAllOperations(c, requestId);
+                const persist = BackgroundService.executeAllOperations(c, requestId);
+                void executeWithWaitUntil(c, persist);
+                await persist;
             },
         });
     }

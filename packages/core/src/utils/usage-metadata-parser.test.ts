@@ -64,9 +64,7 @@ describe('UsageMetadataParser Gemini native', () => {
         parser.push(encoder.encode('data: {"usageMetadata":{"promptTokenCount":4,"candi'));
         expect(parser.snapshot()).toBeNull();
         parser.push(
-            encoder.encode(
-                'datesTokenCount":2,"thoughtsTokenCount":5,"totalTokenCount":11}}\n',
-            ),
+            encoder.encode('datesTokenCount":2,"thoughtsTokenCount":5,"totalTokenCount":11}}\n'),
         );
         const parsed = parser.finish();
         expect(parsed).toMatchObject({
@@ -74,6 +72,27 @@ describe('UsageMetadataParser Gemini native', () => {
             completionTokens: 2,
             thoughtsTokens: 5,
             totalTokens: 11,
+        });
+    });
+
+    it('parses pretty-printed non-stream JSON with embedded newlines', () => {
+        const body = [
+            '{',
+            '  "modelVersion": "gemini-2.5-flash",',
+            '  "usageMetadata": {',
+            '    "promptTokenCount": 12,',
+            '    "candidatesTokenCount": 3,',
+            '    "totalTokenCount": 15',
+            '  }',
+            '}',
+            '',
+        ].join('\n');
+        const parsed = UsageMetadataParser.parseFromResponseBody(body, 'gemini');
+        expect(parsed).toMatchObject({
+            promptTokens: 12,
+            completionTokens: 3,
+            totalTokens: 15,
+            model: 'gemini-2.5-flash',
         });
     });
 });
