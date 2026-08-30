@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
-import { useGo, useTranslation, type LiveModeProps } from '@refinedev/core';
+import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
 import {
     Table,
@@ -14,6 +14,7 @@ import {
     Input,
     Popover,
     Empty,
+    Form,
     theme,
 } from 'antd';
 import {
@@ -24,6 +25,7 @@ import {
     PlayCircleOutlined,
     ClearOutlined,
 } from '@ant-design/icons';
+import { useSearchParams } from 'next/navigation';
 import { ConnectionStatusBadge } from '@/features/observability';
 import { useRequestLogsVolume } from '@/hooks/useRpc';
 import {
@@ -34,10 +36,11 @@ import {
 } from '@/features/request-logs';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
+    buildRequestLogDeepLinkInitialFilters,
+    buildRequestLogDeepLinkInitialValues,
+    buildRequestLogSearchFilters,
     countActiveLogFilters,
-    getFilterScalar,
-    upsertContainsFilter,
-    upsertEqFilter,
+    type RequestLogSearch,
 } from '@/features/request-logs/request-log-table-filter-utils';
 
 const { useToken } = theme;
@@ -45,21 +48,34 @@ const { Text } = Typography;
 const { Search } = Input;
 
 /**
- * Request logs — OpenRouter-style metrics table with Ant Design column filters.
+ * Request logs — OpenRouter-style metrics table with Refine onSearch filters.
  */
 export default function RequestLogsListPage() {
     const { token } = useToken();
     const go = useGo();
+    const searchParams = useSearchParams();
     const { translate, getLocale } = useTranslation();
     const [isLive, setIsLive] = useState(true);
     const [chartRange, setChartRange] = useState<RequestLogsVolumeRange>('7d');
-    const [requestIdDraft, setRequestIdDraft] = useState('');
     const liveMode: NonNullable<LiveModeProps['liveMode']> = isLive ? 'auto' : 'off';
 
     const dateLocaleFormat =
         getLocale() === 'vi' ? 'DD/MM/YYYY HH:mm:ss' : 'YYYY-MM-DD HH:mm:ss';
 
-    const { tableProps, filters, setFilters, tableQuery } = useTable<ListRequestLog>({
+    const deepLinkInitialFilters = useMemo(
+        () => buildRequestLogDeepLinkInitialFilters(searchParams),
+        [searchParams],
+    );
+    const deepLinkInitialValues = useMemo(
+        () => buildRequestLogDeepLinkInitialValues(searchParams),
+        [searchParams],
+    );
+
+    const { tableProps, searchFormProps, filters, tableQuery } = useTable<
+        ListRequestLog,
+        HttpError,
+        RequestLogSearch
+    >({
         syncWithLocation: true,
         resource: 'request_logs',
         liveMode,
@@ -72,53 +88,12 @@ export default function RequestLogsListPage() {
         sorters: {
             initial: [{ field: 'created_at', order: 'desc' }],
         },
+        filters: deepLinkInitialFilters.length > 0 ? { initial: deepLinkInitialFilters } : undefined,
+        onSearch: (values) => buildRequestLogSearchFilters(values),
     });
 
     const volumeQuery = useRequestLogsVolume({ p_range: chartRange });
     const volumeData = volumeQuery.query.data?.data as RequestLogsVolume | undefined;
-
-    const filtersRef = useRef(filters);
-    filtersRef.current = filters;
-    const deepLinkHandledRef = useRef(false);
-
-    useEffect(() => {
-        setRequestIdDraft(String(getFilterScalar(filters, 'request_id') ?? ''));
-    }, [filters]);
-
-    useEffect(() => {
-        if (deepLinkHandledRef.current || typeof window === 'undefined') {
-            return;
-        }
-
-        const params = new URLSearchParams(window.location.search);
-        const apiKeyId = params.get('api_key_id');
-        const proxyKeyId = params.get('proxy_key_id');
-        if (!apiKeyId && !proxyKeyId) {
-            deepLinkHandledRef.current = true;
-            return;
-        }
-
-        const frameId = requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (deepLinkHandledRef.current) {
-                    return;
-                }
-                deepLinkHandledRef.current = true;
-
-                let next = filtersRef.current;
-                if (proxyKeyId) {
-                    next = upsertEqFilter(next, 'proxy_key_id', proxyKeyId);
-                }
-                if (apiKeyId) {
-                    next = upsertEqFilter(next, 'api_key_id', apiKeyId);
-                }
-                setFilters(next, 'merge');
-            });
-        });
-
-        return () => cancelAnimationFrame(frameId);
-    }, [setFilters]);
-
     const activeFilterCount = countActiveLogFilters(filters);
 
     const handleViewDetails = useCallback(
@@ -151,56 +126,47 @@ export default function RequestLogsListPage() {
     const tableColumns = useRequestLogTableColumns({
         translate,
         filters,
-        setFilters,
+        searchFormProps,
         onViewDetails: handleViewDetails,
         formatRemovedKeyLabel,
         dateLocaleFormat,
     });
 
     const handleClearFilters = useCallback(() => {
-        setFilters([], 'replace');
-        setRequestIdDraft('');
-    }, [setFilters]);
+        searchFormProps.form?.resetFields();
+        void searchFormProps.form?.submit();
+    }, [searchFormProps.form]);
 
     const handleRefreshAll = useCallback(() => {
         void tableQuery.refetch();
         void volumeQuery.query.refetch();
     }, [tableQuery, volumeQuery.query]);
 
-    const { onChange: refineTableOnChange, ...restTableProps } = tableProps;
+    const submitSearch = useCallback(() => {
+        void searchFormProps.form?.submit();
+    }, [searchFormProps.form]);
 
-    const handleTableChange = useCallback<
-        NonNullable<typeof refineTableOnChange>
-    >(
-        (pagination, _tableFilters, sorter, extra) => {
-            // Column filters are managed manually via setFilters — ignore antd tableFilters
-            refineTableOnChange?.(pagination, {}, sorter, extra);
-        },
-        [refineTableOnChange],
-    );
-
-    const toolbarFilters = useMemo(
-        () => (
-            <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
+    const toolbarFilters = (
+        <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
+            <Form.Item name="api_format" noStyle>
                 <Select
                     allowClear
                     placeholder={translate('request_logs.placeholders.selectFormat')}
                     style={{ minWidth: 120 }}
                     size="small"
-                    value={getFilterScalar(filters, 'api_format') as string | undefined}
-                    onChange={(value) => setFilters(upsertEqFilter(filters, 'api_format', value))}
                     options={[
                         { value: 'gemini', label: 'Gemini' },
                         { value: 'openai', label: 'OpenAI' },
                     ]}
+                    onChange={submitSearch}
                 />
+            </Form.Item>
+            <Form.Item name="is_stream" noStyle>
                 <Select
                     allowClear
                     placeholder={translate('request_logs.placeholders.selectStream')}
                     style={{ minWidth: 130 }}
                     size="small"
-                    value={getFilterScalar(filters, 'is_stream') as boolean | undefined}
-                    onChange={(value) => setFilters(upsertEqFilter(filters, 'is_stream', value))}
                     options={[
                         {
                             value: true,
@@ -211,59 +177,51 @@ export default function RequestLogsListPage() {
                             label: translate('request_logs.stream.nonStreaming'),
                         },
                     ]}
+                    onChange={submitSearch}
                 />
-                <Popover
-                    trigger="click"
-                    title={translate('request_logs.filters.advanced')}
-                    content={
-                        <Space direction="vertical" style={{ width: 280 }}>
-                            <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>
-                                    {translate('request_logs.fields.requestId')}
-                                </Text>
+            </Form.Item>
+            <Popover
+                trigger="click"
+                title={translate('request_logs.filters.advanced')}
+                content={
+                    <Space direction="vertical" style={{ width: 280 }}>
+                        <div>
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                                {translate('request_logs.fields.requestId')}
+                            </Text>
+                            <Form.Item name="request_id" noStyle style={{ marginTop: 4 }}>
                                 <Search
                                     allowClear
                                     placeholder={translate(
                                         'request_logs.placeholders.searchRequestId',
                                     )}
-                                    value={requestIdDraft}
-                                    onChange={(event) => setRequestIdDraft(event.target.value)}
-                                    onSearch={(value) =>
-                                        setFilters(
-                                            upsertContainsFilter(filters, 'request_id', value),
-                                        )
-                                    }
-                                    style={{ marginTop: 4 }}
+                                    onSearch={submitSearch}
                                 />
-                            </div>
-                        </Space>
-                    }
+                            </Form.Item>
+                        </div>
+                    </Space>
+                }
+            >
+                <Button size="small" icon={<FilterOutlined />}>
+                    {translate('request_logs.filters.advanced')}
+                </Button>
+            </Popover>
+            {activeFilterCount > 0 ? (
+                <Button
+                    size="small"
+                    type="text"
+                    icon={<ClearOutlined />}
+                    onClick={handleClearFilters}
                 >
-                    <Button size="small" icon={<FilterOutlined />}>
-                        {translate('request_logs.filters.advanced')}
-                    </Button>
-                </Popover>
-                {activeFilterCount > 0 ? (
-                    <Button
-                        size="small"
-                        type="text"
-                        icon={<ClearOutlined />}
-                        onClick={handleClearFilters}
-                    >
-                        {translate('request_logs.filters.clearAll', {
-                            count: activeFilterCount,
-                        })}
-                    </Button>
-                ) : null}
-                {activeFilterCount > 0 ? (
-                    <Badge
-                        count={activeFilterCount}
-                        style={{ backgroundColor: 'var(--gp-accent)' }}
-                    />
-                ) : null}
-            </Space>
-        ),
-        [activeFilterCount, filters, handleClearFilters, requestIdDraft, setFilters, translate],
+                    {translate('request_logs.filters.clearAll', {
+                        count: activeFilterCount,
+                    })}
+                </Button>
+            ) : null}
+            {activeFilterCount > 0 ? (
+                <Badge count={activeFilterCount} style={{ backgroundColor: 'var(--gp-accent)' }} />
+            ) : null}
+        </Space>
     );
 
     return (
@@ -318,35 +276,36 @@ export default function RequestLogsListPage() {
                 onRangeChange={setChartRange}
             />
 
-            {toolbarFilters}
+            <Form {...searchFormProps} initialValues={deepLinkInitialValues}>
+                {toolbarFilters}
 
-            <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
-                <Table<ListRequestLog>
-                    {...restTableProps}
-                    onChange={handleTableChange}
-                    rowKey="id"
-                    size="small"
-                    columns={tableColumns}
-                    scroll={{ x: 1200 }}
-                    sticky
-                    showSorterTooltip={{ target: 'sorter-icon' }}
-                    tableLayout="fixed"
-                    onRow={(record) => ({
-                        onClick: () => handleViewDetails(record),
-                        style: { cursor: 'pointer' },
-                    })}
-                    locale={{
-                        emptyText: (
-                            <Empty
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                description={translate('request_logs.empty')}
-                            />
-                        ),
-                        filterConfirm: translate('request_logs.filters.apply'),
-                        filterReset: translate('request_logs.filters.reset'),
-                    }}
-                />
-            </div>
+                <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
+                    <Table<ListRequestLog>
+                        {...tableProps}
+                        rowKey="id"
+                        size="small"
+                        columns={tableColumns}
+                        scroll={{ x: 1200 }}
+                        sticky
+                        showSorterTooltip={{ target: 'sorter-icon' }}
+                        tableLayout="fixed"
+                        onRow={(record) => ({
+                            onClick: () => handleViewDetails(record),
+                            style: { cursor: 'pointer' },
+                        })}
+                        locale={{
+                            emptyText: (
+                                <Empty
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    description={translate('request_logs.empty')}
+                                />
+                            ),
+                            filterConfirm: translate('request_logs.filters.apply'),
+                            filterReset: translate('request_logs.filters.reset'),
+                        }}
+                    />
+                </div>
+            </Form>
         </List>
     );
 }

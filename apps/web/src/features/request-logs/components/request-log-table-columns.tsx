@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
-import { Button, DatePicker, Input, Select, Space, Tag, Tooltip, theme } from 'antd';
+import type { FormProps } from 'antd';
+import { Button, DatePicker, Form, Input, Select, Space, Tag, Tooltip, theme } from 'antd';
 import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
-import dayjs, { type Dayjs } from 'dayjs';
 import { DateTimeDisplay } from '@/components/common';
 import type { RequestLog } from '@/types/request-log.types';
 import {
@@ -24,11 +24,8 @@ import {
 import {
     REQUEST_LOG_MODEL_FIELD,
     getDateRangeFromFilters,
-    getFilterScalar,
     hasActiveFilter,
-    upsertContainsFilter,
-    upsertDateRangeFilters,
-    upsertEqFilter,
+    type RequestLogSearch,
 } from '../request-log-table-filter-utils';
 import { KeyCombobox } from './key-combobox';
 
@@ -43,7 +40,7 @@ export type ListRequestLog = RequestLog & {
 interface UseRequestLogTableColumnsOptions {
     translate: (key: string, options?: Record<string, unknown>) => string;
     filters: CrudFilter[];
-    setFilters: (filters: CrudFilter[], behavior?: 'merge' | 'replace') => void;
+    searchFormProps: FormProps<RequestLogSearch>;
     onViewDetails: (record: ListRequestLog) => void;
     formatRemovedKeyLabel: (input: {
         joined?: { name: string; deleted_at: string | null } | null;
@@ -80,145 +77,116 @@ function FilterDropdownShell({
     );
 }
 
+function submitSearchForm(searchFormProps: FormProps<RequestLogSearch>) {
+    void searchFormProps.form?.submit();
+}
+
+function resetSearchFields(
+    searchFormProps: FormProps<RequestLogSearch>,
+    fields: Array<keyof RequestLogSearch>,
+) {
+    const form = searchFormProps.form;
+    if (!form) {
+        return;
+    }
+    for (const field of fields) {
+        form.setFieldValue(field, undefined);
+    }
+}
+
 function ModelFilterDropdown({
-    crudFilters,
-    setFilters,
+    searchFormProps,
     confirm,
     clearFilters,
     translate,
 }: FilterDropdownProps & {
-    crudFilters: CrudFilter[];
-    setFilters: UseRequestLogTableColumnsOptions['setFilters'];
+    searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const [draft, setDraft] = useState(
-        String(getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD) ?? ''),
-    );
-    useEffect(() => {
-        setDraft(String(getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD) ?? ''));
-    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
             confirmLabel={translate('request_logs.filters.apply')}
             onReset={() => {
                 clearFilters?.();
-                setFilters(upsertContainsFilter(crudFilters, REQUEST_LOG_MODEL_FIELD, undefined));
+                resetSearchFields(searchFormProps, ['model']);
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
             onConfirm={() => {
-                setFilters(upsertContainsFilter(crudFilters, REQUEST_LOG_MODEL_FIELD, draft));
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
         >
-            <Input
-                allowClear
-                placeholder={translate('request_logs.placeholders.searchModel')}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onPressEnter={() => {
-                    setFilters(upsertContainsFilter(crudFilters, REQUEST_LOG_MODEL_FIELD, draft));
-                    confirm({ closeDropdown: true });
-                }}
-            />
+            <Form.Item name="model" noStyle>
+                <Input
+                    allowClear
+                    placeholder={translate('request_logs.placeholders.searchModel')}
+                    onPressEnter={() => {
+                        confirm({ closeDropdown: true });
+                        submitSearchForm(searchFormProps);
+                    }}
+                />
+            </Form.Item>
         </FilterDropdownShell>
     );
 }
 
 function DateFilterDropdown({
-    crudFilters,
-    setFilters,
+    searchFormProps,
     confirm,
     clearFilters,
     translate,
     dateLocaleFormat,
 }: FilterDropdownProps & {
-    crudFilters: CrudFilter[];
-    setFilters: UseRequestLogTableColumnsOptions['setFilters'];
+    searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
     dateLocaleFormat: string;
 }) {
-    const existingRange = getDateRangeFromFilters(crudFilters);
-    const [draft, setDraft] = useState<[Dayjs, Dayjs] | null>(
-        existingRange ? [dayjs(existingRange[0]), dayjs(existingRange[1])] : null,
-    );
-    useEffect(() => {
-        const range = getDateRangeFromFilters(crudFilters);
-        setDraft(range ? [dayjs(range[0]), dayjs(range[1])] : null);
-    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
             confirmLabel={translate('request_logs.filters.apply')}
             onReset={() => {
                 clearFilters?.();
-                setFilters(upsertDateRangeFilters(crudFilters, null));
+                resetSearchFields(searchFormProps, ['date_range']);
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
             onConfirm={() => {
-                setFilters(
-                    upsertDateRangeFilters(
-                        crudFilters,
-                        draft ? [draft[0].toISOString(), draft[1].toISOString()] : null,
-                    ),
-                );
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
         >
-            <RangePicker
-                showTime
-                style={{ width: '100%' }}
-                format={dateLocaleFormat}
-                value={draft}
-                onChange={(values) => {
-                    if (!values?.[0] || !values[1]) {
-                        setDraft(null);
-                        return;
-                    }
-                    setDraft([values[0], values[1]]);
-                }}
-            />
+            <Form.Item name="date_range" noStyle>
+                <RangePicker showTime style={{ width: '100%' }} format={dateLocaleFormat} />
+            </Form.Item>
         </FilterDropdownShell>
     );
 }
 
 function KeyFilterDropdown({
-    crudFilters,
-    setFilters,
+    searchFormProps,
     confirm,
     clearFilters,
     translate,
 }: FilterDropdownProps & {
-    crudFilters: CrudFilter[];
-    setFilters: UseRequestLogTableColumnsOptions['setFilters'];
+    searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const [proxyKeyId, setProxyKeyId] = useState(
-        getFilterScalar(crudFilters, 'proxy_key_id') as string | undefined,
-    );
-    const [apiKeyId, setApiKeyId] = useState(
-        getFilterScalar(crudFilters, 'api_key_id') as string | undefined,
-    );
-    useEffect(() => {
-        setProxyKeyId(getFilterScalar(crudFilters, 'proxy_key_id') as string | undefined);
-        setApiKeyId(getFilterScalar(crudFilters, 'api_key_id') as string | undefined);
-    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
             confirmLabel={translate('request_logs.filters.apply')}
             onReset={() => {
                 clearFilters?.();
-                let next = upsertEqFilter(crudFilters, 'proxy_key_id', undefined);
-                next = upsertEqFilter(next, 'api_key_id', undefined);
-                setFilters(next);
+                resetSearchFields(searchFormProps, ['proxy_key_id', 'api_key_id']);
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
             onConfirm={() => {
-                let next = upsertEqFilter(crudFilters, 'proxy_key_id', proxyKeyId);
-                next = upsertEqFilter(next, 'api_key_id', apiKeyId);
-                setFilters(next);
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
         >
             <Space direction="vertical" style={{ width: '100%' }} size={8}>
@@ -226,23 +194,23 @@ function KeyFilterDropdown({
                     <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
                         {translate('request_logs.identity.proxyKey')}
                     </div>
-                    <KeyCombobox
-                        resource="proxy_api_keys"
-                        placeholder={translate('request_logs.placeholders.searchProxyKey')}
-                        value={proxyKeyId}
-                        onChange={setProxyKeyId}
-                    />
+                    <Form.Item name="proxy_key_id" noStyle>
+                        <KeyCombobox
+                            resource="proxy_api_keys"
+                            placeholder={translate('request_logs.placeholders.searchProxyKey')}
+                        />
+                    </Form.Item>
                 </div>
                 <div>
                     <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
                         {translate('request_logs.identity.apiKey')}
                     </div>
-                    <KeyCombobox
-                        resource="api_keys"
-                        placeholder={translate('request_logs.placeholders.searchApiKey')}
-                        value={apiKeyId}
-                        onChange={setApiKeyId}
-                    />
+                    <Form.Item name="api_key_id" noStyle>
+                        <KeyCombobox
+                            resource="api_keys"
+                            placeholder={translate('request_logs.placeholders.searchApiKey')}
+                        />
+                    </Form.Item>
                 </div>
             </Space>
         </FilterDropdownShell>
@@ -250,60 +218,51 @@ function KeyFilterDropdown({
 }
 
 function StatusFilterDropdown({
-    crudFilters,
-    setFilters,
+    searchFormProps,
     confirm,
     clearFilters,
     translate,
 }: FilterDropdownProps & {
-    crudFilters: CrudFilter[];
-    setFilters: UseRequestLogTableColumnsOptions['setFilters'];
+    searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const current = getFilterScalar(crudFilters, 'is_successful');
-    const [draft, setDraft] = useState<boolean | undefined>(
-        typeof current === 'boolean' ? current : undefined,
-    );
-    useEffect(() => {
-        const value = getFilterScalar(crudFilters, 'is_successful');
-        setDraft(typeof value === 'boolean' ? value : undefined);
-    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
             confirmLabel={translate('request_logs.filters.apply')}
             onReset={() => {
                 clearFilters?.();
-                setFilters(upsertEqFilter(crudFilters, 'is_successful', undefined));
+                resetSearchFields(searchFormProps, ['is_successful']);
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
             onConfirm={() => {
-                setFilters(upsertEqFilter(crudFilters, 'is_successful', draft));
                 confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
             }}
         >
-            <Select
-                allowClear
-                style={{ width: '100%' }}
-                placeholder={translate('request_logs.placeholders.selectStatus')}
-                value={draft}
-                onChange={setDraft}
-                options={[
-                    { value: true, label: translate('request_logs.status.success') },
-                    { value: false, label: translate('request_logs.status.failed') },
-                ]}
-            />
+            <Form.Item name="is_successful" noStyle>
+                <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder={translate('request_logs.placeholders.selectStatus')}
+                    options={[
+                        { value: true, label: translate('request_logs.status.success') },
+                        { value: false, label: translate('request_logs.status.failed') },
+                    ]}
+                />
+            </Form.Item>
         </FilterDropdownShell>
     );
 }
 
 /**
- * OpenRouter-style request log columns with Ant Design header filters.
+ * OpenRouter-style request log columns; column filters bind to Refine searchFormProps.
  */
 export function useRequestLogTableColumns({
     translate,
     filters,
-    setFilters,
+    searchFormProps,
     onViewDetails,
     formatRemovedKeyLabel,
     dateLocaleFormat,
@@ -321,8 +280,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <DateFilterDropdown
                         {...props}
-                        crudFilters={filters}
-                        setFilters={setFilters}
+                        searchFormProps={searchFormProps}
                         translate={translate}
                         dateLocaleFormat={dateLocaleFormat}
                     />
@@ -345,8 +303,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <ModelFilterDropdown
                         {...props}
-                        crudFilters={filters}
-                        setFilters={setFilters}
+                        searchFormProps={searchFormProps}
                         translate={translate}
                     />
                 ),
@@ -405,8 +362,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <StatusFilterDropdown
                         {...props}
-                        crudFilters={filters}
-                        setFilters={setFilters}
+                        searchFormProps={searchFormProps}
                         translate={translate}
                     />
                 ),
@@ -545,8 +501,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <KeyFilterDropdown
                         {...props}
-                        crudFilters={filters}
-                        setFilters={setFilters}
+                        searchFormProps={searchFormProps}
                         translate={translate}
                     />
                 ),
@@ -604,7 +559,7 @@ export function useRequestLogTableColumns({
             filters,
             formatRemovedKeyLabel,
             onViewDetails,
-            setFilters,
+            searchFormProps,
             token.colorError,
             token.colorPrimary,
             translate,
