@@ -1,13 +1,13 @@
 -- Volume buckets for request logs activity chart (24h/7d/30d/90d ranges).
 
 CREATE OR REPLACE FUNCTION get_request_logs_volume(
-    p_user_id UUID DEFAULT auth.uid(),
+    p_user_id UUID DEFAULT NULL,
     p_range TEXT DEFAULT '7d'
 )
 RETURNS JSONB
 LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
+SECURITY INVOKER
+SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     effective_user_id UUID;
@@ -18,7 +18,12 @@ DECLARE
     buckets JSONB;
     total_count BIGINT;
 BEGIN
-    effective_user_id := COALESCE(p_user_id, auth.uid());
+    IF (SELECT auth.role()) = 'service_role' THEN
+        effective_user_id := COALESCE(p_user_id, NULL);
+    ELSE
+        effective_user_id := (SELECT auth.uid());
+    END IF;
+
     period_end := NOW();
 
     normalized_range := COALESCE(p_range, '7d');
