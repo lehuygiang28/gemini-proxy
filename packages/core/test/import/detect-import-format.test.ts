@@ -15,6 +15,11 @@ describe('detectImportFormat', () => {
     it('returns unknown for invalid input', () => {
         expect(detectImportFormat('bad')).toBe('unknown');
     });
+    it('prefers 9router when both providerConnections and api_keys exist', () => {
+        expect(
+            detectImportFormat({ providerConnections: [], api_keys: [{ name: 'x', api_key_value: 'y' }] }),
+        ).toBe('9router');
+    });
 });
 
 describe('isMaskedApiKey', () => {

@@ -12,14 +12,16 @@ export function parseNineRouterImport(
     const connections = record.providerConnections ?? [];
     const warnings: string[] = [];
     const keys: NormalizedImportKey[] = [];
-    let skippedNonGemini = 0;
+    let geminiConnections = 0;
+    let skippedUnsupported = 0;
     let skippedMasked = 0;
     let skippedInvalid = 0;
     connections.forEach((connection, index) => {
         if (connection.provider !== GEMINI_PROVIDER || connection.authType !== 'apikey') {
-            skippedNonGemini += 1;
+            skippedUnsupported += 1;
             return;
         }
+        geminiConnections += 1;
         const rawKey = typeof connection.apiKey === 'string' ? connection.apiKey : '';
         const apiKeyValue = rawKey.trim();
         if (apiKeyValue.length < MIN_KEY_LENGTH) {
@@ -54,8 +56,9 @@ export function parseNineRouterImport(
         keys,
         stats: {
             total_connections: connections.length,
-            gemini_connections: keys.length,
-            skipped_non_gemini: skippedNonGemini,
+            gemini_connections: geminiConnections,
+            imported_keys: keys.length,
+            skipped_unsupported: skippedUnsupported,
             skipped_masked: skippedMasked,
             skipped_invalid: skippedInvalid,
         },

@@ -1,3 +1,4 @@
+// Treat any masking character as masked; also reject keys where most chars are hidden.
 const MASKED_CHARACTER_PATTERN = /[*•·]/g;
 const MASKED_OR_WHITESPACE_PATTERN = /[*•·\s]/g;
 const MASKED_CHARACTER_PROPORTION = 0.5;

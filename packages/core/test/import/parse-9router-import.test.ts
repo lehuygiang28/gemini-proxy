@@ -12,7 +12,9 @@ describe('parseNineRouterImport', () => {
         const result = parseNineRouterImport(fixture, '2026-08-30T00:00:00.000Z');
         expect(result.format).toBe('9router');
         expect(result.keys).toHaveLength(2);
-        expect(result.stats.skipped_non_gemini).toBe(2);
+        expect(result.stats.gemini_connections).toBe(3);
+        expect(result.stats.imported_keys).toBe(2);
+        expect(result.stats.skipped_unsupported).toBe(2);
         expect(result.stats.skipped_masked).toBe(1);
     });
 

@@ -20,7 +20,8 @@ export type ImportParseResult = {
     stats: {
         total_connections?: number;
         gemini_connections?: number;
-        skipped_non_gemini?: number;
+        imported_keys?: number;
+        skipped_unsupported?: number;
         skipped_masked?: number;
         skipped_invalid?: number;
     };
