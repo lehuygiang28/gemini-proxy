@@ -204,10 +204,33 @@ export function apiKeysCommands(program: Command) {
                 spinner.succeed('Import completed');
                 Logger.success('API keys import completed');
 
+                console.log(`\nDetected format: ${results.format}`);
+
+                if (results.format === '9router') {
+                    const stats = results.stats;
+                    if (stats.total_connections !== undefined) {
+                        console.log(`  • Total connections: ${stats.total_connections}`);
+                    }
+                    if (stats.gemini_connections !== undefined) {
+                        console.log(`  • Gemini connections found: ${stats.gemini_connections}`);
+                    }
+                    if (stats.skipped_non_gemini !== undefined) {
+                        console.log(`  • Skipped (non-gemini): ${stats.skipped_non_gemini}`);
+                    }
+                    const skippedMaskedInvalid =
+                        (stats.skipped_masked ?? 0) + (stats.skipped_invalid ?? 0);
+                    console.log(`  • Skipped (masked/invalid): ${skippedMaskedInvalid}`);
+                }
+
                 console.log(`\n📊 Import Results:`);
                 console.log(`  • Created: ${results.created} key(s)`);
                 console.log(`  • Updated: ${results.updated} key(s)`);
                 console.log(`  • Skipped: ${results.skipped} key(s)`);
+
+                if (results.warnings.length > 0) {
+                    console.log(`\n⚠️  Warnings:`);
+                    results.warnings.forEach((warning) => console.log(`  • ${warning}`));
+                }
 
                 if (results.errors.length > 0) {
                     console.log(`\n❌ Errors:`);

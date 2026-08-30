@@ -1,7 +1,46 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import {
+    parseApiKeyImport,
+    type ImportParseResult,
+    type NormalizedImportKey,
+} from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
 import { UsersManager } from './users';
 import { colors } from './colors';
+
+export type ApiKeyImportResult = {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+    format: ImportParseResult['format'];
+    stats: ImportParseResult['stats'];
+    warnings: string[];
+};
+
+function findExistingKey(
+    existing: ApiKey[],
+    incoming: NormalizedImportKey,
+): ApiKey | undefined {
+    return existing.find(
+        (key) =>
+            key.api_key_value === incoming.api_key_value
+            || (incoming.metadata.connection_id
+                && (key.metadata as { connection_id?: string } | null)?.connection_id
+                    === incoming.metadata.connection_id),
+    );
+}
+
+function mergeMetadata(
+    existing: ApiKey['metadata'],
+    incoming: NormalizedImportKey['metadata'],
+): NormalizedImportKey['metadata'] {
+    const base =
+        existing && typeof existing === 'object' && !Array.isArray(existing)
+            ? (existing as Record<string, unknown>)
+            : {};
+    return { ...base, ...incoming } as NormalizedImportKey['metadata'];
+}
 
 export interface ApiKeyExport {
     version: string;
@@ -264,38 +303,55 @@ export class ApiKeysManager {
             skipDuplicates?: boolean;
             dryRun?: boolean;
         } = {},
-    ): Promise<{ created: number; updated: number; skipped: number; errors: string[] }> {
+    ): Promise<ApiKeyImportResult> {
         if (!existsSync(filePath)) {
             throw new Error(`File not found: ${filePath}`);
         }
 
         const fileContent = readFileSync(filePath, 'utf-8');
-        const importData: ApiKeyExport = JSON.parse(fileContent);
-
-        if (!importData.api_keys || !Array.isArray(importData.api_keys)) {
-            throw new Error('Invalid import file format');
-        }
+        const parsed = parseApiKeyImport(fileContent);
 
         const existingKeys = await this.list();
-        const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
+        const results: ApiKeyImportResult = {
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            errors: [],
+            format: parsed.format,
+            stats: parsed.stats,
+            warnings: [...parsed.warnings],
+        };
 
-        // Get first user for API key assignment
         const firstUser = await UsersManager.getFirstUser();
         if (!firstUser) {
             throw new Error('No users found in the database. Please create a user first.');
         }
 
-        // Prepare batch operations
         const keysToCreate: Array<Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
         const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = [];
 
-        // Analyze import data
-        for (const importKey of importData.api_keys) {
+        for (const importKey of parsed.keys) {
             try {
-                // Check for existing key by name
-                const existingKey = existingKeys.find((key) => key.name === importKey.name);
+                const matchedKey = findExistingKey(existingKeys, importKey);
 
-                if (existingKey) {
+                if (matchedKey) {
+                    if (!options.dryRun) {
+                        keysToUpdate.push({
+                            id: matchedKey.id,
+                            updates: {
+                                name: importKey.name,
+                                is_active: importKey.is_active,
+                                metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
+                            },
+                        });
+                    }
+                    results.updated++;
+                    continue;
+                }
+
+                const nameCollision = existingKeys.find((key) => key.name === importKey.name);
+
+                if (nameCollision) {
                     if (options.skipDuplicates) {
                         results.skipped++;
                         continue;
@@ -304,39 +360,41 @@ export class ApiKeysManager {
                     if (options.overwrite) {
                         if (!options.dryRun) {
                             keysToUpdate.push({
-                                id: existingKey.id,
+                                id: nameCollision.id,
                                 updates: {
+                                    name: importKey.name,
                                     api_key_value: importKey.api_key_value,
                                     provider: importKey.provider,
                                     is_active: importKey.is_active,
-                                    metadata: importKey.metadata,
+                                    metadata: mergeMetadata(nameCollision.metadata, importKey.metadata),
                                 },
                             });
                         }
                         results.updated++;
-                    } else {
-                        results.skipped++;
+                        continue;
                     }
-                } else {
-                    if (!options.dryRun) {
-                        keysToCreate.push({
-                            name: importKey.name,
-                            api_key_value: importKey.api_key_value,
-                            provider: importKey.provider,
-                            is_active: importKey.is_active,
-                            metadata: importKey.metadata,
-                            user_id: firstUser.id,
-                        });
-                    }
-                    results.created++;
+
+                    results.skipped++;
+                    continue;
                 }
+
+                if (!options.dryRun) {
+                    keysToCreate.push({
+                        name: importKey.name,
+                        api_key_value: importKey.api_key_value,
+                        provider: importKey.provider,
+                        is_active: importKey.is_active,
+                        metadata: importKey.metadata,
+                        user_id: firstUser.id,
+                    });
+                }
+                results.created++;
             } catch (error) {
                 const errorMsg = `Failed to import key "${importKey.name}": ${error instanceof Error ? error.message : 'Unknown error'}`;
                 results.errors.push(errorMsg);
             }
         }
 
-        // Execute batch operations
         if (!options.dryRun) {
             try {
                 if (keysToCreate.length > 0) {

@@ -203,6 +203,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@gemini-proxy/core':
+        specifier: workspace:*
+        version: link:../core
       '@inquirer/prompts':
         specifier: ^7.8.3
         version: 7.8.3(@types/node@22.17.2)
