@@ -70,9 +70,7 @@ function mapGeminiUsage(
     const cacheTokens = Math.min(toCount(meta.cachedContentTokenCount), promptTokens);
     const totalTokens = toCount(meta.totalTokenCount);
     const model =
-        extras?.model ||
-        (typeof meta.modelVersion === 'string' ? meta.modelVersion : '') ||
-        '';
+        extras?.model || (typeof meta.modelVersion === 'string' ? meta.modelVersion : '') || '';
     const responseId =
         extras?.responseId || (typeof meta.responseId === 'string' ? meta.responseId : undefined);
     return {

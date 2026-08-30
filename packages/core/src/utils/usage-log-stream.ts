@@ -1,8 +1,5 @@
 import { DataSanitizer } from './sanitizer';
-import {
-    UsageStreamParser,
-    type ParsedUsageMetadata,
-} from './usage-metadata-parser';
+import { UsageStreamParser, type ParsedUsageMetadata } from './usage-metadata-parser';
 import type { ProxyApiFormat } from '../types';
 
 export type UsageLogComplete = (
