@@ -56,8 +56,8 @@ export default function ProxyApiKeysEditPage() {
         formProps.form?.setFieldsValue({ proxy_key_value: generateProxyApiKeyValue() });
     };
 
-    const handleCopyKey = async () => {
-        const keyValue = formProps.form?.getFieldValue('proxy_key_value');
+    const handleCopyKey = async (): Promise<void> => {
+        const keyValue: unknown = formProps.form?.getFieldValue('proxy_key_value');
         if (typeof keyValue !== 'string' || keyValue.length === 0) {
             return;
         }

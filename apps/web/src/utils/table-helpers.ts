@@ -143,7 +143,6 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     if (!navigator?.clipboard?.writeText) {
         return false;
     }
-
     try {
         await navigator.clipboard.writeText(text);
         return true;

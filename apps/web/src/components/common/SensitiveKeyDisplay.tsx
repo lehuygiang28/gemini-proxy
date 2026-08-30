@@ -39,7 +39,7 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
         </Tooltip>,
     ];
 
-    const copyHandler = async () => {
+    const copyHandler = async (): Promise<void> => {
         if (await copyToClipboard(value)) {
             notification.open({
                 type: 'success',

@@ -36,28 +36,24 @@ export default function ApiKeysEditPage() {
 
     const apiKeyData = query?.data?.data;
 
-    const handleFinish = (values: ApiKeyUpdate) => {
-        const apiKeyValue =
+    function handleFinish(values: ApiKeyUpdate): void {
+        const apiKeyValue: ApiKeyUpdate['api_key_value'] =
             typeof values.api_key_value === 'string'
                 ? values.api_key_value.trim()
                 : values.api_key_value;
-
-        const submitValues = {
+        const submitValues: ApiKeyUpdate = {
             ...values,
             api_key_value: apiKeyValue,
         };
-
-        const originalKeyValue =
+        const originalKeyValue: ApiKeyUpdate['api_key_value'] =
             typeof apiKeyData?.api_key_value === 'string'
                 ? apiKeyData.api_key_value.trim()
                 : apiKeyData?.api_key_value;
-
-        const keyChanged =
+        const hasKeyChanged: boolean =
             typeof apiKeyValue === 'string' &&
             typeof originalKeyValue === 'string' &&
             apiKeyValue !== originalKeyValue;
-
-        if (keyChanged) {
+        if (hasKeyChanged) {
             Modal.confirm({
                 title: translate('api_keys.rotate.title'),
                 content: translate('api_keys.rotate.description'),
@@ -67,9 +63,8 @@ export default function ApiKeysEditPage() {
             });
             return;
         }
-
         formProps.onFinish?.(submitValues);
-    };
+    }
 
     if (query?.isLoading) {
         return (

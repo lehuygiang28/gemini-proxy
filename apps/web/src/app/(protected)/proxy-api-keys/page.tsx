@@ -205,7 +205,7 @@ export default function ProxyApiKeysListPage() {
         [updateProxyApiKey, translate],
     );
 
-    const handleCopyRotatedKey = useCallback(async () => {
+    const handleCopyRotatedKey = useCallback(async (): Promise<void> => {
         if (!rotatedSecret) return;
         if (await copyToClipboard(rotatedSecret.value)) {
             notification.open({
