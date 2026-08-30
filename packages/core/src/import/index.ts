@@ -5,3 +5,4 @@ export * from './parse-9router-import';
 export * from './parse-native-import';
 export * from './parse-legacy-array-import';
 export * from './parse-api-key-import';
+export * from './api-key-import-helpers';

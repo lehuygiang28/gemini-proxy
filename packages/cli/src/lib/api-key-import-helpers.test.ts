@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { NormalizedImportKey } from '@gemini-proxy/core';
-import { findExistingKey, mergeMetadata } from './api-key-import-helpers';
+import { findExistingKey, mergeImportMetadata } from '@gemini-proxy/core';
 
 const incomingKey: NormalizedImportKey = {
     name: 'imported-key',
@@ -45,7 +45,7 @@ test('findExistingKey falls back to matching connection ID', () => {
 });
 
 test('mergeMetadata retains existing values and applies imported values', () => {
-    const actual = mergeMetadata(
+    const actual = mergeImportMetadata(
         { note: 'keep-me', connection_id: 'old-connection' },
         incomingKey.metadata,
     );
@@ -58,7 +58,7 @@ test('mergeMetadata retains existing values and applies imported values', () => 
 });
 
 test('mergeMetadata ignores undefined incoming fields', () => {
-    const actual = mergeMetadata(
+    const actual = mergeImportMetadata(
         { connection_id: 'keep-me', priority: 5 },
         {
             source: '9router',
