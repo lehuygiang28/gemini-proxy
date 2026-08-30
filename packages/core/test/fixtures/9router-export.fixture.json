@@ -1,0 +1,61 @@
+{
+  "settings": {
+    "theme": "dark"
+  },
+  "providerConnections": [
+    {
+      "id": "conn-gemini-inactive-001",
+      "provider": "gemini",
+      "authType": "apikey",
+      "name": "inactive-key",
+      "apiKey": "AIzaSyTESTKEY000000000000000000001",
+      "isActive": false,
+      "priority": 1,
+      "testStatus": "ok"
+    },
+    {
+      "id": "conn-gemini-spaced-002",
+      "provider": "gemini",
+      "authType": "apikey",
+      "name": "spaced-key",
+      "apiKey": "AIzaSyTESTKEY000000000000000000000   ",
+      "isActive": true,
+      "priority": 2,
+      "testStatus": "ok"
+    },
+    {
+      "id": "conn-gemini-masked-003",
+      "provider": "gemini",
+      "authType": "apikey",
+      "name": "masked-key",
+      "apiKey": "AIzaSy****abcd",
+      "isActive": true,
+      "priority": 3,
+      "testStatus": "unknown"
+    },
+    {
+      "id": "conn-nvidia-004",
+      "provider": "nvidia",
+      "authType": "apikey",
+      "name": "nvidia-key",
+      "apiKey": "nvapi-FAKEKEY000000000000000000000",
+      "isActive": true,
+      "priority": 1,
+      "testStatus": "ok"
+    },
+    {
+      "id": "conn-openai-compat-005",
+      "provider": "openai-compatible-local",
+      "authType": "apikey",
+      "name": "local-openai",
+      "apiKey": "sk-FAKEKEY000000000000000000000000",
+      "isActive": true,
+      "priority": 1,
+      "testStatus": "ok"
+    }
+  ],
+  "providerNodes": [],
+  "proxyPools": [],
+  "apiKeys": [],
+  "combos": []
+}
