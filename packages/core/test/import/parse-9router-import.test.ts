@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseNineRouterImport } from '../../src/import/parse-9router-import';
 
-const fixture = JSON.parse(
+const fixture: unknown = JSON.parse(
     readFileSync(resolve(__dirname, '../fixtures/9router-export.fixture.json'), 'utf-8'),
 );
 
@@ -44,5 +44,30 @@ describe('parseNineRouterImport', () => {
         });
         expect(result.keys).toHaveLength(0);
         expect(result.warnings).toContain('No importable Gemini API keys found in 9router export');
+    });
+
+    it('classifies short masked keys as skipped_masked', () => {
+        const result = parseNineRouterImport({
+            providerConnections: [
+                {
+                    id: 'conn-masked-short',
+                    provider: 'gemini',
+                    authType: 'apikey',
+                    apiKey: '***',
+                },
+            ],
+        });
+        expect(result.keys).toHaveLength(0);
+        expect(result.stats.skipped_masked).toBe(1);
+        expect(result.stats.skipped_invalid).toBe(0);
+    });
+
+    it('skips invalid connection entries with a warning', () => {
+        const result = parseNineRouterImport({
+            providerConnections: [null, 'bad-entry'],
+        });
+        expect(result.keys).toHaveLength(0);
+        expect(result.stats.skipped_invalid).toBe(2);
+        expect(result.warnings.some((warning) => warning.includes('invalid entry'))).toBe(true);
     });
 });

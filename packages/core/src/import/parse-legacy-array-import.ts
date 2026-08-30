@@ -47,7 +47,7 @@ export function parseLegacyArrayImport(
     let skippedMasked = 0;
     items.forEach((item, index) => {
         const { apiKeyValue, name } = extractLegacyEntry(item, index);
-        if (apiKeyValue.length < MIN_KEY_LENGTH) {
+        if (apiKeyValue.length === 0) {
             skippedInvalid += 1;
             warnings.push(`Skipped legacy entry ${index + 1}: missing key`);
             return;
@@ -55,6 +55,11 @@ export function parseLegacyArrayImport(
         if (isMaskedApiKey(apiKeyValue)) {
             skippedMasked += 1;
             warnings.push(`Skipped legacy entry ${index + 1}: masked key`);
+            return;
+        }
+        if (apiKeyValue.length < MIN_KEY_LENGTH) {
+            skippedInvalid += 1;
+            warnings.push(`Skipped legacy entry ${index + 1}: key too short`);
             return;
         }
         keys.push({
