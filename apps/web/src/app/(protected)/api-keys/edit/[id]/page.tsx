@@ -85,7 +85,7 @@ export default function ApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} layout="vertical" onFinish={handleFinish}>
+                        <Form {...formProps} layout="vertical" onFinish={handleFinish} autoComplete="off">
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('api_keys.edit.basicInfo')}
                             </Divider>
@@ -156,6 +156,7 @@ export default function ApiKeysEditPage() {
                                 ]}
                             >
                                 <Input.Password
+                                    autoComplete="new-password"
                                     placeholder={translate('api_keys.placeholders.apiKey')}
                                 />
                             </Form.Item>

@@ -116,7 +116,7 @@ export default function ProxyApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} onFinish={handleFinish} layout="vertical">
+                        <Form {...formProps} onFinish={handleFinish} layout="vertical" autoComplete="off">
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('proxy_api_keys.edit.basicInfo')}
                             </Divider>
@@ -164,6 +164,7 @@ export default function ProxyApiKeysEditPage() {
                                 ]}
                             >
                                 <Input.Password
+                                    autoComplete="new-password"
                                     placeholder={translate(
                                         'proxy_api_keys.placeholders.enterOrGenerate',
                                     )}
