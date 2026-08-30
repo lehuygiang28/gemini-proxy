@@ -32,6 +32,7 @@ import {
     extractUsageMetadata,
     formatDuration,
     formatTokenCount,
+    formatUsd,
 } from '@/utils/table-helpers';
 import { KeyIdentityCard, UserIdentityCard, resolveKeyLabel } from '@/features/request-logs';
 
@@ -106,10 +107,7 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
             className={isModal ? 'gp-scrollable' : undefined}
         >
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <OverviewStrip
-                    requestLog={requestLog}
-                    onCopy={handleCopyToClipboard}
-                />
+                <OverviewStrip requestLog={requestLog} onCopy={handleCopyToClipboard} />
 
                 <Row gutter={[12, 12]}>
                     <Col xs={24} lg={8}>
@@ -143,6 +141,10 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
                     totalTokens={usageMetadata.total_tokens ?? 0}
                     promptTokens={usageMetadata.prompt_tokens ?? 0}
                     completionTokens={usageMetadata.completion_tokens ?? 0}
+                    cacheTokens={usageMetadata.cache_tokens ?? 0}
+                    thoughtsTokens={usageMetadata.thoughts_tokens ?? 0}
+                    toolUseTokens={usageMetadata.tool_use_prompt_tokens ?? 0}
+                    estimatedCostUsd={usageMetadata.estimated_cost_usd}
                     model={usageMetadata.model}
                     isSuccessful={requestLog.is_successful}
                 />
@@ -251,7 +253,10 @@ function OverviewStrip({
                         <Text style={{ fontSize: 12, color: 'var(--gp-text-secondary)' }}>
                             {translate('request_logs.fields.requestId')}
                         </Text>
-                        <Text className="gp-live-mono" style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}>
+                        <Text
+                            className="gp-live-mono"
+                            style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}
+                        >
                             {requestLog.request_id}
                         </Text>
                         <Button
@@ -280,6 +285,10 @@ function MetricsStrip({
     totalTokens,
     promptTokens,
     completionTokens,
+    cacheTokens,
+    thoughtsTokens,
+    toolUseTokens,
+    estimatedCostUsd,
     model,
     isSuccessful,
 }: {
@@ -289,6 +298,10 @@ function MetricsStrip({
     totalTokens: number;
     promptTokens: number;
     completionTokens: number;
+    cacheTokens: number;
+    thoughtsTokens: number;
+    toolUseTokens: number;
+    estimatedCostUsd?: number | null;
     model?: string;
     isSuccessful: boolean;
 }) {
@@ -339,7 +352,10 @@ function MetricsStrip({
                     <div className="gp-kpi-label">
                         {translate('request_logs.metrics.totalTokens')}
                     </div>
-                    <div className="gp-kpi-value" style={{ fontSize: 18, color: 'var(--gp-accent)' }}>
+                    <div
+                        className="gp-kpi-value"
+                        style={{ fontSize: 18, color: 'var(--gp-accent)' }}
+                    >
                         {formatTokenCount(totalTokens, translate('common.na'))}
                     </div>
                 </div>
@@ -350,6 +366,44 @@ function MetricsStrip({
                     <div className="gp-kpi-value" style={{ fontSize: 16 }}>
                         {formatTokenCount(promptTokens, translate('common.na'))} /{' '}
                         {formatTokenCount(completionTokens, translate('common.na'))}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.cacheTokens')}
+                    </div>
+                    <div className="gp-kpi-value" style={{ fontSize: 16 }}>
+                        {formatTokenCount(cacheTokens, translate('common.na'))}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.thoughtsTokens')}
+                    </div>
+                    <div className="gp-kpi-value" style={{ fontSize: 16 }}>
+                        {formatTokenCount(thoughtsTokens, translate('common.na'))}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.toolUseTokens')}
+                    </div>
+                    <div className="gp-kpi-value" style={{ fontSize: 16 }}>
+                        {formatTokenCount(toolUseTokens, translate('common.na'))}
+                    </div>
+                </div>
+                <div className="gp-kpi-cell">
+                    <div className="gp-kpi-label">
+                        {translate('request_logs.metrics.estimatedCost')}
+                    </div>
+                    <div
+                        className="gp-kpi-value"
+                        style={{ fontSize: 16, color: 'var(--gp-accent)' }}
+                    >
+                        {formatUsd(
+                            estimatedCostUsd,
+                            translate('request_logs.metrics.estimatedCostUnavailable'),
+                        )}
                     </div>
                 </div>
                 {model ? (
@@ -397,9 +451,7 @@ const PAYLOAD_BODY_KEYS = new Set([
 ]);
 
 function splitPayloadMeta(data: Record<string, unknown>): Record<string, unknown> {
-    return Object.fromEntries(
-        Object.entries(data).filter(([key]) => !PAYLOAD_BODY_KEYS.has(key)),
-    );
+    return Object.fromEntries(Object.entries(data).filter(([key]) => !PAYLOAD_BODY_KEYS.has(key)));
 }
 
 function payloadSizeHint(value: unknown): number {
@@ -475,7 +527,9 @@ function PayloadPanel({
                                 onClick={() => onCopy(fullJson, title)}
                             />
                         </Tooltip>
-                        <Tooltip title={translate('request_logs.clipboard.downloadNamed', { title })}>
+                        <Tooltip
+                            title={translate('request_logs.clipboard.downloadNamed', { title })}
+                        >
                             <Button
                                 type="text"
                                 size="small"
@@ -516,7 +570,11 @@ function PayloadPanel({
                             ) : (
                                 <Text
                                     type="secondary"
-                                    style={{ padding: '0 12px 12px', display: 'block', fontSize: 12 }}
+                                    style={{
+                                        padding: '0 12px 12px',
+                                        display: 'block',
+                                        fontSize: 12,
+                                    }}
                                 >
                                     {translate('request_logs.payload.bodyNotStored')}{' '}
                                     <Link href="/settings">
@@ -549,14 +607,13 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
     const { token } = useToken();
     const { translate } = useTranslation();
     const apiKeyIds = useMemo(
-        () =>
-            [
-                ...new Set(
-                    retryAttempts
-                        .map((attempt) => attempt.api_key_id)
-                        .filter((id): id is string => Boolean(id)),
-                ),
-            ],
+        () => [
+            ...new Set(
+                retryAttempts
+                    .map((attempt) => attempt.api_key_id)
+                    .filter((id): id is string => Boolean(id)),
+            ),
+        ],
         [retryAttempts],
     );
 
@@ -625,9 +682,7 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
                             ? apiKeyMap.get(attempt.api_key_id)
                             : undefined;
                         const resolved = resolveKeyLabel({
-                            joined: joinedName
-                                ? { name: joinedName, deleted_at: null }
-                                : null,
+                            joined: joinedName ? { name: joinedName, deleted_at: null } : null,
                             embeddedName: attempt.api_key_name,
                             id: attempt.api_key_id,
                         });

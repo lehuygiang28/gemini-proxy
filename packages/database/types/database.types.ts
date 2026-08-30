@@ -243,6 +243,28 @@ export type Database = {
                 Args: { p_days_back?: number; p_user_id?: string };
                 Returns: Json;
             };
+            increment_api_key_usage: {
+                Args: {
+                    p_id: string;
+                    p_success?: number;
+                    p_failure?: number;
+                    p_prompt?: number;
+                    p_completion?: number;
+                    p_total?: number;
+                };
+                Returns: undefined;
+            };
+            increment_proxy_api_key_usage: {
+                Args: {
+                    p_id: string;
+                    p_success?: number;
+                    p_failure?: number;
+                    p_prompt?: number;
+                    p_completion?: number;
+                    p_total?: number;
+                };
+                Returns: undefined;
+            };
             get_retry_statistics: {
                 Args: { p_days_back?: number; p_user_id?: string };
                 Returns: Json;

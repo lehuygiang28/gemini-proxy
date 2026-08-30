@@ -1,6 +1,13 @@
 'use client';
 
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, {
+    forwardRef,
+    useCallback,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Alert } from 'antd';
 import { useGo, useList, useTranslation, type LiveModeProps } from '@refinedev/core';
 import type { Tables } from '@gemini-proxy/database';
@@ -54,72 +61,68 @@ interface ConsoleListsProps {
  * Remount via `key={liveMode}` so subscribe/unsubscribe tracks Live toggle
  * (Refine useResourceSubscription only rebinds on `enabled`, not liveMode).
  */
-const ConsoleLists = forwardRef<ConsoleListsHandle, ConsoleListsProps>(
-    function ConsoleLists(
-        { liveMode, onResourceLiveEvent, onRowClick, onOpenApiKey, onOpenProxyKey },
+const ConsoleLists = forwardRef<ConsoleListsHandle, ConsoleListsProps>(function ConsoleLists(
+    { liveMode, onResourceLiveEvent, onRowClick, onOpenApiKey, onOpenProxyKey },
+    ref,
+) {
+    const liveFeedQuery = useList<LiveFeedLog>({
+        resource: 'request_logs',
+        pagination: { currentPage: 1, pageSize: 50 },
+        sorters: [{ field: 'created_at', order: 'desc' }],
+        meta: { select: LIVE_FEED_SELECT },
+        liveMode,
+        onLiveEvent: onResourceLiveEvent,
+    });
+
+    const apiKeysListQuery = useList<KeyHealthRow>({
+        resource: 'api_keys',
+        pagination: { currentPage: 1, pageSize: 50 },
+        filters: [{ field: 'deleted_at', operator: 'null', value: true }],
+        sorters: [{ field: 'failure_count', order: 'desc' }],
+        meta: { select: KEY_SELECT },
+        liveMode,
+        onLiveEvent: onResourceLiveEvent,
+    });
+
+    const proxyKeysListQuery = useList<KeyHealthRow>({
+        resource: 'proxy_api_keys',
+        pagination: { currentPage: 1, pageSize: 50 },
+        filters: [{ field: 'deleted_at', operator: 'null', value: true }],
+        sorters: [{ field: 'failure_count', order: 'desc' }],
+        meta: { select: KEY_SELECT },
+        liveMode,
+        onLiveEvent: onResourceLiveEvent,
+    });
+
+    useImperativeHandle(
         ref,
-    ) {
-        const liveFeedQuery = useList<LiveFeedLog>({
-            resource: 'request_logs',
-            pagination: { currentPage: 1, pageSize: 50 },
-            sorters: [{ field: 'created_at', order: 'desc' }],
-            meta: { select: LIVE_FEED_SELECT },
-            liveMode,
-            onLiveEvent: onResourceLiveEvent,
-        });
+        () => ({
+            refresh: () => {
+                void liveFeedQuery.query.refetch();
+                void apiKeysListQuery.query.refetch();
+                void proxyKeysListQuery.query.refetch();
+            },
+        }),
+        [liveFeedQuery.query, apiKeysListQuery.query, proxyKeysListQuery.query],
+    );
 
-        const apiKeysListQuery = useList<KeyHealthRow>({
-            resource: 'api_keys',
-            pagination: { currentPage: 1, pageSize: 50 },
-            filters: [{ field: 'deleted_at', operator: 'null', value: true }],
-            sorters: [{ field: 'failure_count', order: 'desc' }],
-            meta: { select: KEY_SELECT },
-            liveMode,
-            onLiveEvent: onResourceLiveEvent,
-        });
-
-        const proxyKeysListQuery = useList<KeyHealthRow>({
-            resource: 'proxy_api_keys',
-            pagination: { currentPage: 1, pageSize: 50 },
-            filters: [{ field: 'deleted_at', operator: 'null', value: true }],
-            sorters: [{ field: 'failure_count', order: 'desc' }],
-            meta: { select: KEY_SELECT },
-            liveMode,
-            onLiveEvent: onResourceLiveEvent,
-        });
-
-        useImperativeHandle(
-            ref,
-            () => ({
-                refresh: () => {
-                    void liveFeedQuery.query.refetch();
-                    void apiKeysListQuery.query.refetch();
-                    void proxyKeysListQuery.query.refetch();
-                },
-            }),
-            [liveFeedQuery.query, apiKeysListQuery.query, proxyKeysListQuery.query],
-        );
-
-        return (
-            <div className="gp-console-main">
-                <LiveRequestFeed
-                    logs={liveFeedQuery.result?.data ?? []}
-                    loading={liveFeedQuery.query.isLoading}
-                    onRowClick={onRowClick}
-                />
-                <KeyHealthPanel
-                    apiKeys={apiKeysListQuery.result?.data ?? []}
-                    proxyKeys={proxyKeysListQuery.result?.data ?? []}
-                    loading={
-                        apiKeysListQuery.query.isLoading || proxyKeysListQuery.query.isLoading
-                    }
-                    onOpenApiKey={onOpenApiKey}
-                    onOpenProxyKey={onOpenProxyKey}
-                />
-            </div>
-        );
-    },
-);
+    return (
+        <div className="gp-console-main">
+            <LiveRequestFeed
+                logs={liveFeedQuery.result?.data ?? []}
+                loading={liveFeedQuery.query.isLoading}
+                onRowClick={onRowClick}
+            />
+            <KeyHealthPanel
+                apiKeys={apiKeysListQuery.result?.data ?? []}
+                proxyKeys={proxyKeysListQuery.result?.data ?? []}
+                loading={apiKeysListQuery.query.isLoading || proxyKeysListQuery.query.isLoading}
+                onOpenApiKey={onOpenApiKey}
+                onOpenProxyKey={onOpenProxyKey}
+            />
+        </div>
+    );
+});
 
 /**
  * Ops Console — Refine liveMode auto for tables; onLiveEvent for RPC KPIs/charts.
@@ -255,7 +258,9 @@ export default function ConsolePage() {
                     promptTokens: requestLogsStats?.prompt_tokens,
                     completionTokens: requestLogsStats?.completion_tokens,
                     cacheTokens: requestLogsStats?.cache_tokens,
+                    thoughtsTokens: requestLogsStats?.thoughts_tokens,
                     totalTokens: requestLogsStats?.total_tokens,
+                    estimatedCostUsd: requestLogsStats?.estimated_cost_usd,
                     periodDays: requestLogsStats?.period_days ?? selectedDays,
                 },
                 translate,

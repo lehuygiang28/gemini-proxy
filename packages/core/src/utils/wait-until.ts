@@ -2,17 +2,12 @@ import { Context } from 'hono';
 import { getRuntimeKey } from 'hono/adapter';
 
 /**
- * Execute operation with proper wait-until fallback handling
- * This ensures operations complete before serverless function shutdown
+ * Keep a background promise alive on Cloudflare / Vercel after the handler returns.
+ * Falls back to awaiting the promise on long-lived Node servers.
  */
 export async function executeWithWaitUntil(c: Context, operation: Promise<void>): Promise<void> {
     try {
-        /**
-         * @see https://developers.cloudflare.com/workers/observability/errors/#illegal-invocation-errors
-         *
-         *  directly calling the method on ctx avoids the error
-         */
-        c?.executionCtx?.waitUntil(operation);
+        c.executionCtx.waitUntil(operation);
         return;
     } catch (exCtxError) {
         if (
@@ -28,19 +23,36 @@ export async function executeWithWaitUntil(c: Context, operation: Promise<void>)
     }
 
     try {
-        // Keep dynamic import here to avoid build issue in Cloudflare Worker
         const { waitUntil } = await import('@vercel/functions');
-        // Try Vercel's waitUntil as fallback
         waitUntil(operation);
         return;
     } catch (vercelError) {
         console.warn('Failed to use Vercel waitUntil:', vercelError);
     }
 
-    // Final fallback: execute immediately
     try {
         await operation;
     } catch (error) {
         console.error('Operation execution failed:', error);
     }
+}
+
+const RETRY_DELAYS_MS = [200, 800] as const;
+
+export async function persistWithRetry(operation: () => Promise<void>): Promise<void> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
+        try {
+            await operation();
+            return;
+        } catch (error) {
+            lastError = error;
+            const delay = RETRY_DELAYS_MS[attempt];
+            if (delay != null) {
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+        }
+    }
+    console.error('Persist failed after retries:', lastError);
+    throw lastError;
 }

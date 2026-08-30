@@ -6,6 +6,7 @@
     "scripts": {
         "build": "tsdown",
         "dev": "tsdown --watch",
+        "test": "vitest run",
         "clean": "rm -rf dist"
     },
     "license": "MIT",
@@ -21,6 +22,7 @@
     "devDependencies": {
         "@types/node": "^20.11.16",
         "tsdown": "^0.17.0",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "vitest": "~3.2.0"
     }
 }

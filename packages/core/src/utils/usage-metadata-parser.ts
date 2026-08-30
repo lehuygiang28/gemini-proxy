@@ -1,294 +1,269 @@
 import { ProxyApiFormat } from '../types';
 
-export interface UsageMetadata {
+export interface GeminiUsageMetadata {
     promptTokenCount?: number;
     totalTokenCount?: number;
     cachedContentTokenCount?: number;
-    promptTokensDetails?: Array<{
-        modality: string;
-        tokenCount: number;
-    }>;
     candidatesTokenCount?: number;
-    candidatesTokensDetails?: Array<{
-        modality: string;
-        tokenCount: number;
-    }>;
+    responseTokenCount?: number;
+    thoughtsTokenCount?: number;
+    toolUsePromptTokenCount?: number;
+    promptTokensDetails?: Array<{ modality?: string; tokenCount?: number }>;
+    candidatesTokensDetails?: Array<{ modality?: string; tokenCount?: number }>;
+    cacheTokensDetails?: Array<{ modality?: string; tokenCount?: number }>;
+    toolUsePromptTokensDetails?: Array<{ modality?: string; tokenCount?: number }>;
     modelVersion?: string;
     responseId?: string;
-    // OpenAI format fields
-    completion_tokens?: number;
+}
+
+export interface OpenAIUsageMetadata {
     prompt_tokens?: number;
+    completion_tokens?: number;
     total_tokens?: number;
     prompt_tokens_details?: { cached_tokens?: number };
     input_tokens_details?: { cached_tokens?: number };
+    completion_tokens_details?: { reasoning_tokens?: number };
     model?: string;
     id?: string;
     created?: number;
     object?: string;
 }
 
+export type ProviderUsageMetadata = GeminiUsageMetadata & OpenAIUsageMetadata;
+
 export interface ParsedUsageMetadata {
     promptTokens: number;
     completionTokens: number;
-    totalTokens: number;
+    thoughtsTokens: number;
+    toolUsePromptTokens: number;
     cacheTokens: number;
+    totalTokens: number;
     model: string;
     responseId?: string;
-    metadata: UsageMetadata;
+    parseError: boolean;
+    raw: Record<string, unknown> | null;
+}
+
+function toCount(value: unknown): number {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) {
+        return 0;
+    }
+    return Math.floor(n);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+    }
+    return null;
+}
+
+function mapGeminiUsage(
+    meta: Record<string, unknown>,
+    extras?: { model?: string; responseId?: string },
+): ParsedUsageMetadata {
+    const promptTokens = toCount(meta.promptTokenCount);
+    const completionTokens = toCount(meta.candidatesTokenCount ?? meta.responseTokenCount);
+    const thoughtsTokens = toCount(meta.thoughtsTokenCount);
+    const toolUsePromptTokens = toCount(meta.toolUsePromptTokenCount);
+    const cacheTokens = Math.min(toCount(meta.cachedContentTokenCount), promptTokens);
+    const totalTokens = toCount(meta.totalTokenCount);
+    const model =
+        extras?.model || (typeof meta.modelVersion === 'string' ? meta.modelVersion : '') || '';
+    const responseId =
+        extras?.responseId || (typeof meta.responseId === 'string' ? meta.responseId : undefined);
+    return {
+        promptTokens,
+        completionTokens,
+        thoughtsTokens,
+        toolUsePromptTokens,
+        cacheTokens,
+        totalTokens,
+        model,
+        responseId,
+        parseError: false,
+        raw: meta,
+    };
+}
+
+function mapOpenAIUsage(
+    usage: Record<string, unknown>,
+    extras?: { model?: string; responseId?: string },
+): ParsedUsageMetadata {
+    const promptTokens = toCount(usage.prompt_tokens);
+    const completionTokens = toCount(usage.completion_tokens);
+    const details = asRecord(usage.completion_tokens_details);
+    const promptDetails = asRecord(usage.prompt_tokens_details);
+    const inputDetails = asRecord(usage.input_tokens_details);
+    const cacheTokens = Math.min(
+        toCount(promptDetails?.cached_tokens ?? inputDetails?.cached_tokens),
+        promptTokens,
+    );
+    const thoughtsTokens = toCount(details?.reasoning_tokens);
+    const totalTokens = toCount(usage.total_tokens);
+    const model = extras?.model || (typeof usage.model === 'string' ? usage.model : '') || '';
+    const responseId = extras?.responseId || (typeof usage.id === 'string' ? usage.id : undefined);
+    return {
+        promptTokens,
+        completionTokens,
+        thoughtsTokens,
+        toolUsePromptTokens: 0,
+        cacheTokens,
+        totalTokens,
+        model,
+        responseId,
+        parseError: false,
+        raw: usage,
+    };
+}
+
+/**
+ * Incremental SSE / JSON usage parser for Gemini native and OpenAI-compat streams.
+ */
+export class UsageStreamParser {
+    private buffer = '';
+    private plainBody = '';
+    private readonly decoder = new TextDecoder();
+    private last: ParsedUsageMetadata | null = null;
+    private sawDataPrefix = false;
+
+    constructor(private readonly apiFormat: ProxyApiFormat) {}
+
+    push(chunk: Uint8Array): void {
+        this.buffer += this.decoder.decode(chunk, { stream: true });
+        this.consumeCompleteLines();
+    }
+
+    snapshot(): ParsedUsageMetadata | null {
+        return this.last;
+    }
+
+    finish(): ParsedUsageMetadata | null {
+        this.buffer += this.decoder.decode();
+        this.consumeCompleteLines();
+        if (!this.sawDataPrefix && this.plainBody) {
+            this.tryParseJsonDocument(this.plainBody);
+        }
+        const leftover = this.buffer.trim();
+        if (leftover) {
+            if (leftover.startsWith('data:')) {
+                this.tryParseDataLine(leftover.slice(5).trim());
+            } else if (!this.sawDataPrefix) {
+                this.tryParseJsonDocument(leftover);
+            }
+            this.buffer = '';
+        }
+        return this.last;
+    }
+
+    private consumeCompleteLines(): void {
+        let newlineIndex = this.buffer.indexOf('\n');
+        while (newlineIndex !== -1) {
+            const line = this.buffer.slice(0, newlineIndex).replace(/\r$/, '');
+            this.buffer = this.buffer.slice(newlineIndex + 1);
+            this.consumeLine(line);
+            newlineIndex = this.buffer.indexOf('\n');
+        }
+    }
+
+    private consumeLine(line: string): void {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            return;
+        }
+        if (trimmed.startsWith('data:')) {
+            this.sawDataPrefix = true;
+            this.tryParseDataLine(trimmed.slice(5).trim());
+            return;
+        }
+        if (!this.sawDataPrefix) {
+            this.plainBody += (this.plainBody ? '\n' : '') + line;
+        }
+    }
+
+    private tryParseDataLine(payload: string): void {
+        if (!payload || payload === '[DONE]') {
+            return;
+        }
+        try {
+            const parsed: unknown = JSON.parse(payload);
+            this.ingestEvent(parsed);
+        } catch {
+            // Incomplete JSON for this line; wait for more bytes via leftover buffer on finish.
+        }
+    }
+
+    private tryParseJsonDocument(text: string): void {
+        try {
+            const parsed: unknown = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                for (const item of parsed) {
+                    this.ingestEvent(item);
+                }
+                return;
+            }
+            this.ingestEvent(parsed);
+        } catch {
+            // Invalid JSON — leave last snapshot as-is.
+        }
+    }
+
+    private ingestEvent(event: unknown): void {
+        const record = asRecord(event);
+        if (!record) {
+            return;
+        }
+        if (this.apiFormat === 'gemini') {
+            this.ingestGeminiEvent(record);
+            return;
+        }
+        this.ingestOpenAIEvent(record);
+    }
+
+    private ingestGeminiEvent(record: Record<string, unknown>): void {
+        const usage = asRecord(record.usageMetadata);
+        if (!usage) {
+            return;
+        }
+        const model = typeof record.modelVersion === 'string' ? record.modelVersion : undefined;
+        const responseId = typeof record.responseId === 'string' ? record.responseId : undefined;
+        this.last = mapGeminiUsage(usage, { model, responseId });
+    }
+
+    private ingestOpenAIEvent(record: Record<string, unknown>): void {
+        const usage = asRecord(record.usage);
+        if (!usage) {
+            return;
+        }
+        const model = typeof record.model === 'string' ? record.model : undefined;
+        const responseId = typeof record.id === 'string' ? record.id : undefined;
+        this.last = mapOpenAIUsage(usage, { model, responseId });
+    }
 }
 
 export class UsageMetadataParser {
-    private static geminiCacheTokens(meta: UsageMetadata): number {
-        return Number(meta.cachedContentTokenCount) || 0;
-    }
-
-    private static openAICacheTokens(usage: {
-        prompt_tokens_details?: { cached_tokens?: number };
-        input_tokens_details?: { cached_tokens?: number };
-    }): number {
-        return (
-            Number(usage.prompt_tokens_details?.cached_tokens) ||
-            Number(usage.input_tokens_details?.cached_tokens) ||
-            0
-        );
-    }
-
-    /**
-     * Parse usage metadata from response body text
-     * Supports both streaming and non-streaming formats for Gemini and OpenAI
-     */
     static parseFromResponseBody(
         bodyText: string,
         apiFormat: ProxyApiFormat,
     ): ParsedUsageMetadata | null {
         try {
-            if (apiFormat === 'gemini') {
-                return this.parseGeminiResponse(bodyText);
-            } else if (apiFormat === 'openai') {
-                return this.parseOpenAIResponse(bodyText);
-            }
+            const parser = new UsageStreamParser(apiFormat);
+            parser.push(new TextEncoder().encode(bodyText));
+            return parser.finish();
         } catch (error) {
             console.warn('Failed to parse usage metadata:', error);
-        }
-        return null;
-    }
-
-    /**
-     * Parse Gemini response (both streaming and non-streaming)
-     */
-    private static parseGeminiResponse(bodyText: string): ParsedUsageMetadata | null {
-        // Check if it's streaming format (data: prefix)
-        if (bodyText.includes('data: ')) {
-            return this.parseGeminiStreaming(bodyText);
-        } else {
-            return this.parseGeminiNonStreaming(bodyText);
-        }
-    }
-
-    /**
-     * Parse Gemini streaming response
-     */
-    private static parseGeminiStreaming(bodyText: string): ParsedUsageMetadata | null {
-        let finalUsageMetadata: UsageMetadata | null = null;
-        let modelVersion = '';
-        let responseId = '';
-
-        // Split by lines and process each line that starts with 'data: '
-        const lines = bodyText.split('\n');
-        let currentJsonStr = '';
-
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                // Start of a new data line
-                currentJsonStr = line.substring(6); // Remove 'data: ' prefix
-
-                if (currentJsonStr.trim() === '[DONE]') continue;
-
-                try {
-                    const data = JSON.parse(currentJsonStr);
-                    if (data.usageMetadata) {
-                        // For Gemini, we can get usage metadata from any chunk
-                        // but we want the final values from the last chunk with finishReason
-                        if (data.candidates?.[0]?.finishReason === 'STOP') {
-                            // This is the final chunk, use its usage metadata
-                            finalUsageMetadata = data.usageMetadata;
-                            modelVersion = data.modelVersion || '';
-                            responseId = data.responseId || '';
-                            break; // Found the final chunk, stop processing
-                        } else {
-                            // Keep updating with the latest usage metadata as fallback
-                            finalUsageMetadata = data.usageMetadata;
-                            modelVersion = data.modelVersion || '';
-                            responseId = data.responseId || '';
-                        }
-                    }
-                } catch (error) {
-                    // Skip invalid JSON lines
-                    continue;
-                }
-            }
-        }
-
-        if (!finalUsageMetadata) return null;
-
-        return {
-            promptTokens: finalUsageMetadata.promptTokenCount || 0,
-            completionTokens: finalUsageMetadata.candidatesTokenCount || 0,
-            totalTokens: finalUsageMetadata.totalTokenCount || 0,
-            cacheTokens: this.geminiCacheTokens(finalUsageMetadata),
-            model: modelVersion,
-            responseId: responseId,
-            metadata: finalUsageMetadata,
-        };
-    }
-
-    /**
-     * Parse Gemini non-streaming response
-     */
-    private static parseGeminiNonStreaming(bodyText: string): ParsedUsageMetadata | null {
-        try {
-            const data = JSON.parse(bodyText);
-
-            // Handle array format (multiple responses)
-            const responses = Array.isArray(data) ? data : [data];
-
-            // Find the last response with usage metadata
-            let finalUsageMetadata: UsageMetadata | null = null;
-            let modelVersion = '';
-            let responseId = '';
-
-            for (const response of responses) {
-                if (response.usageMetadata) {
-                    finalUsageMetadata = response.usageMetadata;
-                    modelVersion = response.modelVersion || '';
-                    responseId = response.responseId || '';
-                }
-            }
-
-            if (!finalUsageMetadata) return null;
-
-            return {
-                promptTokens: finalUsageMetadata.promptTokenCount || 0,
-                completionTokens: finalUsageMetadata.candidatesTokenCount || 0,
-                totalTokens: finalUsageMetadata.totalTokenCount || 0,
-                cacheTokens: this.geminiCacheTokens(finalUsageMetadata),
-                model: modelVersion,
-                responseId: responseId,
-                metadata: finalUsageMetadata,
-            };
-        } catch (error) {
-            // Silently return null for invalid JSON
             return null;
         }
     }
 
-    /**
-     * Parse OpenAI response (both streaming and non-streaming)
-     */
-    private static parseOpenAIResponse(bodyText: string): ParsedUsageMetadata | null {
-        // Check if it's streaming format (data: prefix)
-        if (bodyText.includes('data: ')) {
-            return this.parseOpenAIStreaming(bodyText);
-        } else {
-            return this.parseOpenAINonStreaming(bodyText);
-        }
-    }
-
-    /**
-     * Parse OpenAI streaming response
-     */
-    private static parseOpenAIStreaming(bodyText: string): ParsedUsageMetadata | null {
-        let finalUsage: any = null;
-        let model = '';
-        let id = '';
-        let created = 0;
-
-        // Split by lines and process each line that starts with 'data: '
-        const lines = bodyText.split('\n');
-
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const jsonStr = line.substring(6); // Remove 'data: ' prefix
-                if (jsonStr.trim() === '[DONE]') continue;
-
-                try {
-                    const data = JSON.parse(jsonStr);
-                    if (data.usage && data.choices?.[0]?.finish_reason === 'stop') {
-                        // For OpenAI, we only want usage data from the final chunk with finish_reason
-                        finalUsage = data.usage;
-                        model = data.model || '';
-                        id = data.id || '';
-                        created = data.created || 0;
-                        break; // Found the final chunk, stop processing
-                    }
-                    // Skip intermediate chunks as they have incomplete usage data
-                } catch (error) {
-                    // Skip invalid JSON lines
-                    continue;
-                }
-            }
-        }
-
-        if (!finalUsage) return null;
-
-        return {
-            promptTokens: finalUsage.prompt_tokens || 0,
-            completionTokens: finalUsage.completion_tokens || 0,
-            totalTokens: finalUsage.total_tokens || 0,
-            cacheTokens: this.openAICacheTokens(finalUsage),
-            model: model,
-            responseId: id,
-            metadata: {
-                ...finalUsage,
-                model,
-                id,
-                created,
-            },
-        };
-    }
-
-    /**
-     * Parse OpenAI non-streaming response
-     */
-    private static parseOpenAINonStreaming(bodyText: string): ParsedUsageMetadata | null {
-        try {
-            const data = JSON.parse(bodyText);
-
-            if (!data.usage) return null;
-
-            return {
-                promptTokens: data.usage.prompt_tokens || 0,
-                completionTokens: data.usage.completion_tokens || 0,
-                totalTokens: data.usage.total_tokens || 0,
-                cacheTokens: this.openAICacheTokens(data.usage),
-                model: data.model || '',
-                responseId: data.id || '',
-                metadata: {
-                    ...data.usage,
-                    model: data.model,
-                    id: data.id,
-                    created: data.created,
-                    object: data.object,
-                },
-            };
-        } catch (error) {
-            console.warn('Failed to parse OpenAI non-streaming response:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Clone response and extract usage metadata
-     */
     static async parseFromResponse(
         response: Response,
         apiFormat: ProxyApiFormat,
     ): Promise<ParsedUsageMetadata | null> {
         try {
-            // Clone the response to avoid consuming the original
             const clonedResponse = response.clone();
             const bodyText = await clonedResponse.text();
-
             return this.parseFromResponseBody(bodyText, apiFormat);
         } catch (error) {
             console.warn('Failed to parse usage metadata from response:', error);

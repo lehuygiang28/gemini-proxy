@@ -1,12 +1,14 @@
 import { Context } from 'hono';
 import { BackgroundService } from './background.service';
+import { attachUsageLogging } from '../utils/usage-log-stream';
+import { executeWithWaitUntil } from '../utils/wait-until';
 import type { HonoApp, ProxyRequestDataParsed } from '../types';
 import type { Tables } from '@gemini-proxy/database';
 import type { ProxyError } from '../types/error.type';
 
 export class ResponseHandlerService {
     /**
-     * Handle successful response - return immediately and log in background
+     * Return the provider body immediately; parse usage while streaming.
      */
     static async handleSuccess(params: {
         c: Context<HonoApp>;
@@ -32,41 +34,45 @@ export class ResponseHandlerService {
             durationMs,
             retryAttempts,
         } = params;
-
-        // Calculate total response time from start to finish
         const requestStartTime = c.get('requestStartTime') as number | undefined;
         const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
-
-        // Prepare response immediately for fastest user response
-        const responseClone = response.clone();
-        const filteredHeaders = this.filterResponseHeaders(responseClone.headers);
-
-        // Handle successful request with unified background service
-        await BackgroundService.handleRequestSuccess({
-            c,
-            requestId,
-            apiKeyId,
-            proxyKeyId: proxyApiKeyData.id,
-            userId: proxyApiKeyData.user_id,
-            apiFormat: proxyRequestDataParsed.apiFormat,
-            baseRequest,
-            response: response,
-            headers: headers,
-            durationMs,
-            proxyRequestDataParsed,
-            retryAttempts: retryAttempts || [],
-            totalResponseTimeMs,
-        });
-
-        // Return response immediately without waiting for logging
-        return new Response(responseClone.body, {
-            status: responseClone.status,
+        const filteredHeaders = this.filterResponseHeaders(response.headers);
+        return attachUsageLogging({
+            response,
             headers: filteredHeaders,
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            registerBackground: (work) => {
+                void executeWithWaitUntil(c, work);
+            },
+            onComplete: async (usage, responseText) => {
+                await BackgroundService.handleRequestSuccess({
+                    c,
+                    requestId,
+                    apiKeyId,
+                    proxyKeyId: proxyApiKeyData.id,
+                    userId: proxyApiKeyData.user_id,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    baseRequest,
+                    requestHeaders: headers,
+                    responseStatus: response.status,
+                    responseHeaders: response.headers,
+                    durationMs,
+                    proxyRequestDataParsed,
+                    retryAttempts: retryAttempts || [],
+                    totalResponseTimeMs,
+                    usage,
+                    responseText,
+                });
+                void executeWithWaitUntil(
+                    c,
+                    BackgroundService.executeAllOperations(c, requestId),
+                );
+            },
         });
     }
 
     /**
-     * Handle error response - return immediately and log in background
+     * Handle error response - collect then persist with waitUntil.
      */
     static async handleError(params: {
         c: Context<HonoApp>;
@@ -92,17 +98,12 @@ export class ResponseHandlerService {
             lastProviderError,
             retryAttempts,
         } = params;
-
-        // Calculate total response time from start to finish
         const requestStartTime = c.get('requestStartTime') as number | undefined;
         const totalResponseTimeMs = Date.now() - (requestStartTime || Date.now());
-
         const lastRetry =
             retryAttempts && retryAttempts.length > 0
                 ? retryAttempts[retryAttempts.length - 1]
                 : null;
-
-        // Collect failed-request operations before returning (waitUntil flushes DB)
         await BackgroundService.handleRequestError({
             c,
             requestId,
@@ -116,10 +117,9 @@ export class ResponseHandlerService {
             retryAttempts: retryAttempts || [],
             isStream: proxyRequestDataParsed.stream,
             totalResponseTimeMs,
-            model: proxyRequestDataParsed.model, // Include model name for failed requests
+            model: proxyRequestDataParsed.model,
         });
-
-        // Return error response immediately without waiting for logging
+        void executeWithWaitUntil(c, BackgroundService.executeAllOperations(c, requestId));
         if (lastProviderError) {
             const providerHeaders = new Headers();
             if (lastProviderError.headers) {
@@ -132,15 +132,12 @@ export class ResponseHandlerService {
             if (lastError.code) safeHeaders.set('x-gproxy-error-code', lastError.code);
             safeHeaders.set('x-gproxy-error-message', lastError.message);
             safeHeaders.set('x-gproxy-request-id', requestId);
-
             const statusToReturn = lastProviderError.status || lastError.status || 500;
-
             return new Response(lastProviderError.body || '', {
                 status: statusToReturn,
                 headers: safeHeaders,
             });
         }
-
         const statusCode = typeof lastError.status === 'number' ? lastError.status : 500;
         const jsonBody = {
             error: lastError.type,
@@ -154,9 +151,6 @@ export class ResponseHandlerService {
         });
     }
 
-    /**
-     * Filter response headers to remove sensitive or problematic headers
-     */
     private static filterResponseHeaders(headers: Headers): Headers {
         const filtered = new Headers();
         const excludeHeaders = new Set([
