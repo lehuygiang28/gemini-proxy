@@ -208,7 +208,7 @@ export class BackgroundService {
             proxyApiKeyId: proxyKeyId,
             isSuccessful: true,
             promptTokens: tokenUsage.promptTokens,
-            completionTokens: tokenUsage.completionTokens,
+            completionTokens: keyCompletionTokens,
             totalTokens: tokenUsage.totalTokens,
         });
 
