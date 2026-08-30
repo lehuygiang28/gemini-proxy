@@ -77,8 +77,7 @@ export default function ApiKeysEditPage() {
                         </Paragraph>
                         <Alert
                             message={translate('api_keys.edit.keyRotatable')}
-                            description={translate('api_keys.edit.formatHint')}
-                            type="warning"
+                            type="info"
                             showIcon
                         />
                     </Card>

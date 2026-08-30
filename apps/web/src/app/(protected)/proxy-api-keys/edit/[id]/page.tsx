@@ -109,7 +109,7 @@ export default function ProxyApiKeysEditPage() {
                         </Paragraph>
                         <Alert
                             message={translate('proxy_api_keys.edit.keyRotatable')}
-                            type="warning"
+                            type="info"
                             showIcon
                         />
                     </Card>

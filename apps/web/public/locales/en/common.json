@@ -215,7 +215,7 @@
             "nameExample": "e.g., My App Key",
             "selectProvider": "Select provider",
             "keyName": "Key Name",
-            "apiKey": "AIza… or AQ.…"
+            "apiKey": "Paste API key"
         },
         "filters": {
             "title": "Filters & Search",
@@ -264,9 +264,8 @@
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing API key.",
-            "keyRotatable": "You can replace this Google API key in place. Saving a new value rotates the secret immediately.",
-            "rotateHint": "Paste the new key and save. Any unmasked value of at least 10 characters is accepted.",
-            "formatHint": "Google AI Studio currently issues keys starting with AQ. Legacy AIza keys still work. Formats may change — we do not require a specific prefix.",
+            "keyRotatable": "Paste a new key and save to rotate it in place.",
+            "rotateHint": "Any unmasked key with at least 10 characters is accepted.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
         },
@@ -435,8 +434,8 @@
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing proxy API key.",
-            "keyRotatable": "You can replace or generate a new proxy key. Saving rotates the secret and existing clients must use the new value.",
-            "rotateHint": "Generate a new key or paste a custom value, then save.",
+            "keyRotatable": "Generate a new value or paste your own, then save.",
+            "rotateHint": "10–128 characters: letters, numbers, dots, hyphens, underscores.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
         },

@@ -215,7 +215,7 @@
             "nameExample": "vd. Khóa ứng dụng của tôi",
             "selectProvider": "Chọn nhà cung cấp",
             "keyName": "Tên khóa",
-            "apiKey": "AIza… hoặc AQ.…"
+            "apiKey": "Dán khóa API"
         },
         "filters": {
             "title": "Bộ lọc và tìm kiếm",
@@ -264,9 +264,8 @@
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
-            "keyRotatable": "Bạn có thể thay khóa Google API tại chỗ. Lưu giá trị mới sẽ xoay secret ngay.",
-            "rotateHint": "Dán khóa mới rồi lưu. Mọi giá trị chưa che, tối thiểu 10 ký tự đều được chấp nhận.",
-            "formatHint": "Google AI Studio hiện cấp khóa bắt đầu bằng AQ. Khóa AIza cũ vẫn dùng được. Định dạng có thể đổi — không bắt buộc tiền tố cụ thể.",
+            "keyRotatable": "Dán khóa mới rồi lưu để xoay tại chỗ.",
+            "rotateHint": "Chấp nhận mọi khóa chưa che, tối thiểu 10 ký tự.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
         },
@@ -435,8 +434,8 @@
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa proxy hiện có.",
-            "keyRotatable": "Bạn có thể thay hoặc tạo khóa proxy mới. Lưu sẽ xoay secret và client phải dùng giá trị mới.",
-            "rotateHint": "Tạo khóa mới hoặc dán giá trị tùy chỉnh, rồi lưu.",
+            "keyRotatable": "Tạo khóa mới hoặc dán khóa tùy chỉnh, rồi lưu.",
+            "rotateHint": "10–128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
         },
