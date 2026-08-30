@@ -7,6 +7,7 @@ import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
 import type { HonoApp, ProxyRequestDataParsed } from '../types';
+import type { Json } from '@gemini-proxy/database';
 import type { ProxyError } from '../types/error.type';
 
 // ===== UNIFIED INTERFACES =====
@@ -35,7 +36,7 @@ export interface RequestLogData {
         estimatedCostUsd: number | null;
         pricingVersion: string | null;
         matchedModel: string | null;
-        rawMetadata: Record<string, unknown> | null;
+        rawMetadata: Json;
     } | null;
     retryAttempts?: any;
     totalResponseTimeMs?: number;
@@ -158,7 +159,7 @@ export class BackgroundService {
 
         this.initializeRequest(requestId);
 
-        const tokenUsage = usage ?? {
+        const tokenUsage: ParsedUsageMetadata = usage ?? {
             promptTokens: 0,
             completionTokens: 0,
             thoughtsTokens: 0,
@@ -257,7 +258,7 @@ export class BackgroundService {
                 estimatedCostUsd: cost?.usd ?? null,
                 pricingVersion: cost?.pricingVersion ?? null,
                 matchedModel: cost?.matchedModel ?? null,
-                rawMetadata: tokenUsage.raw ?? { parse_error: true },
+                rawMetadata: (tokenUsage.raw as Json) ?? { parse_error: true },
             },
         });
 
@@ -434,9 +435,7 @@ export class BackgroundService {
                 promises.push(this.touchProxyApiKeys(c, operations.proxyApiKeyTouches));
             }
             await Promise.allSettled(promises);
-            console.log(
-                `Executed background operations for request ${requestId}`,
-            );
+            console.log(`Executed background operations for request ${requestId}`);
         } catch (error) {
             console.error(
                 `Failed to execute background operations for request ${requestId}:`,
@@ -565,7 +564,7 @@ export class BackgroundService {
             is_stream: Boolean(log.isStream),
             error_details: log.errorDetails || null,
             performance_metrics: log.performanceMetrics || {},
-            usage_metadata: usageMetadata
+            usage_metadata: (usageMetadata
                 ? {
                       prompt_tokens: usageMetadata.promptTokens,
                       completion_tokens: usageMetadata.completionTokens,
@@ -574,13 +573,13 @@ export class BackgroundService {
                       total_tokens: usageMetadata.totalTokens,
                       cache_tokens: usageMetadata.cacheTokens,
                       model: usageMetadata.model,
-                      response_id: usageMetadata.responseId,
+                      response_id: usageMetadata.responseId ?? null,
                       estimated_cost_usd: usageMetadata.estimatedCostUsd,
                       pricing_version: usageMetadata.pricingVersion,
                       matched_model: usageMetadata.matchedModel,
                       raw_metadata: usageMetadata.rawMetadata,
                   }
-                : null,
+                : null) as Json | null,
             retry_attempts: log.retryAttempts || [],
         };
 
@@ -703,10 +702,7 @@ export class BackgroundService {
                     p_total: counts.totalTokens,
                 });
                 if (error) {
-                    console.error(
-                        `Failed to update Proxy API key usage ${proxyApiKeyId}:`,
-                        error,
-                    );
+                    console.error(`Failed to update Proxy API key usage ${proxyApiKeyId}:`, error);
                 }
             },
         );
