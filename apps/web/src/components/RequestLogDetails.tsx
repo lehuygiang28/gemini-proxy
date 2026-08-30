@@ -25,7 +25,8 @@ import {
 } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay, JsonTreeViewer } from '@/components/common';
-import { useNotification, useMany, useTranslation } from '@refinedev/core';
+import { useMany, useNotification, useTranslation } from '@refinedev/core';
+import { useCopyWithNotification } from '@/hooks';
 import { RequestLog, RetryAttempt } from '../types/request-log.types';
 import {
     extractPerformanceMetrics,
@@ -52,14 +53,14 @@ export const RequestLogDetails: React.FC<RequestLogDetailsProps> = ({
     isModal = false,
 }) => {
     const notification = useNotification();
+    const copyWithNotification = useCopyWithNotification();
     const { translate } = useTranslation();
 
-    const handleCopyToClipboard = (text: string, label: string) => {
-        navigator.clipboard.writeText(text);
-        notification.open({
-            type: 'success',
-            message: translate('request_logs.clipboard.copied'),
-            description: translate('request_logs.clipboard.copiedDesc', { label }),
+    const handleCopyToClipboard = async (text: string, label: string): Promise<void> => {
+        await copyWithNotification(text, {
+            successMessage: translate('request_logs.clipboard.copied'),
+            successDescription: translate('request_logs.clipboard.copiedDesc', { label }),
+            errorMessage: translate('common.copyFailedRetry'),
         });
     };
 

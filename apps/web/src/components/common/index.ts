@@ -1,3 +1,4 @@
+export * from './ConfirmAlertModal';
 export * from './DateTimeDisplay';
 export * from './SensitiveKeyDisplay';
 export * from './StatusToggle';

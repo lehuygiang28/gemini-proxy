@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { List, CreateButton, EditButton, ShowButton, useTable } from '@refinedev/antd';
-import { useGo, useNotification, useUpdate, useTranslation } from '@refinedev/core';
+import { useGo, useUpdate, useTranslation } from '@refinedev/core';
 import { buildSoftDeleteKeyValues } from '@/utils/soft-delete-key';
 import {
     Table,
@@ -41,8 +41,9 @@ import {
 } from '@/components/common';
 import { KeyHealthBadge } from '@/features/observability';
 import { ProxyQuickStart } from '@/features/proxy-quickstart';
-import { formatTokenCount, copyToClipboard } from '@/utils/table-helpers';
+import { formatTokenCount } from '@/utils/table-helpers';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
+import { useCopyWithNotification } from '@/hooks';
 
 const { Search } = Input;
 const { useToken } = theme;
@@ -61,7 +62,7 @@ export default function ProxyApiKeysListPage() {
     const { token } = useToken();
     const go = useGo();
     const { translate } = useTranslation();
-    const notification = useNotification();
+    const copyWithNotification = useCopyWithNotification();
     const [activeTab, setActiveTab] = useState('keys');
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
@@ -207,18 +208,11 @@ export default function ProxyApiKeysListPage() {
 
     const handleCopyRotatedKey = useCallback(async (): Promise<void> => {
         if (!rotatedSecret) return;
-        if (await copyToClipboard(rotatedSecret.value)) {
-            notification.open({
-                type: 'success',
-                message: translate('proxy_api_keys.create.copied'),
-            });
-            return;
-        }
-        notification.open({
-            type: 'error',
-            message: translate('proxy_api_keys.create.copyFailed'),
+        await copyWithNotification(rotatedSecret.value, {
+            successMessage: translate('proxy_api_keys.create.copied'),
+            errorMessage: translate('proxy_api_keys.create.copyFailed'),
         });
-    }, [rotatedSecret, notification, translate]);
+    }, [rotatedSecret, copyWithNotification, translate]);
 
     return (
         <List

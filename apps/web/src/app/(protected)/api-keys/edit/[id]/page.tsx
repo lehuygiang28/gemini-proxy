@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Edit, useForm } from '@refinedev/antd';
 import { useTranslation } from '@refinedev/core';
 import {
@@ -15,12 +15,12 @@ import {
     Typography,
     Alert,
     Spin,
-    Modal,
 } from 'antd';
 import { InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons';
 import type { TablesUpdate } from '@gemini-proxy/database';
 import { isValidGoogleApiKey } from '@gemini-proxy/core';
 import { PROVIDER_OPTIONS } from '@/constants/providers';
+import { ConfirmAlertModal } from '@/components/common';
 
 const { Title, Paragraph } = Typography;
 
@@ -28,6 +28,7 @@ type ApiKeyUpdate = TablesUpdate<'api_keys'>;
 
 export default function ApiKeysEditPage() {
     const { translate } = useTranslation();
+    const [pendingSubmitValues, setPendingSubmitValues] = useState<ApiKeyUpdate | null>(null);
     const { formProps, saveButtonProps, query } = useForm<ApiKeyUpdate>({
         resource: 'api_keys',
         action: 'edit',
@@ -54,16 +55,22 @@ export default function ApiKeysEditPage() {
             typeof originalKeyValue === 'string' &&
             apiKeyValue !== originalKeyValue;
         if (hasKeyChanged) {
-            Modal.confirm({
-                title: translate('api_keys.rotate.title'),
-                content: translate('api_keys.rotate.description'),
-                okText: translate('api_keys.rotate.confirm'),
-                cancelText: translate('buttons.cancel'),
-                onOk: () => formProps.onFinish?.(submitValues),
-            });
+            setPendingSubmitValues(submitValues);
             return;
         }
         formProps.onFinish?.(submitValues);
+    }
+
+    function handleConfirmRotate(): void {
+        if (!pendingSubmitValues) {
+            return;
+        }
+        formProps.onFinish?.(pendingSubmitValues);
+        setPendingSubmitValues(null);
+    }
+
+    function handleCancelRotate(): void {
+        setPendingSubmitValues(null);
     }
 
     if (query?.isLoading) {
@@ -196,6 +203,15 @@ export default function ApiKeysEditPage() {
                     </Card>
                 </Col>
             </Row>
+            <ConfirmAlertModal
+                open={Boolean(pendingSubmitValues)}
+                title={translate('api_keys.rotate.title')}
+                description={translate('api_keys.rotate.description')}
+                okText={translate('api_keys.rotate.confirm')}
+                cancelText={translate('buttons.cancel')}
+                onConfirm={handleConfirmRotate}
+                onCancel={handleCancelRotate}
+            />
         </Edit>
     );
 }

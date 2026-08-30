@@ -22,6 +22,7 @@ import { KeyOutlined, InfoCircleOutlined, SettingOutlined, CopyOutlined } from '
 import type { TablesInsert, User } from '@gemini-proxy/database';
 import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
+import { useCopyWithNotification } from '@/hooks';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -31,6 +32,7 @@ type ProxyApiKeyInsert = TablesInsert<'proxy_api_keys'>;
 export default function ProxyApiKeyCreatePage() {
     const { token } = useToken();
     const notification = useNotification();
+    const copyWithNotification = useCopyWithNotification();
     const { translate } = useTranslation();
     const { data: user, isPending: isUserLoading } = useGetIdentity<User>();
 
@@ -65,24 +67,17 @@ export default function ProxyApiKeyCreatePage() {
         formProps.form?.setFieldsValue({ proxy_key_value: generateProxyApiKeyValue() });
     };
 
-    const copyToClipboard = async () => {
-        const keyValue = formProps.form?.getFieldValue('proxy_key_value');
-        if (keyValue) {
-            try {
-                await navigator.clipboard.writeText(keyValue);
-                notification.open({
-                    type: 'success',
-                    message: translate('proxy_api_keys.create.copied'),
-                    description: translate('proxy_api_keys.create.copiedDesc'),
-                });
-            } catch {
-                notification.open({
-                    type: 'error',
-                    message: translate('proxy_api_keys.create.copyFailed'),
-                    description: translate('proxy_api_keys.create.copyFailedDesc'),
-                });
-            }
+    const handleCopyKey = async (): Promise<void> => {
+        const keyValue: unknown = formProps.form?.getFieldValue('proxy_key_value');
+        if (typeof keyValue !== 'string' || keyValue.length === 0) {
+            return;
         }
+        await copyWithNotification(keyValue, {
+            successMessage: translate('proxy_api_keys.create.copied'),
+            successDescription: translate('proxy_api_keys.create.copiedDesc'),
+            errorMessage: translate('proxy_api_keys.create.copyFailed'),
+            errorDescription: translate('proxy_api_keys.create.copyFailedDesc'),
+        });
     };
 
     return (
@@ -181,7 +176,7 @@ export default function ProxyApiKeyCreatePage() {
                                 </Button>
                                 <Button
                                     icon={<CopyOutlined />}
-                                    onClick={copyToClipboard}
+                                    onClick={handleCopyKey}
                                     style={{ marginBottom: token.marginMD }}
                                 >
                                     {translate('proxy_api_keys.create.copyClipboard')}
