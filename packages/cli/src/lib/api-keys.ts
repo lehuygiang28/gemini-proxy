@@ -22,12 +22,17 @@ function findExistingKey(
     existing: ApiKey[],
     incoming: NormalizedImportKey,
 ): ApiKey | undefined {
+    const byValue = existing.find((key) => key.api_key_value === incoming.api_key_value);
+    if (byValue) {
+        return byValue;
+    }
+    if (!incoming.metadata.connection_id) {
+        return undefined;
+    }
     return existing.find(
         (key) =>
-            key.api_key_value === incoming.api_key_value
-            || (incoming.metadata.connection_id
-                && (key.metadata as { connection_id?: string } | null)?.connection_id
-                    === incoming.metadata.connection_id),
+            (key.metadata as { connection_id?: string } | null)?.connection_id
+                === incoming.metadata.connection_id,
     );
 }
 
@@ -336,13 +341,17 @@ export class ApiKeysManager {
 
                 if (matchedKey) {
                     if (!options.dryRun) {
+                        const updates: Partial<ApiKeyUpdate> = {
+                            name: importKey.name,
+                            is_active: importKey.is_active,
+                            metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
+                        };
+                        if (matchedKey.api_key_value !== importKey.api_key_value) {
+                            updates.api_key_value = importKey.api_key_value;
+                        }
                         keysToUpdate.push({
                             id: matchedKey.id,
-                            updates: {
-                                name: importKey.name,
-                                is_active: importKey.is_active,
-                                metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
-                            },
+                            updates,
                         });
                     }
                     results.updated++;
