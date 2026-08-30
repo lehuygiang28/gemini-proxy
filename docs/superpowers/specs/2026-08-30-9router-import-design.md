@@ -47,7 +47,7 @@ gemini-proxy stores keys as `api_keys` rows with `provider: "googleaistudio"`.
 
 ## Architecture
 
-```
+```text
 packages/core/src/import/
 ├── types.ts
 ├── detect-import-format.ts
@@ -111,8 +111,9 @@ Detection runs before provider-specific parsing.
 connection.provider === 'gemini'
   && connection.authType === 'apikey'
   && typeof connection.apiKey === 'string'
-  && connection.apiKey.trim().length >= 10
+  && connection.apiKey.trim().length > 0
   && !isMaskedApiKey(connection.apiKey)
+  && connection.apiKey.trim().length >= 10
 ```
 
 **Transform:**
@@ -161,10 +162,11 @@ In `apps/web/src/app/(protected)/api-keys/create/page.tsx` JSON tab:
 
 No new commands. Extend `gproxy api-keys import <file>`:
 
-```
+```text
 Detected format: 9router
   • Gemini connections found: 14
-  • Skipped (non-gemini): 4
+  • Importable Gemini keys: 14
+  • Skipped (unsupported): 4
   • Skipped (masked/invalid): 0
   • Created: 10 | Updated: 4 | Skipped: 0
 ```

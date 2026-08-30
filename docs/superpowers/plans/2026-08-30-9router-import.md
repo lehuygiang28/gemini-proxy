@@ -316,7 +316,7 @@ export function parseNineRouterImport(
     });
   });
 
-  if (connections.some((c) => c.provider === GEMINI_PROVIDER) && keys.length === 0) {
+  if (keys.length === 0) {
     warnings.push('No importable Gemini API keys found in 9router export');
   }
 
@@ -368,13 +368,13 @@ EOF
 
 - [ ] **Step 1: Write failing orchestrator tests**
 
-Cover: native `{ api_keys: [...] }`, legacy `[{ key: '...' }]`, invalid JSON throws, unknown object throws.
+Cover: native `{ api_keys: [...] }`, legacy `[{ key: '...' }]` and `{ value: '...' }`, invalid JSON throws, unknown object throws.
 
 - [ ] **Step 2: Implement native + legacy parsers**
 
 Native maps existing CLI export shape (`name`, `api_key_value`, `provider`, `is_active`, `metadata`).
 
-Legacy array accepts string entries or objects with `key` / `apiKey` / `api_key_value` (same as Web today).
+Legacy array accepts string entries or objects with `key` / `apiKey` / `api_key_value` / `value` (same as Web today).
 
 - [ ] **Step 3: Implement orchestrator**
 
