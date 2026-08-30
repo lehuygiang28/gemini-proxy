@@ -299,7 +299,8 @@
             "jsonLoaded": "JSON file loaded successfully!",
             "readFileFailed": "Failed to read file.",
             "nineRouterDetected": "9router export detected",
-            "nineRouterSummary": "Found {gemini} Gemini keys from {total} total connections. Skipped: {skippedNonGemini} non-Gemini, {skippedMaskedInvalid} masked or invalid.",
+            "nineRouterSummary": "Found {imported} importable Gemini keys from {gemini} Gemini connections ({total} total). Skipped: {skippedUnsupported} unsupported, {skippedMaskedInvalid} masked or invalid.",
+            "importWarningsTitle": "Import warnings",
             "steps": {
                 "import": "Import Keys",
                 "importDesc": "Choose how you want to import your keys.",

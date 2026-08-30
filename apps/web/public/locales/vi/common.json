@@ -299,7 +299,8 @@
             "jsonLoaded": "Đã tải tệp JSON thành công!",
             "readFileFailed": "Không đọc được tệp.",
             "nineRouterDetected": "Phát hiện xuất 9router",
-            "nineRouterSummary": "Tìm thấy {gemini} khóa Gemini từ {total} kết nối. Bỏ qua: {skippedNonGemini} không phải Gemini, {skippedMaskedInvalid} bị che/ không hợp lệ.",
+            "nineRouterSummary": "Tìm thấy {imported} khóa Gemini có thể nhập từ {gemini} kết nối Gemini ({total} tổng). Bỏ qua: {skippedUnsupported} không hỗ trợ, {skippedMaskedInvalid} bị che/không hợp lệ.",
+            "importWarningsTitle": "Cảnh báo khi nhập",
             "steps": {
                 "import": "Nhập khóa",
                 "importDesc": "Chọn cách bạn muốn nhập khóa.",

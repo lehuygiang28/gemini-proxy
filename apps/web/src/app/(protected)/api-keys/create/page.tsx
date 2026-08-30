@@ -61,6 +61,7 @@ type ParseKeysResult = {
     format?: ImportFormat;
     stats?: ImportParseResult['stats'];
     warnings?: string[];
+    notified?: boolean;
 };
 
 export default function ApiKeyCreatePage() {
@@ -76,6 +77,7 @@ export default function ApiKeyCreatePage() {
     const [parsedKeys, setParsedKeys] = useState<ParsedApiKey[]>([]);
     const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
     const [importStats, setImportStats] = useState<ImportParseResult['stats'] | null>(null);
+    const [importWarnings, setImportWarnings] = useState<string[]>([]);
 
     const { formProps, form } = useForm<ApiKeyInsert>({
         resource: 'api_keys',
@@ -182,20 +184,25 @@ export default function ApiKeyCreatePage() {
                     const message =
                         error instanceof Error ? error.message : 'Unknown import error';
                     const isUnsupportedFormat = message === 'Unsupported import file format';
+                    const isEmptyImport = message === 'No keys found in import file';
                     notification.open({
                         type: 'error',
                         message: translate(
                             isUnsupportedFormat
                                 ? 'api_keys.create.errors.unsupportedImportFormat'
-                                : 'api_keys.create.errors.invalidJson',
+                                : isEmptyImport
+                                  ? 'api_keys.create.errors.noKeys'
+                                  : 'api_keys.create.errors.invalidJson',
                         ),
                         description: translate(
                             isUnsupportedFormat
                                 ? 'api_keys.create.errors.unsupportedImportFormatDesc'
-                                : 'api_keys.create.errors.invalidJsonDesc',
+                                : isEmptyImport
+                                  ? 'api_keys.create.errors.noKeysDesc'
+                                  : 'api_keys.create.errors.invalidJsonDesc',
                         ),
                     });
-                    return { keys: [] };
+                    return { keys: [], notified: true };
                 }
             }
 
@@ -207,12 +214,15 @@ export default function ApiKeyCreatePage() {
     // Handle import step - parse keys and move to review
     const handleImport = useCallback(() => {
         const values = form.getFieldsValue();
-        const { keys, format, stats, warnings } = parseKeysFromInput(values);
+        const { keys, format, stats, warnings, notified } = parseKeysFromInput(values);
 
         if (keys.length === 0) {
+            if (notified) {
+                return;
+            }
             if (format === '9router' && warnings && warnings.length > 0) {
                 notification.open({
-                    type: 'warning',
+                    type: 'error',
                     message: translate('api_keys.create.errors.noKeys'),
                     description: warnings.join('\n'),
                 });
@@ -229,6 +239,7 @@ export default function ApiKeyCreatePage() {
         setParsedKeys(keys);
         setImportFormat(format ?? null);
         setImportStats(stats ?? null);
+        setImportWarnings(warnings ?? []);
         setCurrentStep('review');
     }, [form, parseKeysFromInput, notification, translate]);
 
@@ -644,12 +655,28 @@ export default function ApiKeyCreatePage() {
                         description={translate('api_keys.create.nineRouterSummary', {
                             total: importStats.total_connections ?? 0,
                             gemini: importStats.gemini_connections ?? 0,
-                            skippedNonGemini: importStats.skipped_non_gemini ?? 0,
+                            imported: importStats.imported_keys ?? parsedKeys.length,
+                            skippedUnsupported: importStats.skipped_unsupported ?? 0,
                             skippedMaskedInvalid:
                                 (importStats.skipped_masked ?? 0) +
                                 (importStats.skipped_invalid ?? 0),
                         })}
                         type="info"
+                        showIcon
+                        style={{ marginBottom: token.marginLG }}
+                    />
+                )}
+                {importWarnings.length > 0 && (
+                    <Alert
+                        message={translate('api_keys.create.importWarningsTitle')}
+                        description={
+                            <ul style={{ margin: 0, paddingLeft: token.paddingLG }}>
+                                {importWarnings.map((warning, index) => (
+                                    <li key={`${index}-${warning}`}>{warning}</li>
+                                ))}
+                            </ul>
+                        }
+                        type="warning"
                         showIcon
                         style={{ marginBottom: token.marginLG }}
                     />
@@ -707,6 +734,7 @@ export default function ApiKeyCreatePage() {
                                 setCurrentStep('import');
                                 setImportFormat(null);
                                 setImportStats(null);
+                                setImportWarnings([]);
                             }}
                         >
                             {translate('api_keys.create.backToImport')}
