@@ -25,5 +25,8 @@ export function mergeMetadata(
         existing && typeof existing === 'object' && !Array.isArray(existing)
             ? (existing as Record<string, unknown>)
             : {};
-    return { ...base, ...incoming } as NormalizedImportKey['metadata'];
+    const definedIncoming = Object.fromEntries(
+        Object.entries(incoming).filter(([, value]) => value !== undefined),
+    );
+    return { ...base, ...definedIncoming } as NormalizedImportKey['metadata'];
 }

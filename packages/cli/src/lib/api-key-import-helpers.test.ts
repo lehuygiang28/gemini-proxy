@@ -56,3 +56,36 @@ test('mergeMetadata retains existing values and applies imported values', () => 
         imported_at: '2026-08-30T00:00:00.000Z',
     });
 });
+
+test('mergeMetadata ignores undefined incoming fields', () => {
+    const actual = mergeMetadata(
+        { connection_id: 'keep-me', priority: 5 },
+        {
+            source: '9router',
+            connection_id: undefined,
+            priority: undefined,
+            imported_at: '2026-08-30T00:00:00.000Z',
+        },
+    );
+    assert.deepEqual(actual, {
+        connection_id: 'keep-me',
+        priority: 5,
+        source: '9router',
+        imported_at: '2026-08-30T00:00:00.000Z',
+    });
+});
+
+test('findExistingKey detects duplicate values staged in the same import batch', () => {
+    const workingKeys = [
+        {
+            id: '__pending_0',
+            api_key_value: incomingKey.api_key_value,
+            metadata: { connection_id: 'connection-1' },
+        },
+    ];
+    const duplicate = findExistingKey(workingKeys, {
+        ...incomingKey,
+        name: 'duplicate-name',
+    });
+    assert.equal(duplicate?.id, '__pending_0');
+});
