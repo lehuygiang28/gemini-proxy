@@ -1,3 +1,4 @@
+import { isValidGoogleApiKey, isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { ErrorHandler } from './error-handler';
 
 export class Validation {
@@ -18,8 +19,10 @@ export class Validation {
     static validateApiKeyValue(key: string): void {
         ErrorHandler.validateRequired(key, 'API key value');
 
-        if (key.length < 10) {
-            throw ErrorHandler.createError('API key value must be at least 10 characters long');
+        if (!isValidGoogleApiKey(key)) {
+            throw ErrorHandler.createError(
+                'API key value must be a Google AI Studio key (AIza... or AQ....) at least 10 characters long',
+            );
         }
     }
 
@@ -35,13 +38,9 @@ export class Validation {
     static validateProxyKeyValue(keyValue: string): void {
         ErrorHandler.validateRequired(keyValue, 'Proxy key value');
 
-        if (keyValue.length < 5 || keyValue.length > 50) {
-            throw ErrorHandler.createError('Proxy key value must be between 5 and 50 characters');
-        }
-
-        if (!/^[a-zA-Z0-9\-_]+$/.test(keyValue)) {
+        if (!isValidProxyApiKeyValue(keyValue)) {
             throw ErrorHandler.createError(
-                'Proxy key value can only contain letters, numbers, hyphens, and underscores',
+                'Proxy key value must be 10-128 characters and contain only letters, numbers, dots, hyphens, and underscores',
             );
         }
     }
