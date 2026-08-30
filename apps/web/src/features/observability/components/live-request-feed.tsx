@@ -8,6 +8,7 @@ import {
     formatDuration,
     formatTokenCount,
     getRequestType,
+    shortModel,
 } from '@/utils/table-helpers';
 
 export type LiveFeedLog = Pick<
@@ -31,14 +32,6 @@ interface LiveRequestFeedProps {
     logs: LiveFeedLog[];
     loading?: boolean;
     onRowClick?: (log: LiveFeedLog) => void;
-}
-
-function shortModel(model: string | null): string {
-    if (!model) {
-        return '—';
-    }
-    // Drop common vendor prefixes for scan density
-    return model.replace(/^models\//, '');
 }
 
 function keyLabel(

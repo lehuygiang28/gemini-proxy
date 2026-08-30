@@ -516,6 +516,24 @@ html:has(.gp-app-shell) body {
     border-radius: var(--gp-radius);
 }
 
+.gp-logs-table-panel .ant-table-thead > tr > th.gp-logs-num-col,
+.gp-logs-table-panel .ant-table-tbody > tr > td.gp-logs-num-col {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.gp-logs-table-panel .ant-table-tbody > tr {
+    height: 44px;
+}
+
+.gp-logs-table-panel .ant-table-tbody > tr:hover > td {
+    background: var(--gp-bg-hover) !important;
+}
+
+.gp-logs-chart .recharts-bar-rectangle {
+    fill: var(--gp-chart-1);
+}
+
 .gp-panel-sunken {
     background: var(--gp-bg-sunken);
     border: 1px solid var(--gp-border);
