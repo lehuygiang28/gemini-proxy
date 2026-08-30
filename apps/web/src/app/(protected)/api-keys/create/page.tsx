@@ -31,6 +31,11 @@ import {
     InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { TablesInsert, User } from '@gemini-proxy/database';
+import {
+    parseApiKeyImport,
+    type ImportFormat,
+    type ImportParseResult,
+} from '@gemini-proxy/core';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -48,6 +53,12 @@ type ParsedApiKey = {
 
 type ImportStep = 'import' | 'review' | 'save';
 
+type ParseKeysResult = {
+    keys: ParsedApiKey[];
+    format?: ImportFormat;
+    stats?: ImportParseResult['stats'];
+};
+
 export default function ApiKeyCreatePage() {
     const { token } = useToken();
     const go = useGo();
@@ -59,6 +70,8 @@ export default function ApiKeyCreatePage() {
     const [currentStep, setCurrentStep] = useState<ImportStep>('import');
     const [activeTab, setActiveTab] = useState('manual');
     const [parsedKeys, setParsedKeys] = useState<ParsedApiKey[]>([]);
+    const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
+    const [importStats, setImportStats] = useState<ImportParseResult['stats'] | null>(null);
 
     const { formProps, form } = useForm<ApiKeyInsert>({
         resource: 'api_keys',
@@ -103,7 +116,7 @@ export default function ApiKeyCreatePage() {
             keys?: { name: string; api_key_value: string }[];
             bulk_keys?: string;
             json_keys?: string;
-        }): ParsedApiKey[] => {
+        }): ParseKeysResult => {
             const parsedKeys: ParsedApiKey[] = [];
 
             if (activeTab === 'manual' && values.keys) {
@@ -137,50 +150,47 @@ export default function ApiKeyCreatePage() {
                 });
             } else if (activeTab === 'json' && values.json_keys) {
                 try {
-                    const parsedJson = JSON.parse(values.json_keys);
-                    if (Array.isArray(parsedJson)) {
-                        parsedJson.forEach((item, index) => {
-                            let apiKey = '';
-                            let name = translate('api_keys.create.jsonImportedName', {
-                                index: index + 1,
-                            });
-
-                            if (typeof item === 'string') {
-                                apiKey = item;
-                            } else if (typeof item === 'object' && item !== null) {
-                                apiKey =
-                                    item.api_key_value ||
-                                    item.apiKey ||
-                                    item.key ||
-                                    item.value ||
-                                    '';
-                                name = item.name || item.title || item.label || name;
-                            }
-
-                            const isValid = isValidApiKey(apiKey);
-                            parsedKeys.push({
-                                id: generateKeyId(),
-                                name,
-                                api_key_value: apiKey,
-                                provider: 'googleaistudio',
-                                isValid,
-                                error: isValid
-                                    ? undefined
-                                    : translate('api_keys.create.errors.tooShort'),
-                            });
+                    const result = parseApiKeyImport(values.json_keys);
+                    result.keys.forEach((item) => {
+                        const isValid = isValidApiKey(item.api_key_value);
+                        parsedKeys.push({
+                            id: generateKeyId(),
+                            name: item.name,
+                            api_key_value: item.api_key_value,
+                            provider: 'googleaistudio',
+                            isValid,
+                            error: isValid
+                                ? undefined
+                                : translate('api_keys.create.errors.tooShort'),
                         });
-                    }
+                    });
+                    return {
+                        keys: parsedKeys,
+                        format: result.format,
+                        stats: result.stats,
+                    };
                 } catch (error) {
+                    const message =
+                        error instanceof Error ? error.message : 'Unknown import error';
+                    const isUnsupportedFormat = message === 'Unsupported import file format';
                     notification.open({
                         type: 'error',
-                        message: translate('api_keys.create.errors.invalidJson'),
-                        description: translate('api_keys.create.errors.invalidJsonDesc'),
+                        message: translate(
+                            isUnsupportedFormat
+                                ? 'api_keys.create.errors.unsupportedImportFormat'
+                                : 'api_keys.create.errors.invalidJson',
+                        ),
+                        description: translate(
+                            isUnsupportedFormat
+                                ? 'api_keys.create.errors.unsupportedImportFormatDesc'
+                                : 'api_keys.create.errors.invalidJsonDesc',
+                        ),
                     });
-                    return [];
+                    return { keys: [] };
                 }
             }
 
-            return parsedKeys;
+            return { keys: parsedKeys };
         },
         [activeTab, isValidApiKey, generateKeyId, notification, translate],
     );
@@ -188,7 +198,7 @@ export default function ApiKeyCreatePage() {
     // Handle import step - parse keys and move to review
     const handleImport = useCallback(() => {
         const values = form.getFieldsValue();
-        const keys = parseKeysFromInput(values);
+        const { keys, format, stats } = parseKeysFromInput(values);
 
         if (keys.length === 0) {
             notification.open({
@@ -200,6 +210,8 @@ export default function ApiKeyCreatePage() {
         }
 
         setParsedKeys(keys);
+        setImportFormat(format ?? null);
+        setImportStats(stats ?? null);
         setCurrentStep('review');
     }, [form, parseKeysFromInput, notification, translate]);
 
@@ -607,6 +619,22 @@ export default function ApiKeyCreatePage() {
                         {translate('api_keys.create.reviewBody')}
                     </Paragraph>
                 </div>
+                {importFormat === '9router' && importStats && (
+                    <Alert
+                        message={translate('api_keys.create.nineRouterDetected')}
+                        description={translate('api_keys.create.nineRouterSummary', {
+                            total: importStats.total_connections ?? 0,
+                            gemini: importStats.gemini_connections ?? 0,
+                            skippedNonGemini: importStats.skipped_non_gemini ?? 0,
+                            skippedMaskedInvalid:
+                                (importStats.skipped_masked ?? 0) +
+                                (importStats.skipped_invalid ?? 0),
+                        })}
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: token.marginLG }}
+                    />
+                )}
                 <Table
                     dataSource={parsedKeys}
                     columns={columns}
@@ -655,7 +683,13 @@ export default function ApiKeyCreatePage() {
                     </Button>
                 ) : currentStep === 'review' ? (
                     <Space>
-                        <Button onClick={() => setCurrentStep('import')}>
+                        <Button
+                            onClick={() => {
+                                setCurrentStep('import');
+                                setImportFormat(null);
+                                setImportStats(null);
+                            }}
+                        >
                             {translate('api_keys.create.backToImport')}
                         </Button>
                         <Button
