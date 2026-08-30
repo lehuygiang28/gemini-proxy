@@ -8,5 +8,10 @@
             "command": "bash .cursor/dev.sh"
         }
     ],
-    "ports": [4040, 9090, 54321, 54323]
+    "ports": [
+        { "name": "web dashboard", "port": 4040 },
+        { "name": "api", "port": 9090 },
+        { "name": "supabase api", "port": 54321 },
+        { "name": "supabase studio", "port": 54323 }
+    ]
 }
