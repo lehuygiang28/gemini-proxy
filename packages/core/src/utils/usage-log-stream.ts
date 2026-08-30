@@ -17,11 +17,18 @@ export function attachUsageLogging(params: {
     headers: Headers;
     apiFormat: ProxyApiFormat;
     onComplete: UsageLogComplete;
+    /** Register background persist work (e.g. waitUntil) for empty-body responses. */
+    registerBackground?: (work: Promise<void>) => void;
 }): Response {
-    const { response, headers, apiFormat, onComplete } = params;
+    const { response, headers, apiFormat, onComplete, registerBackground } = params;
     const body = response.body;
     if (!body) {
-        void onComplete(null, null);
+        const work = Promise.resolve(onComplete(null, null));
+        if (registerBackground) {
+            registerBackground(work);
+        } else {
+            void work;
+        }
         return new Response(null, { status: response.status, headers });
     }
     const parser = new UsageStreamParser(apiFormat);
@@ -66,6 +73,7 @@ export function attachUsageLogging(params: {
                     controller.enqueue(value);
                 }
             } catch (error) {
+                await settle();
                 controller.error(error);
             }
         },

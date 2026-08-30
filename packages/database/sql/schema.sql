@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     detailed_observability BOOLEAN NOT NULL DEFAULT false,
     save_request_body BOOLEAN NOT NULL DEFAULT false,
     save_response_body BOOLEAN NOT NULL DEFAULT false,
+    custom_model_pricing JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -288,6 +289,8 @@ COMMENT ON COLUMN user_settings.save_request_body IS
     'When detailed_observability is on, persist sanitized request bodies on request_logs.';
 COMMENT ON COLUMN user_settings.save_response_body IS
     'When detailed_observability is on, persist sanitized response bodies on request_logs.';
+COMMENT ON COLUMN user_settings.custom_model_pricing IS
+    'Optional per-model USD/1M token overrides for cost estimates on new request logs.';
 
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
@@ -735,7 +738,9 @@ BEGIN
         ), 0),
         COALESCE(SUM(
             CASE
-                WHEN (usage_metadata->>'estimated_cost_usd') ~ '^[0-9]+(\.[0-9]+)?$'
+                WHEN jsonb_typeof(usage_metadata->'estimated_cost_usd') = 'number'
+                THEN (usage_metadata->'estimated_cost_usd')::NUMERIC
+                WHEN (usage_metadata->>'estimated_cost_usd') ~ '^-?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$'
                 THEN (usage_metadata->>'estimated_cost_usd')::NUMERIC
                 ELSE 0
             END
@@ -877,6 +882,8 @@ GRANT EXECUTE ON FUNCTION get_retry_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_api_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_proxy_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_request_logs_statistics(UUID, INTEGER) TO authenticated;
+REVOKE ALL ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 GRANT EXECUTE ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 

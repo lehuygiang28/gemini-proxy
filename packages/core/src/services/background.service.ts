@@ -2,7 +2,7 @@ import { Context } from 'hono';
 
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
-import { estimateCostFromParsedUsage } from '../utils/cost-estimator';
+import { estimateCostFromParsedUsage, visibleCompletionTokensForKeys } from '../utils/cost-estimator';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
@@ -175,6 +175,7 @@ export class BackgroundService {
             { ...tokenUsage, model: tokenUsage.model || fallbackModel },
             fallbackModel,
         );
+        const keyCompletionTokens = visibleCompletionTokensForKeys(tokenUsage);
         const settings = await this.loadUserSettings(c, userId);
         const requestText =
             settings.detailed_observability && settings.save_request_body
@@ -193,7 +194,7 @@ export class BackgroundService {
                 apiKeyId,
                 isSuccessful: true,
                 promptTokens: tokenUsage.promptTokens,
-                completionTokens: tokenUsage.completionTokens,
+                completionTokens: keyCompletionTokens,
                 totalTokens: tokenUsage.totalTokens,
             });
             this.addApiKeyTouch(requestId, {
@@ -248,7 +249,7 @@ export class BackgroundService {
             totalResponseTimeMs,
             usageMetadata: {
                 promptTokens: tokenUsage.promptTokens,
-                completionTokens: tokenUsage.completionTokens,
+                completionTokens: keyCompletionTokens,
                 thoughtsTokens: tokenUsage.thoughtsTokens,
                 toolUsePromptTokens: tokenUsage.toolUsePromptTokens,
                 totalTokens: tokenUsage.totalTokens,
@@ -418,10 +419,19 @@ export class BackgroundService {
         this.operations.delete(requestId);
 
         try {
-            if (operations.requestLog) {
-                await persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!));
-            }
             const promises: Promise<void>[] = [];
+            if (operations.requestLog) {
+                promises.push(
+                    persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!)).catch(
+                        (error) => {
+                            console.error(
+                                `Failed to insert request log for request ${requestId}:`,
+                                error,
+                            );
+                        },
+                    ),
+                );
+            }
             if (operations.apiKeyUsages.length > 0) {
                 promises.push(this.updateApiKeyUsages(c, operations.apiKeyUsages));
             }

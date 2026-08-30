@@ -68,4 +68,19 @@ describe('attachUsageLogging', () => {
             totalTokens: 4,
         });
     });
+
+    it('registers background work for empty-body responses', async () => {
+        const onComplete = vi.fn(async () => undefined);
+        const registerBackground = vi.fn();
+        attachUsageLogging({
+            response: new Response(null, { status: 204 }),
+            headers: new Headers(),
+            apiFormat: 'gemini',
+            onComplete,
+            registerBackground,
+        });
+        expect(registerBackground).toHaveBeenCalledOnce();
+        await registerBackground.mock.calls[0]?.[0];
+        expect(onComplete).toHaveBeenCalledWith(null, null);
+    });
 });
