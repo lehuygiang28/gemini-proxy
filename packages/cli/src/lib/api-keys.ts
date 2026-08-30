@@ -293,6 +293,7 @@ export class ApiKeysManager {
         }
 
         const existingKeys = (await this.list()).filter((key) => key.user_id === firstUser.id);
+        const workingKeys: ApiKey[] = [...existingKeys];
         const results: ApiKeyImportResult = {
             created: 0,
             updated: 0,
@@ -308,9 +309,25 @@ export class ApiKeysManager {
 
         for (const importKey of parsed.keys) {
             try {
-                const matchedKey = findExistingKey(existingKeys, importKey);
+                const matchedKey = findExistingKey(workingKeys, importKey);
 
                 if (matchedKey) {
+                    if (matchedKey.id.startsWith('__pending_')) {
+                        results.skipped++;
+                        results.warnings.push(
+                            `Skipped duplicate key in import batch: "${importKey.name}"`,
+                        );
+                        continue;
+                    }
+
+                    if (
+                        matchedKey.api_key_value !== importKey.api_key_value
+                        && !options.overwrite
+                    ) {
+                        results.warnings.push(
+                            `Key "${importKey.name}": stored secret was not rotated (use --overwrite to update)`,
+                        );
+                    }
                     if (!options.dryRun) {
                         const updates: Partial<ApiKeyUpdate> = {
                             name: importKey.name,
@@ -327,14 +344,32 @@ export class ApiKeysManager {
                             id: matchedKey.id,
                             updates,
                         });
+                        const workingIndex = workingKeys.findIndex((key) => key.id === matchedKey.id);
+                        if (workingIndex >= 0) {
+                            workingKeys[workingIndex] = {
+                                ...workingKeys[workingIndex],
+                                name: importKey.name,
+                                api_key_value: updates.api_key_value ?? matchedKey.api_key_value,
+                                is_active: importKey.is_active,
+                                metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
+                            };
+                        }
                     }
                     results.updated++;
                     continue;
                 }
 
-                const nameCollision = existingKeys.find((key) => key.name === importKey.name);
+                const nameCollision = workingKeys.find((key) => key.name === importKey.name);
 
                 if (nameCollision) {
+                    if (nameCollision.id.startsWith('__pending_')) {
+                        results.skipped++;
+                        results.warnings.push(
+                            `Skipped duplicate key in import batch: "${importKey.name}"`,
+                        );
+                        continue;
+                    }
+
                     if (options.skipDuplicates) {
                         results.skipped++;
                         continue;
@@ -371,6 +406,15 @@ export class ApiKeysManager {
                         user_id: firstUser.id,
                     });
                 }
+                workingKeys.push({
+                    id: `__pending_${workingKeys.length}`,
+                    name: importKey.name,
+                    api_key_value: importKey.api_key_value,
+                    metadata: importKey.metadata,
+                    user_id: firstUser.id,
+                    provider: importKey.provider,
+                    is_active: importKey.is_active,
+                } as ApiKey);
                 results.created++;
             } catch (error) {
                 const errorMsg = `Failed to import key "${importKey.name}": ${error instanceof Error ? error.message : 'Unknown error'}`;

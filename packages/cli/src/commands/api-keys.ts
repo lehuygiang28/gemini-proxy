@@ -214,8 +214,11 @@ export function apiKeysCommands(program: Command) {
                     if (stats.gemini_connections !== undefined) {
                         console.log(`  • Gemini connections found: ${stats.gemini_connections}`);
                     }
-                    if (stats.skipped_non_gemini !== undefined) {
-                        console.log(`  • Skipped (non-gemini): ${stats.skipped_non_gemini}`);
+                    if (stats.imported_keys !== undefined) {
+                        console.log(`  • Importable Gemini keys: ${stats.imported_keys}`);
+                    }
+                    if (stats.skipped_unsupported !== undefined) {
+                        console.log(`  • Skipped (unsupported): ${stats.skipped_unsupported}`);
                     }
                     const skippedMaskedInvalid =
                         (stats.skipped_masked ?? 0) + (stats.skipped_invalid ?? 0);
