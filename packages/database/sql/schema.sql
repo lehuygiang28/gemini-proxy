@@ -641,6 +641,9 @@ DECLARE
     prompt_tokens_sum BIGINT;
     completion_tokens_sum BIGINT;
     cache_tokens_sum BIGINT;
+    thoughts_tokens_sum BIGINT;
+    tool_use_prompt_tokens_sum BIGINT;
+    estimated_cost_usd_sum NUMERIC;
     avg_response_time_ms NUMERIC;
     avg_total_response_time_ms NUMERIC;
     success_rate NUMERIC;
@@ -715,8 +718,30 @@ BEGIN
                 THEN (usage_metadata->>'cache_tokens')::BIGINT
                 ELSE 0
             END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'thoughts_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'thoughts_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'tool_use_prompt_tokens') ~ '^[0-9]+$'
+                THEN (usage_metadata->>'tool_use_prompt_tokens')::BIGINT
+                ELSE 0
+            END
+        ), 0),
+        COALESCE(SUM(
+            CASE
+                WHEN (usage_metadata->>'estimated_cost_usd') ~ '^[0-9]+(\.[0-9]+)?$'
+                THEN (usage_metadata->>'estimated_cost_usd')::NUMERIC
+                ELSE 0
+            END
         ), 0)
-    INTO total_tokens_sum, prompt_tokens_sum, completion_tokens_sum, cache_tokens_sum
+    INTO total_tokens_sum, prompt_tokens_sum, completion_tokens_sum, cache_tokens_sum,
+         thoughts_tokens_sum, tool_use_prompt_tokens_sum, estimated_cost_usd_sum
     FROM request_logs
     WHERE (effective_user_id IS NULL OR user_id = effective_user_id)
     AND created_at >= cutoff_date
@@ -763,6 +788,9 @@ BEGIN
         'prompt_tokens', prompt_tokens_sum,
         'completion_tokens', completion_tokens_sum,
         'cache_tokens', cache_tokens_sum,
+        'thoughts_tokens', thoughts_tokens_sum,
+        'tool_use_prompt_tokens', tool_use_prompt_tokens_sum,
+        'estimated_cost_usd', COALESCE(ROUND(estimated_cost_usd_sum, 6), 0),
         'avg_response_time_ms', COALESCE(ROUND(avg_response_time_ms), 0),
         'avg_total_response_time_ms', COALESCE(ROUND(avg_total_response_time_ms), 0),
         'success_rate', success_rate,
@@ -775,12 +803,82 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION increment_api_key_usage(
+    p_id UUID,
+    p_success BIGINT DEFAULT 0,
+    p_failure BIGINT DEFAULT 0,
+    p_prompt BIGINT DEFAULT 0,
+    p_completion BIGINT DEFAULT 0,
+    p_total BIGINT DEFAULT 0
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = 'public', pg_catalog
+AS $$
+BEGIN
+    UPDATE api_keys
+    SET
+        success_count = success_count + COALESCE(p_success, 0),
+        failure_count = failure_count + COALESCE(p_failure, 0),
+        prompt_tokens = prompt_tokens + COALESCE(p_prompt, 0),
+        completion_tokens = completion_tokens + COALESCE(p_completion, 0),
+        total_tokens = total_tokens + COALESCE(p_total, 0),
+        last_used_at = CASE
+            WHEN COALESCE(p_success, 0) > 0 THEN NOW()
+            ELSE last_used_at
+        END,
+        last_error_at = CASE
+            WHEN COALESCE(p_failure, 0) > 0 THEN NOW()
+            ELSE last_error_at
+        END,
+        updated_at = NOW()
+    WHERE id = p_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION increment_proxy_api_key_usage(
+    p_id UUID,
+    p_success BIGINT DEFAULT 0,
+    p_failure BIGINT DEFAULT 0,
+    p_prompt BIGINT DEFAULT 0,
+    p_completion BIGINT DEFAULT 0,
+    p_total BIGINT DEFAULT 0
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = 'public', pg_catalog
+AS $$
+BEGIN
+    UPDATE proxy_api_keys
+    SET
+        success_count = success_count + COALESCE(p_success, 0),
+        failure_count = failure_count + COALESCE(p_failure, 0),
+        prompt_tokens = prompt_tokens + COALESCE(p_prompt, 0),
+        completion_tokens = completion_tokens + COALESCE(p_completion, 0),
+        total_tokens = total_tokens + COALESCE(p_total, 0),
+        last_used_at = CASE
+            WHEN COALESCE(p_success, 0) > 0 THEN NOW()
+            ELSE last_used_at
+        END,
+        last_error_at = CASE
+            WHEN COALESCE(p_failure, 0) > 0 THEN NOW()
+            ELSE last_error_at
+        END,
+        updated_at = NOW()
+    WHERE id = p_id;
+END;
+$$;
+
 -- Grant execute permissions to authenticated users
 GRANT EXECUTE ON FUNCTION get_dashboard_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_retry_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_api_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_proxy_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_request_logs_statistics(UUID, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
+GRANT EXECUTE ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 
 -- Add comments for documentation
 COMMENT ON FUNCTION get_dashboard_statistics(UUID, INTEGER) IS 'Returns dashboard statistics; request aggregates honor optional p_days_back, key inventory is all-time';
@@ -788,5 +886,5 @@ COMMENT ON FUNCTION get_retry_statistics(UUID, INTEGER) IS 'Returns retry attemp
 COMMENT ON FUNCTION get_api_key_statistics(UUID) IS 'Returns usage statistics for API keys including success/failure rates';
 COMMENT ON FUNCTION get_proxy_key_statistics(UUID) IS 'Returns usage statistics for proxy keys including token usage and success rates';
 COMMENT ON FUNCTION get_request_logs_statistics(UUID, INTEGER) IS
-    'Returns request logs statistics including format/hourly distribution and prompt/completion/cache token totals';
+    'Request-log stats including prompt/completion/cache/thoughts/tool-use tokens and estimated USD';
 

@@ -53,6 +53,9 @@ export interface RequestLogsStatistics {
     prompt_tokens: number;
     completion_tokens: number;
     cache_tokens: number;
+    thoughts_tokens: number;
+    tool_use_prompt_tokens: number;
+    estimated_cost_usd: number;
     avg_response_time_ms: number;
     avg_total_response_time_ms: number;
     success_rate: number;
@@ -74,6 +77,12 @@ export interface UsageMetadata {
     prompt_tokens: number;
     completion_tokens: number;
     cache_tokens?: number;
+    thoughts_tokens?: number;
+    tool_use_prompt_tokens?: number;
+    estimated_cost_usd?: number | null;
+    pricing_version?: string | null;
+    matched_model?: string | null;
+    raw_metadata?: Record<string, unknown> | null;
     model: string | null;
     response_id?: string;
     created?: number;

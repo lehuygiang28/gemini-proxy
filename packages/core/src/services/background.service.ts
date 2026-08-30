@@ -2,7 +2,9 @@ import { Context } from 'hono';
 
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
-import { UsageMetadataParser } from '../utils/usage-metadata-parser';
+import { estimateCostFromParsedUsage } from '../utils/cost-estimator';
+import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
+import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
 import type { HonoApp, ProxyRequestDataParsed } from '../types';
 import type { ProxyError } from '../types/error.type';
@@ -24,11 +26,16 @@ export interface RequestLogData {
     usageMetadata?: {
         promptTokens: number;
         completionTokens: number;
+        thoughtsTokens: number;
+        toolUsePromptTokens: number;
         totalTokens: number;
         cacheTokens: number;
         model: string;
         responseId?: string;
-        rawMetadata: any;
+        estimatedCostUsd: number | null;
+        pricingVersion: string | null;
+        matchedModel: string | null;
+        rawMetadata: Record<string, unknown> | null;
     } | null;
     retryAttempts?: any;
     totalResponseTimeMs?: number;
@@ -120,12 +127,15 @@ export class BackgroundService {
         userId: string | null;
         apiFormat: ProxyRequestDataParsed['apiFormat'];
         baseRequest: Request;
-        response: Response;
-        headers: Headers;
+        requestHeaders: Headers;
+        responseStatus: number;
+        responseHeaders: Headers;
         durationMs: number;
         proxyRequestDataParsed: ProxyRequestDataParsed;
         retryAttempts: any[];
         totalResponseTimeMs: number;
+        usage: ParsedUsageMetadata | null;
+        responseText: string | null;
     }): Promise<void> {
         const {
             c,
@@ -135,19 +145,35 @@ export class BackgroundService {
             userId,
             apiFormat,
             baseRequest,
-            response,
-            headers,
+            requestHeaders,
+            responseStatus,
+            responseHeaders,
             durationMs,
             proxyRequestDataParsed,
             retryAttempts,
             totalResponseTimeMs,
+            usage,
+            responseText,
         } = params;
 
-        // Initialize operations for this request
         this.initializeRequest(requestId);
 
-        // Extract token usage from response (single source of truth; buffers stream text)
-        const { tokenUsage, responseText } = await this.extractTokenUsage(response, apiFormat);
+        const tokenUsage = usage ?? {
+            promptTokens: 0,
+            completionTokens: 0,
+            thoughtsTokens: 0,
+            toolUsePromptTokens: 0,
+            cacheTokens: 0,
+            totalTokens: 0,
+            model: '',
+            parseError: true,
+            raw: { parse_error: true },
+        };
+        const fallbackModel = proxyRequestDataParsed.model || 'unknown';
+        const cost = estimateCostFromParsedUsage(
+            { ...tokenUsage, model: tokenUsage.model || fallbackModel },
+            fallbackModel,
+        );
         const settings = await this.loadUserSettings(c, userId);
         const requestText =
             settings.detailed_observability && settings.save_request_body
@@ -187,11 +213,11 @@ export class BackgroundService {
         const requestData: Record<string, unknown> = {
             method: baseRequest.method,
             url: baseRequest.url,
-            headers: Object.fromEntries(headers.entries()),
+            headers: Object.fromEntries(requestHeaders.entries()),
         };
         const responseData: Record<string, unknown> = {
-            status: response.status,
-            headers: Object.fromEntries(response.headers.entries()),
+            status: responseStatus,
+            headers: Object.fromEntries(responseHeaders.entries()),
         };
         this.attachDetailedBodies({
             settings,
@@ -222,15 +248,16 @@ export class BackgroundService {
             usageMetadata: {
                 promptTokens: tokenUsage.promptTokens,
                 completionTokens: tokenUsage.completionTokens,
+                thoughtsTokens: tokenUsage.thoughtsTokens,
+                toolUsePromptTokens: tokenUsage.toolUsePromptTokens,
                 totalTokens: tokenUsage.totalTokens,
                 cacheTokens: tokenUsage.cacheTokens,
-                model: tokenUsage.model || proxyRequestDataParsed.model || 'unknown',
+                model: tokenUsage.model || fallbackModel,
                 responseId: tokenUsage.responseId,
-                rawMetadata: {
-                    model: tokenUsage.model || proxyRequestDataParsed.model,
-                    apiFormat: proxyRequestDataParsed.apiFormat,
-                    responseId: tokenUsage.responseId,
-                },
+                estimatedCostUsd: cost?.usd ?? null,
+                pricingVersion: cost?.pricingVersion ?? null,
+                matchedModel: cost?.matchedModel ?? null,
+                rawMetadata: tokenUsage.raw ?? { parse_error: true },
             },
         });
 
@@ -358,9 +385,14 @@ export class BackgroundService {
                 ? {
                       promptTokens: 0,
                       completionTokens: 0,
+                      thoughtsTokens: 0,
+                      toolUsePromptTokens: 0,
                       totalTokens: 0,
                       cacheTokens: 0,
                       model: model,
+                      estimatedCostUsd: null,
+                      pricingVersion: null,
+                      matchedModel: null,
                       rawMetadata: { model: model },
                   }
                 : null,
@@ -385,37 +417,25 @@ export class BackgroundService {
         this.operations.delete(requestId);
 
         try {
-            // Execute all operations in parallel
-            const promises: Promise<void>[] = [];
-
-            // 1. Insert request log
             if (operations.requestLog) {
-                promises.push(this.insertRequestLog(c, operations.requestLog));
+                await persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!));
             }
-
-            // 2. Update API key usages
+            const promises: Promise<void>[] = [];
             if (operations.apiKeyUsages.length > 0) {
                 promises.push(this.updateApiKeyUsages(c, operations.apiKeyUsages));
             }
-
-            // 3. Update proxy API key usages
             if (operations.proxyApiKeyUsages.length > 0) {
                 promises.push(this.updateProxyApiKeyUsages(c, operations.proxyApiKeyUsages));
             }
-
-            // 4. Touch API keys
             if (operations.apiKeyTouches.length > 0) {
                 promises.push(this.touchApiKeys(c, operations.apiKeyTouches));
             }
-
-            // 5. Touch proxy API keys
             if (operations.proxyApiKeyTouches.length > 0) {
                 promises.push(this.touchProxyApiKeys(c, operations.proxyApiKeyTouches));
             }
-
             await Promise.allSettled(promises);
             console.log(
-                `Executed ${promises.length} background operations for request ${requestId}`,
+                `Executed background operations for request ${requestId}`,
             );
         } catch (error) {
             console.error(
@@ -549,10 +569,15 @@ export class BackgroundService {
                 ? {
                       prompt_tokens: usageMetadata.promptTokens,
                       completion_tokens: usageMetadata.completionTokens,
+                      thoughts_tokens: usageMetadata.thoughtsTokens,
+                      tool_use_prompt_tokens: usageMetadata.toolUsePromptTokens,
                       total_tokens: usageMetadata.totalTokens,
                       cache_tokens: usageMetadata.cacheTokens,
                       model: usageMetadata.model,
                       response_id: usageMetadata.responseId,
+                      estimated_cost_usd: usageMetadata.estimatedCostUsd,
+                      pricing_version: usageMetadata.pricingVersion,
+                      matched_model: usageMetadata.matchedModel,
                       raw_metadata: usageMetadata.rawMetadata,
                   }
                 : null,
@@ -566,6 +591,7 @@ export class BackgroundService {
 
         if (error) {
             console.error('Failed to insert request log:', error);
+            throw error;
         }
     }
 
@@ -609,39 +635,14 @@ export class BackgroundService {
         // Update each API key (now also updating token usage fields)
         const updatePromises = Array.from(groupedUsages.entries()).map(
             async ([apiKeyId, counts]) => {
-                const { data: currentKey, error: fetchError } = await supabase
-                    .from('api_keys')
-                    .select(
-                        'success_count, failure_count, prompt_tokens, completion_tokens, total_tokens',
-                    )
-                    .eq('id', apiKeyId)
-                    .single();
-
-                if (fetchError) {
-                    console.error(
-                        `Failed to fetch API key for usage update ${apiKeyId}:`,
-                        fetchError,
-                    );
-                    return;
-                }
-
-                const updateData = {
-                    success_count: currentKey.success_count + counts.successCount,
-                    failure_count: currentKey.failure_count + counts.failureCount,
-                    prompt_tokens: (currentKey.prompt_tokens || 0) + counts.promptTokens,
-                    completion_tokens:
-                        (currentKey.completion_tokens || 0) + counts.completionTokens,
-                    total_tokens: (currentKey.total_tokens || 0) + counts.totalTokens,
-                    last_used_at: counts.successCount > 0 ? new Date().toISOString() : undefined,
-                    last_error_at: counts.failureCount > 0 ? new Date().toISOString() : undefined,
-                    updated_at: new Date().toISOString(),
-                };
-
-                const { error } = await supabase
-                    .from('api_keys')
-                    .update(updateData)
-                    .eq('id', apiKeyId);
-
+                const { error } = await supabase.rpc('increment_api_key_usage', {
+                    p_id: apiKeyId,
+                    p_success: counts.successCount,
+                    p_failure: counts.failureCount,
+                    p_prompt: counts.promptTokens,
+                    p_completion: counts.completionTokens,
+                    p_total: counts.totalTokens,
+                });
                 if (error) {
                     console.error(`Failed to update API key usage ${apiKeyId}:`, error);
                 }
@@ -693,40 +694,19 @@ export class BackgroundService {
         // Update each proxy API key
         const updatePromises = Array.from(groupedUsages.entries()).map(
             async ([proxyApiKeyId, counts]) => {
-                const { data: currentKey, error: fetchError } = await supabase
-                    .from('proxy_api_keys')
-                    .select(
-                        'success_count, failure_count, prompt_tokens, completion_tokens, total_tokens',
-                    )
-                    .eq('id', proxyApiKeyId)
-                    .single();
-
-                if (fetchError) {
-                    console.error(
-                        `Failed to fetch Proxy API key for usage update ${proxyApiKeyId}:`,
-                        fetchError,
-                    );
-                    return;
-                }
-
-                const updateData = {
-                    success_count: currentKey.success_count + counts.successCount,
-                    failure_count: currentKey.failure_count + counts.failureCount,
-                    prompt_tokens: currentKey.prompt_tokens + counts.promptTokens,
-                    completion_tokens: currentKey.completion_tokens + counts.completionTokens,
-                    total_tokens: currentKey.total_tokens + counts.totalTokens,
-                    last_used_at: counts.successCount > 0 ? new Date().toISOString() : undefined,
-                    last_error_at: counts.failureCount > 0 ? new Date().toISOString() : undefined,
-                    updated_at: new Date().toISOString(),
-                };
-
-                const { error } = await supabase
-                    .from('proxy_api_keys')
-                    .update(updateData)
-                    .eq('id', proxyApiKeyId);
-
+                const { error } = await supabase.rpc('increment_proxy_api_key_usage', {
+                    p_id: proxyApiKeyId,
+                    p_success: counts.successCount,
+                    p_failure: counts.failureCount,
+                    p_prompt: counts.promptTokens,
+                    p_completion: counts.completionTokens,
+                    p_total: counts.totalTokens,
+                });
                 if (error) {
-                    console.error(`Failed to update Proxy API key usage ${proxyApiKeyId}:`, error);
+                    console.error(
+                        `Failed to update Proxy API key usage ${proxyApiKeyId}:`,
+                        error,
+                    );
                 }
             },
         );
@@ -856,71 +836,5 @@ export class BackgroundService {
         } catch {
             return null;
         }
-    }
-
-    /**
-     * Extract token usage from response body; also returns buffered response text.
-     */
-    private static async extractTokenUsage(
-        response: Response,
-        apiFormat: 'gemini' | 'openai',
-    ): Promise<{
-        tokenUsage: {
-            promptTokens: number;
-            completionTokens: number;
-            totalTokens: number;
-            cacheTokens: number;
-            responseId?: string;
-            model?: string;
-        };
-        responseText: string | null;
-    }> {
-        try {
-            // Clone the response to avoid consuming the original
-            const responseClone = response.clone();
-            const responseText = await responseClone.text();
-
-            // Use the existing UsageMetadataParser to extract tokens
-            const parsed = UsageMetadataParser.parseFromResponseBody(responseText, apiFormat);
-
-            if (parsed) {
-                return {
-                    tokenUsage: {
-                        promptTokens: parsed.promptTokens || 0,
-                        completionTokens: parsed.completionTokens || 0,
-                        totalTokens: parsed.totalTokens || 0,
-                        cacheTokens: parsed.cacheTokens || 0,
-                        responseId: parsed.responseId,
-                        model: parsed.model,
-                    },
-                    responseText,
-                };
-            }
-            return {
-                tokenUsage: {
-                    promptTokens: 0,
-                    completionTokens: 0,
-                    totalTokens: 0,
-                    cacheTokens: 0,
-                    responseId: undefined,
-                    model: undefined,
-                },
-                responseText,
-            };
-        } catch (error) {
-            console.warn('Failed to extract token usage from response:', error);
-        }
-
-        return {
-            tokenUsage: {
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-                cacheTokens: 0,
-                responseId: undefined,
-                model: undefined,
-            },
-            responseText: null,
-        };
     }
 }

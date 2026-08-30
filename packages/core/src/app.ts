@@ -12,8 +12,6 @@ import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
 import { extractProxyDataMiddleware } from './middlewares/extract-proxy-data.middleware';
 import { proxyOptionsMiddleware } from './middlewares/proxy-options.middleware';
 import { ProxyService } from './services/proxy.service';
-import { BackgroundService } from './services/background.service';
-import { executeWithWaitUntil } from './utils/wait-until';
 
 function toStatusCode(status: number | undefined): ContentfulStatusCode {
     if (typeof status === 'number' && status >= 400 && status <= 599) {
@@ -71,13 +69,5 @@ export const coreApp = new Hono<HonoApp>()
     .use('/*', extractProxyDataMiddleware)
     // Main handler route for all requests
     .use('/*', async (c) => {
-        // Get response immediately - background operations are collected
-        const response = await ProxyService.makeApiRequest({ c });
-
-        // Execute all collected background operations with wait-until
-        // This ensures operations complete before serverless function shutdown
-        const requestId = c.get('proxyRequestId');
-        executeWithWaitUntil(c, BackgroundService.executeAllOperations(c, requestId));
-
-        return response;
+        return ProxyService.makeApiRequest({ c });
     });
