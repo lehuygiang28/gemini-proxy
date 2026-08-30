@@ -215,7 +215,7 @@
             "nameExample": "e.g., My App Key",
             "selectProvider": "Select provider",
             "keyName": "Key Name",
-            "apiKey": "API Key"
+            "apiKey": "AIza… or AQ.…"
         },
         "filters": {
             "title": "Filters & Search",
@@ -234,6 +234,7 @@
             "viewLogs": "View logs for this key",
             "viewDetails": "View Details",
             "edit": "Edit API Key",
+            "rotate": "Replace / rotate key",
             "delete": "Delete API Key"
         },
         "delete": {
@@ -257,12 +258,15 @@
             "enterName": "Please enter a name",
             "selectProvider": "Please select a provider",
             "missingName": "Missing name",
-            "missingApiKey": "Missing API key"
+            "missingApiKey": "Missing API key",
+            "invalidApiKey": "Enter a Google AI Studio key (AIza… or AQ.…), at least 10 characters"
         },
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing API key.",
-            "keyImmutable": "The API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "keyRotatable": "You can replace this Google API key in place. Saving a new value rotates the secret immediately.",
+            "rotateHint": "Paste a new key to rotate it. Legacy AIza… keys and new AQ.… keys are both accepted.",
+            "formatHint": "Google AI Studio now issues keys starting with AQ. (for example AQ.…). Legacy AIza… keys still work.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
         },
@@ -329,10 +333,11 @@
                 "objectArray": "Object array with name and key:",
                 "altFields": "Object array with different field names:",
                 "validationTitle": "Validation Rules",
-                "validationBody": "All API keys must be at least 10 characters long and not empty. Invalid keys will be highlighted in the review step."
+                "validationBody": "Google AI Studio keys may start with AIza (legacy) or AQ. (current). All keys must be at least 10 characters. Invalid keys will be highlighted in the review step."
             },
             "errors": {
                 "tooShort": "API key is too short or empty",
+                "invalidFormat": "API key must be a Google AI Studio key (AIza… or AQ.…)",
                 "invalidJson": "Invalid JSON Format",
                 "invalidJsonDesc": "Please provide a valid JSON import file.",
                 "unsupportedImportFormat": "Unsupported Import Format",
@@ -398,6 +403,7 @@
             "viewLogs": "View logs for this key",
             "viewDetails": "View Details",
             "edit": "Edit Proxy API Key",
+            "rotate": "Rotate proxy key",
             "delete": "Delete Proxy API Key"
         },
         "delete": {
@@ -415,18 +421,30 @@
             "deleted": "Proxy API Key Deleted",
             "deletedDesc": "Proxy API key \"{name}\" removed. Request logs are kept.",
             "deleteFailed": "Delete Failed",
-            "deleteFailedDesc": "Failed to delete proxy API key"
+            "deleteFailedDesc": "Failed to delete proxy API key",
+            "rotated": "Proxy key rotated",
+            "rotatedDesc": "Proxy API key \"{name}\" was rotated. Update clients with the new value.",
+            "rotateFailed": "Rotate failed",
+            "rotateFailedDesc": "Failed to rotate proxy API key"
         },
         "errors": {
             "enterName": "Please enter a name",
-            "enterOrGenerate": "Please enter or generate a proxy API key"
+            "enterOrGenerate": "Please enter or generate a proxy API key",
+            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores"
         },
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing proxy API key.",
-            "keyImmutable": "The proxy API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "keyRotatable": "You can replace or generate a new proxy key. Saving rotates the secret and existing clients must use the new value.",
+            "rotateHint": "Generate a new key or paste a custom value, then save.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
+        },
+        "rotate": {
+            "title": "Rotate proxy API key?",
+            "description": "This immediately replaces the secret. Existing clients will fail until they use the new key.",
+            "doneTitle": "Copy the new proxy key",
+            "doneBody": "Store this value now. Clients using the previous key will stop authenticating."
         },
         "show": {
             "security": "Security",
@@ -720,7 +738,11 @@
     "settings": {
         "title": "Settings",
         "subtitle": "Control detailed request logging and console preferences.",
-        "tabs": { "observability": "Observability", "pricing": "Pricing", "appearance": "Appearance" },
+        "tabs": {
+            "observability": "Observability",
+            "pricing": "Pricing",
+            "appearance": "Appearance"
+        },
         "appearance": {
             "title": "Appearance",
             "colorMode": "Color mode",

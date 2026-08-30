@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import { InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons';
 import type { TablesUpdate } from '@gemini-proxy/database';
+import { isValidGoogleApiKey } from '@gemini-proxy/core';
 import { PROVIDER_OPTIONS } from '@/constants/providers';
 
 const { Title, Paragraph } = Typography;
@@ -33,6 +34,17 @@ export default function ApiKeysEditPage() {
     });
 
     const apiKeyData = query?.data?.data;
+
+    const handleFinish = (values: ApiKeyUpdate) => {
+        const apiKeyValue =
+            typeof values.api_key_value === 'string'
+                ? values.api_key_value.trim()
+                : values.api_key_value;
+        formProps.onFinish?.({
+            ...values,
+            api_key_value: apiKeyValue,
+        });
+    };
 
     if (query?.isLoading) {
         return (
@@ -60,13 +72,20 @@ export default function ApiKeysEditPage() {
                         <Title level={5}>
                             {translate('api_keys.edit.editing', { name: apiKeyData?.name ?? '' })}
                         </Title>
-                        <Paragraph type="secondary">{translate('api_keys.edit.subtitle')}</Paragraph>
-                        <Alert message={translate('api_keys.edit.keyImmutable')} type="info" showIcon />
+                        <Paragraph type="secondary">
+                            {translate('api_keys.edit.subtitle')}
+                        </Paragraph>
+                        <Alert
+                            message={translate('api_keys.edit.keyRotatable')}
+                            description={translate('api_keys.edit.formatHint')}
+                            type="warning"
+                            showIcon
+                        />
                     </Card>
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} layout="vertical">
+                        <Form {...formProps} layout="vertical" onFinish={handleFinish}>
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('api_keys.edit.basicInfo')}
                             </Divider>
@@ -96,7 +115,9 @@ export default function ApiKeysEditPage() {
                                         rules={[
                                             {
                                                 required: true,
-                                                message: translate('api_keys.errors.selectProvider'),
+                                                message: translate(
+                                                    'api_keys.errors.selectProvider',
+                                                ),
                                             },
                                         ]}
                                     >
@@ -115,8 +136,28 @@ export default function ApiKeysEditPage() {
                             <Form.Item
                                 label={translate('api_keys.fields.apiKeyValue')}
                                 name="api_key_value"
+                                extra={translate('api_keys.edit.rotateHint')}
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: translate('api_keys.errors.missingApiKey'),
+                                    },
+                                    {
+                                        validator: async (_rule, value: string) => {
+                                            if (!isValidGoogleApiKey(value)) {
+                                                return Promise.reject(
+                                                    new Error(
+                                                        translate('api_keys.errors.invalidApiKey'),
+                                                    ),
+                                                );
+                                            }
+                                        },
+                                    },
+                                ]}
                             >
-                                <Input readOnly disabled />
+                                <Input.Password
+                                    placeholder={translate('api_keys.placeholders.apiKey')}
+                                />
                             </Form.Item>
                             <Divider orientation="left">
                                 <SettingOutlined /> {translate('api_keys.edit.settings')}

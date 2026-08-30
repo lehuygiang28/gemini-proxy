@@ -2,7 +2,15 @@
 
 import React, { useState, useCallback } from 'react';
 import { Create, useForm } from '@refinedev/antd';
-import { useCreateMany, useGo, useNotification, useGetIdentity, useList, useTranslation, useUpdate } from '@refinedev/core';
+import {
+    useCreateMany,
+    useGo,
+    useNotification,
+    useGetIdentity,
+    useList,
+    useTranslation,
+    useUpdate,
+} from '@refinedev/core';
 import {
     Card,
     Form,
@@ -32,6 +40,7 @@ import {
 } from '@ant-design/icons';
 import type { Tables, TablesInsert, User } from '@gemini-proxy/database';
 import {
+    isValidGoogleApiKey,
     parseApiKeyImport,
     planApiKeyImport,
     type ImportFormat,
@@ -85,9 +94,7 @@ export default function ApiKeyCreatePage() {
     const { result: existingKeysResult } = useList<ApiKeyRow>({
         resource: 'api_keys',
         pagination: { mode: 'off' },
-        filters: user?.id
-            ? [{ field: 'user_id', operator: 'eq', value: user.id }]
-            : [],
+        filters: user?.id ? [{ field: 'user_id', operator: 'eq', value: user.id }] : [],
         queryOptions: {
             enabled: Boolean(user?.id),
         },
@@ -102,9 +109,8 @@ export default function ApiKeyCreatePage() {
     const { mutateAsync: createManyKeys } = useCreateMany<ApiKeyInsert>();
     const { mutateAsync: updateApiKey } = useUpdate<ApiKeyRow>();
 
-    // Helper function to validate API key format (less strict)
     const isValidApiKey = useCallback((key: string): boolean => {
-        return key && key.trim().length >= 10; // Just check it's not empty and not too short
+        return isValidGoogleApiKey(key);
     }, []);
 
     // Generate unique ID for parsed keys
@@ -131,7 +137,9 @@ export default function ApiKeyCreatePage() {
                         provider: 'googleaistudio',
                         is_active: true,
                         isValid,
-                        error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
+                        error: isValid
+                            ? undefined
+                            : translate('api_keys.create.errors.invalidFormat'),
                     });
                 });
             } else if (activeTab === 'bulk' && values.bulk_keys) {
@@ -149,7 +157,9 @@ export default function ApiKeyCreatePage() {
                         provider: 'googleaistudio',
                         is_active: true,
                         isValid,
-                        error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
+                        error: isValid
+                            ? undefined
+                            : translate('api_keys.create.errors.invalidFormat'),
                     });
                 });
             } else if (activeTab === 'json' && values.json_keys) {
@@ -167,7 +177,7 @@ export default function ApiKeyCreatePage() {
                             isValid,
                             error: isValid
                                 ? undefined
-                                : translate('api_keys.create.errors.tooShort'),
+                                : translate('api_keys.create.errors.invalidFormat'),
                         });
                     });
                     return {
@@ -177,8 +187,7 @@ export default function ApiKeyCreatePage() {
                         warnings: result.warnings,
                     };
                 } catch (error) {
-                    const message =
-                        error instanceof Error ? error.message : 'Unknown import error';
+                    const message = error instanceof Error ? error.message : 'Unknown import error';
                     const isUnsupportedFormat = message === 'Unsupported import file format';
                     const isEmptyImport = message === 'No keys found in import file';
                     notification.open({
@@ -402,7 +411,9 @@ export default function ApiKeyCreatePage() {
                         ),
                         children: (
                             <div>
-                                <Title level={5}>{translate('api_keys.create.help.bulkTitle')}</Title>
+                                <Title level={5}>
+                                    {translate('api_keys.create.help.bulkTitle')}
+                                </Title>
                                 <Paragraph>{translate('api_keys.create.help.bulkBody')}</Paragraph>
                                 <ul>
                                     <li>
@@ -431,7 +442,9 @@ export default function ApiKeyCreatePage() {
 
                                 <Divider />
 
-                                <Title level={5}>{translate('api_keys.create.help.jsonTitle')}</Title>
+                                <Title level={5}>
+                                    {translate('api_keys.create.help.jsonTitle')}
+                                </Title>
                                 <Paragraph>{translate('api_keys.create.help.jsonBody')}</Paragraph>
                                 <ul>
                                     <li>
@@ -459,7 +472,7 @@ export default function ApiKeyCreatePage() {
                                         borderRadius: token.borderRadius,
                                     }}
                                 >
-                                    {`["AIzaXXXXXXXXXXXXXXXXXXXX1", "AIzaXXXXXXXXXXXXXXXXXXXX2"]`}
+                                    {`["AQ.XXXXXXXXXXXXXXXXXXXXXXXXXXXX1", "AIzaXXXXXXXXXXXXXXXXXXXX2"]`}
                                 </pre>
 
                                 <Paragraph>
@@ -473,7 +486,7 @@ export default function ApiKeyCreatePage() {
                                     }}
                                 >
                                     {`[
-  {"name": "Gproxy key 1", "key": "AIzaXXXXXXXXXXXXXXXXXXXX1"},
+  {"name": "Gproxy key 1", "key": "AQ.XXXXXXXXXXXXXXXXXXXXXXXXXXXX1"},
   {"name": "Gproxy key 2", "key": "AIzaXXXXXXXXXXXXXXXXXXXX2"}
 ]`}
                                 </pre>
@@ -489,7 +502,7 @@ export default function ApiKeyCreatePage() {
                                     }}
                                 >
                                     {`[
-  {"title": "My API Key 1", "api_key_value": "AIzaXXXXXXXXXXXXXXXXXXXX1"},
+  {"title": "My API Key 1", "api_key_value": "AQ.XXXXXXXXXXXXXXXXXXXXXXXXXXXX1"},
   {"label": "My API Key 2", "value": "AIzaXXXXXXXXXXXXXXXXXXXX2"}
 ]`}
                                 </pre>
