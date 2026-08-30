@@ -21,7 +21,7 @@ describe('isMaskedApiKey', () => {
     it('detects asterisk masking', () => {
         expect(isMaskedApiKey('AIzaSy****abcd')).toBe(true);
     });
-    it('allows real keys', () => {
-        expect(isMaskedApiKey('AIzaSyBINy01yAT3py7ZGOsIC2iE9NXf2EgJMmg')).toBe(false);
+    it('allows unmasked keys', () => {
+        expect(isMaskedApiKey('AIzaSyTESTKEY000000000000000000000')).toBe(false);
     });
 });
