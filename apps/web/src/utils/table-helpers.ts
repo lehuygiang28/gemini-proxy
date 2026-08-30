@@ -16,6 +16,19 @@ export const formatTokenCount = (count?: number, emptyLabel = ''): string => {
     return count.toString();
 };
 
+export const formatUsd = (amount?: number | null, emptyLabel = ''): string => {
+    if (amount === null || amount === undefined || Number.isNaN(amount)) {
+        return emptyLabel;
+    }
+    if (amount === 0) {
+        return '$0.00';
+    }
+    if (Math.abs(amount) < 0.01) {
+        return `$${amount.toFixed(6)}`;
+    }
+    return `$${amount.toFixed(4)}`;
+};
+
 export const formatDuration = (durationMs?: number, emptyLabel = ''): string => {
     if (durationMs === null || durationMs === undefined) {
         return emptyLabel;
@@ -155,7 +168,16 @@ export const extractPerformanceMetrics = (metrics: unknown): PerformanceMetrics 
 // Usage metadata utilities
 export const extractUsageMetadata = (metadata: unknown): UsageMetadata => {
     if (!metadata || typeof metadata !== 'object' || metadata === null) {
-        return { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0, model: null };
+        return {
+            total_tokens: 0,
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            cache_tokens: 0,
+            thoughts_tokens: 0,
+            tool_use_prompt_tokens: 0,
+            estimated_cost_usd: null,
+            model: null,
+        };
     }
 
     const metadataObj = metadata as Record<string, unknown>;
@@ -163,6 +185,15 @@ export const extractUsageMetadata = (metadata: unknown): UsageMetadata => {
         total_tokens: (metadataObj?.total_tokens as number) || 0,
         prompt_tokens: (metadataObj?.prompt_tokens as number) || 0,
         completion_tokens: (metadataObj?.completion_tokens as number) || 0,
+        cache_tokens: (metadataObj?.cache_tokens as number) || 0,
+        thoughts_tokens: (metadataObj?.thoughts_tokens as number) || 0,
+        tool_use_prompt_tokens: (metadataObj?.tool_use_prompt_tokens as number) || 0,
+        estimated_cost_usd:
+            typeof metadataObj?.estimated_cost_usd === 'number'
+                ? metadataObj.estimated_cost_usd
+                : null,
+        pricing_version: (metadataObj?.pricing_version as string) || null,
+        matched_model: (metadataObj?.matched_model as string) || null,
         model: (metadataObj?.model as string) || null,
         response_id: (metadataObj?.response_id as string) || undefined,
         created: (metadataObj?.created as number) || undefined,

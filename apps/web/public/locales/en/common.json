@@ -578,6 +578,11 @@
             "attemptsLabel": "Attempts",
             "totalTokens": "Total tokens",
             "promptCompletion": "Prompt / completion",
+            "cacheTokens": "Cache tokens",
+            "thoughtsTokens": "Thinking tokens",
+            "toolUseTokens": "Tool-use tokens",
+            "estimatedCost": "Est. cost",
+            "estimatedCostUnavailable": "—",
             "model": "Model"
         },
         "severity": {
@@ -637,7 +642,10 @@
             "inputTokens": "Input tokens",
             "outputTokens": "Output tokens",
             "cacheTokens": "Cache tokens",
+            "thoughtsTokens": "Thinking tokens",
             "totalTokens": "Total tokens",
+            "estimatedCost": "Est. cost (USD)",
+            "estimatedCostHint": "Standard paid estimate from stored snapshots. Not a Google invoice.",
             "periodHint": "Last {days} days from request logs",
             "periodHintDefault": "Period-scoped from request logs"
         },

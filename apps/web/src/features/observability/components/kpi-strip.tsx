@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { formatDuration, formatTokenCount } from '@/utils/table-helpers';
+import { formatDuration, formatTokenCount, formatUsd } from '@/utils/table-helpers';
 
 export type KpiTone = 'default' | 'success' | 'error' | 'warn' | 'accent';
 
@@ -112,7 +112,9 @@ export function buildTokenUsageKpiItems(
         promptTokens?: number;
         completionTokens?: number;
         cacheTokens?: number;
+        thoughtsTokens?: number;
         totalTokens?: number;
+        estimatedCostUsd?: number;
         periodDays?: number;
     },
     translate: ObservabilityTranslate,
@@ -142,11 +144,24 @@ export function buildTokenUsageKpiItems(
             hint: periodHint,
         },
         {
+            key: 'thoughts-tokens',
+            label: translate('observability.kpi.thoughtsTokens'),
+            value: formatTokenCount(input.thoughtsTokens, translate('common.na')),
+            hint: periodHint,
+        },
+        {
             key: 'total-tokens',
             label: translate('observability.kpi.totalTokens'),
             value: formatTokenCount(input.totalTokens, translate('common.na')),
             tone: 'accent',
             hint: periodHint,
+        },
+        {
+            key: 'estimated-cost',
+            label: translate('observability.kpi.estimatedCost'),
+            value: formatUsd(input.estimatedCostUsd, translate('common.na')),
+            tone: 'accent',
+            hint: translate('observability.kpi.estimatedCostHint'),
         },
     ];
 }

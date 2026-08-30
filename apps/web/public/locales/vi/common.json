@@ -578,6 +578,11 @@
             "attemptsLabel": "Số lần thử",
             "totalTokens": "Tổng token",
             "promptCompletion": "Đầu vào / đầu ra",
+            "cacheTokens": "Token cache",
+            "thoughtsTokens": "Token thinking",
+            "toolUseTokens": "Token tool",
+            "estimatedCost": "Chi phí ước tính",
+            "estimatedCostUnavailable": "—",
             "model": "Model"
         },
         "severity": {
@@ -637,7 +642,10 @@
             "inputTokens": "Token đầu vào",
             "outputTokens": "Token đầu ra",
             "cacheTokens": "Token cache",
+            "thoughtsTokens": "Token thinking",
             "totalTokens": "Tổng token",
+            "estimatedCost": "Chi phí ước tính (USD)",
+            "estimatedCostHint": "Ước tính Standard paid từ snapshot đã lưu. Không phải hóa đơn Google.",
             "periodHint": "{days} ngày gần nhất từ nhật ký request",
             "periodHintDefault": "Trong kỳ từ nhật ký request"
         },
