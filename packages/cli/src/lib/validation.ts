@@ -21,7 +21,7 @@ export class Validation {
 
         if (!isValidGoogleApiKey(key)) {
             throw ErrorHandler.createError(
-                'API key value must be a Google AI Studio key (AIza... or AQ....) at least 10 characters long',
+                'API key value must be at least 10 characters and not a masked placeholder',
             );
         }
     }

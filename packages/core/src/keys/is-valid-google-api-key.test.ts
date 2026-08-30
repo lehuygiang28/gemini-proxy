@@ -31,5 +31,6 @@ describe('isValidGoogleApiKey', () => {
 
     it('still accepts other unmasked secrets of sufficient length', () => {
         expect(isValidGoogleApiKey('gproxy_custom_secret_1')).toBe(true);
+        expect(isValidGoogleApiKey('GK.future-format-key-value-xx')).toBe(true);
     });
 });

@@ -259,14 +259,14 @@
             "selectProvider": "Vui lòng chọn nhà cung cấp",
             "missingName": "Thiếu tên",
             "missingApiKey": "Thiếu khóa API",
-            "invalidApiKey": "Nhập khóa Google AI Studio (AIza… hoặc AQ.…), tối thiểu 10 ký tự"
+            "invalidApiKey": "Nhập khóa API tối thiểu 10 ký tự (không phải giá trị đã che)"
         },
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
             "keyRotatable": "Bạn có thể thay khóa Google API tại chỗ. Lưu giá trị mới sẽ xoay secret ngay.",
-            "rotateHint": "Dán khóa mới để xoay. Khóa AIza… cũ và khóa AQ.… mới đều được chấp nhận.",
-            "formatHint": "Google AI Studio hiện cấp khóa bắt đầu bằng AQ. (ví dụ AQ.…). Khóa AIza… cũ vẫn dùng được.",
+            "rotateHint": "Dán khóa mới rồi lưu. Mọi giá trị chưa che, tối thiểu 10 ký tự đều được chấp nhận.",
+            "formatHint": "Google AI Studio hiện cấp khóa bắt đầu bằng AQ. Khóa AIza cũ vẫn dùng được. Định dạng có thể đổi — không bắt buộc tiền tố cụ thể.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
         },
@@ -333,11 +333,11 @@
                 "objectArray": "Mảng đối tượng với tên và khóa:",
                 "altFields": "Mảng đối tượng với tên trường khác:",
                 "validationTitle": "Quy tắc xác thực",
-                "validationBody": "Khóa Google AI Studio có thể bắt đầu bằng AIza (cũ) hoặc AQ. (hiện tại). Mọi khóa phải dài ít nhất 10 ký tự. Khóa không hợp lệ sẽ được đánh dấu ở bước xem lại."
+                "validationBody": "Khóa phải dài ít nhất 10 ký tự và không bị che. Google hiện dùng tiền tố AIza hoặc AQ., nhưng mọi secret chưa che đều được chấp nhận để lần đổi format sau vẫn nhập được."
             },
             "errors": {
                 "tooShort": "Khóa API quá ngắn hoặc trống",
-                "invalidFormat": "Khóa API phải là khóa Google AI Studio (AIza… hoặc AQ.…)",
+                "invalidFormat": "Khóa API phải dài ít nhất 10 ký tự và không bị che",
                 "invalidJson": "Định dạng JSON không hợp lệ",
                 "invalidJsonDesc": "Vui lòng cung cấp tệp JSON nhập hợp lệ.",
                 "unsupportedImportFormat": "Định dạng nhập không được hỗ trợ",

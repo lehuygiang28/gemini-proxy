@@ -259,14 +259,14 @@
             "selectProvider": "Please select a provider",
             "missingName": "Missing name",
             "missingApiKey": "Missing API key",
-            "invalidApiKey": "Enter a Google AI Studio key (AIza… or AQ.…), at least 10 characters"
+            "invalidApiKey": "Enter an API key of at least 10 characters (not a masked value)"
         },
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing API key.",
             "keyRotatable": "You can replace this Google API key in place. Saving a new value rotates the secret immediately.",
-            "rotateHint": "Paste a new key to rotate it. Legacy AIza… keys and new AQ.… keys are both accepted.",
-            "formatHint": "Google AI Studio now issues keys starting with AQ. (for example AQ.…). Legacy AIza… keys still work.",
+            "rotateHint": "Paste the new key and save. Any unmasked value of at least 10 characters is accepted.",
+            "formatHint": "Google AI Studio currently issues keys starting with AQ. Legacy AIza keys still work. Formats may change — we do not require a specific prefix.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
         },
@@ -333,11 +333,11 @@
                 "objectArray": "Object array with name and key:",
                 "altFields": "Object array with different field names:",
                 "validationTitle": "Validation Rules",
-                "validationBody": "Google AI Studio keys may start with AIza (legacy) or AQ. (current). All keys must be at least 10 characters. Invalid keys will be highlighted in the review step."
+                "validationBody": "Keys must be at least 10 characters and not masked. Google currently uses AIza or AQ. prefixes, but any unmasked secret is accepted so future format changes still import."
             },
             "errors": {
                 "tooShort": "API key is too short or empty",
-                "invalidFormat": "API key must be a Google AI Studio key (AIza… or AQ.…)",
+                "invalidFormat": "API key must be at least 10 characters and not masked",
                 "invalidJson": "Invalid JSON Format",
                 "invalidJsonDesc": "Please provide a valid JSON import file.",
                 "unsupportedImportFormat": "Unsupported Import Format",
