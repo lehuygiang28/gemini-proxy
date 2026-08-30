@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Edit, useForm } from '@refinedev/antd';
-import { useNotification, useTranslation } from '@refinedev/core';
+import { useTranslation } from '@refinedev/core';
 import {
     Form,
     Input,
@@ -22,8 +22,8 @@ import { CopyOutlined, InfoCircleOutlined, KeyOutlined, SettingOutlined } from '
 import type { TablesUpdate } from '@gemini-proxy/database';
 import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
-import { copyToClipboard } from '@/utils/table-helpers';
-import { KeyRotateConfirmModal } from '@/components/common';
+import { ConfirmAlertModal } from '@/components/common';
+import { useCopyWithNotification } from '@/hooks';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -32,7 +32,7 @@ type ProxyApiKeyUpdate = TablesUpdate<'proxy_api_keys'>;
 
 export default function ProxyApiKeysEditPage() {
     const { token } = useToken();
-    const notification = useNotification();
+    const copyWithNotification = useCopyWithNotification();
     const { translate } = useTranslation();
     const [pendingSubmitValues, setPendingSubmitValues] = useState<ProxyApiKeyUpdate | null>(null);
     const { formProps, saveButtonProps, query } = useForm<ProxyApiKeyUpdate>({
@@ -88,18 +88,11 @@ export default function ProxyApiKeysEditPage() {
         if (typeof keyValue !== 'string' || keyValue.length === 0) {
             return;
         }
-        if (await copyToClipboard(keyValue)) {
-            notification.open({
-                type: 'success',
-                message: translate('proxy_api_keys.create.copied'),
-                description: translate('proxy_api_keys.create.copiedDesc'),
-            });
-            return;
-        }
-        notification.open({
-            type: 'error',
-            message: translate('proxy_api_keys.create.copyFailed'),
-            description: translate('proxy_api_keys.create.copyFailedDesc'),
+        await copyWithNotification(keyValue, {
+            successMessage: translate('proxy_api_keys.create.copied'),
+            successDescription: translate('proxy_api_keys.create.copiedDesc'),
+            errorMessage: translate('proxy_api_keys.create.copyFailed'),
+            errorDescription: translate('proxy_api_keys.create.copyFailedDesc'),
         });
     };
 
@@ -230,7 +223,7 @@ export default function ProxyApiKeysEditPage() {
                     </Card>
                 </Col>
             </Row>
-            <KeyRotateConfirmModal
+            <ConfirmAlertModal
                 open={Boolean(pendingSubmitValues)}
                 title={translate('proxy_api_keys.rotate.title')}
                 description={translate('proxy_api_keys.rotate.description')}

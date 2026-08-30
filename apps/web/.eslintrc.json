@@ -17,6 +17,45 @@
     },
     "rules": {
         "@typescript-eslint/no-unused-vars": "warn",
-        "@typescript-eslint/no-explicit-any": "warn"
+        "@typescript-eslint/no-explicit-any": "warn",
+        "no-restricted-imports": [
+            "error",
+            {
+                "paths": [
+                    {
+                        "name": "antd",
+                        "importNames": ["message", "notification"],
+                        "message": "Use useNotification() from Refine or App.useApp() from antd to keep theme context."
+                    }
+                ]
+            }
+        ],
+        "no-restricted-syntax": [
+            "error",
+            {
+                "selector": "MemberExpression[object.name='Modal'][property.name='confirm']",
+                "message": "Use ConfirmAlertModal or App.useApp().modal instead of Modal.confirm (breaks dark theme)."
+            },
+            {
+                "selector": "MemberExpression[object.name='Modal'][property.name='info']",
+                "message": "Use ConfirmAlertModal or App.useApp().modal instead of static Modal APIs."
+            },
+            {
+                "selector": "MemberExpression[object.name='Modal'][property.name='success']",
+                "message": "Use ConfirmAlertModal or App.useApp().modal instead of static Modal APIs."
+            },
+            {
+                "selector": "MemberExpression[object.name='Modal'][property.name='error']",
+                "message": "Use ConfirmAlertModal or App.useApp().modal instead of static Modal APIs."
+            },
+            {
+                "selector": "MemberExpression[object.name='Modal'][property.name='warning']",
+                "message": "Use ConfirmAlertModal or App.useApp().modal instead of static Modal APIs."
+            },
+            {
+                "selector": "MemberExpression[object.name='message']",
+                "message": "Use useNotification() or App.useApp().message instead of static message.* APIs."
+            }
+        ]
     }
 }

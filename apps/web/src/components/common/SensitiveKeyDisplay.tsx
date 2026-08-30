@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { Button, Tooltip, Space, Input, theme } from 'antd';
-import { useNotification, useTranslation } from '@refinedev/core';
+import { useTranslation } from '@refinedev/core';
 import { EyeOutlined, EyeInvisibleOutlined, CopyOutlined } from '@ant-design/icons';
-import { maskSensitiveKey, copyToClipboard } from '@/utils/table-helpers';
+import { maskSensitiveKey } from '@/utils/table-helpers';
+import { useCopyWithNotification } from '@/hooks';
 
 const { useToken } = theme;
 
@@ -21,7 +22,7 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
     onToggleVisibility,
     showCopyButton = true,
 }) => {
-    const notification = useNotification();
+    const copyWithNotification = useCopyWithNotification();
     const { translate } = useTranslation();
     const { token } = useToken();
 
@@ -40,17 +41,10 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
     ];
 
     const copyHandler = async (): Promise<void> => {
-        if (await copyToClipboard(value)) {
-            notification.open({
-                type: 'success',
-                message: translate('common.copiedToClipboard'),
-            });
-        } else {
-            notification.open({
-                type: 'error',
-                message: translate('common.copyFailedRetry'),
-            });
-        }
+        await copyWithNotification(value, {
+            successMessage: translate('common.copiedToClipboard'),
+            errorMessage: translate('common.copyFailedRetry'),
+        });
     };
 
     if (showCopyButton) {

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Alert, Modal } from 'antd';
 
-type KeyRotateConfirmModalProps = {
+type ConfirmAlertModalProps = {
     open: boolean;
     title: string;
     description: string;
@@ -13,7 +13,8 @@ type KeyRotateConfirmModalProps = {
     onCancel: () => void;
 };
 
-export function KeyRotateConfirmModal({
+/** Themed confirm dialog with warning alert — use instead of static Modal.confirm(). */
+export function ConfirmAlertModal({
     open,
     title,
     description,
@@ -21,7 +22,7 @@ export function KeyRotateConfirmModal({
     cancelText,
     onConfirm,
     onCancel,
-}: KeyRotateConfirmModalProps): React.ReactElement {
+}: ConfirmAlertModalProps): React.ReactElement {
     return (
         <Modal
             open={open}
@@ -36,3 +37,6 @@ export function KeyRotateConfirmModal({
         </Modal>
     );
 }
+
+/** @deprecated Use ConfirmAlertModal */
+export const KeyRotateConfirmModal = ConfirmAlertModal;

@@ -20,7 +20,7 @@ import { InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/ic
 import type { TablesUpdate } from '@gemini-proxy/database';
 import { isValidGoogleApiKey } from '@gemini-proxy/core';
 import { PROVIDER_OPTIONS } from '@/constants/providers';
-import { KeyRotateConfirmModal } from '@/components/common';
+import { ConfirmAlertModal } from '@/components/common';
 
 const { Title, Paragraph } = Typography;
 
@@ -203,7 +203,7 @@ export default function ApiKeysEditPage() {
                     </Card>
                 </Col>
             </Row>
-            <KeyRotateConfirmModal
+            <ConfirmAlertModal
                 open={Boolean(pendingSubmitValues)}
                 title={translate('api_keys.rotate.title')}
                 description={translate('api_keys.rotate.description')}
