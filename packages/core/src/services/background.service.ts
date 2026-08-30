@@ -252,7 +252,7 @@ export class BackgroundService {
             totalResponseTimeMs,
             usageMetadata: {
                 promptTokens: tokenUsage.promptTokens,
-                completionTokens: tokenUsage.completionTokens,
+                completionTokens: keyCompletionTokens,
                 thoughtsTokens: tokenUsage.thoughtsTokens,
                 toolUsePromptTokens: tokenUsage.toolUsePromptTokens,
                 totalTokens: tokenUsage.totalTokens,
