@@ -1,5 +1,4 @@
 import type { CrudFilter, LogicalFilter } from '@refinedev/core';
-import type { FilterValue } from 'antd/es/table/interface';
 
 export const REQUEST_LOG_MODEL_FIELD = 'usage_metadata->>model';
 export const REQUEST_LOG_DATE_GTE_FIELD = 'created_at';
@@ -19,18 +18,9 @@ export function getFilterScalar(filters: CrudFilter[], field: string): unknown {
     return findFilter(filters, field)?.value;
 }
 
-export function getColumnFilteredValue(
-    filters: CrudFilter[],
-    field: string,
-): FilterValue | null {
-    const match = findFilter(filters, field);
-    if (match?.value === undefined || match.value === null) {
-        return null;
-    }
-    if (Array.isArray(match.value)) {
-        return match.value as FilterValue;
-    }
-    return [match.value] as FilterValue;
+export function hasActiveFilter(filters: CrudFilter[], field: string): boolean {
+    const value = getFilterScalar(filters, field);
+    return value !== undefined && value !== null && value !== '';
 }
 
 export function replaceFiltersForFields(

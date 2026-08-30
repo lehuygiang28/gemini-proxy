@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
@@ -77,31 +77,47 @@ export default function RequestLogsListPage() {
     const volumeQuery = useRequestLogsVolume({ p_range: chartRange });
     const volumeData = volumeQuery.query.data?.data as RequestLogsVolume | undefined;
 
+    const filtersRef = useRef(filters);
+    filtersRef.current = filters;
+    const deepLinkHandledRef = useRef(false);
+
     useEffect(() => {
         setRequestIdDraft(String(getFilterScalar(filters, 'request_id') ?? ''));
     }, [filters]);
 
     useEffect(() => {
-        if (typeof window === 'undefined') {
+        if (deepLinkHandledRef.current || typeof window === 'undefined') {
             return;
         }
+
         const params = new URLSearchParams(window.location.search);
         const apiKeyId = params.get('api_key_id');
         const proxyKeyId = params.get('proxy_key_id');
         if (!apiKeyId && !proxyKeyId) {
+            deepLinkHandledRef.current = true;
             return;
         }
-        let next = filters;
-        if (proxyKeyId) {
-            next = upsertEqFilter(next, 'proxy_key_id', proxyKeyId);
-        }
-        if (apiKeyId) {
-            next = upsertEqFilter(next, 'api_key_id', apiKeyId);
-        }
-        setFilters(next, 'replace');
-        // Deep-link key filters once on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+
+        const frameId = requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (deepLinkHandledRef.current) {
+                    return;
+                }
+                deepLinkHandledRef.current = true;
+
+                let next = filtersRef.current;
+                if (proxyKeyId) {
+                    next = upsertEqFilter(next, 'proxy_key_id', proxyKeyId);
+                }
+                if (apiKeyId) {
+                    next = upsertEqFilter(next, 'api_key_id', apiKeyId);
+                }
+                setFilters(next, 'merge');
+            });
+        });
+
+        return () => cancelAnimationFrame(frameId);
+    }, [setFilters]);
 
     const activeFilterCount = countActiveLogFilters(filters);
 
@@ -150,6 +166,18 @@ export default function RequestLogsListPage() {
         void tableQuery.refetch();
         void volumeQuery.query.refetch();
     }, [tableQuery, volumeQuery.query]);
+
+    const { onChange: refineTableOnChange, ...restTableProps } = tableProps;
+
+    const handleTableChange = useCallback<
+        NonNullable<typeof refineTableOnChange>
+    >(
+        (pagination, _tableFilters, sorter, extra) => {
+            // Column filters are managed manually via setFilters — ignore antd tableFilters
+            refineTableOnChange?.(pagination, {}, sorter, extra);
+        },
+        [refineTableOnChange],
+    );
 
     const toolbarFilters = useMemo(
         () => (
@@ -294,7 +322,8 @@ export default function RequestLogsListPage() {
 
             <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
                 <Table<ListRequestLog>
-                    {...tableProps}
+                    {...restTableProps}
+                    onChange={handleTableChange}
                     rowKey="id"
                     size="small"
                     columns={tableColumns}

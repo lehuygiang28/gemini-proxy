@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
-import { Button, DatePicker, Input, Space, Tag, Tooltip, theme } from 'antd';
+import { Button, DatePicker, Input, Select, Space, Tag, Tooltip, theme } from 'antd';
 import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -23,9 +23,9 @@ import {
 } from '@/utils/table-helpers';
 import {
     REQUEST_LOG_MODEL_FIELD,
-    getColumnFilteredValue,
     getDateRangeFromFilters,
     getFilterScalar,
+    hasActiveFilter,
     upsertContainsFilter,
     upsertDateRangeFilters,
     upsertEqFilter,
@@ -94,6 +94,9 @@ function ModelFilterDropdown({
     const [draft, setDraft] = useState(
         String(getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD) ?? ''),
     );
+    useEffect(() => {
+        setDraft(String(getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD) ?? ''));
+    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
@@ -139,6 +142,10 @@ function DateFilterDropdown({
     const [draft, setDraft] = useState<[Dayjs, Dayjs] | null>(
         existingRange ? [dayjs(existingRange[0]), dayjs(existingRange[1])] : null,
     );
+    useEffect(() => {
+        const range = getDateRangeFromFilters(crudFilters);
+        setDraft(range ? [dayjs(range[0]), dayjs(range[1])] : null);
+    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
@@ -192,6 +199,10 @@ function KeyFilterDropdown({
     const [apiKeyId, setApiKeyId] = useState(
         getFilterScalar(crudFilters, 'api_key_id') as string | undefined,
     );
+    useEffect(() => {
+        setProxyKeyId(getFilterScalar(crudFilters, 'proxy_key_id') as string | undefined);
+        setApiKeyId(getFilterScalar(crudFilters, 'api_key_id') as string | undefined);
+    }, [crudFilters]);
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
@@ -238,6 +249,54 @@ function KeyFilterDropdown({
     );
 }
 
+function StatusFilterDropdown({
+    crudFilters,
+    setFilters,
+    confirm,
+    clearFilters,
+    translate,
+}: FilterDropdownProps & {
+    crudFilters: CrudFilter[];
+    setFilters: UseRequestLogTableColumnsOptions['setFilters'];
+    translate: UseRequestLogTableColumnsOptions['translate'];
+}) {
+    const current = getFilterScalar(crudFilters, 'is_successful');
+    const [draft, setDraft] = useState<boolean | undefined>(
+        typeof current === 'boolean' ? current : undefined,
+    );
+    useEffect(() => {
+        const value = getFilterScalar(crudFilters, 'is_successful');
+        setDraft(typeof value === 'boolean' ? value : undefined);
+    }, [crudFilters]);
+    return (
+        <FilterDropdownShell
+            resetLabel={translate('request_logs.filters.reset')}
+            confirmLabel={translate('request_logs.filters.apply')}
+            onReset={() => {
+                clearFilters?.();
+                setFilters(upsertEqFilter(crudFilters, 'is_successful', undefined));
+                confirm({ closeDropdown: true });
+            }}
+            onConfirm={() => {
+                setFilters(upsertEqFilter(crudFilters, 'is_successful', draft));
+                confirm({ closeDropdown: true });
+            }}
+        >
+            <Select
+                allowClear
+                style={{ width: '100%' }}
+                placeholder={translate('request_logs.placeholders.selectStatus')}
+                value={draft}
+                onChange={setDraft}
+                options={[
+                    { value: true, label: translate('request_logs.status.success') },
+                    { value: false, label: translate('request_logs.status.failed') },
+                ]}
+            />
+        </FilterDropdownShell>
+    );
+}
+
 /**
  * OpenRouter-style request log columns with Ant Design header filters.
  */
@@ -268,7 +327,15 @@ export function useRequestLogTableColumns({
                         dateLocaleFormat={dateLocaleFormat}
                     />
                 ),
-                filteredValue: getDateRangeFromFilters(filters) ? ['range'] : null,
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getDateRangeFromFilters(filters)
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (value: string | null) => <DateTimeDisplay dateString={value} />,
             },
             {
@@ -283,11 +350,14 @@ export function useRequestLogTableColumns({
                         translate={translate}
                     />
                 ),
-                filteredValue: getFilterScalar(filters, REQUEST_LOG_MODEL_FIELD)
-                    ? ['model']
-                    : null,
-                filterIcon: (filtered: boolean) => (
-                    <SearchOutlined style={{ color: filtered ? token.colorPrimary : undefined }} />
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: hasActiveFilter(filters, REQUEST_LOG_MODEL_FIELD)
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
                 ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
@@ -332,12 +402,23 @@ export function useRequestLogTableColumns({
                 key: 'is_successful',
                 width: 96,
                 sorter: true,
-                filters: [
-                    { text: translate('request_logs.status.success'), value: true },
-                    { text: translate('request_logs.status.failed'), value: false },
-                ],
-                filterMultiple: false,
-                filteredValue: getColumnFilteredValue(filters, 'is_successful'),
+                filterDropdown: (props) => (
+                    <StatusFilterDropdown
+                        {...props}
+                        crudFilters={filters}
+                        setFilters={setFilters}
+                        translate={translate}
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: hasActiveFilter(filters, 'is_successful')
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (value: boolean) => (
                     <Tag color={value ? 'success' : 'error'} style={{ borderRadius: 2 }}>
                         {value
@@ -469,11 +550,17 @@ export function useRequestLogTableColumns({
                         translate={translate}
                     />
                 ),
-                filteredValue:
-                    getFilterScalar(filters, 'proxy_key_id') ||
-                    getFilterScalar(filters, 'api_key_id')
-                        ? ['keys']
-                        : null,
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color:
+                                hasActiveFilter(filters, 'proxy_key_id') ||
+                                hasActiveFilter(filters, 'api_key_id')
+                                    ? token.colorPrimary
+                                    : undefined,
+                        }}
+                    />
+                ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const proxy = formatRemovedKeyLabel({
                         joined: record.proxy_api_keys,
