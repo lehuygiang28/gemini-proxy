@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Edit, useForm } from '@refinedev/antd';
 import { useNotification, useTranslation } from '@refinedev/core';
 import {
@@ -23,6 +23,7 @@ import type { TablesUpdate } from '@gemini-proxy/database';
 import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 import { copyToClipboard } from '@/utils/table-helpers';
+import { KeyRotateConfirmModal } from '@/components/common';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -33,6 +34,7 @@ export default function ProxyApiKeysEditPage() {
     const { token } = useToken();
     const notification = useNotification();
     const { translate } = useTranslation();
+    const [pendingSubmitValues, setPendingSubmitValues] = useState<ProxyApiKeyUpdate | null>(null);
     const { formProps, saveButtonProps, query } = useForm<ProxyApiKeyUpdate>({
         resource: 'proxy_api_keys',
         action: 'edit',
@@ -46,10 +48,35 @@ export default function ProxyApiKeysEditPage() {
             typeof values.proxy_key_value === 'string'
                 ? values.proxy_key_value.trim()
                 : values.proxy_key_value;
-        formProps.onFinish?.({
+        const submitValues: ProxyApiKeyUpdate = {
             ...values,
             proxy_key_value: proxyKeyValue,
-        });
+        };
+        const originalKeyValue: ProxyApiKeyUpdate['proxy_key_value'] =
+            typeof proxyApiKeyData?.proxy_key_value === 'string'
+                ? proxyApiKeyData.proxy_key_value.trim()
+                : proxyApiKeyData?.proxy_key_value;
+        const hasKeyChanged: boolean =
+            typeof proxyKeyValue === 'string' &&
+            typeof originalKeyValue === 'string' &&
+            proxyKeyValue !== originalKeyValue;
+        if (hasKeyChanged) {
+            setPendingSubmitValues(submitValues);
+            return;
+        }
+        formProps.onFinish?.(submitValues);
+    };
+
+    const handleConfirmRotate = (): void => {
+        if (!pendingSubmitValues) {
+            return;
+        }
+        formProps.onFinish?.(pendingSubmitValues);
+        setPendingSubmitValues(null);
+    };
+
+    const handleCancelRotate = (): void => {
+        setPendingSubmitValues(null);
     };
 
     const handleGenerateKey = () => {
@@ -203,6 +230,15 @@ export default function ProxyApiKeysEditPage() {
                     </Card>
                 </Col>
             </Row>
+            <KeyRotateConfirmModal
+                open={Boolean(pendingSubmitValues)}
+                title={translate('proxy_api_keys.rotate.title')}
+                description={translate('proxy_api_keys.rotate.description')}
+                okText={translate('proxy_api_keys.rotate.confirm')}
+                cancelText={translate('buttons.cancel')}
+                onConfirm={handleConfirmRotate}
+                onCancel={handleCancelRotate}
+            />
         </Edit>
     );
 }
