@@ -35,6 +35,7 @@ import {
     parseApiKeyImport,
     type ImportFormat,
     type ImportParseResult,
+    type NormalizedImportKey,
 } from '@gemini-proxy/core';
 
 const { Title, Paragraph } = Typography;
@@ -47,6 +48,8 @@ type ParsedApiKey = {
     name: string;
     api_key_value: string;
     provider: 'googleaistudio';
+    is_active: boolean;
+    metadata?: NormalizedImportKey['metadata'];
     isValid: boolean;
     error?: string;
 };
@@ -127,6 +130,7 @@ export default function ApiKeyCreatePage() {
                         name: key.name,
                         api_key_value: key.api_key_value,
                         provider: 'googleaistudio',
+                        is_active: true,
                         isValid,
                         error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
@@ -144,6 +148,7 @@ export default function ApiKeyCreatePage() {
                         name: translate('api_keys.create.bulkImportedName', { index: index + 1 }),
                         api_key_value: key,
                         provider: 'googleaistudio',
+                        is_active: true,
                         isValid,
                         error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
@@ -158,6 +163,8 @@ export default function ApiKeyCreatePage() {
                             name: item.name,
                             api_key_value: item.api_key_value,
                             provider: 'googleaistudio',
+                            is_active: item.is_active,
+                            metadata: item.metadata,
                             isValid,
                             error: isValid
                                 ? undefined
@@ -253,6 +260,8 @@ export default function ApiKeyCreatePage() {
             name: key.name,
             api_key_value: key.api_key_value,
             provider: key.provider,
+            is_active: key.is_active,
+            metadata: key.metadata,
             user_id: user.id,
         }));
 

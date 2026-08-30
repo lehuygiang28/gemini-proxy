@@ -64,6 +64,24 @@ describe('parseApiKeyImport', () => {
         expect(result.keys[1]?.api_key_value).toBe(VALID_KEY_2);
     });
 
+    it('parses legacy array with value field', () => {
+        const raw = JSON.stringify([{ value: VALID_KEY, name: 'value-key' }]);
+        const result = parseApiKeyImport(raw);
+        expect(result.keys).toHaveLength(1);
+        expect(result.keys[0]?.name).toBe('value-key');
+        expect(result.keys[0]?.api_key_value).toBe(VALID_KEY);
+    });
+
+    it('throws when a native export contains no importable keys', () => {
+        const raw = JSON.stringify({ api_keys: [] });
+        expect(() => parseApiKeyImport(raw)).toThrow('No keys found in import file');
+    });
+
+    it('throws when a legacy array contains no importable keys', () => {
+        const raw = JSON.stringify([]);
+        expect(() => parseApiKeyImport(raw)).toThrow('No keys found in import file');
+    });
+
     it('throws on invalid JSON', () => {
         expect(() => parseApiKeyImport('not json')).toThrow('Invalid JSON import file');
     });

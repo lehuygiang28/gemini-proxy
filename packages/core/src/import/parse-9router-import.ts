@@ -46,7 +46,7 @@ export function parseNineRouterImport(
             },
         });
     });
-    if (connections.some((c) => c.provider === GEMINI_PROVIDER) && keys.length === 0) {
+    if (keys.length === 0) {
         warnings.push('No importable Gemini API keys found in 9router export');
     }
     return {

@@ -33,4 +33,14 @@ describe('parseNineRouterImport', () => {
         expect(result.keys[0]?.metadata.connection_id).toBeDefined();
         expect(result.keys[0]?.metadata.source).toBe('9router');
     });
+
+    it('warns without throwing when no Gemini keys are importable', () => {
+        const result = parseNineRouterImport({
+            providerConnections: [
+                { id: 'openai-connection', provider: 'openai', authType: 'apikey' },
+            ],
+        });
+        expect(result.keys).toHaveLength(0);
+        expect(result.warnings).toContain('No importable Gemini API keys found in 9router export');
+    });
 });

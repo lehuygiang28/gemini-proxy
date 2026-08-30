@@ -2,9 +2,9 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import {
     parseApiKeyImport,
     type ImportParseResult,
-    type NormalizedImportKey,
 } from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
+import { findExistingKey, mergeMetadata } from './api-key-import-helpers';
 import { UsersManager } from './users';
 import { colors } from './colors';
 
@@ -17,35 +17,6 @@ export type ApiKeyImportResult = {
     stats: ImportParseResult['stats'];
     warnings: string[];
 };
-
-function findExistingKey(
-    existing: ApiKey[],
-    incoming: NormalizedImportKey,
-): ApiKey | undefined {
-    const byValue = existing.find((key) => key.api_key_value === incoming.api_key_value);
-    if (byValue) {
-        return byValue;
-    }
-    if (!incoming.metadata.connection_id) {
-        return undefined;
-    }
-    return existing.find(
-        (key) =>
-            (key.metadata as { connection_id?: string } | null)?.connection_id
-                === incoming.metadata.connection_id,
-    );
-}
-
-function mergeMetadata(
-    existing: ApiKey['metadata'],
-    incoming: NormalizedImportKey['metadata'],
-): NormalizedImportKey['metadata'] {
-    const base =
-        existing && typeof existing === 'object' && !Array.isArray(existing)
-            ? (existing as Record<string, unknown>)
-            : {};
-    return { ...base, ...incoming } as NormalizedImportKey['metadata'];
-}
 
 export interface ApiKeyExport {
     version: string;

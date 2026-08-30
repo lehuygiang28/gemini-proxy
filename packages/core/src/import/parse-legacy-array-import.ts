@@ -7,6 +7,7 @@ type LegacyKeyObject = {
     key?: string;
     apiKey?: string;
     api_key_value?: string;
+    value?: string;
     name?: string;
     title?: string;
     label?: string;
@@ -22,7 +23,13 @@ function extractLegacyEntry(
     }
     if (typeof item === 'object' && item !== null) {
         const record = item as LegacyKeyObject;
-        const apiKeyValue = (record.api_key_value || record.apiKey || record.key || '').trim();
+        const apiKeyValue = (
+            record.api_key_value ||
+            record.apiKey ||
+            record.key ||
+            record.value ||
+            ''
+        ).trim();
         const name = record.name || record.title || record.label || defaultName;
         return { apiKeyValue, name };
     }

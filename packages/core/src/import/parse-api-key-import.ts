@@ -4,6 +4,11 @@ import { parseNativeImport } from './parse-native-import';
 import { parseNineRouterImport } from './parse-9router-import';
 import type { ImportParseResult } from './types';
 
+function ensureKeysFound(result: ImportParseResult): ImportParseResult {
+    if (result.keys.length === 0) throw new Error('No keys found in import file');
+    return result;
+}
+
 export function parseApiKeyImport(raw: string): ImportParseResult {
     let parsed: unknown;
     try {
@@ -16,9 +21,9 @@ export function parseApiKeyImport(raw: string): ImportParseResult {
         case '9router':
             return parseNineRouterImport(parsed);
         case 'native':
-            return parseNativeImport(parsed);
+            return ensureKeysFound(parseNativeImport(parsed));
         case 'legacy-array':
-            return parseLegacyArrayImport(parsed);
+            return ensureKeysFound(parseLegacyArrayImport(parsed));
         default:
             throw new Error('Unsupported import file format');
     }
