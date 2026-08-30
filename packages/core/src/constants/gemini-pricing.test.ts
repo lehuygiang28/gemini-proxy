@@ -103,11 +103,12 @@ describe('resolveGeminiPricing', () => {
 
     it('prices Gemma 4 models on the Gemini API', () => {
         expect(resolveGeminiPricing('gemma-4-26b-a4b-it')?.rates).toMatchObject({
-            inputPerMillion: 0.15,
-            outputPerMillion: 0.6,
-            cachedInputPerMillion: 0.015,
+            inputPerMillion: 0.042,
+            outputPerMillion: 0.22,
+            cachedInputPerMillion: 0.05,
         });
         expect(resolveGeminiPricing('gemma-4-31b-it')?.rates.inputPerMillion).toBe(0.09);
+        expect(resolveGeminiPricing('gemma-4-31b-it')?.rates.outputPerMillion).toBe(0.34);
     });
 
     it('prices Gemma 3 and Gemma 2 families', () => {

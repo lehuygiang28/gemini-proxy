@@ -135,9 +135,8 @@ export const GEMINI_PRICING: GeminiPricingTable = {
         /**
          * Gemma open models on the Gemini API.
          * Gemma 3/2 paid-tier rows are N/A on ai.google.dev (free tier); rates below
-         * follow published hosted-inference list prices where available. Gemma 4 26B
-         * matches Google Cloud list ($0.15 / $0.60 / $0.015 cache). Override per model
-         * in Settings → Cost pricing when your contract differs.
+         * follow published hosted-inference list prices where available. Gemma 4 rates
+         * from OpenRouter (2026-08-30). Override per model in Settings → Cost pricing.
          */
         'gemma-2-2b-it': {
             inputPerMillion: 0.05,
@@ -190,14 +189,14 @@ export const GEMINI_PRICING: GeminiPricingTable = {
             cachedInputPerMillion: 0.025,
         },
         'gemma-4-26b-a4b-it': {
-            inputPerMillion: 0.15,
-            outputPerMillion: 0.6,
-            cachedInputPerMillion: 0.015,
+            inputPerMillion: 0.042,
+            outputPerMillion: 0.22,
+            cachedInputPerMillion: 0.05,
         },
         'gemma-4-31b-it': {
             inputPerMillion: 0.09,
             outputPerMillion: 0.34,
-            cachedInputPerMillion: 0.045,
+            cachedInputPerMillion: 0.05,
         },
     },
 };
