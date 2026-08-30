@@ -1,0 +1,12 @@
+{
+    "name": "gemini-proxy",
+    "install": "bash .cursor/install.sh",
+    "start": "bash .cursor/start.sh",
+    "terminals": [
+        {
+            "name": "dev",
+            "command": "bash .cursor/dev.sh"
+        }
+    ],
+    "ports": [4040, 9090, 54321, 54323]
+}
