@@ -482,6 +482,14 @@
             "performance": "Performance",
             "tokens": "Tokens",
             "created": "Created",
+            "model": "Model",
+            "input": "Input",
+            "output": "Output",
+            "cost": "Cost",
+            "speed": "Speed",
+            "duration": "Duration",
+            "overhead": "Overhead",
+            "key": "Key",
             "requestId": "Request ID",
             "body": "Body",
             "headersMeta": "Headers & meta",
@@ -492,7 +500,8 @@
         },
         "placeholders": {
             "searchRequestId": "Search request ID…",
-            "selectFormat": "Select format",
+            "searchModel": "Search model name…",
+            "selectFormat": "Format",
             "selectStatus": "Select status",
             "selectStream": "Select stream type",
             "searchApiKey": "Search API key by name…",
@@ -537,9 +546,25 @@
             "offMessage": "Live updates paused — resume to auto-refresh on new logs."
         },
         "retention": "Detailed request logs older than 90 days are removed automatically. Lifetime usage totals on API keys and proxy keys are kept.",
+        "retentionShort": "Logs older than 90 days are removed automatically.",
+        "chart": {
+            "title": "Activity",
+            "empty": "No requests in this period",
+            "requests": "Requests",
+            "totalRequests": "{count, plural, one {# request} other {# requests}}",
+            "range": {
+                "24h": "24h",
+                "7d": "7d",
+                "30d": "30d",
+                "90d": "90d"
+            }
+        },
         "filters": {
             "title": "Filters",
             "reset": "Reset",
+            "apply": "Apply",
+            "advanced": "Advanced",
+            "clearAll": "Clear filters ({count})",
             "collapse": "Collapse filters",
             "expand": "Expand filters",
             "apiKeyActive": "API key filtered",
@@ -583,7 +608,8 @@
             "toolUseTokens": "Tool-use tokens",
             "estimatedCost": "Est. cost",
             "estimatedCostUnavailable": "—",
-            "model": "Model"
+            "model": "Model",
+            "routingOverhead": "Proxy routing overhead (total − API time)"
         },
         "severity": {
             "success": "Success",

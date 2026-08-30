@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "targets": {
+    "request-logs": {
+      "route": "/request-logs",
+      "projectId": "c8c515ad-13ad-4bcc-8edc-434f968c0963",
+      "activeDraftId": "2a49c091-2154-46eb-bb2a-11d3a271b2dc",
+      "designDirection": "OpenRouter-inspired A2 — dynamic activity chart + metric table",
+      "contextFiles": [
+        ".superdesign/init/theme.md",
+        "apps/web/src/features/observability/components/live-request-feed.tsx",
+        "apps/web/src/app/(protected)/request-logs/page.tsx:484:799",
+        "apps/web/src/components/layout/theme-layout/index.tsx"
+      ],
+      "referenceIds": [
+        "42924aab-143c-42b0-a64a-19e646f22fc9",
+        "fea53ea1-dcd5-4ed4-a4eb-76236db21133"
+      ],
+      "updatedAt": "2026-08-30T10:40:00Z"
+    }
+  }
+}

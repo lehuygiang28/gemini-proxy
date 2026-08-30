@@ -482,6 +482,14 @@
             "performance": "Hiệu năng",
             "tokens": "Token",
             "created": "Thời gian",
+            "model": "Model",
+            "input": "Đầu vào",
+            "output": "Đầu ra",
+            "cost": "Chi phí",
+            "speed": "Tốc độ",
+            "duration": "Thời lượng",
+            "overhead": "Overhead",
+            "key": "Khóa",
             "requestId": "Mã request",
             "body": "Nội dung",
             "headersMeta": "Header & meta",
@@ -492,7 +500,8 @@
         },
         "placeholders": {
             "searchRequestId": "Tìm request ID…",
-            "selectFormat": "Chọn định dạng",
+            "searchModel": "Tìm tên model…",
+            "selectFormat": "Định dạng",
             "selectStatus": "Chọn trạng thái",
             "selectStream": "Chọn kiểu stream",
             "searchApiKey": "Tìm khóa API theo tên…",
@@ -537,9 +546,25 @@
             "offMessage": "Đã tạm dừng cập nhật trực tiếp — bấm tiếp tục để tự làm mới."
         },
         "retention": "Nhật ký chi tiết cũ hơn 90 ngày sẽ bị xóa tự động. Tổng mức dùng suốt đời trên khóa API và khóa proxy được giữ lại.",
+        "retentionShort": "Nhật ký cũ hơn 90 ngày sẽ bị xóa tự động.",
+        "chart": {
+            "title": "Hoạt động",
+            "empty": "Không có request trong khoảng thời gian này",
+            "requests": "Request",
+            "totalRequests": "{count, plural, one {# request} other {# request}}",
+            "range": {
+                "24h": "24h",
+                "7d": "7d",
+                "30d": "30d",
+                "90d": "90d"
+            }
+        },
         "filters": {
             "title": "Bộ lọc",
             "reset": "Đặt lại",
+            "apply": "Áp dụng",
+            "advanced": "Nâng cao",
+            "clearAll": "Xóa bộ lọc ({count})",
             "collapse": "Thu gọn bộ lọc",
             "expand": "Mở rộng bộ lọc",
             "apiKeyActive": "Đã lọc khóa API",
@@ -583,7 +608,8 @@
             "toolUseTokens": "Token tool",
             "estimatedCost": "Chi phí ước tính",
             "estimatedCostUnavailable": "—",
-            "model": "Model"
+            "model": "Model",
+            "routingOverhead": "Overhead routing proxy (tổng − thời gian API)"
         },
         "severity": {
             "success": "Thành công",

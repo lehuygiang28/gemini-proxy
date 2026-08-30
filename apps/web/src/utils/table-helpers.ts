@@ -39,6 +39,62 @@ export const formatDuration = (durationMs?: number, emptyLabel = ''): string => 
     return `${(durationMs / 1000).toFixed(2)}s`;
 };
 
+export const shortModel = (model: string | null | undefined, emptyLabel = '—'): string => {
+    if (!model) {
+        return emptyLabel;
+    }
+    return model.replace(/^models\//, '');
+};
+
+export const formatSpeed = (
+    completionTokens: number | undefined,
+    durationMs: number | undefined,
+    emptyLabel = '—',
+): string => {
+    if (
+        completionTokens === null ||
+        completionTokens === undefined ||
+        durationMs === null ||
+        durationMs === undefined ||
+        durationMs <= 0 ||
+        completionTokens <= 0
+    ) {
+        return emptyLabel;
+    }
+    const tokensPerSecond = completionTokens / (durationMs / 1000);
+    return `${tokensPerSecond.toFixed(1)} tok/s`;
+};
+
+export const formatRoutingOverhead = (
+    totalMs: number | undefined,
+    apiMs: number | undefined,
+    emptyLabel = '—',
+): string => {
+    if (
+        totalMs === null ||
+        totalMs === undefined ||
+        apiMs === null ||
+        apiMs === undefined ||
+        totalMs <= 0
+    ) {
+        return emptyLabel;
+    }
+    const overhead = Math.max(0, totalMs - apiMs);
+    return formatDuration(overhead, emptyLabel);
+};
+
+export const formatTokenCountWithUnit = (
+    count?: number,
+    emptyLabel = '—',
+    unit = 'tok',
+): string => {
+    const formatted = formatTokenCount(count, emptyLabel);
+    if (formatted === emptyLabel) {
+        return emptyLabel;
+    }
+    return `${formatted} ${unit}`;
+};
+
 // Status utilities
 export const getStatusValue = (isActive: boolean): PresetStatusColorType => {
     return isActive ? 'success' : 'error';

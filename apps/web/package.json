@@ -11,6 +11,7 @@
         "start": "cross-env NODE_ENV=production PORT=4041 refine start",
         "start:dev": "cross-env NODE_ENV=development PORT=4040 refine start",
         "lint": "eslint . && node scripts/check-locale-parity.mjs",
+        "test": "vitest run",
         "i18n:check": "node scripts/check-locale-parity.mjs",
         "refine": "refine",
         "clean": "rm -rf .next .turbo .open-next",
@@ -54,6 +55,7 @@
         "eslint": "^8",
         "eslint-config-next": "^15.5.23",
         "typescript": "^5.8.3",
+        "vitest": "~3.2.0",
         "wrangler": "^4.125.0"
     },
     "refine": {
