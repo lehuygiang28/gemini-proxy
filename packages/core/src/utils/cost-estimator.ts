@@ -18,6 +18,8 @@ export type EstimateGeminiCostInput = {
     thoughtsTokens: number;
     toolUsePromptTokens: number;
     totalTokens: number;
+    /** UTC calendar day for intro vs post-intro rates. Defaults to now. */
+    at?: Date;
 };
 
 function toNonNegativeInt(value: number): number {
@@ -53,7 +55,7 @@ export function partitionBillableTokens(input: EstimateGeminiCostInput): {
 }
 
 export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCostEstimate | null {
-    const resolved = resolveGeminiPricing(input.model);
+    const resolved = resolveGeminiPricing(input.model, input.at);
     if (!resolved) {
         return null;
     }

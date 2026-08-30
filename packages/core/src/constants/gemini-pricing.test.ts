@@ -1,0 +1,123 @@
+import { describe, expect, it } from 'vitest';
+import { GEMINI_PRICING, effectiveTokenRates, resolveGeminiPricing } from './gemini-pricing';
+import { estimateGeminiCostUsd } from '../utils/cost-estimator';
+
+const INTRO_DAY = new Date('2026-08-30T12:00:00.000Z');
+const LAST_INTRO_DAY = new Date('2026-12-31T23:00:00.000Z');
+const FIRST_STANDARD_DAY = new Date('2027-01-01T00:00:00.000Z');
+
+describe('resolveGeminiPricing', () => {
+    it('prices gemini-3.7-flash at the published intro rates through 2026-12-31', () => {
+        const intro = resolveGeminiPricing('models/gemini-3.7-flash', INTRO_DAY);
+        expect(intro).toMatchObject({
+            modelId: 'gemini-3.7-flash',
+            rates: { inputPerMillion: 0.75, outputPerMillion: 3.75, cachedInputPerMillion: 0.075 },
+        });
+        expect(
+            resolveGeminiPricing('gemini-3.7-flash', LAST_INTRO_DAY)?.rates.inputPerMillion,
+        ).toBe(0.75);
+    });
+
+    it('switches 3.6 and 3.7 Flash to $1.50/$7.50 on 2027-01-01', () => {
+        for (const model of ['gemini-3.7-flash', 'gemini-3.6-flash'] as const) {
+            const next = resolveGeminiPricing(model, FIRST_STANDARD_DAY);
+            expect(next?.rates).toMatchObject({
+                inputPerMillion: 1.5,
+                outputPerMillion: 7.5,
+                cachedInputPerMillion: 0.15,
+            });
+        }
+    });
+
+    it('does not leave 3.6 Flash on the old $1.50 list price during the intro window', () => {
+        const rates = resolveGeminiPricing('gemini-3.6-flash', INTRO_DAY)?.rates;
+        expect(rates?.inputPerMillion).toBe(0.75);
+        expect(rates?.outputPerMillion).toBe(3.75);
+    });
+
+    it('maps pointer aliases to the current Flash/Pro rows', () => {
+        expect(resolveGeminiPricing('gemini-flash-latest', INTRO_DAY)?.modelId).toBe(
+            'gemini-3.7-flash',
+        );
+        expect(resolveGeminiPricing('gemini-flash-lite-latest')?.modelId).toBe(
+            'gemini-3.5-flash-lite',
+        );
+        expect(resolveGeminiPricing('gemini-pro-latest')?.modelId).toBe('gemini-3.1-pro-preview');
+    });
+
+    it('matches dated computer-use and robotics IDs without stealing Flash rates', () => {
+        expect(resolveGeminiPricing('gemini-2.5-computer-use-preview-10-2025')?.modelId).toBe(
+            'gemini-2.5-computer-use',
+        );
+        expect(resolveGeminiPricing('gemini-robotics-er-2-preview')?.modelId).toBe(
+            'gemini-robotics-er-2',
+        );
+        expect(resolveGeminiPricing('gemini-robotics-er-2-streaming-preview')?.modelId).toBe(
+            'gemini-robotics-er-2',
+        );
+        expect(resolveGeminiPricing('gemini-robotics-er-1.6-preview')?.rates.inputPerMillion).toBe(
+            1,
+        );
+    });
+
+    it('returns null for Live, TTS, image-out, Omni, and embeddings instead of stealing a text row', () => {
+        const skipped = [
+            'gemini-3.5-live-translate-preview',
+            'gemini-3.5-transcribe-live',
+            'gemini-3.5-transcribe',
+            'gemini-omni-1.1-flash',
+            'gemini-omni-flash-preview',
+            'gemini-3.1-flash-image',
+            'gemini-3.1-flash-lite-image',
+            'gemini-3.1-flash-tts-preview',
+            'gemini-3.1-flash-live-preview',
+            'gemini-3-pro-image',
+            'gemini-2.5-flash-image',
+            'gemini-2.5-flash-preview-tts',
+            'gemini-2.5-pro-preview-tts',
+            'gemini-2.5-flash-native-audio-preview-12-2025',
+            'gemini-embedding-2',
+            'gemini-embedding-001',
+            'veo-3.1-generate-preview',
+        ];
+        for (const model of skipped) {
+            expect(resolveGeminiPricing(model, INTRO_DAY), model).toBeNull();
+        }
+    });
+
+    it('still matches 3.1 Pro custom-tools and 2.5 Flash dated previews', () => {
+        expect(resolveGeminiPricing('gemini-3.1-pro-preview-customtools')?.modelId).toBe(
+            'gemini-3.1-pro-preview',
+        );
+        expect(resolveGeminiPricing('gemini-2.5-flash-lite-preview-09-2025')?.modelId).toBe(
+            'gemini-2.5-flash-lite',
+        );
+        expect(resolveGeminiPricing('gemini-3.5-flash')?.rates.outputPerMillion).toBe(9);
+    });
+});
+
+describe('effectiveTokenRates', () => {
+    it('keeps intro rates on the inclusive through date', () => {
+        const row = GEMINI_PRICING.models['gemini-3.7-flash'];
+        expect(effectiveTokenRates(row, LAST_INTRO_DAY).inputPerMillion).toBe(0.75);
+        expect(effectiveTokenRates(row, FIRST_STANDARD_DAY).inputPerMillion).toBe(1.5);
+    });
+});
+
+describe('estimateGeminiCostUsd intro Flash', () => {
+    it('estimates 3.7 Flash with intro cache partition', () => {
+        const estimate = estimateGeminiCostUsd({
+            model: 'gemini-3.7-flash',
+            promptTokens: 10_000,
+            cacheTokens: 8_000,
+            completionTokens: 500,
+            thoughtsTokens: 1_500,
+            toolUsePromptTokens: 0,
+            totalTokens: 12_000,
+            at: INTRO_DAY,
+        });
+        expect(estimate?.matchedModel).toBe('gemini-3.7-flash');
+        const expected = (2_000 * 0.75 + 8_000 * 0.075 + 2_000 * 3.75) / 1_000_000;
+        expect(estimate?.usd).toBeCloseTo(expected, 10);
+    });
+});

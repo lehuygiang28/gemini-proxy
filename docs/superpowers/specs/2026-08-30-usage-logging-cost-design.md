@@ -101,23 +101,31 @@ Long-context Pro tiers: compare **`prompt_tokens` (includes cache)** to 200k.
 
 Unknown model → `estimated_cost_usd: null`. Snapshot `estimated_cost_usd` + `pricing_version` (`asOf`) at persist. Dashboard sums stored USD, does not reprice history.
 
-Standard paid text rates (`asOf: 2026-08-30`), USD / 1M:
+Standard paid text rates (`asOf: 2026-08-30`), USD / 1M. Source: [Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
-| Model                    |               Input | Cached input | Output (incl. thinking) |
-| ------------------------ | ------------------: | -----------: | ----------------------: |
-| `gemini-3.6-flash`       |                1.50 |         0.15 |                    7.50 |
-| `gemini-3.5-flash`       |                1.50 |         0.15 |                    9.00 |
-| `gemini-3.5-flash-lite`  |                0.30 |         0.03 |                    2.50 |
-| `gemini-3.1-flash-lite`  |                0.25 |        0.025 |                    1.50 |
-| `gemini-3.1-pro-preview` | 2.00 / 4.00 (>200k) |  0.20 / 0.40 |           12.00 / 18.00 |
-| `gemini-3-flash-preview` |                0.50 |         0.05 |                    3.00 |
-| `gemini-2.5-pro`         | 1.25 / 2.50 (>200k) | 0.125 / 0.25 |           10.00 / 15.00 |
-| `gemini-2.5-flash`       |                0.30 |         0.03 |                    2.50 |
-| `gemini-2.5-flash-lite`  |                0.10 |         0.01 |                    0.40 |
-| `gemini-2.0-flash`       |                0.10 |        0.025 |                    0.40 |
-| `gemini-2.0-flash-lite`  |               0.075 |            — |                    0.30 |
+| Model                     |               Input | Cached input | Output (incl. thinking) |
+| ------------------------- | ------------------: | -----------: | ----------------------: |
+| `gemini-3.7-flash`        | 0.75 / 1.50 (2027+) | 0.075 / 0.15 |             3.75 / 7.50 |
+| `gemini-3.6-flash`        | 0.75 / 1.50 (2027+) | 0.075 / 0.15 |             3.75 / 7.50 |
+| `gemini-3.5-flash`        |                1.50 |         0.15 |                    9.00 |
+| `gemini-3.5-flash-lite`   |                0.30 |         0.03 |                    2.50 |
+| `gemini-3.1-flash-lite`   |                0.25 |        0.025 |                    1.50 |
+| `gemini-3.1-pro-preview`  | 2.00 / 4.00 (>200k) |  0.20 / 0.40 |           12.00 / 18.00 |
+| `gemini-3-flash-preview`  |                0.50 |         0.05 |                    3.00 |
+| `gemini-2.5-pro`          | 1.25 / 2.50 (>200k) | 0.125 / 0.25 |           10.00 / 15.00 |
+| `gemini-2.5-computer-use` | 1.25 / 2.50 (>200k) | 0.125 / 0.25 |           10.00 / 15.00 |
+| `gemini-2.5-flash`        |                0.30 |         0.03 |                    2.50 |
+| `gemini-2.5-flash-lite`   |                0.10 |         0.01 |                    0.40 |
+| `gemini-2.0-flash`        |                0.10 |        0.025 |                    0.40 |
+| `gemini-2.0-flash-lite`   |               0.075 |            — |                    0.30 |
+| `gemini-robotics-er-2`    |                2.00 |         0.20 |                   10.00 |
+| `gemini-robotics-er-1.6`  |                1.00 |            — |                    5.00 |
 
-Match: strip `models/`, lowercase, longest-prefix. v1 text/image/video input rate only (not audio surcharge, image-out, TTS, Live, Veo, embeddings, grounding).
+3.6 and 3.7 Flash: intro **through 2026-12-31** (inclusive); **2027-01-01** uses the $1.50 / $0.15 / $7.50 band. Resolver picks the band from the UTC calendar day at persist.
+
+Aliases: `gemini-flash-latest` → 3.7 Flash, `gemini-flash-lite-latest` → 3.5 Flash-Lite, `gemini-pro-latest` → 3.1 Pro Preview.
+
+Match: strip `models/`, lowercase, longest-prefix. Return `null` for Live / TTS / image-out / Omni / Veo / embeddings (do not steal a sibling Flash/Pro text row). v1 text/image/video input rate only (not audio surcharge, image-out, TTS, Live, Veo, embeddings, grounding).
 
 ## UI / stats
 
