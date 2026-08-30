@@ -723,8 +723,10 @@
             "filterAll": "Tất cả",
             "filterGemini": "Gemini",
             "filterGemma": "Gemma",
-            "family.gemini": "Gemini",
-            "family.gemma": "Gemma",
+            "family": {
+                "gemini": "Gemini",
+                "gemma": "Gemma"
+            },
             "modelLabel": "Model",
             "modelPlaceholder": "Chọn model",
             "sendLabel": "Gửi",
@@ -736,6 +738,7 @@
             "addModel": "Thêm model",
             "customize": "Tùy chỉnh",
             "customized": "Đã thêm",
+            "duplicateModel": "Mỗi model chỉ được thêm một lần. Xóa dòng trùng trước khi lưu.",
             "modelRequired": "Hãy chọn model"
         }
     },

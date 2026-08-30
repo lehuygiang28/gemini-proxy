@@ -201,20 +201,6 @@ export const GEMINI_PRICING: GeminiPricingTable = {
     },
 };
 
-/** Default when a gemma-* id is not in the table (e.g. future preview suffixes). */
-const GEMMA_FALLBACK_RATES: GeminiTokenRates = {
-    inputPerMillion: 0.05,
-    outputPerMillion: 0.1,
-    cachedInputPerMillion: 0.025,
-};
-
-/** Default when a gemini-* text id is not in the table (e.g. dated preview suffixes). */
-const GEMINI_FALLBACK_RATES: GeminiTokenRates = {
-    inputPerMillion: 0.3,
-    outputPerMillion: 2.5,
-    cachedInputPerMillion: 0.03,
-};
-
 export type ModelPricingOverride = {
     readonly inputPerMillion: number;
     readonly outputPerMillion: number;
@@ -357,12 +343,6 @@ export function resolveGeminiPricing(
             const row = GEMINI_PRICING.models[key];
             return { modelId: key, rates: effectiveTokenRates(row, at), source: 'builtin' };
         }
-    }
-    if (normalized.startsWith('gemma-')) {
-        return { modelId: normalized, rates: GEMMA_FALLBACK_RATES, source: 'builtin' };
-    }
-    if (normalized.startsWith('gemini-')) {
-        return { modelId: normalized, rates: GEMINI_FALLBACK_RATES, source: 'builtin' };
     }
     return null;
 }

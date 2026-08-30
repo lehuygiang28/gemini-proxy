@@ -738,7 +738,9 @@ BEGIN
         ), 0),
         COALESCE(SUM(
             CASE
-                WHEN (usage_metadata->>'estimated_cost_usd') ~ '^[0-9]+(\.[0-9]+)?$'
+                WHEN jsonb_typeof(usage_metadata->'estimated_cost_usd') = 'number'
+                THEN (usage_metadata->'estimated_cost_usd')::NUMERIC
+                WHEN (usage_metadata->>'estimated_cost_usd') ~ '^-?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$'
                 THEN (usage_metadata->>'estimated_cost_usd')::NUMERIC
                 ELSE 0
             END
@@ -880,6 +882,8 @@ GRANT EXECUTE ON FUNCTION get_retry_statistics(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_api_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_proxy_key_statistics(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_request_logs_statistics(UUID, INTEGER) TO authenticated;
+REVOKE ALL ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 GRANT EXECUTE ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 

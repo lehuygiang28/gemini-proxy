@@ -55,7 +55,7 @@ UPDATE api_keys SET
 WHERE id = p_id;
 ```
 
-Same for `proxy_api_keys`. `completion_tokens` on keys stays **visible output only** (not thoughts). `total_tokens` uses provider `total`.
+Same for `proxy_api_keys`. Key `completion_tokens` use **visible output only** (exclude thoughts when they are folded into OpenAI-style `completion_tokens`; see `visibleCompletionTokensForKeys()`). `total_tokens` uses provider `total`.
 
 ## Token mapping
 
@@ -125,7 +125,7 @@ Standard paid text rates (`asOf: 2026-08-30`), USD / 1M. Source: [Gemini Develop
 
 Aliases: `gemini-flash-latest` → 3.7 Flash, `gemini-flash-lite-latest` → 3.5 Flash-Lite, `gemini-pro-latest` → 3.1 Pro Preview.
 
-Match: strip `models/`, lowercase, longest-prefix. Return `null` for Live / TTS / image-out / Omni / Veo / embeddings (do not steal a sibling Flash/Pro text row). v1 text/image/video input rate only (not audio surcharge, image-out, TTS, Live, Veo, embeddings, grounding).
+Match: strip `models/`, lowercase, longest-prefix on known table keys. Return `null` for unknown models and for Live / TTS / image-out / Omni / Veo / embeddings (do not steal a sibling Flash/Pro text row). Users may override unknown models via `user_settings.custom_model_pricing`. v1 text/image/video input rate only (not audio surcharge, image-out, TTS, Live, Veo, embeddings, grounding).
 
 ## UI / stats
 

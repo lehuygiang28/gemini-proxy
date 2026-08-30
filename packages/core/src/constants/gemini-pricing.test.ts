@@ -123,20 +123,9 @@ describe('resolveGeminiPricing', () => {
         expect(resolveGeminiPricing('gemma-4-26b-a4b')?.modelId).toBe('gemma-4-26b-a4b-it');
     });
 
-    it('falls back for unknown gemma preview ids', () => {
-        const resolved = resolveGeminiPricing('gemma-5-99b-it-preview');
-        expect(resolved?.modelId).toBe('gemma-5-99b-it-preview');
-        expect(resolved?.rates.inputPerMillion).toBe(0.05);
-    });
-
-    it('falls back for unknown gemini preview ids', () => {
-        const resolved = resolveGeminiPricing('gemini-9.9-ultra-preview-01-2099');
-        expect(resolved?.modelId).toBe('gemini-9.9-ultra-preview-01-2099');
-        expect(resolved?.rates).toMatchObject({
-            inputPerMillion: 0.3,
-            outputPerMillion: 2.5,
-            cachedInputPerMillion: 0.03,
-        });
+    it('returns null for unknown gemini and gemma preview ids', () => {
+        expect(resolveGeminiPricing('gemma-5-99b-it-preview')).toBeNull();
+        expect(resolveGeminiPricing('gemini-9.9-ultra-preview-01-2099')).toBeNull();
     });
 
     it('lists all built-in Gemini and Gemma rows for dashboard', () => {

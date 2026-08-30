@@ -2,7 +2,7 @@ import { Context } from 'hono';
 
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
-import { estimateCostFromParsedUsage } from '../utils/cost-estimator';
+import { estimateCostFromParsedUsage, visibleCompletionTokensForKeys } from '../utils/cost-estimator';
 import type { CustomModelPricingMap } from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
@@ -179,6 +179,7 @@ export class BackgroundService {
             fallbackModel,
             settings.custom_model_pricing,
         );
+        const keyCompletionTokens = visibleCompletionTokensForKeys(tokenUsage);
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -196,7 +197,7 @@ export class BackgroundService {
                 apiKeyId,
                 isSuccessful: true,
                 promptTokens: tokenUsage.promptTokens,
-                completionTokens: tokenUsage.completionTokens,
+                completionTokens: keyCompletionTokens,
                 totalTokens: tokenUsage.totalTokens,
             });
             this.addApiKeyTouch(requestId, {
@@ -210,7 +211,7 @@ export class BackgroundService {
             proxyApiKeyId: proxyKeyId,
             isSuccessful: true,
             promptTokens: tokenUsage.promptTokens,
-            completionTokens: tokenUsage.completionTokens,
+            completionTokens: keyCompletionTokens,
             totalTokens: tokenUsage.totalTokens,
         });
 
@@ -421,10 +422,19 @@ export class BackgroundService {
         this.operations.delete(requestId);
 
         try {
-            if (operations.requestLog) {
-                await persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!));
-            }
             const promises: Promise<void>[] = [];
+            if (operations.requestLog) {
+                promises.push(
+                    persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!)).catch(
+                        (error) => {
+                            console.error(
+                                `Failed to insert request log for request ${requestId}:`,
+                                error,
+                            );
+                        },
+                    ),
+                );
+            }
             if (operations.apiKeyUsages.length > 0) {
                 promises.push(this.updateApiKeyUsages(c, operations.apiKeyUsages));
             }
@@ -792,12 +802,20 @@ export class BackgroundService {
                 continue;
             }
             const row = rates as Record<string, unknown>;
-            const input = Number(row.inputPerMillion);
-            const output = Number(row.outputPerMillion);
+            const input =
+                typeof row.inputPerMillion === 'number' ? row.inputPerMillion : Number.NaN;
+            const output =
+                typeof row.outputPerMillion === 'number' ? row.outputPerMillion : Number.NaN;
             if (!Number.isFinite(input) || !Number.isFinite(output) || input < 0 || output < 0) {
                 continue;
             }
-            const cache = Number(row.cachedInputPerMillion);
+            const cacheRaw = row.cachedInputPerMillion;
+            const cache =
+                typeof cacheRaw === 'number'
+                    ? cacheRaw
+                    : cacheRaw != null && cacheRaw !== ''
+                      ? Number(cacheRaw)
+                      : Number.NaN;
             parsed[modelId.trim().toLowerCase()] = {
                 inputPerMillion: input,
                 outputPerMillion: output,

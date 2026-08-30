@@ -723,8 +723,10 @@
             "filterAll": "All",
             "filterGemini": "Gemini",
             "filterGemma": "Gemma",
-            "family.gemini": "Gemini",
-            "family.gemma": "Gemma",
+            "family": {
+                "gemini": "Gemini",
+                "gemma": "Gemma"
+            },
             "modelLabel": "Model",
             "modelPlaceholder": "Choose a model",
             "sendLabel": "Send",
@@ -736,6 +738,7 @@
             "addModel": "Add model",
             "customize": "Customize",
             "customized": "Added",
+            "duplicateModel": "Each model can only appear once. Remove duplicate rows before saving.",
             "modelRequired": "Choose a model"
         }
     },

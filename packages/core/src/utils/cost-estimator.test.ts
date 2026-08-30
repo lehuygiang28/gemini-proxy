@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GEMINI_PRICING } from '../constants/gemini-pricing';
-import { estimateGeminiCostUsd, partitionBillableTokens } from './cost-estimator';
+import {
+    estimateGeminiCostUsd,
+    partitionBillableTokens,
+    visibleCompletionTokensForKeys,
+} from './cost-estimator';
 
 describe('partitionBillableTokens', () => {
     it('does not double-count cache or add cache on top of prompt', () => {
@@ -43,6 +47,19 @@ describe('partitionBillableTokens', () => {
             totalTokens: 1725,
         });
         expect(parts.outputBillableTokens).toBe(967);
+    });
+
+    it('excludes folded-in thoughts from key completion counters', () => {
+        expect(
+            visibleCompletionTokensForKeys({
+                promptTokens: 1486,
+                cacheTokens: 1408,
+                completionTokens: 651,
+                thoughtsTokens: 512,
+                toolUsePromptTokens: 0,
+                totalTokens: 2137,
+            }),
+        ).toBe(139);
     });
 });
 

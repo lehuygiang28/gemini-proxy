@@ -60,6 +60,29 @@ export function partitionBillableTokens(input: EstimateGeminiCostInput): {
     return { uncachedPromptTokens, cacheTokens, outputBillableTokens };
 }
 
+/** Visible completion only — excludes thoughts when they are folded into completion. */
+export function visibleCompletionTokensForKeys(input: {
+    promptTokens: number;
+    completionTokens: number;
+    thoughtsTokens: number;
+    toolUsePromptTokens: number;
+    totalTokens: number;
+}): number {
+    const visible = toNonNegativeInt(input.completionTokens);
+    const toolUse = toNonNegativeInt(input.toolUsePromptTokens);
+    const totalTokens = toNonNegativeInt(input.totalTokens);
+    const promptTokens = toNonNegativeInt(input.promptTokens);
+    const remainder = Math.max(totalTokens - promptTokens - visible - toolUse, 0);
+    const explicitThoughts = toNonNegativeInt(input.thoughtsTokens);
+    const thoughts = explicitThoughts > 0 ? explicitThoughts : remainder;
+    const thoughtsInsideCompletion =
+        visible >= thoughts && promptTokens + visible + toolUse >= Math.max(totalTokens - 1, 0);
+    if (thoughtsInsideCompletion && thoughts > 0) {
+        return Math.max(visible - thoughts, 0);
+    }
+    return visible;
+}
+
 export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCostEstimate | null {
     const resolved = resolveGeminiPricing(input.model, input.at, input.pricingOverrides);
     if (!resolved) {

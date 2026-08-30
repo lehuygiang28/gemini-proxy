@@ -64,7 +64,7 @@
 - Consumes: `UsageStreamParser`, `estimateGeminiCostUsd`
 - Produces: `attachUsageLogging()`, `increment_api_key_usage`, `increment_proxy_api_key_usage`, expanded `get_request_logs_statistics`
 
-- [x] **Step 1:** `attachUsageLogging(response, apiFormat, onComplete)` pipes body through TransformStream; `flush` calls `onComplete(parser.finish(), cappedText)`.
+- [x] **Step 1:** `attachUsageLogging({ response, headers, apiFormat, onComplete, registerBackground? })` pipes body through TransformStream; `flush` calls `onComplete(parser.finish(), cappedText)`. Empty-body responses register `onComplete` via `registerBackground` (waitUntil).
 - [x] **Step 2:** `handleSuccess` returns the wrapped stream immediately; persist in `flush` + `executeWithWaitUntil`. `handleError` waitUntil after collect. Remove premature `executeAllOperations` from `app.ts`.
 - [x] **Step 3:** Settings + request body at persist time. `raw_metadata` = provider object. Insert throws on error; retry 200ms/800ms.
 - [x] **Step 4:** Migration: atomic increment RPCs (GRANT `service_role`); stats adds `thoughts_tokens`, `tool_use_prompt_tokens`, `estimated_cost_usd`. Mirror `schema.sql`.

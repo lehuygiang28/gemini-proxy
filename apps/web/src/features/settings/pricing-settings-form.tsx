@@ -179,13 +179,20 @@ export function PricingSettingsForm() {
         }
         setSaving(true);
         try {
-            const custom_model_pricing = pricingJsonFromRows(values.pricing_rows ?? []);
-            const payload = {
-                detailed_observability: existing?.detailed_observability ?? false,
-                save_request_body: existing?.save_request_body ?? false,
-                save_response_body: existing?.save_response_body ?? false,
-                custom_model_pricing,
-            };
+            const rows = values.pricing_rows ?? [];
+            const modelIds = rows
+                .map((row) => row.modelId?.trim().toLowerCase())
+                .filter(Boolean);
+            if (new Set(modelIds).size !== modelIds.length) {
+                notification.open({
+                    type: 'error',
+                    message: translate('settings.pricing.saveFailed'),
+                    description: translate('settings.pricing.duplicateModel'),
+                });
+                return;
+            }
+            const custom_model_pricing = pricingJsonFromRows(rows);
+            const payload = { custom_model_pricing };
             if (existing?.id) {
                 await updateSettings({
                     resource: 'user_settings',
