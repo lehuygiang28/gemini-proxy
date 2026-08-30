@@ -15,6 +15,7 @@ import {
     Typography,
     Alert,
     Spin,
+    Modal,
 } from 'antd';
 import { InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons';
 import type { TablesUpdate } from '@gemini-proxy/database';
@@ -40,10 +41,34 @@ export default function ApiKeysEditPage() {
             typeof values.api_key_value === 'string'
                 ? values.api_key_value.trim()
                 : values.api_key_value;
-        formProps.onFinish?.({
+
+        const submitValues = {
             ...values,
             api_key_value: apiKeyValue,
-        });
+        };
+
+        const originalKeyValue =
+            typeof apiKeyData?.api_key_value === 'string'
+                ? apiKeyData.api_key_value.trim()
+                : apiKeyData?.api_key_value;
+
+        const keyChanged =
+            typeof apiKeyValue === 'string' &&
+            typeof originalKeyValue === 'string' &&
+            apiKeyValue !== originalKeyValue;
+
+        if (keyChanged) {
+            Modal.confirm({
+                title: translate('api_keys.rotate.title'),
+                content: translate('api_keys.rotate.description'),
+                okText: translate('api_keys.rotate.confirm'),
+                cancelText: translate('buttons.cancel'),
+                onOk: () => formProps.onFinish?.(submitValues),
+            });
+            return;
+        }
+
+        formProps.onFinish?.(submitValues);
     };
 
     if (query?.isLoading) {

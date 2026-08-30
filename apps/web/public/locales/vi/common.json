@@ -269,6 +269,11 @@
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
         },
+        "rotate": {
+            "title": "Thay khóa API?",
+            "description": "Lưu sẽ thay secret ngay. Client dùng khóa cũ sẽ thất bại cho đến khi được cập nhật.",
+            "confirm": "Thay khóa"
+        },
         "show": {
             "security": "Bảo mật",
             "timestamps": "Dấu thời gian"
@@ -442,6 +447,7 @@
         "rotate": {
             "title": "Xoay khóa proxy?",
             "description": "Thao tác này thay secret ngay. Client cũ sẽ thất bại cho đến khi dùng khóa mới.",
+            "confirm": "Xoay khóa",
             "doneTitle": "Sao chép khóa proxy mới",
             "doneBody": "Hãy lưu giá trị này ngay. Client dùng khóa cũ sẽ không xác thực được."
         },

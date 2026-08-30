@@ -56,12 +56,12 @@ export default function ProxyApiKeysEditPage() {
         formProps.form?.setFieldsValue({ proxy_key_value: generateProxyApiKeyValue() });
     };
 
-    const handleCopyKey = () => {
+    const handleCopyKey = async () => {
         const keyValue = formProps.form?.getFieldValue('proxy_key_value');
         if (typeof keyValue !== 'string' || keyValue.length === 0) {
             return;
         }
-        if (copyToClipboard(keyValue)) {
+        if (await copyToClipboard(keyValue)) {
             notification.open({
                 type: 'success',
                 message: translate('proxy_api_keys.create.copied'),

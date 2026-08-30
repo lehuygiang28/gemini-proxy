@@ -269,6 +269,11 @@
             "basicInfo": "Basic Information",
             "settings": "Settings"
         },
+        "rotate": {
+            "title": "Replace API key?",
+            "description": "Saving will immediately replace the stored secret. Clients using the old key will fail until updated.",
+            "confirm": "Replace key"
+        },
         "show": {
             "security": "Security",
             "timestamps": "Timestamps"
@@ -442,6 +447,7 @@
         "rotate": {
             "title": "Rotate proxy API key?",
             "description": "This immediately replaces the secret. Existing clients will fail until they use the new key.",
+            "confirm": "Rotate key",
             "doneTitle": "Copy the new proxy key",
             "doneBody": "Store this value now. Clients using the previous key will stop authenticating."
         },

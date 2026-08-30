@@ -1,2 +1,2 @@
-export * from './is-valid-google-api-key';
-export * from './is-valid-proxy-api-key';
+export { isValidGoogleApiKey } from './is-valid-google-api-key';
+export { isValidProxyApiKeyValue } from './is-valid-proxy-api-key';

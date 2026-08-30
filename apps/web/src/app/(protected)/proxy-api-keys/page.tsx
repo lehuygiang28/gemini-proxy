@@ -49,6 +49,7 @@ const { useToken } = theme;
 const { Text } = Typography;
 
 const PROXY_API_KEYS_RESOURCE = 'proxy_api_keys';
+const PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH = 200;
 
 type ProxyApiKey = Tables<'proxy_api_keys'>;
 interface IProxyApiKeySearch {
@@ -204,9 +205,9 @@ export default function ProxyApiKeysListPage() {
         [updateProxyApiKey, translate],
     );
 
-    const handleCopyRotatedKey = useCallback(() => {
+    const handleCopyRotatedKey = useCallback(async () => {
         if (!rotatedSecret) return;
-        if (copyToClipboard(rotatedSecret.value)) {
+        if (await copyToClipboard(rotatedSecret.value)) {
             notification.open({
                 type: 'success',
                 message: translate('proxy_api_keys.create.copied'),
@@ -458,7 +459,7 @@ export default function ProxyApiKeysListPage() {
                                 {
                                     title: translate('table.actions'),
                                     dataIndex: 'actions',
-                                    width: 200,
+                                    width: PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH,
                                     fixed: 'right',
                                     render: (_: unknown, record: ProxyApiKey) => (
                                         <Space size="small">
@@ -485,7 +486,7 @@ export default function ProxyApiKeysListPage() {
                                                         'proxy_api_keys.rotate.description',
                                                     )}
                                                     onConfirm={() => handleRotate(record)}
-                                                    okText={translate('buttons.save')}
+                                                    okText={translate('proxy_api_keys.rotate.confirm')}
                                                     cancelText={translate('buttons.cancel')}
                                                 >
                                                     <Button
