@@ -104,6 +104,21 @@ export function buildRequestLogDeepLinkInitialValues(
     };
 }
 
+export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<RequestLogSearch> {
+    const dateRange = getDateRangeFromFilters(filters);
+
+    return {
+        request_id: getFilterScalar(filters, 'request_id') as string | undefined,
+        model: getFilterScalar(filters, REQUEST_LOG_MODEL_FIELD) as string | undefined,
+        api_format: getFilterScalar(filters, 'api_format') as string | undefined,
+        is_successful: getFilterScalar(filters, 'is_successful') as boolean | undefined,
+        is_stream: getFilterScalar(filters, 'is_stream') as boolean | undefined,
+        api_key_id: getFilterScalar(filters, 'api_key_id') as string | undefined,
+        proxy_key_id: getFilterScalar(filters, 'proxy_key_id') as string | undefined,
+        date_range: dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : undefined,
+    };
+}
+
 export function findFilter(filters: CrudFilter[], field: string): LogicalFilter | undefined {
     return filters.find(
         (filter) => isLogicalFilter(filter) && filter.field === field,

@@ -5,47 +5,13 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Empty, Segmented, Spin } from 'antd';
 import { useTranslation } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
+import { fillBucketSeries } from '../logs-activity-chart-series';
 
 interface LogsActivityChartProps {
     volume?: RequestLogsVolume | null;
     loading?: boolean;
     range: RequestLogsVolumeRange;
     onRangeChange: (range: RequestLogsVolumeRange) => void;
-}
-
-function fillBucketSeries(
-    volume: RequestLogsVolume | null | undefined,
-    locale: string,
-): Array<{ label: string; count: number }> {
-    if (!volume?.period_start || !volume.period_end) {
-        return [];
-    }
-    const start = new Date(volume.period_start);
-    const end = new Date(volume.period_end);
-    const buckets = volume.buckets ?? {};
-    const points: Array<{ label: string; count: number }> = [];
-    const stepMs = volume.bucket === 'hour' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-    const timeFormatter = new Intl.DateTimeFormat(locale, {
-        ...(volume.bucket === 'hour'
-            ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }
-            : { month: 'short', day: 'numeric' }),
-    });
-    for (let cursor = start.getTime(); cursor <= end.getTime(); cursor += stepMs) {
-        const iso =
-            volume.bucket === 'hour'
-                ? new Date(cursor).toISOString().slice(0, 13) + ':00:00Z'
-                : new Date(cursor).toISOString().slice(0, 10) + 'T00:00:00Z';
-        const count = buckets[iso] ?? 0;
-        points.push({
-            label: timeFormatter.format(new Date(cursor)),
-            count,
-        });
-    }
-    if (points.length > 120) {
-        const stride = Math.ceil(points.length / 80);
-        return points.filter((_, index) => index % stride === 0);
-    }
-    return points;
 }
 
 /**

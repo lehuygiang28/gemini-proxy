@@ -40,6 +40,7 @@ import {
     buildRequestLogDeepLinkInitialValues,
     buildRequestLogSearchFilters,
     countActiveLogFilters,
+    mapFiltersToSearchFormValues,
     type RequestLogSearch,
 } from '@/features/request-logs/request-log-table-filter-utils';
 
@@ -91,6 +92,14 @@ export default function RequestLogsListPage() {
         filters: deepLinkInitialFilters.length > 0 ? { initial: deepLinkInitialFilters } : undefined,
         onSearch: (values) => buildRequestLogSearchFilters(values),
     });
+
+    const formInitialValues = useMemo(
+        () => ({
+            ...mapFiltersToSearchFormValues(filters),
+            ...deepLinkInitialValues,
+        }),
+        [deepLinkInitialValues, filters],
+    );
 
     const volumeQuery = useRequestLogsVolume({ p_range: chartRange });
     const volumeData = volumeQuery.query.data?.data as RequestLogsVolume | undefined;
@@ -276,7 +285,7 @@ export default function RequestLogsListPage() {
                 onRangeChange={setChartRange}
             />
 
-            <Form {...searchFormProps} initialValues={deepLinkInitialValues}>
+            <Form {...searchFormProps} initialValues={formInitialValues}>
                 {toolbarFilters}
 
                 <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>

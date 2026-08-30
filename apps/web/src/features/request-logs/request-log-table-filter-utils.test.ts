@@ -6,6 +6,7 @@ import {
     buildRequestLogSearchFilters,
     countActiveLogFilters,
     getDateRangeFromFilters,
+    mapFiltersToSearchFormValues,
 } from './request-log-table-filter-utils';
 
 describe('request-log-table-filter-utils', () => {
@@ -52,6 +53,18 @@ describe('request-log-table-filter-utils', () => {
             { field: 'proxy_key_id', operator: 'eq', value: 'p' },
             { field: 'api_key_id', operator: 'eq', value: 'a' },
         ]);
+    });
+
+    it('mapFiltersToSearchFormValues maps model and date_range fields', () => {
+        const filters = buildRequestLogSearchFilters({
+            model: 'gemini-flash',
+            date_range: ['2026-01-01T00:00:00.000Z', '2026-01-02T00:00:00.000Z'],
+        });
+
+        expect(mapFiltersToSearchFormValues(filters)).toMatchObject({
+            model: 'gemini-flash',
+            date_range: expect.any(Array),
+        });
     });
 
     it('countActiveLogFilters counts date range once and ignores lte duplicate field', () => {

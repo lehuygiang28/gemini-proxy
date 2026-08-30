@@ -7,6 +7,7 @@ import type { FormProps } from 'antd';
 import { Button, DatePicker, Form, Input, Select, Space, Tag, Tooltip, theme } from 'antd';
 import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
+import dayjs from 'dayjs';
 import { DateTimeDisplay } from '@/components/common';
 import type { RequestLog } from '@/types/request-log.types';
 import {
@@ -24,6 +25,7 @@ import {
 import {
     REQUEST_LOG_MODEL_FIELD,
     getDateRangeFromFilters,
+    getFilterScalar,
     hasActiveFilter,
     type RequestLogSearch,
 } from '../request-log-table-filter-utils';
@@ -95,14 +97,19 @@ function resetSearchFields(
 }
 
 function ModelFilterDropdown({
+    crudFilters,
     searchFormProps,
     confirm,
     clearFilters,
     translate,
 }: FilterDropdownProps & {
+    crudFilters: CrudFilter[];
     searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
+    const activeModel = getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD);
+    const modelFieldKey = String(activeModel ?? '');
+
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
@@ -118,7 +125,12 @@ function ModelFilterDropdown({
                 submitSearchForm(searchFormProps);
             }}
         >
-            <Form.Item name="model" noStyle>
+            <Form.Item
+                name="model"
+                noStyle
+                key={modelFieldKey}
+                initialValue={typeof activeModel === 'string' ? activeModel : undefined}
+            >
                 <Input
                     allowClear
                     placeholder={translate('request_logs.placeholders.searchModel')}
@@ -133,16 +145,21 @@ function ModelFilterDropdown({
 }
 
 function DateFilterDropdown({
+    crudFilters,
     searchFormProps,
     confirm,
     clearFilters,
     translate,
     dateLocaleFormat,
 }: FilterDropdownProps & {
+    crudFilters: CrudFilter[];
     searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
     dateLocaleFormat: string;
 }) {
+    const activeRange = getDateRangeFromFilters(crudFilters);
+    const dateFieldKey = activeRange?.join('|') ?? 'empty';
+
     return (
         <FilterDropdownShell
             resetLabel={translate('request_logs.filters.reset')}
@@ -158,7 +175,16 @@ function DateFilterDropdown({
                 submitSearchForm(searchFormProps);
             }}
         >
-            <Form.Item name="date_range" noStyle>
+            <Form.Item
+                name="date_range"
+                noStyle
+                key={dateFieldKey}
+                initialValue={
+                    activeRange
+                        ? [dayjs(activeRange[0]), dayjs(activeRange[1])]
+                        : undefined
+                }
+            >
                 <RangePicker showTime style={{ width: '100%' }} format={dateLocaleFormat} />
             </Form.Item>
         </FilterDropdownShell>
@@ -280,6 +306,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <DateFilterDropdown
                         {...props}
+                        crudFilters={filters}
                         searchFormProps={searchFormProps}
                         translate={translate}
                         dateLocaleFormat={dateLocaleFormat}
@@ -303,6 +330,7 @@ export function useRequestLogTableColumns({
                 filterDropdown: (props) => (
                     <ModelFilterDropdown
                         {...props}
+                        crudFilters={filters}
                         searchFormProps={searchFormProps}
                         translate={translate}
                     />
