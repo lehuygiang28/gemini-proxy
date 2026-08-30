@@ -45,6 +45,17 @@ export interface ProxyKeyStatistics {
     success_rate: number;
 }
 
+export type RequestLogsVolumeRange = '24h' | '7d' | '30d' | '90d';
+
+export interface RequestLogsVolume {
+    range: RequestLogsVolumeRange;
+    bucket: 'hour' | 'day';
+    buckets: Record<string, number>;
+    total_requests: number;
+    period_start: string;
+    period_end: string;
+}
+
 export interface RequestLogsStatistics {
     total_requests: number;
     successful_requests: number;

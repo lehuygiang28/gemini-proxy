@@ -10,6 +10,8 @@ import type {
     ApiKeyStatistics,
     ProxyKeyStatistics,
     RequestLogsStatistics,
+    RequestLogsVolume,
+    RequestLogsVolumeRange,
 } from '@gemini-proxy/database';
 
 // Type that extends BaseRecord for useCustom compatibility
@@ -90,6 +92,10 @@ export const useRequestLogsStatistics = createRpcHookWithDefaults('get_request_l
     p_days_back: 7,
 });
 
+export const useRequestLogsVolume = createRpcHookWithDefaults('get_request_logs_volume', {
+    p_range: '7d',
+});
+
 // Re-export types from database package for convenience
 export type {
     DashboardStatistics,
@@ -97,6 +103,8 @@ export type {
     ApiKeyStatistics,
     ProxyKeyStatistics,
     RequestLogsStatistics,
+    RequestLogsVolume,
+    RequestLogsVolumeRange,
 };
 
 // Export the factory functions for advanced usage

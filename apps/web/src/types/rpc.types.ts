@@ -45,6 +45,12 @@ export const validateRpcParams = <T extends RpcFunctionName>(
                 (paramObj.p_days_back === undefined || typeof paramObj.p_days_back === 'number')
             );
 
+        case 'get_request_logs_volume':
+            return (
+                (paramObj.p_user_id === undefined || typeof paramObj.p_user_id === 'string') &&
+                (paramObj.p_range === undefined || typeof paramObj.p_range === 'string')
+            );
+
         case 'cleanup_old_request_logs':
             return (
                 paramObj.p_days_to_keep === undefined || typeof paramObj.p_days_to_keep === 'number'
@@ -80,6 +86,9 @@ export const validateRpcResponse = <T extends RpcFunctionName>(
 
         case 'get_request_logs_statistics':
             return 'total_requests' in response && 'success_rate' in response;
+
+        case 'get_request_logs_volume':
+            return 'range' in response && 'buckets' in response;
 
         case 'cleanup_old_request_logs':
             return typeof response === 'number';

@@ -246,6 +246,10 @@ export type Database = {
                 Args: { p_days_back?: number; p_user_id?: string };
                 Returns: Json;
             };
+            get_request_logs_volume: {
+                Args: { p_range?: string; p_user_id?: string };
+                Returns: Json;
+            };
             increment_api_key_usage: {
                 Args: {
                     p_id: string;
