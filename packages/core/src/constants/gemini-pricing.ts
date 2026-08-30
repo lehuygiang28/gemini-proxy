@@ -132,8 +132,30 @@ export const GEMINI_PRICING: GeminiPricingTable = {
             outputPerMillion: 5.0,
             cachedInputPerMillion: 0,
         },
+        /**
+         * Gemma 4 open models on the Gemini API. Official paid-tier table lists N/A
+         * (free tier only); these rates match the Developer API list prices when billed.
+         */
+        'gemma-4-26b-a4b-it': {
+            inputPerMillion: 0.07,
+            outputPerMillion: 0.34,
+            cachedInputPerMillion: 0.035,
+        },
+        'gemma-4-31b-it': {
+            inputPerMillion: 0.09,
+            outputPerMillion: 0.34,
+            cachedInputPerMillion: 0.045,
+        },
     },
 };
+
+export type ModelPricingOverride = {
+    readonly inputPerMillion: number;
+    readonly outputPerMillion: number;
+    readonly cachedInputPerMillion?: number;
+};
+
+export type CustomModelPricingMap = Readonly<Record<string, ModelPricingOverride>>;
 
 /** Pointer aliases → canonical table keys (exact match only). */
 export const GEMINI_MODEL_ALIASES: Readonly<Record<string, string>> = {
@@ -205,24 +227,57 @@ export function effectiveTokenRates(
     };
 }
 
+function toOverrideRates(override: ModelPricingOverride): GeminiTokenRates {
+    return {
+        inputPerMillion: override.inputPerMillion,
+        outputPerMillion: override.outputPerMillion,
+        cachedInputPerMillion: override.cachedInputPerMillion ?? 0,
+    };
+}
+
+function resolveUserPricingOverride(
+    normalized: string,
+    userOverrides?: CustomModelPricingMap,
+): { modelId: string; rates: GeminiTokenRates } | null {
+    if (!userOverrides) {
+        return null;
+    }
+    const exact = userOverrides[normalized];
+    if (exact) {
+        return { modelId: normalized, rates: toOverrideRates(exact) };
+    }
+    const keys = Object.keys(userOverrides).sort((a, b) => b.length - a.length);
+    for (const key of keys) {
+        if (normalized === key || normalized.startsWith(`${key}-`)) {
+            return { modelId: key, rates: toOverrideRates(userOverrides[key]!) };
+        }
+    }
+    return null;
+}
+
 export function resolveGeminiPricing(
     model: string,
     at: Date = new Date(),
-): { modelId: string; rates: GeminiTokenRates } | null {
+    userOverrides?: CustomModelPricingMap,
+): { modelId: string; rates: GeminiTokenRates; source: 'builtin' | 'custom' } | null {
     const normalized = normalizeGeminiModelId(model);
     if (!normalized || isNonTextUsdModel(normalized)) {
         return null;
     }
+    const custom = resolveUserPricingOverride(normalized, userOverrides);
+    if (custom) {
+        return { ...custom, source: 'custom' };
+    }
     const aliased = GEMINI_MODEL_ALIASES[normalized] ?? normalized;
     const exact = GEMINI_PRICING.models[aliased];
     if (exact) {
-        return { modelId: aliased, rates: effectiveTokenRates(exact, at) };
+        return { modelId: aliased, rates: effectiveTokenRates(exact, at), source: 'builtin' };
     }
     const keys = Object.keys(GEMINI_PRICING.models).sort((a, b) => b.length - a.length);
     for (const key of keys) {
         if (normalized === key || normalized.startsWith(`${key}-`)) {
             const row = GEMINI_PRICING.models[key];
-            return { modelId: key, rates: effectiveTokenRates(row, at) };
+            return { modelId: key, rates: effectiveTokenRates(row, at), source: 'builtin' };
         }
     }
     return null;

@@ -3,6 +3,7 @@ import { Context } from 'hono';
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
 import { estimateCostFromParsedUsage } from '../utils/cost-estimator';
+import type { CustomModelPricingMap } from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
@@ -42,10 +43,11 @@ export interface RequestLogData {
     totalResponseTimeMs?: number;
 }
 
-type UserObservabilitySettings = {
+type UserRequestSettings = {
     detailed_observability: boolean;
     save_request_body: boolean;
     save_response_body: boolean;
+    custom_model_pricing: CustomModelPricingMap;
 };
 
 export interface ApiKeyUsageData {
@@ -171,11 +173,12 @@ export class BackgroundService {
             raw: { parse_error: true },
         };
         const fallbackModel = proxyRequestDataParsed.model || 'unknown';
+        const settings = await this.loadUserSettings(c, userId);
         const cost = estimateCostFromParsedUsage(
             { ...tokenUsage, model: tokenUsage.model || fallbackModel },
             fallbackModel,
+            settings.custom_model_pricing,
         );
-        const settings = await this.loadUserSettings(c, userId);
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -772,16 +775,44 @@ export class BackgroundService {
 
     // ===== TOKEN EXTRACTION + OBSERVABILITY =====
 
-    private static readonly DEFAULT_USER_SETTINGS: UserObservabilitySettings = {
+    private static readonly DEFAULT_USER_SETTINGS: UserRequestSettings = {
         detailed_observability: false,
         save_request_body: false,
         save_response_body: false,
+        custom_model_pricing: {},
     };
+
+    private static parseCustomModelPricing(value: unknown): CustomModelPricingMap {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return {};
+        }
+        const parsed: Record<string, CustomModelPricingMap[string]> = {};
+        for (const [modelId, rates] of Object.entries(value as Record<string, unknown>)) {
+            if (!rates || typeof rates !== 'object' || Array.isArray(rates)) {
+                continue;
+            }
+            const row = rates as Record<string, unknown>;
+            const input = Number(row.inputPerMillion);
+            const output = Number(row.outputPerMillion);
+            if (!Number.isFinite(input) || !Number.isFinite(output) || input < 0 || output < 0) {
+                continue;
+            }
+            const cache = Number(row.cachedInputPerMillion);
+            parsed[modelId.trim().toLowerCase()] = {
+                inputPerMillion: input,
+                outputPerMillion: output,
+                ...(Number.isFinite(cache) && cache >= 0
+                    ? { cachedInputPerMillion: cache }
+                    : {}),
+            };
+        }
+        return parsed;
+    }
 
     private static async loadUserSettings(
         c: Context<HonoApp>,
         userId: string | null,
-    ): Promise<UserObservabilitySettings> {
+    ): Promise<UserRequestSettings> {
         if (!userId) {
             return { ...this.DEFAULT_USER_SETTINGS };
         }
@@ -789,7 +820,9 @@ export class BackgroundService {
             const supabase = getSupabaseClient(c);
             const { data, error } = await supabase
                 .from('user_settings')
-                .select('detailed_observability, save_request_body, save_response_body')
+                .select(
+                    'detailed_observability, save_request_body, save_response_body, custom_model_pricing',
+                )
                 .eq('id', userId)
                 .maybeSingle();
             if (error || !data) {
@@ -799,6 +832,7 @@ export class BackgroundService {
                 detailed_observability: Boolean(data.detailed_observability),
                 save_request_body: Boolean(data.save_request_body),
                 save_response_body: Boolean(data.save_response_body),
+                custom_model_pricing: this.parseCustomModelPricing(data.custom_model_pricing),
             };
         } catch {
             return { ...this.DEFAULT_USER_SETTINGS };
@@ -806,7 +840,7 @@ export class BackgroundService {
     }
 
     private static attachDetailedBodies(params: {
-        settings: UserObservabilitySettings;
+        settings: UserRequestSettings;
         requestData: Record<string, unknown>;
         responseData?: Record<string, unknown>;
         requestText: string | null;

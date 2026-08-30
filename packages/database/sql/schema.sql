@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     detailed_observability BOOLEAN NOT NULL DEFAULT false,
     save_request_body BOOLEAN NOT NULL DEFAULT false,
     save_response_body BOOLEAN NOT NULL DEFAULT false,
+    custom_model_pricing JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -288,6 +289,8 @@ COMMENT ON COLUMN user_settings.save_request_body IS
     'When detailed_observability is on, persist sanitized request bodies on request_logs.';
 COMMENT ON COLUMN user_settings.save_response_body IS
     'When detailed_observability is on, persist sanitized response bodies on request_logs.';
+COMMENT ON COLUMN user_settings.custom_model_pricing IS
+    'Optional per-model USD/1M token overrides for cost estimates on new request logs.';
 
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';

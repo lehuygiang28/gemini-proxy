@@ -1,4 +1,8 @@
-import { GEMINI_PRICING, resolveGeminiPricing } from '../constants/gemini-pricing';
+import {
+    GEMINI_PRICING,
+    type CustomModelPricingMap,
+    resolveGeminiPricing,
+} from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from './usage-metadata-parser';
 
 export type GeminiCostEstimate = {
@@ -20,6 +24,8 @@ export type EstimateGeminiCostInput = {
     totalTokens: number;
     /** UTC calendar day for intro vs post-intro rates. Defaults to now. */
     at?: Date;
+    /** Per-user overrides from user_settings.custom_model_pricing */
+    pricingOverrides?: CustomModelPricingMap;
 };
 
 function toNonNegativeInt(value: number): number {
@@ -55,7 +61,7 @@ export function partitionBillableTokens(input: EstimateGeminiCostInput): {
 }
 
 export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCostEstimate | null {
-    const resolved = resolveGeminiPricing(input.model, input.at);
+    const resolved = resolveGeminiPricing(input.model, input.at, input.pricingOverrides);
     if (!resolved) {
         return null;
     }
@@ -79,7 +85,10 @@ export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCos
         1_000_000;
     return {
         usd,
-        pricingVersion: GEMINI_PRICING.asOf,
+        pricingVersion:
+            resolved.source === 'custom'
+                ? `${GEMINI_PRICING.asOf}+custom`
+                : GEMINI_PRICING.asOf,
         matchedModel: resolved.modelId,
         uncachedPromptTokens: partitioned.uncachedPromptTokens,
         cacheTokens: partitioned.cacheTokens,
@@ -90,6 +99,7 @@ export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCos
 export function estimateCostFromParsedUsage(
     parsed: ParsedUsageMetadata,
     fallbackModel: string,
+    pricingOverrides?: CustomModelPricingMap,
 ): GeminiCostEstimate | null {
     return estimateGeminiCostUsd({
         model: parsed.model || fallbackModel,
@@ -99,5 +109,6 @@ export function estimateCostFromParsedUsage(
         thoughtsTokens: parsed.thoughtsTokens,
         toolUsePromptTokens: parsed.toolUsePromptTokens,
         totalTokens: parsed.totalTokens,
+        pricingOverrides,
     });
 }

@@ -687,7 +687,7 @@
     "settings": {
         "title": "Cài đặt",
         "subtitle": "Kiểm soát ghi nhật ký request chi tiết và tùy chọn bảng điều khiển.",
-        "tabs": { "observability": "Giám sát", "appearance": "Giao diện" },
+        "tabs": { "observability": "Giám sát", "pricing": "Giá token", "appearance": "Giao diện" },
         "appearance": {
             "title": "Giao diện",
             "colorMode": "Chế độ màu",
@@ -708,6 +708,21 @@
             "saveResponse": "Lưu body response",
             "saveResponseExtra": "Lưu phản hồi model trên mỗi nhật ký, kể cả dữ liệu streaming (response_data.body).",
             "reset": "Đặt lại mặc định"
+        },
+        "pricing": {
+            "saved": "Đã lưu giá",
+            "savedDesc": "Giá tùy chỉnh áp dụng cho ước tính chi phí trên nhật ký request mới.",
+            "saveFailed": "Lưu giá thất bại",
+            "banner": "Giá USD mặc định và tùy chỉnh",
+            "bannerDesc": "Giá mặc định bao gồm Gemini và Gemma. Thêm override cho model chưa có giá hoặc khớp hợp đồng billing của bạn. Chi phí được snapshot khi mỗi request được ghi log.",
+            "builtinTitle": "Giá Gemma mặc định (USD / 1M token)",
+            "overridesTitle": "Override tùy chỉnh của bạn",
+            "modelId": "Model ID",
+            "inputPerM": "Input $/1M",
+            "outputPerM": "Output $/1M",
+            "cachePerM": "Cache $/1M",
+            "addRow": "Thêm override model",
+            "modelRequired": "Bắt buộc nhập Model ID"
         }
     },
     "account": {

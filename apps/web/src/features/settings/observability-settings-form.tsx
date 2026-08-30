@@ -69,6 +69,7 @@ export function ObservabilitySettingsForm() {
                 save_response_body: values.detailed_observability
                     ? Boolean(values.save_response_body)
                     : false,
+                custom_model_pricing: existing?.custom_model_pricing ?? {},
             };
             if (existing?.id) {
                 await updateSettings({

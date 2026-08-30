@@ -687,7 +687,7 @@
     "settings": {
         "title": "Settings",
         "subtitle": "Control detailed request logging and console preferences.",
-        "tabs": { "observability": "Observability", "appearance": "Appearance" },
+        "tabs": { "observability": "Observability", "pricing": "Cost pricing", "appearance": "Appearance" },
         "appearance": {
             "title": "Appearance",
             "colorMode": "Color mode",
@@ -708,6 +708,21 @@
             "saveResponse": "Save response bodies",
             "saveResponseExtra": "Save the model response on each log, including streamed output (response_data.body).",
             "reset": "Reset to defaults"
+        },
+        "pricing": {
+            "saved": "Pricing saved",
+            "savedDesc": "Custom model rates apply to cost estimates on new request logs.",
+            "saveFailed": "Failed to save pricing",
+            "banner": "Built-in and custom USD rates",
+            "bannerDesc": "Default rates cover Gemini and Gemma models. Add overrides for models without a built-in row or to match your billing contract. Costs are snapshotted when each request is logged.",
+            "builtinTitle": "Built-in Gemma rates (USD / 1M tokens)",
+            "overridesTitle": "Your custom overrides",
+            "modelId": "Model ID",
+            "inputPerM": "Input $/1M",
+            "outputPerM": "Output $/1M",
+            "cachePerM": "Cache $/1M",
+            "addRow": "Add model override",
+            "modelRequired": "Model ID is required"
         }
     },
     "account": {

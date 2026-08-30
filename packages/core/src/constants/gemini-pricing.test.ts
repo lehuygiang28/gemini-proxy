@@ -94,6 +94,23 @@ describe('resolveGeminiPricing', () => {
         );
         expect(resolveGeminiPricing('gemini-3.5-flash')?.rates.outputPerMillion).toBe(9);
     });
+
+    it('prices Gemma 4 models on the Gemini API', () => {
+        expect(resolveGeminiPricing('gemma-4-26b-a4b-it')?.rates).toMatchObject({
+            inputPerMillion: 0.07,
+            outputPerMillion: 0.34,
+            cachedInputPerMillion: 0.035,
+        });
+        expect(resolveGeminiPricing('gemma-4-31b-it')?.rates.inputPerMillion).toBe(0.09);
+    });
+
+    it('prefers user overrides over built-in rates', () => {
+        const resolved = resolveGeminiPricing('gemma-4-31b-it', INTRO_DAY, {
+            'gemma-4-31b-it': { inputPerMillion: 0.5, outputPerMillion: 2.0 },
+        });
+        expect(resolved?.source).toBe('custom');
+        expect(resolved?.rates.inputPerMillion).toBe(0.5);
+    });
 });
 
 describe('effectiveTokenRates', () => {
