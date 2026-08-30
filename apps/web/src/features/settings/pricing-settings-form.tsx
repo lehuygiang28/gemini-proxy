@@ -10,6 +10,7 @@ import {
     useTranslation,
     useUpdate,
 } from '@refinedev/core';
+import { listBuiltinModelPricingRows } from '@gemini-proxy/pricing';
 import {
     DEFAULT_USER_SETTINGS,
     type ModelPricingRow,
@@ -18,23 +19,6 @@ import {
 } from './types';
 
 const { Text } = Typography;
-
-const BUILTIN_GEMMA_MODELS: ModelPricingRow[] = [
-    {
-        key: 'gemma-4-26b-a4b-it',
-        modelId: 'gemma-4-26b-a4b-it',
-        inputPerMillion: 0.07,
-        outputPerMillion: 0.34,
-        cachedInputPerMillion: 0.035,
-    },
-    {
-        key: 'gemma-4-31b-it',
-        modelId: 'gemma-4-31b-it',
-        inputPerMillion: 0.09,
-        outputPerMillion: 0.34,
-        cachedInputPerMillion: 0.045,
-    },
-];
 
 function rowsFromPricingJson(value: unknown): ModelPricingRow[] {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -84,6 +68,7 @@ export function PricingSettingsForm() {
     const userId = identity?.id;
     const notification = useNotification();
     const [saving, setSaving] = useState(false);
+    const [builtinFilter, setBuiltinFilter] = useState('');
 
     const { result, query } = useList<UserSettings>({
         resource: 'user_settings',
@@ -96,7 +81,18 @@ export function PricingSettingsForm() {
     const { mutateAsync: createSettings } = useCreate<UserSettings>();
     const { mutateAsync: updateSettings } = useUpdate<UserSettings>();
 
-    const builtinRows = BUILTIN_GEMMA_MODELS;
+    const builtinRows = listBuiltinModelPricingRows()
+        .filter((row) => {
+            const q = builtinFilter.trim().toLowerCase();
+            if (!q) {
+                return true;
+            }
+            return row.modelId.includes(q) || row.family.includes(q);
+        })
+        .map((row) => ({
+            key: row.modelId,
+            ...row,
+        }));
 
     useEffect(() => {
         if (!userId || query.isLoading) {
@@ -169,15 +165,30 @@ export function PricingSettingsForm() {
                 description={translate('settings.pricing.bannerDesc')}
             />
             <Typography.Title level={5} style={{ marginTop: 0 }}>
-                {translate('settings.pricing.builtinTitle')}
+                {translate('settings.pricing.builtinTitle', {
+                    count: listBuiltinModelPricingRows().length,
+                })}
             </Typography.Title>
+            <Input.Search
+                allowClear
+                placeholder={translate('settings.pricing.builtinSearch')}
+                style={{ marginBottom: 12, maxWidth: 360 }}
+                onChange={(e) => setBuiltinFilter(e.target.value)}
+            />
             <Table
                 size="small"
-                pagination={false}
+                pagination={{ pageSize: 15, hideOnSinglePage: true }}
                 style={{ marginBottom: 24 }}
                 dataSource={builtinRows}
                 columns={[
                     { title: translate('settings.pricing.modelId'), dataIndex: 'modelId' },
+                    {
+                        title: translate('settings.pricing.family'),
+                        dataIndex: 'family',
+                        width: 88,
+                        render: (family: 'gemini' | 'gemma') =>
+                            translate(`settings.pricing.family.${family}`),
+                    },
                     {
                         title: translate('settings.pricing.inputPerM'),
                         dataIndex: 'inputPerMillion',
@@ -226,7 +237,7 @@ export function PricingSettingsForm() {
                                                     },
                                                 ]}
                                             >
-                                                <Input placeholder="gemma-4-26b-a4b-it" />
+                                                <Input placeholder="gemini-3.7-flash" />
                                             </Form.Item>
                                         ),
                                     },
