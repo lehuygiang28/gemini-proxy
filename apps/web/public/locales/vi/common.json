@@ -294,6 +294,8 @@
             "bulkImportedName": "Khóa nhập hàng loạt {index}",
             "jsonImportedName": "Khóa nhập JSON {index}",
             "successDesc": "Đã tạo khóa API thành công!",
+            "importUpsertSuccessDesc": "Đã tạo {created}, cập nhật {updated}, bỏ qua {skipped} khóa.",
+            "importSkippedDesc": "Không có thay đổi. Đã bỏ qua {skipped} khóa trùng lặp.",
             "errorTitle": "Lỗi",
             "errorDesc": "Lỗi khi tạo khóa API: {message}",
             "jsonLoaded": "Đã tải tệp JSON thành công!",

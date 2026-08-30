@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Create, useForm } from '@refinedev/antd';
-import { useCreateMany, useGo, useNotification, useGetIdentity, useTranslation } from '@refinedev/core';
+import { useCreateMany, useGo, useNotification, useGetIdentity, useList, useTranslation, useUpdate } from '@refinedev/core';
 import {
     Card,
     Form,
@@ -30,9 +30,10 @@ import {
     ExclamationCircleOutlined,
     InfoCircleOutlined,
 } from '@ant-design/icons';
-import type { TablesInsert, User } from '@gemini-proxy/database';
+import type { Tables, TablesInsert, User } from '@gemini-proxy/database';
 import {
     parseApiKeyImport,
+    planApiKeyImport,
     type ImportFormat,
     type ImportParseResult,
     type NormalizedImportKey,
@@ -43,6 +44,7 @@ const { useToken } = theme;
 const { Dragger } = Upload;
 
 type ApiKeyInsert = TablesInsert<'api_keys'>;
+type ApiKeyRow = Tables<'api_keys'>;
 type ParsedApiKey = {
     id: string;
     name: string;
@@ -78,6 +80,18 @@ export default function ApiKeyCreatePage() {
     const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
     const [importStats, setImportStats] = useState<ImportParseResult['stats'] | null>(null);
     const [importWarnings, setImportWarnings] = useState<string[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const { result: existingKeysResult } = useList<ApiKeyRow>({
+        resource: 'api_keys',
+        pagination: { mode: 'off' },
+        filters: user?.id
+            ? [{ field: 'user_id', operator: 'eq', value: user.id }]
+            : [],
+        queryOptions: {
+            enabled: Boolean(user?.id),
+        },
+    });
 
     const { formProps, form } = useForm<ApiKeyInsert>({
         resource: 'api_keys',
@@ -85,26 +99,8 @@ export default function ApiKeyCreatePage() {
         redirect: false,
     });
 
-    const { mutate } = useCreateMany<ApiKeyInsert>({
-        resource: 'api_keys',
-        mutationOptions: {
-            onSuccess: () => {
-                notification.open({
-                    type: 'success',
-                    message: translate('notifications.success'),
-                    description: translate('api_keys.create.successDesc'),
-                });
-                go({ to: '/api-keys', type: 'replace' });
-            },
-            onError: (error) => {
-                notification.open({
-                    type: 'error',
-                    message: translate('api_keys.create.errorTitle'),
-                    description: translate('api_keys.create.errorDesc', { message: error.message }),
-                });
-            },
-        },
-    });
+    const { mutateAsync: createManyKeys } = useCreateMany<ApiKeyInsert>();
+    const { mutateAsync: updateApiKey } = useUpdate<ApiKeyRow>();
 
     // Helper function to validate API key format (less strict)
     const isValidApiKey = useCallback((key: string): boolean => {
@@ -256,7 +252,7 @@ export default function ApiKeyCreatePage() {
     }, []);
 
     // Handle final save
-    const handleSave = useCallback(() => {
+    const handleSave = useCallback(async () => {
         if (!user?.id) {
             notification.open({
                 type: 'error',
@@ -277,20 +273,91 @@ export default function ApiKeyCreatePage() {
             return;
         }
 
-        const keysToCreate: ApiKeyInsert[] = validKeys.map((key) => ({
+        const incomingKeys: NormalizedImportKey[] = validKeys.map((key) => ({
             name: key.name,
             api_key_value: key.api_key_value,
             provider: key.provider,
             is_active: key.is_active,
-            metadata: key.metadata,
-            user_id: user.id,
+            metadata: key.metadata ?? {
+                source: 'legacy',
+                imported_at: new Date().toISOString(),
+            },
         }));
 
-        mutate({
-            resource: 'api_keys',
-            values: keysToCreate,
+        const existingKeys = (existingKeysResult?.data ?? []).map((key) => ({
+            id: key.id,
+            name: key.name,
+            api_key_value: key.api_key_value,
+            metadata: key.metadata as Record<string, unknown> | null,
+        }));
+
+        const plan = planApiKeyImport(existingKeys, incomingKeys, {
+            updateOnNameCollision: true,
+            overwriteSecrets: true,
         });
-    }, [parsedKeys, mutate, notification, user?.id, translate]);
+
+        setIsSaving(true);
+        try {
+            if (plan.creates.length > 0) {
+                await createManyKeys({
+                    resource: 'api_keys',
+                    values: plan.creates.map((key) => ({
+                        name: key.name,
+                        api_key_value: key.api_key_value,
+                        provider: key.provider,
+                        is_active: key.is_active,
+                        metadata: key.metadata,
+                        user_id: user.id,
+                    })),
+                });
+            }
+
+            for (const update of plan.updates) {
+                await updateApiKey({
+                    resource: 'api_keys',
+                    id: update.id,
+                    values: update.updates,
+                });
+            }
+
+            const description =
+                plan.created > 0 || plan.updated > 0
+                    ? translate('api_keys.create.importUpsertSuccessDesc', {
+                          created: plan.created,
+                          updated: plan.updated,
+                          skipped: plan.skipped,
+                      })
+                    : translate('api_keys.create.importSkippedDesc', {
+                          skipped: plan.skipped,
+                      });
+
+            notification.open({
+                type: 'success',
+                message: translate('notifications.success'),
+                description,
+            });
+            go({ to: '/api-keys', type: 'replace' });
+        } catch (error) {
+            notification.open({
+                type: 'error',
+                message: translate('api_keys.create.errorTitle'),
+                description: translate('api_keys.create.errorDesc', {
+                    message: error instanceof Error ? error.message : 'Unknown error',
+                }),
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [
+        parsedKeys,
+        existingKeysResult?.data,
+        createManyKeys,
+        updateApiKey,
+        notification,
+        user?.id,
+        go,
+        translate,
+    ]);
 
     // Handle JSON file upload
     const handleJsonUpload = useCallback(
@@ -742,8 +809,8 @@ export default function ApiKeyCreatePage() {
                         <Button
                             type="primary"
                             onClick={handleSave}
-                            loading={isUserLoading}
-                            disabled={!user?.id}
+                            loading={isSaving || isUserLoading}
+                            disabled={!user?.id || isSaving}
                         >
                             {translate('api_keys.create.saveKeys')}
                         </Button>

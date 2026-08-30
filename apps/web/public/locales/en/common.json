@@ -294,6 +294,8 @@
             "bulkImportedName": "Bulk Imported Key {index}",
             "jsonImportedName": "JSON Imported Key {index}",
             "successDesc": "API keys created successfully!",
+            "importUpsertSuccessDesc": "Created {created}, updated {updated}, skipped {skipped} key(s).",
+            "importSkippedDesc": "No changes applied. Skipped {skipped} duplicate key(s).",
             "errorTitle": "Error",
             "errorDesc": "Error creating API keys: {message}",
             "jsonLoaded": "JSON file loaded successfully!",
