@@ -86,7 +86,7 @@ describe('isMaskedApiKey', () => {
     expect(isMaskedApiKey('AIzaSy****abcd')).toBe(true);
   });
   it('allows real keys', () => {
-    expect(isMaskedApiKey('AIzaSyBINy01yAT3py7ZGOsIC2iE9NXf2EgJMmg')).toBe(false);
+    expect(isMaskedApiKey('AIzaSyTESTKEY000000000000000000000')).toBe(false);
   });
 });
 ```
@@ -122,7 +122,8 @@ export type ImportParseResult = {
   stats: {
     total_connections?: number;
     gemini_connections?: number;
-    skipped_non_gemini?: number;
+    imported_keys?: number;
+    skipped_unsupported?: number;
     skipped_masked?: number;
     skipped_invalid?: number;
   };
@@ -231,7 +232,9 @@ describe('parseNineRouterImport', () => {
     const result = parseNineRouterImport(fixture, '2026-08-30T00:00:00.000Z');
     expect(result.format).toBe('9router');
     expect(result.keys).toHaveLength(2);
-    expect(result.stats.skipped_non_gemini).toBe(2);
+    expect(result.stats.gemini_connections).toBe(3);
+    expect(result.stats.imported_keys).toBe(2);
+    expect(result.stats.skipped_unsupported).toBe(2);
     expect(result.stats.skipped_masked).toBe(1);
   });
 
@@ -275,15 +278,17 @@ export function parseNineRouterImport(
   const connections = record.providerConnections ?? [];
   const warnings: string[] = [];
   const keys: NormalizedImportKey[] = [];
-  let skippedNonGemini = 0;
+  let geminiConnections = 0;
+  let skippedUnsupported = 0;
   let skippedMasked = 0;
   let skippedInvalid = 0;
 
   connections.forEach((connection, index) => {
     if (connection.provider !== GEMINI_PROVIDER || connection.authType !== 'apikey') {
-      skippedNonGemini += 1;
+      skippedUnsupported += 1;
       return;
     }
+    geminiConnections += 1;
     const rawKey = typeof connection.apiKey === 'string' ? connection.apiKey : '';
     const apiKeyValue = rawKey.trim();
     if (apiKeyValue.length < MIN_KEY_LENGTH) {
@@ -320,8 +325,9 @@ export function parseNineRouterImport(
     keys,
     stats: {
       total_connections: connections.length,
-      gemini_connections: keys.length,
-      skipped_non_gemini: skippedNonGemini,
+      gemini_connections: geminiConnections,
+      imported_keys: keys.length,
+      skipped_unsupported: skippedUnsupported,
       skipped_masked: skippedMasked,
       skipped_invalid: skippedInvalid,
     },
