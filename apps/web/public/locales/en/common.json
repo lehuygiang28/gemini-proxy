@@ -687,7 +687,7 @@
     "settings": {
         "title": "Settings",
         "subtitle": "Control detailed request logging and console preferences.",
-        "tabs": { "observability": "Observability", "appearance": "Appearance" },
+        "tabs": { "observability": "Observability", "pricing": "Pricing", "appearance": "Appearance" },
         "appearance": {
             "title": "Appearance",
             "colorMode": "Color mode",
@@ -708,6 +708,38 @@
             "saveResponse": "Save response bodies",
             "saveResponseExtra": "Save the model response on each log, including streamed output (response_data.body).",
             "reset": "Reset to defaults"
+        },
+        "pricing": {
+            "saved": "Pricing saved",
+            "savedDesc": "Your prices apply to cost estimates on new request logs.",
+            "saveFailed": "Failed to save pricing",
+            "intro": "We estimate request cost from token usage. Most people can leave this as-is — only change prices here if yours differ from the defaults below.",
+            "yourPricesTitle": "Your prices",
+            "yourPricesEmpty": "Using default prices",
+            "yourPricesEmptyDesc": "Add a model only when you want a different rate.",
+            "defaultPricesTitle": "Default prices ({count} models)",
+            "defaultPricesDesc": "Reference list for Gemini and Gemma. Pick a model and click Customize to copy its price above.",
+            "referenceSearch": "Find a model…",
+            "filterAll": "All",
+            "filterGemini": "Gemini",
+            "filterGemma": "Gemma",
+            "family": {
+                "gemini": "Gemini",
+                "gemma": "Gemma"
+            },
+            "modelLabel": "Model",
+            "modelPlaceholder": "Choose a model",
+            "sendLabel": "Send",
+            "receiveLabel": "Receive",
+            "cacheLabel": "Cached send (optional)",
+            "cacheOptional": "Leave blank if unused",
+            "cacheHint": "Price for tokens served from cache, per 1M tokens.",
+            "perMillionHint": "USD per 1 million tokens",
+            "addModel": "Add model",
+            "customize": "Customize",
+            "customized": "Added",
+            "duplicateModel": "Each model can only appear once. Remove duplicate rows before saving.",
+            "modelRequired": "Choose a model"
         }
     },
     "account": {

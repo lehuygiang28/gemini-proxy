@@ -132,14 +132,100 @@ export const GEMINI_PRICING: GeminiPricingTable = {
             outputPerMillion: 5.0,
             cachedInputPerMillion: 0,
         },
+        /**
+         * Gemma open models on the Gemini API.
+         * Gemma 3/2 paid-tier rows are N/A on ai.google.dev (free tier); rates below
+         * follow published hosted-inference list prices where available. Gemma 4 rates
+         * from OpenRouter (2026-08-30). Override per model in Settings → Cost pricing.
+         */
+        'gemma-2-2b-it': {
+            inputPerMillion: 0.05,
+            outputPerMillion: 0.05,
+            cachedInputPerMillion: 0,
+        },
+        'gemma-2-9b-it': {
+            inputPerMillion: 0.2,
+            outputPerMillion: 0.2,
+            cachedInputPerMillion: 0,
+        },
+        'gemma-2-27b-it': {
+            inputPerMillion: 0.65,
+            outputPerMillion: 0.65,
+            cachedInputPerMillion: 0,
+        },
+        'gemma-3-270m-it': {
+            inputPerMillion: 0.02,
+            outputPerMillion: 0.04,
+            cachedInputPerMillion: 0.01,
+        },
+        'gemma-3-1b-it': {
+            inputPerMillion: 0.02,
+            outputPerMillion: 0.04,
+            cachedInputPerMillion: 0.01,
+        },
+        'gemma-3-4b-it': {
+            inputPerMillion: 0.05,
+            outputPerMillion: 0.1,
+            cachedInputPerMillion: 0.025,
+        },
+        'gemma-3-12b-it': {
+            inputPerMillion: 0.05,
+            outputPerMillion: 0.15,
+            cachedInputPerMillion: 0.025,
+        },
+        'gemma-3-27b-it': {
+            inputPerMillion: 0.08,
+            outputPerMillion: 0.45,
+            cachedInputPerMillion: 0.04,
+        },
+        'gemma-3n-e2b-it': {
+            inputPerMillion: 0.04,
+            outputPerMillion: 0.08,
+            cachedInputPerMillion: 0.02,
+        },
+        'gemma-3n-e4b-it': {
+            inputPerMillion: 0.05,
+            outputPerMillion: 0.1,
+            cachedInputPerMillion: 0.025,
+        },
+        'gemma-4-26b-a4b-it': {
+            inputPerMillion: 0.042,
+            outputPerMillion: 0.22,
+            cachedInputPerMillion: 0.05,
+        },
+        'gemma-4-31b-it': {
+            inputPerMillion: 0.09,
+            outputPerMillion: 0.34,
+            cachedInputPerMillion: 0.05,
+        },
     },
 };
+
+export type ModelPricingOverride = {
+    readonly inputPerMillion: number;
+    readonly outputPerMillion: number;
+    readonly cachedInputPerMillion?: number;
+};
+
+export type CustomModelPricingMap = Readonly<Record<string, ModelPricingOverride>>;
 
 /** Pointer aliases → canonical table keys (exact match only). */
 export const GEMINI_MODEL_ALIASES: Readonly<Record<string, string>> = {
     'gemini-flash-latest': 'gemini-3.7-flash',
     'gemini-flash-lite-latest': 'gemini-3.5-flash-lite',
     'gemini-pro-latest': 'gemini-3.1-pro-preview',
+    'gemma-2-2b': 'gemma-2-2b-it',
+    'gemma-2-9b': 'gemma-2-9b-it',
+    'gemma-2-27b': 'gemma-2-27b-it',
+    'gemma-3-270m': 'gemma-3-270m-it',
+    'gemma-3-1b': 'gemma-3-1b-it',
+    'gemma-3-4b': 'gemma-3-4b-it',
+    'gemma-3-12b': 'gemma-3-12b-it',
+    'gemma-3-27b': 'gemma-3-27b-it',
+    'gemma-3n-e2b': 'gemma-3n-e2b-it',
+    'gemma-3n-e4b': 'gemma-3n-e4b-it',
+    'gemma-4-26b-a4b': 'gemma-4-26b-a4b-it',
+    'gemma-4-31b': 'gemma-4-31b-it',
 };
 
 /**
@@ -205,25 +291,97 @@ export function effectiveTokenRates(
     };
 }
 
+function toOverrideRates(override: ModelPricingOverride): GeminiTokenRates {
+    return {
+        inputPerMillion: override.inputPerMillion,
+        outputPerMillion: override.outputPerMillion,
+        cachedInputPerMillion: override.cachedInputPerMillion ?? 0,
+    };
+}
+
+function resolveUserPricingOverride(
+    normalized: string,
+    userOverrides?: CustomModelPricingMap,
+): { modelId: string; rates: GeminiTokenRates } | null {
+    if (!userOverrides) {
+        return null;
+    }
+    const exact = userOverrides[normalized];
+    if (exact) {
+        return { modelId: normalized, rates: toOverrideRates(exact) };
+    }
+    const keys = Object.keys(userOverrides).sort((a, b) => b.length - a.length);
+    for (const key of keys) {
+        if (normalized === key || normalized.startsWith(`${key}-`)) {
+            return { modelId: key, rates: toOverrideRates(userOverrides[key]!) };
+        }
+    }
+    return null;
+}
+
 export function resolveGeminiPricing(
     model: string,
     at: Date = new Date(),
-): { modelId: string; rates: GeminiTokenRates } | null {
+    userOverrides?: CustomModelPricingMap,
+): { modelId: string; rates: GeminiTokenRates; source: 'builtin' | 'custom' } | null {
     const normalized = normalizeGeminiModelId(model);
     if (!normalized || isNonTextUsdModel(normalized)) {
         return null;
     }
+    const custom = resolveUserPricingOverride(normalized, userOverrides);
+    if (custom) {
+        return { ...custom, source: 'custom' };
+    }
     const aliased = GEMINI_MODEL_ALIASES[normalized] ?? normalized;
     const exact = GEMINI_PRICING.models[aliased];
     if (exact) {
-        return { modelId: aliased, rates: effectiveTokenRates(exact, at) };
+        return { modelId: aliased, rates: effectiveTokenRates(exact, at), source: 'builtin' };
     }
     const keys = Object.keys(GEMINI_PRICING.models).sort((a, b) => b.length - a.length);
     for (const key of keys) {
         if (normalized === key || normalized.startsWith(`${key}-`)) {
             const row = GEMINI_PRICING.models[key];
-            return { modelId: key, rates: effectiveTokenRates(row, at) };
+            return { modelId: key, rates: effectiveTokenRates(row, at), source: 'builtin' };
         }
     }
     return null;
+}
+
+export type BuiltinModelPricingRow = {
+    modelId: string;
+    family: 'gemini' | 'gemma';
+    inputPerMillion: number;
+    outputPerMillion: number;
+    cachedInputPerMillion: number;
+};
+
+function toBuiltinPricingRow(
+    modelId: string,
+    row: GeminiModelRates,
+    at: Date,
+): BuiltinModelPricingRow {
+    const rates = effectiveTokenRates(row, at);
+    return {
+        modelId,
+        family: modelId.startsWith('gemma-') ? 'gemma' : 'gemini',
+        inputPerMillion: rates.inputPerMillion,
+        outputPerMillion: rates.outputPerMillion,
+        cachedInputPerMillion: rates.cachedInputPerMillion,
+    };
+}
+
+/** Built-in Gemini + Gemma rows for dashboard display (sorted by model id). */
+export function listBuiltinModelPricingRows(
+    at: Date = new Date(),
+): readonly BuiltinModelPricingRow[] {
+    return Object.entries(GEMINI_PRICING.models)
+        .map(([modelId, row]) => toBuiltinPricingRow(modelId, row, at))
+        .sort((a, b) => a.modelId.localeCompare(b.modelId));
+}
+
+/** @deprecated Use {@link listBuiltinModelPricingRows} */
+export function listBuiltinGemmaPricingRows(
+    at: Date = new Date(),
+): readonly BuiltinModelPricingRow[] {
+    return listBuiltinModelPricingRows(at).filter((row) => row.family === 'gemma');
 }

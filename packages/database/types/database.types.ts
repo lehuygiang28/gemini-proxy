@@ -127,6 +127,7 @@ export type Database = {
             };
             user_settings: {
                 Row: {
+                    custom_model_pricing: Json;
                     detailed_observability: boolean;
                     id: string;
                     save_request_body: boolean;
@@ -134,6 +135,7 @@ export type Database = {
                     updated_at: string;
                 };
                 Insert: {
+                    custom_model_pricing?: Json;
                     detailed_observability?: boolean;
                     id: string;
                     save_request_body?: boolean;
@@ -141,6 +143,7 @@ export type Database = {
                     updated_at?: string;
                 };
                 Update: {
+                    custom_model_pricing?: Json;
                     detailed_observability?: boolean;
                     id?: string;
                     save_request_body?: boolean;

@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    transpilePackages: ['@refinedev/antd', '@uiw/react-json-view'],
+    transpilePackages: ['@refinedev/antd', '@uiw/react-json-view', '@gemini-proxy/pricing'],
     output: 'standalone',
 };
 

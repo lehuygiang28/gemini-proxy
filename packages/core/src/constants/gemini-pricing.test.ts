@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GEMINI_PRICING, effectiveTokenRates, resolveGeminiPricing } from './gemini-pricing';
+import {
+    GEMINI_PRICING,
+    effectiveTokenRates,
+    listBuiltinGemmaPricingRows,
+    listBuiltinModelPricingRows,
+    resolveGeminiPricing,
+} from './gemini-pricing';
 import { estimateGeminiCostUsd } from '../utils/cost-estimator';
 
 const INTRO_DAY = new Date('2026-08-30T12:00:00.000Z');
@@ -93,6 +99,59 @@ describe('resolveGeminiPricing', () => {
             'gemini-2.5-flash-lite',
         );
         expect(resolveGeminiPricing('gemini-3.5-flash')?.rates.outputPerMillion).toBe(9);
+    });
+
+    it('prices Gemma 4 models on the Gemini API', () => {
+        expect(resolveGeminiPricing('gemma-4-26b-a4b-it')?.rates).toMatchObject({
+            inputPerMillion: 0.042,
+            outputPerMillion: 0.22,
+            cachedInputPerMillion: 0.05,
+        });
+        expect(resolveGeminiPricing('gemma-4-31b-it')?.rates.inputPerMillion).toBe(0.09);
+        expect(resolveGeminiPricing('gemma-4-31b-it')?.rates.outputPerMillion).toBe(0.34);
+    });
+
+    it('prices Gemma 3 and Gemma 2 families', () => {
+        expect(resolveGeminiPricing('gemma-3-4b-it')?.modelId).toBe('gemma-3-4b-it');
+        expect(resolveGeminiPricing('gemma-3-27b-it')?.rates.outputPerMillion).toBe(0.45);
+        expect(resolveGeminiPricing('gemma-2-27b-it')?.rates.inputPerMillion).toBe(0.65);
+        expect(resolveGeminiPricing('gemma-3n-e4b-it')?.rates.inputPerMillion).toBe(0.05);
+    });
+
+    it('maps gemma aliases without -it suffix', () => {
+        expect(resolveGeminiPricing('gemma-3-4b')?.modelId).toBe('gemma-3-4b-it');
+        expect(resolveGeminiPricing('gemma-4-26b-a4b')?.modelId).toBe('gemma-4-26b-a4b-it');
+    });
+
+    it('returns null for unknown gemini and gemma preview ids', () => {
+        expect(resolveGeminiPricing('gemma-5-99b-it-preview')).toBeNull();
+        expect(resolveGeminiPricing('gemini-9.9-ultra-preview-01-2099')).toBeNull();
+    });
+
+    it('lists all built-in Gemini and Gemma rows for dashboard', () => {
+        const rows = listBuiltinModelPricingRows();
+        const geminiRows = rows.filter((r) => r.family === 'gemini');
+        const gemmaRows = rows.filter((r) => r.family === 'gemma');
+        expect(geminiRows.length).toBeGreaterThanOrEqual(15);
+        expect(gemmaRows.length).toBeGreaterThanOrEqual(12);
+        expect(rows.map((r) => r.modelId)).toContain('gemini-3.7-flash');
+        expect(rows.map((r) => r.modelId)).toContain('gemma-3-4b-it');
+        expect(rows.map((r) => r.modelId)).toContain('gemma-4-26b-a4b-it');
+    });
+
+    it('keeps listBuiltinGemmaPricingRows as a gemma-only filter', () => {
+        const all = listBuiltinModelPricingRows();
+        const gemmaOnly = listBuiltinGemmaPricingRows();
+        expect(gemmaOnly.length).toBe(all.filter((r) => r.family === 'gemma').length);
+        expect(gemmaOnly.every((r) => r.family === 'gemma')).toBe(true);
+    });
+
+    it('prefers user overrides over built-in rates', () => {
+        const resolved = resolveGeminiPricing('gemma-4-31b-it', INTRO_DAY, {
+            'gemma-4-31b-it': { inputPerMillion: 0.5, outputPerMillion: 2.0 },
+        });
+        expect(resolved?.source).toBe('custom');
+        expect(resolved?.rates.inputPerMillion).toBe(0.5);
     });
 });
 

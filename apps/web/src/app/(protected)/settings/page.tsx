@@ -5,11 +5,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { List } from '@refinedev/antd';
 import { useTranslation } from '@refinedev/core';
 import { Tabs, Typography } from 'antd';
-import { AppearanceSettings, ObservabilitySettingsForm } from '@/features/settings';
+import { AppearanceSettings, ObservabilitySettingsForm, PricingSettingsForm } from '@/features/settings';
 
 const { Title, Paragraph } = Typography;
 
-const TAB_KEYS = ['observability', 'appearance'] as const;
+const TAB_KEYS = ['observability', 'pricing', 'appearance'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 function resolveTab(raw: string | null): TabKey {
@@ -36,6 +36,11 @@ export default function SettingsPage() {
                 key: 'observability',
                 label: translate('settings.tabs.observability'),
                 children: <ObservabilitySettingsForm />,
+            },
+            {
+                key: 'pricing',
+                label: translate('settings.tabs.pricing'),
+                children: <PricingSettingsForm />,
             },
             {
                 key: 'appearance',
