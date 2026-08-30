@@ -13,3 +13,5 @@ export * from './body-detector';
 
 // Export usage metadata parser
 export * from './usage-metadata-parser';
+export * from './cost-estimator';
+export * from '../constants/gemini-pricing';
