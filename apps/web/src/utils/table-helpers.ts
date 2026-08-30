@@ -139,9 +139,12 @@ export const calculateSuccessRate = (successCount: number, failureCount: number)
 };
 
 // Clipboard utilities
-export const copyToClipboard = (text: string): boolean => {
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (!navigator?.clipboard?.writeText) {
+        return false;
+    }
     try {
-        navigator?.clipboard?.writeText(text);
+        await navigator.clipboard.writeText(text);
         return true;
     } catch {
         return false;

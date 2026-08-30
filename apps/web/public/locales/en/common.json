@@ -215,7 +215,7 @@
             "nameExample": "e.g., My App Key",
             "selectProvider": "Select provider",
             "keyName": "Key Name",
-            "apiKey": "API Key"
+            "apiKey": "Paste API key"
         },
         "filters": {
             "title": "Filters & Search",
@@ -234,6 +234,7 @@
             "viewLogs": "View logs for this key",
             "viewDetails": "View Details",
             "edit": "Edit API Key",
+            "rotate": "Replace / rotate key",
             "delete": "Delete API Key"
         },
         "delete": {
@@ -257,14 +258,21 @@
             "enterName": "Please enter a name",
             "selectProvider": "Please select a provider",
             "missingName": "Missing name",
-            "missingApiKey": "Missing API key"
+            "missingApiKey": "Missing API key",
+            "invalidApiKey": "Enter an API key of at least 10 characters (not a masked value)"
         },
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing API key.",
-            "keyImmutable": "The API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "keyRotatable": "Paste a new key and save to rotate it in place.",
+            "rotateHint": "Any unmasked key with at least 10 characters is accepted.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
+        },
+        "rotate": {
+            "title": "Replace API key?",
+            "description": "Saving will immediately replace the stored secret. Clients using the old key will fail until updated.",
+            "confirm": "Replace key"
         },
         "show": {
             "security": "Security",
@@ -329,10 +337,11 @@
                 "objectArray": "Object array with name and key:",
                 "altFields": "Object array with different field names:",
                 "validationTitle": "Validation Rules",
-                "validationBody": "All API keys must be at least 10 characters long and not empty. Invalid keys will be highlighted in the review step."
+                "validationBody": "Keys must be at least 10 characters and not masked. Google currently uses AIza or AQ. prefixes, but any unmasked secret is accepted so future format changes still import."
             },
             "errors": {
                 "tooShort": "API key is too short or empty",
+                "invalidFormat": "API key must be at least 10 characters and not masked",
                 "invalidJson": "Invalid JSON Format",
                 "invalidJsonDesc": "Please provide a valid JSON import file.",
                 "unsupportedImportFormat": "Unsupported Import Format",
@@ -398,6 +407,7 @@
             "viewLogs": "View logs for this key",
             "viewDetails": "View Details",
             "edit": "Edit Proxy API Key",
+            "rotate": "Rotate proxy key",
             "delete": "Delete Proxy API Key"
         },
         "delete": {
@@ -415,18 +425,31 @@
             "deleted": "Proxy API Key Deleted",
             "deletedDesc": "Proxy API key \"{name}\" removed. Request logs are kept.",
             "deleteFailed": "Delete Failed",
-            "deleteFailedDesc": "Failed to delete proxy API key"
+            "deleteFailedDesc": "Failed to delete proxy API key",
+            "rotated": "Proxy key rotated",
+            "rotatedDesc": "Proxy API key \"{name}\" was rotated. Update clients with the new value.",
+            "rotateFailed": "Rotate failed",
+            "rotateFailedDesc": "Failed to rotate proxy API key"
         },
         "errors": {
             "enterName": "Please enter a name",
-            "enterOrGenerate": "Please enter or generate a proxy API key"
+            "enterOrGenerate": "Please enter or generate a proxy API key",
+            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores"
         },
         "edit": {
             "editing": "Editing {name}",
             "subtitle": "Modify the details of your existing proxy API key.",
-            "keyImmutable": "The proxy API key value cannot be changed for security reasons. If you need a new key, please create one.",
+            "keyRotatable": "Generate a new value or paste your own, then save.",
+            "rotateHint": "10–128 characters: letters, numbers, dots, hyphens, underscores.",
             "basicInfo": "Basic Information",
             "settings": "Settings"
+        },
+        "rotate": {
+            "title": "Rotate proxy API key?",
+            "description": "This immediately replaces the secret. Existing clients will fail until they use the new key.",
+            "confirm": "Rotate key",
+            "doneTitle": "Copy the new proxy key",
+            "doneBody": "Store this value now. Clients using the previous key will stop authenticating."
         },
         "show": {
             "security": "Security",
@@ -720,7 +743,11 @@
     "settings": {
         "title": "Settings",
         "subtitle": "Control detailed request logging and console preferences.",
-        "tabs": { "observability": "Observability", "pricing": "Pricing", "appearance": "Appearance" },
+        "tabs": {
+            "observability": "Observability",
+            "pricing": "Pricing",
+            "appearance": "Appearance"
+        },
         "appearance": {
             "title": "Appearance",
             "colorMode": "Color mode",

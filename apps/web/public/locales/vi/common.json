@@ -215,7 +215,7 @@
             "nameExample": "vd. Khóa ứng dụng của tôi",
             "selectProvider": "Chọn nhà cung cấp",
             "keyName": "Tên khóa",
-            "apiKey": "Khóa API"
+            "apiKey": "Dán khóa API"
         },
         "filters": {
             "title": "Bộ lọc và tìm kiếm",
@@ -234,6 +234,7 @@
             "viewLogs": "Xem nhật ký của khóa này",
             "viewDetails": "Xem chi tiết",
             "edit": "Sửa khóa API",
+            "rotate": "Thay / xoay khóa",
             "delete": "Xóa khóa API"
         },
         "delete": {
@@ -257,14 +258,21 @@
             "enterName": "Vui lòng nhập tên",
             "selectProvider": "Vui lòng chọn nhà cung cấp",
             "missingName": "Thiếu tên",
-            "missingApiKey": "Thiếu khóa API"
+            "missingApiKey": "Thiếu khóa API",
+            "invalidApiKey": "Nhập khóa API tối thiểu 10 ký tự (không phải giá trị đã che)"
         },
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
-            "keyImmutable": "Không thể đổi giá trị khóa API vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "keyRotatable": "Dán khóa mới rồi lưu để xoay tại chỗ.",
+            "rotateHint": "Chấp nhận mọi khóa chưa che, tối thiểu 10 ký tự.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
+        },
+        "rotate": {
+            "title": "Thay khóa API?",
+            "description": "Lưu sẽ thay secret ngay. Client dùng khóa cũ sẽ thất bại cho đến khi được cập nhật.",
+            "confirm": "Thay khóa"
         },
         "show": {
             "security": "Bảo mật",
@@ -329,10 +337,11 @@
                 "objectArray": "Mảng đối tượng với tên và khóa:",
                 "altFields": "Mảng đối tượng với tên trường khác:",
                 "validationTitle": "Quy tắc xác thực",
-                "validationBody": "Mọi khóa API phải dài ít nhất 10 ký tự và không được để trống. Khóa không hợp lệ sẽ được đánh dấu ở bước xem lại."
+                "validationBody": "Khóa phải dài ít nhất 10 ký tự và không bị che. Google hiện dùng tiền tố AIza hoặc AQ., nhưng mọi secret chưa che đều được chấp nhận để lần đổi format sau vẫn nhập được."
             },
             "errors": {
                 "tooShort": "Khóa API quá ngắn hoặc trống",
+                "invalidFormat": "Khóa API phải dài ít nhất 10 ký tự và không bị che",
                 "invalidJson": "Định dạng JSON không hợp lệ",
                 "invalidJsonDesc": "Vui lòng cung cấp tệp JSON nhập hợp lệ.",
                 "unsupportedImportFormat": "Định dạng nhập không được hỗ trợ",
@@ -398,6 +407,7 @@
             "viewLogs": "Xem nhật ký của khóa này",
             "viewDetails": "Xem chi tiết",
             "edit": "Sửa khóa proxy",
+            "rotate": "Xoay khóa proxy",
             "delete": "Xóa khóa proxy"
         },
         "delete": {
@@ -415,18 +425,31 @@
             "deleted": "Đã xóa khóa proxy",
             "deletedDesc": "Đã gỡ khóa proxy \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
             "deleteFailed": "Xóa thất bại",
-            "deleteFailedDesc": "Không xóa được khóa proxy"
+            "deleteFailedDesc": "Không xóa được khóa proxy",
+            "rotated": "Đã xoay khóa proxy",
+            "rotatedDesc": "Khóa proxy \"{name}\" đã được xoay. Cập nhật client với giá trị mới.",
+            "rotateFailed": "Xoay khóa thất bại",
+            "rotateFailedDesc": "Không xoay được khóa proxy"
         },
         "errors": {
             "enterName": "Vui lòng nhập tên",
-            "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy"
+            "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy",
+            "invalidProxyKey": "Khóa proxy phải dài 10-128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới"
         },
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa proxy hiện có.",
-            "keyImmutable": "Không thể đổi giá trị khóa proxy vì lý do bảo mật. Nếu cần khóa mới, hãy tạo một khóa khác.",
+            "keyRotatable": "Tạo khóa mới hoặc dán khóa tùy chỉnh, rồi lưu.",
+            "rotateHint": "10–128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
+        },
+        "rotate": {
+            "title": "Xoay khóa proxy?",
+            "description": "Thao tác này thay secret ngay. Client cũ sẽ thất bại cho đến khi dùng khóa mới.",
+            "confirm": "Xoay khóa",
+            "doneTitle": "Sao chép khóa proxy mới",
+            "doneBody": "Hãy lưu giá trị này ngay. Client dùng khóa cũ sẽ không xác thực được."
         },
         "show": {
             "security": "Bảo mật",

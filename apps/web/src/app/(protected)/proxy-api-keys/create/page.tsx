@@ -20,6 +20,8 @@ import {
 } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, SettingOutlined, CopyOutlined } from '@ant-design/icons';
 import type { TablesInsert, User } from '@gemini-proxy/database';
+import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
+import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -60,12 +62,7 @@ export default function ProxyApiKeyCreatePage() {
     };
 
     const generateProxyApiKey = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = 'AIzaGPROXY_';
-        for (let i = 0; i < 28; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        formProps.form?.setFieldsValue({ proxy_key_value: result });
+        formProps.form?.setFieldsValue({ proxy_key_value: generateProxyApiKeyValue() });
     };
 
     const copyToClipboard = async () => {
@@ -136,7 +133,9 @@ export default function ProxyApiKeyCreatePage() {
                                 ]}
                             >
                                 <Input
-                                    placeholder={translate('proxy_api_keys.placeholders.nameExample')}
+                                    placeholder={translate(
+                                        'proxy_api_keys.placeholders.nameExample',
+                                    )}
                                 />
                             </Form.Item>
                             <Divider orientation="left">
@@ -149,6 +148,19 @@ export default function ProxyApiKeyCreatePage() {
                                     {
                                         required: true,
                                         message: translate('proxy_api_keys.errors.enterOrGenerate'),
+                                    },
+                                    {
+                                        validator: async (_rule, value: string) => {
+                                            if (!isValidProxyApiKeyValue(value)) {
+                                                return Promise.reject(
+                                                    new Error(
+                                                        translate(
+                                                            'proxy_api_keys.errors.invalidProxyKey',
+                                                        ),
+                                                    ),
+                                                );
+                                            }
+                                        },
                                     },
                                 ]}
                             >

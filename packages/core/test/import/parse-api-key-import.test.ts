@@ -3,6 +3,7 @@ import { parseApiKeyImport } from '../../src/import/parse-api-key-import';
 
 const VALID_KEY = 'AIzaSyTESTKEY000000000000000000000';
 const VALID_KEY_2 = 'AIzaSyTESTKEY000000000000000000001';
+const AUTH_KEY = 'AQ.TESTAUTHKEY0000000000000000000000';
 
 describe('parseApiKeyImport', () => {
     it('parses native export with api_keys array', () => {
@@ -70,6 +71,14 @@ describe('parseApiKeyImport', () => {
         expect(result.keys).toHaveLength(1);
         expect(result.keys[0]?.name).toBe('value-key');
         expect(result.keys[0]?.api_key_value).toBe(VALID_KEY);
+    });
+
+    it('parses new Google AQ. auth API keys', () => {
+        const raw = JSON.stringify([{ name: 'auth-key', api_key_value: AUTH_KEY }]);
+        const result = parseApiKeyImport(raw);
+        expect(result.format).toBe('legacy-array');
+        expect(result.keys).toHaveLength(1);
+        expect(result.keys[0]?.api_key_value).toBe(AUTH_KEY);
     });
 
     it('throws when a native export contains no importable keys', () => {

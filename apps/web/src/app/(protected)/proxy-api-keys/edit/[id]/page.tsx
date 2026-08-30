@@ -2,16 +2,36 @@
 
 import React from 'react';
 import { Edit, useForm } from '@refinedev/antd';
-import { useTranslation } from '@refinedev/core';
-import { Form, Input, Switch, Card, Row, Col, Divider, Typography, Alert, Spin } from 'antd';
-import { InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons';
+import { useNotification, useTranslation } from '@refinedev/core';
+import {
+    Form,
+    Input,
+    Switch,
+    Card,
+    Row,
+    Col,
+    Divider,
+    Typography,
+    Alert,
+    Spin,
+    Button,
+    Space,
+    theme,
+} from 'antd';
+import { CopyOutlined, InfoCircleOutlined, KeyOutlined, SettingOutlined } from '@ant-design/icons';
 import type { TablesUpdate } from '@gemini-proxy/database';
+import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
+import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
+import { copyToClipboard } from '@/utils/table-helpers';
 
 const { Title, Paragraph } = Typography;
+const { useToken } = theme;
 
 type ProxyApiKeyUpdate = TablesUpdate<'proxy_api_keys'>;
 
 export default function ProxyApiKeysEditPage() {
+    const { token } = useToken();
+    const notification = useNotification();
     const { translate } = useTranslation();
     const { formProps, saveButtonProps, query } = useForm<ProxyApiKeyUpdate>({
         resource: 'proxy_api_keys',
@@ -20,6 +40,41 @@ export default function ProxyApiKeysEditPage() {
     });
 
     const proxyApiKeyData = query?.data?.data;
+
+    const handleFinish = (values: ProxyApiKeyUpdate) => {
+        const proxyKeyValue =
+            typeof values.proxy_key_value === 'string'
+                ? values.proxy_key_value.trim()
+                : values.proxy_key_value;
+        formProps.onFinish?.({
+            ...values,
+            proxy_key_value: proxyKeyValue,
+        });
+    };
+
+    const handleGenerateKey = () => {
+        formProps.form?.setFieldsValue({ proxy_key_value: generateProxyApiKeyValue() });
+    };
+
+    const handleCopyKey = async (): Promise<void> => {
+        const keyValue: unknown = formProps.form?.getFieldValue('proxy_key_value');
+        if (typeof keyValue !== 'string' || keyValue.length === 0) {
+            return;
+        }
+        if (await copyToClipboard(keyValue)) {
+            notification.open({
+                type: 'success',
+                message: translate('proxy_api_keys.create.copied'),
+                description: translate('proxy_api_keys.create.copiedDesc'),
+            });
+            return;
+        }
+        notification.open({
+            type: 'error',
+            message: translate('proxy_api_keys.create.copyFailed'),
+            description: translate('proxy_api_keys.create.copyFailedDesc'),
+        });
+    };
 
     if (query?.isLoading) {
         return (
@@ -53,7 +108,7 @@ export default function ProxyApiKeysEditPage() {
                             {translate('proxy_api_keys.edit.subtitle')}
                         </Paragraph>
                         <Alert
-                            message={translate('proxy_api_keys.edit.keyImmutable')}
+                            message={translate('proxy_api_keys.edit.keyRotatable')}
                             type="info"
                             showIcon
                         />
@@ -61,7 +116,7 @@ export default function ProxyApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} layout="vertical">
+                        <Form {...formProps} onFinish={handleFinish} layout="vertical" autoComplete="off">
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('proxy_api_keys.edit.basicInfo')}
                             </Divider>
@@ -76,7 +131,9 @@ export default function ProxyApiKeysEditPage() {
                                 ]}
                             >
                                 <Input
-                                    placeholder={translate('proxy_api_keys.placeholders.nameExample')}
+                                    placeholder={translate(
+                                        'proxy_api_keys.placeholders.nameExample',
+                                    )}
                                 />
                             </Form.Item>
                             <Divider orientation="left">
@@ -85,9 +142,50 @@ export default function ProxyApiKeysEditPage() {
                             <Form.Item
                                 label={translate('proxy_api_keys.fields.proxyKeyValue')}
                                 name="proxy_key_value"
+                                extra={translate('proxy_api_keys.edit.rotateHint')}
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: translate('proxy_api_keys.errors.enterOrGenerate'),
+                                    },
+                                    {
+                                        validator: async (_rule, value: string) => {
+                                            if (!isValidProxyApiKeyValue(value)) {
+                                                return Promise.reject(
+                                                    new Error(
+                                                        translate(
+                                                            'proxy_api_keys.errors.invalidProxyKey',
+                                                        ),
+                                                    ),
+                                                );
+                                            }
+                                        },
+                                    },
+                                ]}
                             >
-                                <Input readOnly disabled />
+                                <Input.Password
+                                    autoComplete="new-password"
+                                    placeholder={translate(
+                                        'proxy_api_keys.placeholders.enterOrGenerate',
+                                    )}
+                                />
                             </Form.Item>
+                            <Space wrap>
+                                <Button
+                                    icon={<KeyOutlined />}
+                                    onClick={handleGenerateKey}
+                                    style={{ marginBottom: token.marginMD }}
+                                >
+                                    {translate('proxy_api_keys.create.generateKey')}
+                                </Button>
+                                <Button
+                                    icon={<CopyOutlined />}
+                                    onClick={handleCopyKey}
+                                    style={{ marginBottom: token.marginMD }}
+                                >
+                                    {translate('proxy_api_keys.create.copyClipboard')}
+                                </Button>
+                            </Space>
                             <Divider orientation="left">
                                 <SettingOutlined /> {translate('proxy_api_keys.edit.settings')}
                             </Divider>

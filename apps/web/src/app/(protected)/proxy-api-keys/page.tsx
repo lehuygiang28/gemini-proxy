@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { List, CreateButton, EditButton, ShowButton, useTable } from '@refinedev/antd';
-import { useGo, useUpdate, useTranslation } from '@refinedev/core';
+import { useGo, useNotification, useUpdate, useTranslation } from '@refinedev/core';
 import { buildSoftDeleteKeyValues } from '@/utils/soft-delete-key';
 import {
     Table,
@@ -20,13 +20,17 @@ import {
     Empty,
     Typography,
     Tabs,
+    Modal,
+    Alert,
 } from 'antd';
 import {
+    CopyOutlined,
     DeleteOutlined,
     FileTextOutlined,
     ReloadOutlined,
     SearchOutlined,
     FilterOutlined,
+    SyncOutlined,
 } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import {
@@ -37,13 +41,15 @@ import {
 } from '@/components/common';
 import { KeyHealthBadge } from '@/features/observability';
 import { ProxyQuickStart } from '@/features/proxy-quickstart';
-import { formatTokenCount } from '@/utils/table-helpers';
+import { formatTokenCount, copyToClipboard } from '@/utils/table-helpers';
+import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 
 const { Search } = Input;
 const { useToken } = theme;
 const { Text } = Typography;
 
 const PROXY_API_KEYS_RESOURCE = 'proxy_api_keys';
+const PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH = 200;
 
 type ProxyApiKey = Tables<'proxy_api_keys'>;
 interface IProxyApiKeySearch {
@@ -55,10 +61,14 @@ export default function ProxyApiKeysListPage() {
     const { token } = useToken();
     const go = useGo();
     const { translate } = useTranslation();
+    const notification = useNotification();
     const [activeTab, setActiveTab] = useState('keys');
     const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
     const { mutate: updateProxyApiKey } = useUpdate();
+    const [rotatedSecret, setRotatedSecret] = useState<{ name: string; value: string } | null>(
+        null,
+    );
 
     const { tableProps, searchFormProps } = useTable<ProxyApiKey>({
         syncWithLocation: true,
@@ -163,6 +173,52 @@ export default function ProxyApiKeysListPage() {
         },
         [updateProxyApiKey, translate],
     );
+
+    const handleRotate = useCallback(
+        (record: ProxyApiKey) => {
+            const nextValue = generateProxyApiKeyValue();
+            updateProxyApiKey(
+                {
+                    resource: PROXY_API_KEYS_RESOURCE,
+                    id: record.id,
+                    values: { proxy_key_value: nextValue },
+                    successNotification: {
+                        type: 'success',
+                        message: translate('proxy_api_keys.notifications.rotated'),
+                        description: translate('proxy_api_keys.notifications.rotatedDesc', {
+                            name: record.name,
+                        }),
+                    },
+                    errorNotification: {
+                        type: 'error',
+                        message: translate('proxy_api_keys.notifications.rotateFailed'),
+                        description: translate('proxy_api_keys.notifications.rotateFailedDesc'),
+                    },
+                },
+                {
+                    onSuccess: () => {
+                        setRotatedSecret({ name: record.name, value: nextValue });
+                    },
+                },
+            );
+        },
+        [updateProxyApiKey, translate],
+    );
+
+    const handleCopyRotatedKey = useCallback(async (): Promise<void> => {
+        if (!rotatedSecret) return;
+        if (await copyToClipboard(rotatedSecret.value)) {
+            notification.open({
+                type: 'success',
+                message: translate('proxy_api_keys.create.copied'),
+            });
+            return;
+        }
+        notification.open({
+            type: 'error',
+            message: translate('proxy_api_keys.create.copyFailed'),
+        });
+    }, [rotatedSecret, notification, translate]);
 
     return (
         <List
@@ -403,11 +459,13 @@ export default function ProxyApiKeysListPage() {
                                 {
                                     title: translate('table.actions'),
                                     dataIndex: 'actions',
-                                    width: 160,
+                                    width: PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH,
                                     fixed: 'right',
                                     render: (_: unknown, record: ProxyApiKey) => (
                                         <Space size="small">
-                                            <Tooltip title={translate('proxy_api_keys.actions.viewLogs')}>
+                                            <Tooltip
+                                                title={translate('proxy_api_keys.actions.viewLogs')}
+                                            >
                                                 <Button
                                                     size="small"
                                                     type="text"
@@ -419,21 +477,48 @@ export default function ProxyApiKeysListPage() {
                                                     }
                                                 />
                                             </Tooltip>
-                                            <Tooltip title={translate('proxy_api_keys.actions.edit')}>
+                                            <Tooltip
+                                                title={translate('proxy_api_keys.actions.rotate')}
+                                            >
+                                                <Popconfirm
+                                                    title={translate('proxy_api_keys.rotate.title')}
+                                                    description={translate(
+                                                        'proxy_api_keys.rotate.description',
+                                                    )}
+                                                    onConfirm={() => handleRotate(record)}
+                                                    okText={translate('proxy_api_keys.rotate.confirm')}
+                                                    cancelText={translate('buttons.cancel')}
+                                                >
+                                                    <Button
+                                                        size="small"
+                                                        type="text"
+                                                        icon={<SyncOutlined />}
+                                                    />
+                                                </Popconfirm>
+                                            </Tooltip>
+                                            <Tooltip
+                                                title={translate('proxy_api_keys.actions.edit')}
+                                            >
                                                 <EditButton
                                                     hideText
                                                     recordItemId={record.id}
                                                     size="small"
                                                 />
                                             </Tooltip>
-                                            <Tooltip title={translate('proxy_api_keys.actions.viewDetails')}>
+                                            <Tooltip
+                                                title={translate(
+                                                    'proxy_api_keys.actions.viewDetails',
+                                                )}
+                                            >
                                                 <ShowButton
                                                     hideText
                                                     recordItemId={record.id}
                                                     size="small"
                                                 />
                                             </Tooltip>
-                                            <Tooltip title={translate('proxy_api_keys.actions.delete')}>
+                                            <Tooltip
+                                                title={translate('proxy_api_keys.actions.delete')}
+                                            >
                                                 <Popconfirm
                                                     title={translate('proxy_api_keys.delete.title')}
                                                     description={translate(
@@ -468,6 +553,32 @@ export default function ProxyApiKeysListPage() {
                     </Card>
                 </>
             )}
+            <Modal
+                open={Boolean(rotatedSecret)}
+                title={translate('proxy_api_keys.rotate.doneTitle')}
+                onCancel={() => setRotatedSecret(null)}
+                footer={[
+                    <Button key="close" onClick={() => setRotatedSecret(null)}>
+                        {translate('buttons.cancel')}
+                    </Button>,
+                    <Button
+                        key="copy"
+                        type="primary"
+                        icon={<CopyOutlined />}
+                        onClick={handleCopyRotatedKey}
+                    >
+                        {translate('proxy_api_keys.create.copyClipboard')}
+                    </Button>,
+                ]}
+            >
+                <Alert
+                    message={translate('proxy_api_keys.rotate.doneBody')}
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: token.marginMD }}
+                />
+                <Input.Password value={rotatedSecret?.value} readOnly />
+            </Modal>
         </List>
     );
 }
