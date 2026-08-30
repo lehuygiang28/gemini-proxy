@@ -15,7 +15,7 @@
         "dev": "tsdown --watch",
         "start": "node dist/index.js",
         "clean": "rimraf dist",
-        "test": "pnpm run test:import-helpers",
+        "test": "pnpm run test:validation && pnpm run test:import-helpers",
         "test:validation": "tsdown src/test-validation.ts --format esm && node dist/test-validation.js",
         "test:import-helpers": "tsdown src/lib/api-key-import-helpers.test.ts --format esm --outDir dist/test && node --test dist/test/api-key-import-helpers.test.mjs",
         "test:batch": "tsdown src/test-batch-operations.ts --format esm && node dist/test-batch-operations.js"

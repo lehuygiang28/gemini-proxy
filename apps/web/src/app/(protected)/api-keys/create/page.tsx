@@ -60,6 +60,7 @@ type ParseKeysResult = {
     keys: ParsedApiKey[];
     format?: ImportFormat;
     stats?: ImportParseResult['stats'];
+    warnings?: string[];
 };
 
 export default function ApiKeyCreatePage() {
@@ -175,6 +176,7 @@ export default function ApiKeyCreatePage() {
                         keys: parsedKeys,
                         format: result.format,
                         stats: result.stats,
+                        warnings: result.warnings,
                     };
                 } catch (error) {
                     const message =
@@ -205,9 +207,17 @@ export default function ApiKeyCreatePage() {
     // Handle import step - parse keys and move to review
     const handleImport = useCallback(() => {
         const values = form.getFieldsValue();
-        const { keys, format, stats } = parseKeysFromInput(values);
+        const { keys, format, stats, warnings } = parseKeysFromInput(values);
 
         if (keys.length === 0) {
+            if (format === '9router' && warnings && warnings.length > 0) {
+                notification.open({
+                    type: 'warning',
+                    message: translate('api_keys.create.errors.noKeys'),
+                    description: warnings.join('\n'),
+                });
+                return;
+            }
             notification.open({
                 type: 'error',
                 message: translate('api_keys.create.errors.noKeys'),

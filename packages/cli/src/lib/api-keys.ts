@@ -287,7 +287,12 @@ export class ApiKeysManager {
         const fileContent = readFileSync(filePath, 'utf-8');
         const parsed = parseApiKeyImport(fileContent);
 
-        const existingKeys = await this.list();
+        const firstUser = await UsersManager.getFirstUser();
+        if (!firstUser) {
+            throw new Error('No users found in the database. Please create a user first.');
+        }
+
+        const existingKeys = (await this.list()).filter((key) => key.user_id === firstUser.id);
         const results: ApiKeyImportResult = {
             created: 0,
             updated: 0,
@@ -297,11 +302,6 @@ export class ApiKeysManager {
             stats: parsed.stats,
             warnings: [...parsed.warnings],
         };
-
-        const firstUser = await UsersManager.getFirstUser();
-        if (!firstUser) {
-            throw new Error('No users found in the database. Please create a user first.');
-        }
 
         const keysToCreate: Array<Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
         const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = [];
@@ -317,7 +317,10 @@ export class ApiKeysManager {
                             is_active: importKey.is_active,
                             metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
                         };
-                        if (matchedKey.api_key_value !== importKey.api_key_value) {
+                        if (
+                            options.overwrite
+                            && matchedKey.api_key_value !== importKey.api_key_value
+                        ) {
                             updates.api_key_value = importKey.api_key_value;
                         }
                         keysToUpdate.push({
@@ -386,6 +389,7 @@ export class ApiKeysManager {
             } catch (error) {
                 const errorMsg = `Batch operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
                 results.errors.push(errorMsg);
+                throw new Error(errorMsg);
             }
         }
 

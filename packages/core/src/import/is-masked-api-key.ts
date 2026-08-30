@@ -6,6 +6,7 @@ const MIN_VISIBLE_CHARACTER_COUNT = 10;
 export function isMaskedApiKey(value: string): boolean {
     const trimmed = value.trim();
     if (trimmed.includes('***')) return true;
+    if (/[*•·]/.test(trimmed)) return true;
     if (/^[\s*•·]+$/.test(trimmed)) return true;
     const visible = trimmed.replace(MASKED_OR_WHITESPACE_PATTERN, '');
     if (visible.length < MIN_VISIBLE_CHARACTER_COUNT) return true;
