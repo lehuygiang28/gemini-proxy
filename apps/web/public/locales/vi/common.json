@@ -298,6 +298,9 @@
             "errorDesc": "Lỗi khi tạo khóa API: {message}",
             "jsonLoaded": "Đã tải tệp JSON thành công!",
             "readFileFailed": "Không đọc được tệp.",
+            "nineRouterDetected": "Phát hiện xuất 9router",
+            "nineRouterSummary": "Tìm thấy {imported} khóa Gemini có thể nhập từ {gemini} kết nối Gemini ({total} tổng). Bỏ qua: {skippedUnsupported} không hỗ trợ, {skippedMaskedInvalid} bị che/không hợp lệ.",
+            "importWarningsTitle": "Cảnh báo khi nhập",
             "steps": {
                 "import": "Nhập khóa",
                 "importDesc": "Chọn cách bạn muốn nhập khóa.",
@@ -329,7 +332,9 @@
             "errors": {
                 "tooShort": "Khóa API quá ngắn hoặc trống",
                 "invalidJson": "Định dạng JSON không hợp lệ",
-                "invalidJsonDesc": "Hãy cung cấp một mảng JSON hợp lệ.",
+                "invalidJsonDesc": "Vui lòng cung cấp tệp JSON nhập hợp lệ.",
+                "unsupportedImportFormat": "Định dạng nhập không được hỗ trợ",
+                "unsupportedImportFormatDesc": "Định dạng tệp JSON này không được hỗ trợ. Dùng xuất native, mảng legacy hoặc xuất cơ sở dữ liệu 9router.",
                 "noKeys": "Không tìm thấy khóa",
                 "noKeysDesc": "Không tìm thấy khóa API hợp lệ trong dữ liệu nhập.",
                 "authRequired": "Cần đăng nhập",

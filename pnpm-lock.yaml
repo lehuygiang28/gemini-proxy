@@ -78,6 +78,9 @@ importers:
       '@ant-design/v5-patch-for-react-19':
         specifier: ^1.0.3
         version: 1.0.3(antd@5.27.1(react-dom@19.1.2(react@19.1.2))(react@19.1.2))(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
+      '@gemini-proxy/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@opennextjs/cloudflare':
         specifier: ^1.20.2
         version: 1.20.2(next@15.5.23(@babel/core@7.28.3)(@opentelemetry/api@1.9.0)(react-dom@19.1.2(react@19.1.2))(react@19.1.2))(wrangler@4.125.0)
@@ -203,6 +206,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@gemini-proxy/core':
+        specifier: workspace:*
+        version: link:../core
       '@inquirer/prompts':
         specifier: ^7.8.3
         version: 7.8.3(@types/node@22.17.2)

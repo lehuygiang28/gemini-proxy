@@ -298,6 +298,9 @@
             "errorDesc": "Error creating API keys: {message}",
             "jsonLoaded": "JSON file loaded successfully!",
             "readFileFailed": "Failed to read file.",
+            "nineRouterDetected": "9router export detected",
+            "nineRouterSummary": "Found {imported} importable Gemini keys from {gemini} Gemini connections ({total} total). Skipped: {skippedUnsupported} unsupported, {skippedMaskedInvalid} masked or invalid.",
+            "importWarningsTitle": "Import warnings",
             "steps": {
                 "import": "Import Keys",
                 "importDesc": "Choose how you want to import your keys.",
@@ -329,7 +332,9 @@
             "errors": {
                 "tooShort": "API key is too short or empty",
                 "invalidJson": "Invalid JSON Format",
-                "invalidJsonDesc": "Please provide a valid JSON array.",
+                "invalidJsonDesc": "Please provide a valid JSON import file.",
+                "unsupportedImportFormat": "Unsupported Import Format",
+                "unsupportedImportFormatDesc": "This JSON file format is not supported. Use a native export, legacy array, or 9router database export.",
                 "noKeys": "No Keys Found",
                 "noKeysDesc": "No valid API keys found in the input.",
                 "authRequired": "Authentication Required",

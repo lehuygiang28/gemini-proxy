@@ -31,6 +31,12 @@ import {
     InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { TablesInsert, User } from '@gemini-proxy/database';
+import {
+    parseApiKeyImport,
+    type ImportFormat,
+    type ImportParseResult,
+    type NormalizedImportKey,
+} from '@gemini-proxy/core';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -42,11 +48,21 @@ type ParsedApiKey = {
     name: string;
     api_key_value: string;
     provider: 'googleaistudio';
+    is_active: boolean;
+    metadata?: NormalizedImportKey['metadata'];
     isValid: boolean;
     error?: string;
 };
 
 type ImportStep = 'import' | 'review' | 'save';
+
+type ParseKeysResult = {
+    keys: ParsedApiKey[];
+    format?: ImportFormat;
+    stats?: ImportParseResult['stats'];
+    warnings?: string[];
+    notified?: boolean;
+};
 
 export default function ApiKeyCreatePage() {
     const { token } = useToken();
@@ -59,6 +75,9 @@ export default function ApiKeyCreatePage() {
     const [currentStep, setCurrentStep] = useState<ImportStep>('import');
     const [activeTab, setActiveTab] = useState('manual');
     const [parsedKeys, setParsedKeys] = useState<ParsedApiKey[]>([]);
+    const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
+    const [importStats, setImportStats] = useState<ImportParseResult['stats'] | null>(null);
+    const [importWarnings, setImportWarnings] = useState<string[]>([]);
 
     const { formProps, form } = useForm<ApiKeyInsert>({
         resource: 'api_keys',
@@ -103,7 +122,7 @@ export default function ApiKeyCreatePage() {
             keys?: { name: string; api_key_value: string }[];
             bulk_keys?: string;
             json_keys?: string;
-        }): ParsedApiKey[] => {
+        }): ParseKeysResult => {
             const parsedKeys: ParsedApiKey[] = [];
 
             if (activeTab === 'manual' && values.keys) {
@@ -114,6 +133,7 @@ export default function ApiKeyCreatePage() {
                         name: key.name,
                         api_key_value: key.api_key_value,
                         provider: 'googleaistudio',
+                        is_active: true,
                         isValid,
                         error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
@@ -131,56 +151,62 @@ export default function ApiKeyCreatePage() {
                         name: translate('api_keys.create.bulkImportedName', { index: index + 1 }),
                         api_key_value: key,
                         provider: 'googleaistudio',
+                        is_active: true,
                         isValid,
                         error: isValid ? undefined : translate('api_keys.create.errors.tooShort'),
                     });
                 });
             } else if (activeTab === 'json' && values.json_keys) {
                 try {
-                    const parsedJson = JSON.parse(values.json_keys);
-                    if (Array.isArray(parsedJson)) {
-                        parsedJson.forEach((item, index) => {
-                            let apiKey = '';
-                            let name = translate('api_keys.create.jsonImportedName', {
-                                index: index + 1,
-                            });
-
-                            if (typeof item === 'string') {
-                                apiKey = item;
-                            } else if (typeof item === 'object' && item !== null) {
-                                apiKey =
-                                    item.api_key_value ||
-                                    item.apiKey ||
-                                    item.key ||
-                                    item.value ||
-                                    '';
-                                name = item.name || item.title || item.label || name;
-                            }
-
-                            const isValid = isValidApiKey(apiKey);
-                            parsedKeys.push({
-                                id: generateKeyId(),
-                                name,
-                                api_key_value: apiKey,
-                                provider: 'googleaistudio',
-                                isValid,
-                                error: isValid
-                                    ? undefined
-                                    : translate('api_keys.create.errors.tooShort'),
-                            });
+                    const result = parseApiKeyImport(values.json_keys);
+                    result.keys.forEach((item) => {
+                        const isValid = isValidApiKey(item.api_key_value);
+                        parsedKeys.push({
+                            id: generateKeyId(),
+                            name: item.name,
+                            api_key_value: item.api_key_value,
+                            provider: 'googleaistudio',
+                            is_active: item.is_active,
+                            metadata: item.metadata,
+                            isValid,
+                            error: isValid
+                                ? undefined
+                                : translate('api_keys.create.errors.tooShort'),
                         });
-                    }
+                    });
+                    return {
+                        keys: parsedKeys,
+                        format: result.format,
+                        stats: result.stats,
+                        warnings: result.warnings,
+                    };
                 } catch (error) {
+                    const message =
+                        error instanceof Error ? error.message : 'Unknown import error';
+                    const isUnsupportedFormat = message === 'Unsupported import file format';
+                    const isEmptyImport = message === 'No keys found in import file';
                     notification.open({
                         type: 'error',
-                        message: translate('api_keys.create.errors.invalidJson'),
-                        description: translate('api_keys.create.errors.invalidJsonDesc'),
+                        message: translate(
+                            isUnsupportedFormat
+                                ? 'api_keys.create.errors.unsupportedImportFormat'
+                                : isEmptyImport
+                                  ? 'api_keys.create.errors.noKeys'
+                                  : 'api_keys.create.errors.invalidJson',
+                        ),
+                        description: translate(
+                            isUnsupportedFormat
+                                ? 'api_keys.create.errors.unsupportedImportFormatDesc'
+                                : isEmptyImport
+                                  ? 'api_keys.create.errors.noKeysDesc'
+                                  : 'api_keys.create.errors.invalidJsonDesc',
+                        ),
                     });
-                    return [];
+                    return { keys: [], notified: true };
                 }
             }
 
-            return parsedKeys;
+            return { keys: parsedKeys };
         },
         [activeTab, isValidApiKey, generateKeyId, notification, translate],
     );
@@ -188,9 +214,20 @@ export default function ApiKeyCreatePage() {
     // Handle import step - parse keys and move to review
     const handleImport = useCallback(() => {
         const values = form.getFieldsValue();
-        const keys = parseKeysFromInput(values);
+        const { keys, format, stats, warnings, notified } = parseKeysFromInput(values);
 
         if (keys.length === 0) {
+            if (notified) {
+                return;
+            }
+            if (format === '9router' && warnings && warnings.length > 0) {
+                notification.open({
+                    type: 'error',
+                    message: translate('api_keys.create.errors.noKeys'),
+                    description: warnings.join('\n'),
+                });
+                return;
+            }
             notification.open({
                 type: 'error',
                 message: translate('api_keys.create.errors.noKeys'),
@@ -200,6 +237,9 @@ export default function ApiKeyCreatePage() {
         }
 
         setParsedKeys(keys);
+        setImportFormat(format ?? null);
+        setImportStats(stats ?? null);
+        setImportWarnings(warnings ?? []);
         setCurrentStep('review');
     }, [form, parseKeysFromInput, notification, translate]);
 
@@ -241,6 +281,8 @@ export default function ApiKeyCreatePage() {
             name: key.name,
             api_key_value: key.api_key_value,
             provider: key.provider,
+            is_active: key.is_active,
+            metadata: key.metadata,
             user_id: user.id,
         }));
 
@@ -607,6 +649,38 @@ export default function ApiKeyCreatePage() {
                         {translate('api_keys.create.reviewBody')}
                     </Paragraph>
                 </div>
+                {importFormat === '9router' && importStats && (
+                    <Alert
+                        message={translate('api_keys.create.nineRouterDetected')}
+                        description={translate('api_keys.create.nineRouterSummary', {
+                            total: importStats.total_connections ?? 0,
+                            gemini: importStats.gemini_connections ?? 0,
+                            imported: importStats.imported_keys ?? parsedKeys.length,
+                            skippedUnsupported: importStats.skipped_unsupported ?? 0,
+                            skippedMaskedInvalid:
+                                (importStats.skipped_masked ?? 0) +
+                                (importStats.skipped_invalid ?? 0),
+                        })}
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: token.marginLG }}
+                    />
+                )}
+                {importWarnings.length > 0 && (
+                    <Alert
+                        message={translate('api_keys.create.importWarningsTitle')}
+                        description={
+                            <ul style={{ margin: 0, paddingLeft: token.paddingLG }}>
+                                {importWarnings.map((warning, index) => (
+                                    <li key={`${index}-${warning}`}>{warning}</li>
+                                ))}
+                            </ul>
+                        }
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: token.marginLG }}
+                    />
+                )}
                 <Table
                     dataSource={parsedKeys}
                     columns={columns}
@@ -655,7 +729,14 @@ export default function ApiKeyCreatePage() {
                     </Button>
                 ) : currentStep === 'review' ? (
                     <Space>
-                        <Button onClick={() => setCurrentStep('import')}>
+                        <Button
+                            onClick={() => {
+                                setCurrentStep('import');
+                                setImportFormat(null);
+                                setImportStats(null);
+                                setImportWarnings([]);
+                            }}
+                        >
                             {translate('api_keys.create.backToImport')}
                         </Button>
                         <Button

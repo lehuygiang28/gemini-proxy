@@ -1,7 +1,22 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import {
+    parseApiKeyImport,
+    type ImportParseResult,
+} from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
+import { findExistingKey, mergeMetadata } from './api-key-import-helpers';
 import { UsersManager } from './users';
 import { colors } from './colors';
+
+export type ApiKeyImportResult = {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+    format: ImportParseResult['format'];
+    stats: ImportParseResult['stats'];
+    warnings: string[];
+};
 
 export interface ApiKeyExport {
     version: string;
@@ -264,38 +279,97 @@ export class ApiKeysManager {
             skipDuplicates?: boolean;
             dryRun?: boolean;
         } = {},
-    ): Promise<{ created: number; updated: number; skipped: number; errors: string[] }> {
+    ): Promise<ApiKeyImportResult> {
         if (!existsSync(filePath)) {
             throw new Error(`File not found: ${filePath}`);
         }
 
         const fileContent = readFileSync(filePath, 'utf-8');
-        const importData: ApiKeyExport = JSON.parse(fileContent);
+        const parsed = parseApiKeyImport(fileContent);
 
-        if (!importData.api_keys || !Array.isArray(importData.api_keys)) {
-            throw new Error('Invalid import file format');
-        }
-
-        const existingKeys = await this.list();
-        const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
-
-        // Get first user for API key assignment
         const firstUser = await UsersManager.getFirstUser();
         if (!firstUser) {
             throw new Error('No users found in the database. Please create a user first.');
         }
 
-        // Prepare batch operations
+        const existingKeys = (await this.list()).filter((key) => key.user_id === firstUser.id);
+        const workingKeys: ApiKey[] = [...existingKeys];
+        const results: ApiKeyImportResult = {
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            errors: [],
+            format: parsed.format,
+            stats: parsed.stats,
+            warnings: [...parsed.warnings],
+        };
+
         const keysToCreate: Array<Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
         const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = [];
 
-        // Analyze import data
-        for (const importKey of importData.api_keys) {
+        for (const importKey of parsed.keys) {
             try {
-                // Check for existing key by name
-                const existingKey = existingKeys.find((key) => key.name === importKey.name);
+                const matchedKey = findExistingKey(workingKeys, importKey);
 
-                if (existingKey) {
+                if (matchedKey) {
+                    if (matchedKey.id.startsWith('__pending_')) {
+                        results.skipped++;
+                        results.warnings.push(
+                            `Skipped duplicate key in import batch: "${importKey.name}"`,
+                        );
+                        continue;
+                    }
+
+                    if (
+                        matchedKey.api_key_value !== importKey.api_key_value
+                        && !options.overwrite
+                    ) {
+                        results.warnings.push(
+                            `Key "${importKey.name}": stored secret was not rotated (use --overwrite to update)`,
+                        );
+                    }
+                    if (!options.dryRun) {
+                        const updates: Partial<ApiKeyUpdate> = {
+                            name: importKey.name,
+                            is_active: importKey.is_active,
+                            metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
+                        };
+                        if (
+                            options.overwrite
+                            && matchedKey.api_key_value !== importKey.api_key_value
+                        ) {
+                            updates.api_key_value = importKey.api_key_value;
+                        }
+                        keysToUpdate.push({
+                            id: matchedKey.id,
+                            updates,
+                        });
+                        const workingIndex = workingKeys.findIndex((key) => key.id === matchedKey.id);
+                        if (workingIndex >= 0) {
+                            workingKeys[workingIndex] = {
+                                ...workingKeys[workingIndex],
+                                name: importKey.name,
+                                api_key_value: updates.api_key_value ?? matchedKey.api_key_value,
+                                is_active: importKey.is_active,
+                                metadata: mergeMetadata(matchedKey.metadata, importKey.metadata),
+                            };
+                        }
+                    }
+                    results.updated++;
+                    continue;
+                }
+
+                const nameCollision = workingKeys.find((key) => key.name === importKey.name);
+
+                if (nameCollision) {
+                    if (nameCollision.id.startsWith('__pending_')) {
+                        results.skipped++;
+                        results.warnings.push(
+                            `Skipped duplicate key in import batch: "${importKey.name}"`,
+                        );
+                        continue;
+                    }
+
                     if (options.skipDuplicates) {
                         results.skipped++;
                         continue;
@@ -304,39 +378,50 @@ export class ApiKeysManager {
                     if (options.overwrite) {
                         if (!options.dryRun) {
                             keysToUpdate.push({
-                                id: existingKey.id,
+                                id: nameCollision.id,
                                 updates: {
+                                    name: importKey.name,
                                     api_key_value: importKey.api_key_value,
                                     provider: importKey.provider,
                                     is_active: importKey.is_active,
-                                    metadata: importKey.metadata,
+                                    metadata: mergeMetadata(nameCollision.metadata, importKey.metadata),
                                 },
                             });
                         }
                         results.updated++;
-                    } else {
-                        results.skipped++;
+                        continue;
                     }
-                } else {
-                    if (!options.dryRun) {
-                        keysToCreate.push({
-                            name: importKey.name,
-                            api_key_value: importKey.api_key_value,
-                            provider: importKey.provider,
-                            is_active: importKey.is_active,
-                            metadata: importKey.metadata,
-                            user_id: firstUser.id,
-                        });
-                    }
-                    results.created++;
+
+                    results.skipped++;
+                    continue;
                 }
+
+                if (!options.dryRun) {
+                    keysToCreate.push({
+                        name: importKey.name,
+                        api_key_value: importKey.api_key_value,
+                        provider: importKey.provider,
+                        is_active: importKey.is_active,
+                        metadata: importKey.metadata,
+                        user_id: firstUser.id,
+                    });
+                }
+                workingKeys.push({
+                    id: `__pending_${workingKeys.length}`,
+                    name: importKey.name,
+                    api_key_value: importKey.api_key_value,
+                    metadata: importKey.metadata,
+                    user_id: firstUser.id,
+                    provider: importKey.provider,
+                    is_active: importKey.is_active,
+                } as ApiKey);
+                results.created++;
             } catch (error) {
                 const errorMsg = `Failed to import key "${importKey.name}": ${error instanceof Error ? error.message : 'Unknown error'}`;
                 results.errors.push(errorMsg);
             }
         }
 
-        // Execute batch operations
         if (!options.dryRun) {
             try {
                 if (keysToCreate.length > 0) {
@@ -348,6 +433,7 @@ export class ApiKeysManager {
             } catch (error) {
                 const errorMsg = `Batch operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
                 results.errors.push(errorMsg);
+                throw new Error(errorMsg);
             }
         }
 
