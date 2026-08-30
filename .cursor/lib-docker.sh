@@ -65,23 +65,39 @@ docker_driver_ok() {
 }
 
 # Stop a running docker daemon using its pidfile / service (never pkill by name).
+# Waits for the process to actually exit (not just stop responding) so a
+# subsequent start does not collide with a still-shutting-down daemon.
 stop_docker_daemon() {
+    local pid=""
+    [ -f /var/run/docker.pid ] && pid="$(cat /var/run/docker.pid 2>/dev/null || true)"
     sudo systemctl stop docker.socket docker 2>/dev/null || true
-    if [ -f /var/run/docker.pid ]; then
-        local pid
-        pid="$(cat /var/run/docker.pid 2>/dev/null || true)"
-        [ -n "$pid" ] && sudo kill "$pid" 2>/dev/null || true
-    fi
+    [ -n "$pid" ] && sudo kill "$pid" 2>/dev/null || true
+
     local i
-    for i in $(seq 1 30); do
-        sudo docker info >/dev/null 2>&1 || return 0
-        sleep 1
+    for i in $(seq 1 60); do
+        if [ -n "$pid" ] && sudo kill -0 "$pid" 2>/dev/null; then
+            sleep 1
+        elif sudo docker info >/dev/null 2>&1; then
+            sleep 1
+        else
+            break
+        fi
     done
-    return 0
+
+    # Remove a stale pidfile left by the now-exited daemon.
+    if [ ! -n "$pid" ] || ! sudo kill -0 "$pid" 2>/dev/null; then
+        sudo rm -f /var/run/docker.pid 2>/dev/null || true
+    fi
 }
 
 # Launch dockerd in the background and wait until it accepts connections.
 start_docker_daemon() {
+    # Clear a stale pidfile from a daemon that has already exited; dockerd
+    # refuses to start while a pidfile it considers live is present.
+    if [ -f /var/run/docker.pid ] && ! sudo docker info >/dev/null 2>&1; then
+        sudo rm -f /var/run/docker.pid 2>/dev/null || true
+    fi
+
     # Pre-create a root-owned, writable log so the redirect never fails on a
     # stale file left by a previous run.
     sudo rm -f "$DOCKER_DAEMON_LOG" 2>/dev/null || true

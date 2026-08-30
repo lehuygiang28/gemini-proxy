@@ -24,7 +24,14 @@ ensure_docker_installed
 ensure_docker_running
 
 echo "==> Starting local Supabase (applies migrations)"
-pnpm exec supabase start || pnpm exec supabase start
+if ! pnpm exec supabase start; then
+    # A partial/unhealthy stack (e.g. leftover containers after a Docker
+    # restart) can wedge `supabase start`; recreate the containers cleanly.
+    # `supabase stop` keeps a DB backup that the next start restores.
+    echo "==> supabase start failed; recreating the stack" >&2
+    pnpm exec supabase stop 2>/dev/null || true
+    pnpm exec supabase start
+fi
 
 # Read the (static) local anon/service keys straight from the running stack.
 STATUS="$(pnpm exec supabase status 2>/dev/null)"
