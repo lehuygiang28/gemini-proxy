@@ -36,12 +36,12 @@
 
 - Produces: `UsageStreamParser`, `ParsedUsageMetadata`, `estimateGeminiCostUsd()`, `GEMINI_PRICING.asOf`
 
-- [ ] **Step 1:** Add Vitest to `@gemini-proxy/core` (`vitest ~3.2.0`), script `test`: `vitest run`.
-- [ ] **Step 2:** Write failing tests for the five fixtures in the spec (Gemini forum example, MAX_TOKENS stream, OpenAI usage-only chunk, split SSE, alias + unknown model).
-- [ ] **Step 3:** Implement `UsageStreamParser` + mapper + `parseFromResponseBody` wrapper.
-- [ ] **Step 4:** Implement pricing table (`asOf: 2026-08-30`) and `estimateGeminiCostUsd` with the partition formula.
-- [ ] **Step 5:** `pnpm --filter @gemini-proxy/core test` passes.
-- [ ] **Step 6:** Commit `test(core): cover token parse and Gemini cost partition`
+- [x] **Step 1:** Add Vitest to `@gemini-proxy/core` (`vitest ~3.2.0`), script `test`: `vitest run`.
+- [x] **Step 2:** Write failing tests for the five fixtures in the spec (Gemini forum example, MAX_TOKENS stream, OpenAI usage-only chunk, split SSE, alias + unknown model).
+- [x] **Step 3:** Implement `UsageStreamParser` + mapper + `parseFromResponseBody` wrapper.
+- [x] **Step 4:** Implement pricing table (`asOf: 2026-08-30`) and `estimateGeminiCostUsd` with the partition formula.
+- [x] **Step 5:** `pnpm --filter @gemini-proxy/core test` passes.
+- [x] **Step 6:** Commit `test(core): cover token parse and Gemini cost partition`
 
 ---
 
@@ -64,11 +64,11 @@
 - Consumes: `UsageStreamParser`, `estimateGeminiCostUsd`
 - Produces: `attachUsageLogging()`, `increment_api_key_usage`, `increment_proxy_api_key_usage`, expanded `get_request_logs_statistics`
 
-- [ ] **Step 1:** `attachUsageLogging(response, apiFormat, onComplete)` pipes body through TransformStream; `flush` calls `onComplete(parser.finish(), cappedText)`.
-- [ ] **Step 2:** `handleSuccess` returns the wrapped stream immediately; persist in `flush` + `executeWithWaitUntil`. `handleError` waitUntil after collect. Remove premature `executeAllOperations` from `app.ts`.
-- [ ] **Step 3:** Settings + request body at persist time. `raw_metadata` = provider object. Insert throws on error; retry 200ms/800ms.
-- [ ] **Step 4:** Migration: atomic increment RPCs (GRANT `service_role`); stats adds `thoughts_tokens`, `tool_use_prompt_tokens`, `estimated_cost_usd`. Mirror `schema.sql`.
-- [ ] **Step 5:** Commit `fix(core): stream usage logs and persist Gemini cost snapshot`
+- [x] **Step 1:** `attachUsageLogging(response, apiFormat, onComplete)` pipes body through TransformStream; `flush` calls `onComplete(parser.finish(), cappedText)`.
+- [x] **Step 2:** `handleSuccess` returns the wrapped stream immediately; persist in `flush` + `executeWithWaitUntil`. `handleError` waitUntil after collect. Remove premature `executeAllOperations` from `app.ts`.
+- [x] **Step 3:** Settings + request body at persist time. `raw_metadata` = provider object. Insert throws on error; retry 200ms/800ms.
+- [x] **Step 4:** Migration: atomic increment RPCs (GRANT `service_role`); stats adds `thoughts_tokens`, `tool_use_prompt_tokens`, `estimated_cost_usd`. Mirror `schema.sql`.
+- [x] **Step 5:** Commit `fix(core): stream usage logs and persist Gemini cost snapshot`
 
 ---
 
@@ -83,16 +83,16 @@
 - Modify: `apps/web/public/locales/en/common.json`
 - Modify: `apps/web/public/locales/vi/common.json`
 
-- [ ] **Step 1:** `extractUsageMetadata` reads new fields; `formatUsd` for estimates.
-- [ ] **Step 2:** Log detail KPIs: cache, thoughts, tool-use, estimated USD (em dash when null).
-- [ ] **Step 3:** Dashboard token strip: thoughts + estimated cost.
-- [ ] **Step 4:** Catalog keys in `en` and `vi`; `pnpm --filter web i18n:check`.
-- [ ] **Step 5:** Commit `feat(web): show token breakdown and estimated Gemini cost`
+- [x] **Step 1:** `extractUsageMetadata` reads new fields; `formatUsd` for estimates.
+- [x] **Step 2:** Log detail KPIs: cache, thoughts, tool-use, estimated USD (em dash when null).
+- [x] **Step 3:** Dashboard token strip: thoughts + estimated cost.
+- [x] **Step 4:** Catalog keys in `en` and `vi`; `pnpm --filter web i18n:check`.
+- [x] **Step 5:** Commit `feat(web): show token breakdown and estimated Gemini cost`
 
 ---
 
 ### Task 4: Verify
 
-- [ ] **Step 1:** `pnpm --filter @gemini-proxy/core test`
-- [ ] **Step 2:** `pnpm --filter web i18n:check` and `pnpm --filter web lint` if feasible
-- [ ] **Step 3:** Push branch and open draft PR
+- [x] **Step 1:** `pnpm --filter @gemini-proxy/core test`
+- [x] **Step 2:** `pnpm --filter web i18n:check` and `pnpm --filter web lint` if feasible
+- [x] **Step 3:** Push branch and open draft PR
