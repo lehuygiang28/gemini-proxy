@@ -56,6 +56,9 @@ export const validateRpcParams = <T extends RpcFunctionName>(
                 paramObj.p_days_to_keep === undefined || typeof paramObj.p_days_to_keep === 'number'
             );
 
+        case 'reconcile_proxy_request':
+            return typeof paramObj.p_request_id === 'string' && paramObj.p_request_id.length > 0;
+
         default:
             return false;
     }
@@ -66,6 +69,11 @@ export const validateRpcResponse = <T extends RpcFunctionName>(
     response: unknown,
     functionName: T,
 ): response is RpcFunctionReturns[T] => {
+    // Postgres VOID RPCs come back as null from supabase-js.
+    if (functionName === 'reconcile_proxy_request') {
+        return response === null || response === undefined;
+    }
+
     if (typeof response !== 'object' || response === null) {
         return false;
     }

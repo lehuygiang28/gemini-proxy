@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { List, useTable } from '@refinedev/antd';
-import { useInvalidate, useNotification, useTranslation, type HttpError } from '@refinedev/core';
-import { Alert, Button, Table, Typography } from 'antd';
+import { useTranslation, type HttpError } from '@refinedev/core';
+import { Alert, Button, Empty, Table, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import { DateTimeDisplay } from '@/components/common';
 import {
     RECONCILIATION_RESOURCE,
     unresolvedReconciliationFilters,
+    useReconcileProxyRequest,
 } from '@/features/reconciliation';
-import { supabaseBrowserClient } from '@utils/supabase/client';
 
 const { Text } = Typography;
 
@@ -22,11 +22,9 @@ type ReconciliationRow = Tables<'proxy_reconciliation_needed'>;
  */
 export default function ReconciliationListPage() {
     const { translate } = useTranslation();
-    const notification = useNotification();
-    const invalidate = useInvalidate();
-    const [retryingId, setRetryingId] = useState<string | null>(null);
+    const { reconcile, pendingRequestId } = useReconcileProxyRequest();
 
-    const { tableProps, tableQuery } = useTable<ReconciliationRow, HttpError>({
+    const { tableProps } = useTable<ReconciliationRow, HttpError>({
         syncWithLocation: true,
         resource: RECONCILIATION_RESOURCE,
         liveMode: 'auto',
@@ -47,39 +45,6 @@ export default function ReconciliationListPage() {
         },
     });
 
-    const handleRetry = async (requestId: string) => {
-        setRetryingId(requestId);
-        try {
-            const { error } = await supabaseBrowserClient.rpc('reconcile_proxy_request', {
-                p_request_id: requestId,
-            });
-            if (error) {
-                throw error;
-            }
-            await invalidate({
-                resource: RECONCILIATION_RESOURCE,
-                invalidates: ['list'],
-            });
-            await tableQuery.refetch();
-            notification.open({
-                type: 'success',
-                message: translate('proxy_reconciliation_needed.retrySuccess'),
-                description: translate('proxy_reconciliation_needed.retrySuccessDesc'),
-            });
-        } catch (error) {
-            notification.open({
-                type: 'error',
-                message: translate('proxy_reconciliation_needed.retryFailed'),
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : translate('proxy_reconciliation_needed.retryFailedDesc'),
-            });
-        } finally {
-            setRetryingId(null);
-        }
-    };
-
     return (
         <List>
             <Alert
@@ -92,6 +57,14 @@ export default function ReconciliationListPage() {
             <Table
                 {...tableProps}
                 rowKey="request_id"
+                locale={{
+                    emptyText: (
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={translate('proxy_reconciliation_needed.empty')}
+                        />
+                    ),
+                }}
                 columns={[
                     {
                         title: translate('proxy_reconciliation_needed.fields.requestId'),
@@ -123,8 +96,8 @@ export default function ReconciliationListPage() {
                             <Button
                                 type="primary"
                                 icon={<ReloadOutlined />}
-                                loading={retryingId === record.request_id}
-                                onClick={() => void handleRetry(record.request_id)}
+                                loading={pendingRequestId === record.request_id}
+                                onClick={() => void reconcile(record.request_id)}
                             >
                                 {translate('proxy_reconciliation_needed.actions.retry')}
                             </Button>
