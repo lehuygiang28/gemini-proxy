@@ -77,6 +77,38 @@ export type Database = {
                 };
                 Relationships: [];
             };
+            api_key_model_cooldowns: {
+                Row: {
+                    api_key_id: string;
+                    canonical_model: string;
+                    consecutive_failures: number;
+                    cooldown_until: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    api_key_id: string;
+                    canonical_model: string;
+                    consecutive_failures?: number;
+                    cooldown_until: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    api_key_id?: string;
+                    canonical_model?: string;
+                    consecutive_failures?: number;
+                    cooldown_until?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'api_key_model_cooldowns_api_key_id_fkey';
+                        columns: ['api_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
             proxy_api_keys: {
                 Row: {
                     completion_tokens: number;
@@ -287,11 +319,13 @@ export type Database = {
                     p_disable: boolean;
                     p_cooldown_until: string | null;
                     p_reason: string | null;
+                    p_canonical_model?: string | null;
+                    p_scope?: string | null;
                 };
                 Returns: undefined;
             };
             record_api_key_success: {
-                Args: { p_id: string };
+                Args: { p_id: string; p_canonical_model?: string | null };
                 Returns: undefined;
             };
             get_retry_statistics: {

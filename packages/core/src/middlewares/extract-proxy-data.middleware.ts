@@ -5,7 +5,9 @@ import type { ProxyRequestDataParsed } from '../types';
 import { safelyExtractBodyText } from '../utils/body-handler';
 import { buildOriginUrl } from '../routing/build-origin-url';
 import { detectApiFormat } from '../routing/detect-api-format';
+import { isManagedOperation } from '../routing/is-managed-operation';
 import { normalizeV1Path } from '../routing/normalize-v1-path';
+import { stripAdapterPrefix } from '../routing/strip-adapter-prefix';
 
 function isKnownProxyPath(path: string): boolean {
     return (
@@ -21,8 +23,9 @@ function isKnownProxyPath(path: string): boolean {
 }
 
 export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
+    const requestPath = stripAdapterPrefix(c.req.path);
     const detected = detectApiFormat({
-        path: c.req.path,
+        path: requestPath,
         header: (name) => c.req.header(name),
     });
     if ('error' in detected) {
@@ -37,7 +40,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
             401,
         );
     }
-    if (!isKnownProxyPath(c.req.path)) {
+    if (!isKnownProxyPath(requestPath)) {
         return c.json(
             {
                 error: 'Invalid Request Path',
@@ -57,13 +60,13 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
     let model: string | undefined;
     let stream = false;
     let rawBodyText: string | null = null;
-    const normalizedPath = normalizeV1Path(c.req.path);
+    const normalizedPath = normalizeV1Path(requestPath);
 
     if (apiFormat === 'gemini') {
         const pathParts = normalizedPath.split('/');
         const lastPart = pathParts.pop();
         model = lastPart?.split(':')?.[0];
-        console.log(`Model extraction: path=${c.req.path}, lastPart=${lastPart}, model=${model}`);
+        console.log(`Model extraction: path=${requestPath}, lastPart=${lastPart}, model=${model}`);
         stream =
             normalizedPath.includes(':streamGenerateContent') ||
             normalizedPath.includes(':stream') ||
@@ -95,7 +98,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
 
     const urlToProxy = buildOriginUrl({
         apiFormat,
-        path: c.req.path,
+        path: requestPath,
         rawSearch,
         geminiBaseUrl:
             envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
@@ -110,6 +113,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
         apiFormat,
         stream,
         urlToProxy,
+        managed: isManagedOperation({ apiFormat, path: normalizedPath }),
     } satisfies ProxyRequestDataParsed);
 
     await next();

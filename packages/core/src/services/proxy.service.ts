@@ -8,7 +8,7 @@ import type { ProxyRequestDataParsed, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
 import type { ApiKeyWithStats } from './api-key.service';
 import type { Tables } from '@gemini-proxy/database';
-import { ProxyError, InvalidKeyError } from '../types/error.type';
+import { ProxyError, InvalidKeyError, RateLimitError } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { getSupabaseClient } from './supabase.service';
 import { classifyUpstreamError } from '../retry/classify-upstream-error';
@@ -18,6 +18,7 @@ import {
     mergeAbortSignals,
 } from '../retry/create-timeout-signal';
 import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
+import { calculateRetryAttempts } from '../retry/calculate-retry-attempts';
 import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
 
 // ===== INTERFACES =====
@@ -124,7 +125,6 @@ interface InitialFailureParams {
 
 export class ProxyService {
     // ===== CONSTANTS =====
-    private static readonly MAX_RETRIES_SAFETY_CAP = 50;
     private static readonly ERROR_BODY_MAX_LENGTH = 4000;
     private static readonly VALID_HTTP_METHODS = [
         'GET',
@@ -159,19 +159,24 @@ export class ProxyService {
         } catch {
             availableKeysAtStart = 0;
         }
-        const retryBudget = this.calculateRetryAttempts(
-            retryConfig.maxRetries,
-            availableKeysAtStart,
-        );
+        const retryBudget = calculateRetryAttempts(retryConfig.maxRetries, availableKeysAtStart);
         const usedApiKeyIds: string[] = [];
-        const firstApiKey = await this.selectOptimalApiKey({
-            c,
-            currentAttempt: 0,
-            proxyKeyId: proxyApiKeyData.id,
-            apiFormat: proxyRequestDataParsed.apiFormat,
-            model: proxyRequestDataParsed.model,
-            excludeIds: usedApiKeyIds,
-        });
+        let firstApiKey: ApiKeyWithStats;
+        try {
+            firstApiKey = await this.selectOptimalApiKey({
+                c,
+                currentAttempt: 0,
+                proxyKeyId: proxyApiKeyData.id,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                model: proxyRequestDataParsed.model,
+                excludeIds: usedApiKeyIds,
+            });
+        } catch (error) {
+            if (error instanceof InvalidKeyError && error.message === 'No API key found') {
+                await this.throwAllKeysCooled(c, proxyApiKeyData.user_id);
+            }
+            throw error;
+        }
         usedApiKeyIds.push(firstApiKey.id);
         const firstAttemptStartedAt = Date.now();
         let attemptResult: { response: Response; durationMs: number; headers: Headers };
@@ -368,7 +373,7 @@ export class ProxyService {
             requestId,
         } = params;
 
-        await recordApiKeySuccess(c, firstApiKey.id);
+        await recordApiKeySuccess(c, firstApiKey.id, proxyRequestDataParsed.model);
         return ResponseHandlerService.handleSuccess({
             c,
             response: firstResponse,
@@ -409,6 +414,7 @@ export class ProxyService {
                 apiKeyId: firstApiKey.id,
                 failure: firstFailure,
                 consecutiveFailures: firstApiKey.consecutive_failures,
+                canonicalModel: proxyRequestDataParsed.model,
             });
         }
         const firstRetryAttempt = this.createRetryAttempt({
@@ -469,12 +475,18 @@ export class ProxyService {
         });
         const failure: ClassifiedUpstreamFailure = isClientAbort
             ? { ...failureBase, retryable: false, message: 'client_aborted' }
-            : failureBase;
+            : this.shouldSkipRetryOnUnknownDelivery(
+                    params.baseRequest,
+                    params.proxyRequestDataParsed,
+                )
+              ? { ...failureBase, retryable: false }
+              : failureBase;
         if (!isClientAbort) {
             await recordApiKeyFailure(params.c, {
                 apiKeyId: params.firstApiKey.id,
                 failure,
                 consecutiveFailures: params.firstApiKey.consecutive_failures,
+                canonicalModel: params.proxyRequestDataParsed.model,
             });
         }
         const proxyError = this.createClassifiedProxyError(failure);
@@ -637,6 +649,7 @@ export class ProxyService {
                             apiKeyId: selectedApiKey.id,
                             failure,
                             consecutiveFailures: selectedApiKey.consecutive_failures,
+                            canonicalModel: proxyRequestDataParsed.model,
                         });
                     }
 
@@ -661,7 +674,7 @@ export class ProxyService {
                     continue;
                 }
 
-                await recordApiKeySuccess(c, selectedApiKey.id);
+                await recordApiKeySuccess(c, selectedApiKey.id, proxyRequestDataParsed.model);
                 return ResponseHandlerService.handleSuccess({
                     c,
                     response: response,
@@ -690,13 +703,16 @@ export class ProxyService {
                 });
                 const failure: ClassifiedUpstreamFailure = isClientAbort
                     ? { ...failureBase, retryable: false, message: 'client_aborted' }
-                    : failureBase;
+                    : this.shouldSkipRetryOnUnknownDelivery(baseRequest, proxyRequestDataParsed)
+                      ? { ...failureBase, retryable: false }
+                      : failureBase;
                 const errorObj = this.createClassifiedProxyError(failure);
                 if (selectedApiKey && !isClientAbort) {
                     await recordApiKeyFailure(c, {
                         apiKeyId: selectedApiKey.id,
                         failure,
                         consecutiveFailures: selectedApiKey.consecutive_failures,
+                        canonicalModel: proxyRequestDataParsed.model,
                     });
                 }
 
@@ -733,15 +749,6 @@ export class ProxyService {
     }
 
     // ===== HELPER METHODS =====
-    private static calculateRetryAttempts(maxRetries: number, availableApiKeys: number): number {
-        if (maxRetries === -1) {
-            return Math.min(availableApiKeys, this.MAX_RETRIES_SAFETY_CAP);
-        } else if (maxRetries > 0) {
-            return Math.min(maxRetries, availableApiKeys);
-        }
-        return 0;
-    }
-
     private static createRetryAttempt(params: RetryAttemptParams): RetryAttemptData {
         return {
             attempt_number: params.attemptNumber,
@@ -832,6 +839,30 @@ export class ProxyService {
         );
     }
 
+    private static shouldSkipRetryOnUnknownDelivery(
+        request: Request,
+        parsed: ProxyRequestDataParsed,
+    ): boolean {
+        if (parsed.managed) {
+            return false;
+        }
+        const method = request.method.toUpperCase();
+        return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+    }
+
+    private static async throwAllKeysCooled(c: Context<HonoApp>, userId: string): Promise<never> {
+        let retryAfter: number | undefined;
+        try {
+            const remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(c, userId);
+            if (remainingMs != null) {
+                retryAfter = Math.max(1, Math.ceil(remainingMs / 1000));
+            }
+        } catch {
+            retryAfter = undefined;
+        }
+        throw new RateLimitError('All provider keys are in cooldown', retryAfter);
+    }
+
     // ===== API KEY SELECTION =====
     private static async selectOptimalApiKey(
         params: ApiKeySelectionParams,
@@ -864,6 +895,7 @@ export class ProxyService {
             prioritizeNewer: true,
             excludeIds: excludeIds || [],
             preferKeyId: preferKeyId,
+            canonicalModel: model,
         });
 
         if (!selected) {

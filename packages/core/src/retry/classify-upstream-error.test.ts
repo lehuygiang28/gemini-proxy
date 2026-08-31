@@ -15,6 +15,7 @@ describe('classifyUpstreamError', () => {
             retryable: boolean;
             disableKey: boolean;
             retryAfterSeconds: number | null;
+            keyWide?: boolean;
         };
     }> = [
         {
@@ -103,7 +104,7 @@ describe('classifyUpstreamError', () => {
             },
         },
         {
-            name: '429 with spend limit body is spend_limit',
+            name: '429 with spend wording in the message is rate_limit, not spend_limit',
             input: {
                 status: 429,
                 headers: {},
@@ -115,10 +116,11 @@ describe('classifyUpstreamError', () => {
                 }),
             },
             expected: {
-                class: UPSTREAM_FAILURE_CLASS.spend_limit,
+                class: UPSTREAM_FAILURE_CLASS.rate_limit,
                 retryable: true,
                 disableKey: false,
                 retryAfterSeconds: null,
+                keyWide: false,
             },
         },
         {
@@ -162,21 +164,21 @@ describe('classifyUpstreamError', () => {
             },
         },
         {
-            name: '409 is transient',
+            name: '409 is unknown and not retryable',
             input: { status: 409, headers: {}, bodyText: '' },
             expected: {
-                class: UPSTREAM_FAILURE_CLASS.transient,
-                retryable: true,
+                class: UPSTREAM_FAILURE_CLASS.unknown,
+                retryable: false,
                 disableKey: false,
                 retryAfterSeconds: null,
             },
         },
         {
-            name: '423 is transient',
+            name: '423 is unknown and not retryable',
             input: { status: 423, headers: {}, bodyText: '' },
             expected: {
-                class: UPSTREAM_FAILURE_CLASS.transient,
-                retryable: true,
+                class: UPSTREAM_FAILURE_CLASS.unknown,
+                retryable: false,
                 disableKey: false,
                 retryAfterSeconds: null,
             },
@@ -200,6 +202,7 @@ describe('classifyUpstreamError', () => {
         expect(actual.disableKey).toBe(expected.disableKey);
         expect(actual.retryAfterSeconds).toBe(expected.retryAfterSeconds);
         expect(actual.status).toBe(input.status);
+        expect(actual.keyWide).toBe(expected.keyWide ?? false);
     });
 
     it('clamps integer Retry-After below minimum to 1 second', () => {
@@ -258,7 +261,7 @@ describe('classifyUpstreamError', () => {
         expect(actual.retryAfterSeconds).toBe(60);
     });
 
-    it('detects spend_limit from billing keyword in 429 body', () => {
+    it('does not treat billing wording in the 429 message as spend_limit', () => {
         const actual = classifyUpstreamError({
             status: 429,
             headers: {},
@@ -266,7 +269,115 @@ describe('classifyUpstreamError', () => {
                 error: { message: 'Billing account has no remaining budget' },
             }),
         });
+        expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.rate_limit);
+        expect(actual.keyWide).toBe(false);
+    });
+
+    it('detects spend_limit from structured quota_limit 0 without scanning the message', () => {
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: {},
+            bodyText: JSON.stringify({
+                error: {
+                    status: 'RESOURCE_EXHAUSTED',
+                    message: 'Quota exceeded',
+                    details: [
+                        {
+                            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                            reason: 'CONSUMER_SUSPENDED',
+                            metadata: {
+                                quota_limit: '0',
+                                quota_metric: 'invoiced_usage',
+                            },
+                        },
+                    ],
+                },
+            }),
+        });
         expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.spend_limit);
+        expect(actual.keyWide).toBe(true);
+    });
+
+    it('parses google.rpc.RetryInfo.retryDelay ahead of Retry-After when it is later', () => {
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: { 'Retry-After': '30' },
+            bodyText: JSON.stringify({
+                error: {
+                    status: 'RESOURCE_EXHAUSTED',
+                    details: [
+                        {
+                            '@type': 'type.googleapis.com/google.rpc.RetryInfo',
+                            retryDelay: '90s',
+                        },
+                    ],
+                },
+            }),
+        });
+        expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.rate_limit);
+        expect(actual.retryAfterSeconds).toBe(90);
+    });
+
+    it('keeps the later Retry-After when RetryInfo is shorter', () => {
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: { 'Retry-After': '120' },
+            bodyText: JSON.stringify({
+                error: {
+                    status: 'RESOURCE_EXHAUSTED',
+                    details: [
+                        {
+                            '@type': 'type.googleapis.com/google.rpc.RetryInfo',
+                            retryDelay: '45s',
+                        },
+                    ],
+                },
+            }),
+        });
+        expect(actual.retryAfterSeconds).toBe(120);
+    });
+
+    it('marks 403 SERVICE_DISABLED as key-wide permission cooldown', () => {
+        const actual = classifyUpstreamError({
+            status: 403,
+            headers: {},
+            bodyText: JSON.stringify({
+                error: {
+                    status: 'PERMISSION_DENIED',
+                    details: [
+                        {
+                            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                            reason: 'SERVICE_DISABLED',
+                        },
+                    ],
+                },
+            }),
+        });
+        expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.key_permission);
+        expect(actual.keyWide).toBe(true);
+    });
+
+    it('marks project-wide 429 ErrorInfo as key-wide rate_limit', () => {
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: {},
+            bodyText: JSON.stringify({
+                error: {
+                    status: 'RESOURCE_EXHAUSTED',
+                    details: [
+                        {
+                            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                            reason: 'RATE_LIMIT_EXCEEDED',
+                            metadata: {
+                                quota_location: 'project',
+                            },
+                        },
+                    ],
+                },
+            }),
+        });
+        expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.rate_limit);
+        expect(actual.keyWide).toBe(true);
     });
 
     it('does not clamp HTTP-date Retry-After deltas to 3600 seconds', () => {

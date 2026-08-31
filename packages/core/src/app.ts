@@ -5,7 +5,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import type { HonoApp } from './types';
-import { ProxyError } from './types/error.type';
+import { ProxyError, RateLimitError } from './types/error.type';
 import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { validateProxyApiKeyMiddleware } from './middlewares/proxy-api-key.middleware';
 import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
@@ -30,6 +30,9 @@ export const coreApp = new Hono<HonoApp>()
         const requestId = c.get('proxyRequestId');
 
         if (err instanceof ProxyError) {
+            if (err instanceof RateLimitError && err.retryAfter != null) {
+                c.header('Retry-After', String(err.retryAfter));
+            }
             return c.json(
                 {
                     error: err.type,

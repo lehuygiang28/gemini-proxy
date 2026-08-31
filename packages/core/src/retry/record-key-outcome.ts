@@ -16,31 +16,38 @@ export async function recordApiKeyFailure(
         readonly apiKeyId: string;
         readonly failure: ClassifiedUpstreamFailure;
         readonly consecutiveFailures: number;
+        readonly canonicalModel?: string;
         readonly nowMs?: number;
         readonly random?: () => number;
     },
 ): Promise<void> {
-    const cooldownUntil = computeCooldownUntil({
+    const cooldown = computeCooldownUntil({
         failureClass: input.failure.class,
         retryAfterSeconds: input.failure.retryAfterSeconds,
-        consecutiveFailures: input.consecutiveFailures,
         nowMs: input.nowMs ?? Date.now(),
-        random: input.random ?? Math.random,
+        keyWide: input.failure.keyWide,
     });
     const { error } = await getSupabaseClient(c).rpc('record_api_key_failure', {
         p_id: input.apiKeyId,
         p_disable: input.failure.disableKey,
-        p_cooldown_until: cooldownUntil?.toISOString() ?? null,
+        p_cooldown_until: cooldown?.until.toISOString() ?? null,
         p_reason: FAILURE_REASONS[input.failure.class] ?? null,
+        p_canonical_model: input.canonicalModel ?? '*',
+        p_scope: cooldown?.scope ?? null,
     });
     if (error) {
         console.error(`Failed to record API key failure ${input.apiKeyId}:`, error);
     }
 }
 
-export async function recordApiKeySuccess(c: Context<HonoApp>, apiKeyId: string): Promise<void> {
+export async function recordApiKeySuccess(
+    c: Context<HonoApp>,
+    apiKeyId: string,
+    canonicalModel?: string,
+): Promise<void> {
     const { error } = await getSupabaseClient(c).rpc('record_api_key_success', {
         p_id: apiKeyId,
+        p_canonical_model: canonicalModel ?? null,
     });
     if (error) {
         console.error(`Failed to record API key success ${apiKeyId}:`, error);

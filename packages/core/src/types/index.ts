@@ -8,6 +8,7 @@ export type ProxyRequestDataParsed = {
     apiFormat: ProxyApiFormat;
     stream: boolean;
     urlToProxy: string;
+    managed: boolean;
 };
 
 export type LoadBalanceStrategy = 'round_robin' | 'sticky_until_error';

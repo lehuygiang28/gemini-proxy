@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiKeyService } from '../../src/services/api-key.service';
 import {
     CONTRACT_API_KEY_ID,
+    CONTRACT_GEMINI_KEY,
     CONTRACT_GEMINI_KEY_2,
     CONTRACT_PROXY_KEY,
     invokeCore,
@@ -215,6 +216,127 @@ describe('proxy contract: timeout and retry', () => {
         );
 
         expect(originRequests.length).toBeLessThanOrEqual(1);
+        expect(actualResponse.status).not.toBe(200);
+    });
+
+    it('skips key A for a 429 model and still uses key A for another model', async () => {
+        const rateLimited = new Response(
+            JSON.stringify({
+                error: { status: 'RESOURCE_EXHAUSTED', message: 'quota exhausted' },
+            }),
+            {
+                status: 429,
+                headers: { 'content-type': 'application/json', 'Retry-After': '60' },
+            },
+        );
+        const success = new Response(JSON.stringify({ candidates: [] }), { status: 200 });
+
+        const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            originResponses: [rateLimited, success],
+        });
+        expect(firstResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+
+        const sameModelResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            originResponses: [success],
+        });
+        expect(sameModelResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY_2);
+
+        const otherModelResponse = await invokeCore(
+            '/gemini/v1beta/models/gemini-pro:generateContent',
+            createProxyRequestInit(),
+            {
+                extraApiKeys: true,
+                originResponses: [success],
+            },
+        );
+        expect(otherModelResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY);
+    });
+
+    it('does not hard-lock key A after 503 so a later request can still use A', async () => {
+        const unavailable = new Response(
+            JSON.stringify({ error: { message: 'upstream unavailable' } }),
+            {
+                status: 503,
+            },
+        );
+        const success = new Response(JSON.stringify({ candidates: [] }), { status: 200 });
+
+        const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            originResponses: [unavailable, success],
+        });
+        expect(firstResponse.status).toBe(200);
+
+        const laterResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            originResponses: [success],
+        });
+        expect(laterResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY);
+    });
+
+    it('returns 429 immediately when every key is in hard cooldown', async () => {
+        const cooledUntil = new Date(Date.now() + 60_000).toISOString();
+        const startedAt = Date.now();
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            primaryApiKeyCooldownUntil: cooledUntil,
+            extraApiKeyCooldownUntil: cooledUntil,
+        });
+        const body = (await actualResponse.json()) as {
+            error?: string;
+            gproxy_request_id?: string;
+        };
+
+        expect(actualResponse.status).toBe(429);
+        expect(body.error).toBe('rate_limit');
+        expect(body.gproxy_request_id).toEqual(expect.any(String));
+        expect(originRequests).toHaveLength(0);
+        expect(Date.now() - startedAt).toBeLessThan(100);
+        expect(actualResponse.headers.get('Retry-After')).toBe('60');
+    });
+
+    it('makes only one origin call when PROXY_MAX_RETRIES is 0', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            environment: { PROXY_MAX_RETRIES: '0' },
+            originResponses: [
+                new Response(JSON.stringify({ error: { message: 'quota exhausted' } }), {
+                    status: 429,
+                    headers: { 'Retry-After': '30' },
+                }),
+                new Response(JSON.stringify({ candidates: [] }), { status: 200 }),
+            ],
+        });
+
+        expect(actualResponse.status).toBe(429);
+        expect(originRequests).toHaveLength(1);
+    });
+
+    it('does not retry a passthrough POST after a network error', async () => {
+        const actualResponse = await invokeCore(
+            '/gemini/v1beta/models/gemini-flash:countTokens',
+            createProxyRequestInit(),
+            {
+                extraApiKeys: true,
+                originResponses: [
+                    async () => {
+                        throw new TypeError('fetch failed');
+                    },
+                    new Response(JSON.stringify({ totalTokens: 1 }), { status: 200 }),
+                ],
+            },
+        );
+
+        expect(originRequests).toHaveLength(1);
         expect(actualResponse.status).not.toBe(200);
     });
 });
