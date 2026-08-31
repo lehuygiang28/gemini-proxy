@@ -390,13 +390,27 @@
             "created": "Created",
             "updated": "Last Updated",
             "details": "Proxy API Key Details",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "rpm_limit": "Requests per minute",
+            "tpm_limit": "Tokens per minute",
+            "rpd_limit": "Requests per day",
+            "max_concurrent": "Maximum concurrent requests",
+            "daily_budget_usd": "Daily budget (USD)",
+            "monthly_budget_usd": "Monthly budget (USD)",
+            "max_output_tokens": "Maximum output tokens",
+            "max_request_body_bytes": "Maximum request body (bytes)",
+            "allowed_models": "Allowed models",
+            "denied_models": "Denied models",
+            "expires_at": "Expires at"
         },
         "placeholders": {
             "searchName": "Search proxy API key names...",
             "allStatus": "All Status",
             "nameExample": "e.g., My App Key",
-            "enterOrGenerate": "Enter your API key or generate one below"
+            "enterOrGenerate": "Enter your API key or generate one below",
+            "unlimited": "Unlimited",
+            "modelPatterns": "Enter exact models or a trailing * pattern",
+            "expiresAt": "No expiration"
         },
         "tabs": {
             "keys": "Keys",
@@ -446,7 +460,12 @@
         "errors": {
             "enterName": "Please enter a name",
             "enterOrGenerate": "Please enter or generate a proxy API key",
-            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores"
+            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores",
+            "invalidModelPattern": "A wildcard (*) is only allowed as the final character"
+        },
+        "limits": {
+            "title": "Limits",
+            "unlimitedHint": "All limits are optional. Leave a field empty for unlimited access or no expiry."
         },
         "edit": {
             "editing": "Editing {name}",

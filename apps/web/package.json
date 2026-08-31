@@ -22,10 +22,10 @@
         "cf-typegen": "wrangler types --config ../../wrangler.jsonc --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts"
     },
     "dependencies": {
-        "@gemini-proxy/core": "workspace:*",
         "@ant-design/icons": "^5.5.1",
         "@ant-design/nextjs-registry": "^1.1.0",
         "@ant-design/v5-patch-for-react-19": "^1.0.3",
+        "@gemini-proxy/core": "workspace:*",
         "@opennextjs/cloudflare": "^1.20.2",
         "@refinedev/antd": "^6.0.1",
         "@refinedev/cli": "^2.16.48",
@@ -37,6 +37,7 @@
         "@supabase/ssr": "^0.3.0",
         "@uiw/react-json-view": "2.0.0-alpha.43",
         "antd": "^5.23.0",
+        "dayjs": "^1.11.23",
         "js-cookie": "^3.0.5",
         "next": "^15.5.23",
         "next-intl": "^3.26.5",

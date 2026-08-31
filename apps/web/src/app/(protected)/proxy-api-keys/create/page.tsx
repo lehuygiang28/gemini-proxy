@@ -23,6 +23,8 @@ import type { TablesInsert, User } from '@gemini-proxy/database';
 import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 import { useCopyWithNotification } from '@/hooks';
+import { ProxyKeyLimitsFields } from '@/features/proxy-api-keys/proxy-key-limits-fields';
+import { normalizeProxyKeyLimits } from '@/features/proxy-api-keys/normalize-proxy-key-limits';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -55,7 +57,7 @@ export default function ProxyApiKeyCreatePage() {
 
         // Transform form data to include user_id
         const dataWithUserId = {
-            ...values,
+            ...normalizeProxyKeyLimits(values),
             user_id: user.id,
         } as ProxyApiKeyInsert;
 
@@ -201,6 +203,7 @@ export default function ProxyApiKeyCreatePage() {
                                     unCheckedChildren={translate('common.inactive')}
                                 />
                             </Form.Item>
+                            <ProxyKeyLimitsFields />
                         </Form>
                     </Card>
                 </Col>

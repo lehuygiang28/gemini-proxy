@@ -390,13 +390,27 @@
             "created": "Ngày tạo",
             "updated": "Cập nhật lần cuối",
             "details": "Chi tiết khóa proxy",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "rpm_limit": "Số request mỗi phút",
+            "tpm_limit": "Số token mỗi phút",
+            "rpd_limit": "Số request mỗi ngày",
+            "max_concurrent": "Số request đồng thời tối đa",
+            "daily_budget_usd": "Ngân sách mỗi ngày (USD)",
+            "monthly_budget_usd": "Ngân sách mỗi tháng (USD)",
+            "max_output_tokens": "Số token đầu ra tối đa",
+            "max_request_body_bytes": "Kích thước body request tối đa (byte)",
+            "allowed_models": "Model được phép",
+            "denied_models": "Model bị chặn",
+            "expires_at": "Hết hạn lúc"
         },
         "placeholders": {
             "searchName": "Tìm tên khóa proxy...",
             "allStatus": "Tất cả trạng thái",
             "nameExample": "vd. Khóa ứng dụng của tôi",
-            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới"
+            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới",
+            "unlimited": "Không giới hạn",
+            "modelPatterns": "Nhập tên model chính xác hoặc mẫu kết thúc bằng *",
+            "expiresAt": "Không hết hạn"
         },
         "tabs": {
             "keys": "Khóa",
@@ -446,7 +460,12 @@
         "errors": {
             "enterName": "Vui lòng nhập tên",
             "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy",
-            "invalidProxyKey": "Khóa proxy phải dài 10-128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới"
+            "invalidProxyKey": "Khóa proxy phải dài 10-128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới",
+            "invalidModelPattern": "Dấu đại diện (*) chỉ được phép ở ký tự cuối cùng"
+        },
+        "limits": {
+            "title": "Giới hạn",
+            "unlimitedHint": "Mọi giới hạn đều không bắt buộc. Để trống để không giới hạn hoặc không đặt ngày hết hạn."
         },
         "edit": {
             "editing": "Đang sửa {name}",
