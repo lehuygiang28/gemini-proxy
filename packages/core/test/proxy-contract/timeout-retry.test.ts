@@ -57,7 +57,9 @@ describe('proxy contract: timeout and retry', () => {
 
         expect(actualResponse.status).toBe(200);
         expect(originRequests).toHaveLength(2);
-        expect(Date.now() - startedAt).toBeLessThan(50);
+        // Retry-After is 120s. CI under full-suite load is slower than 50ms; 2s still
+        // proves we switched keys instead of sleeping.
+        expect(Date.now() - startedAt).toBeLessThan(2_000);
         expect(originRequests[1]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY_2);
         expect(rpcCalls).toContainEqual({
             name: 'record_api_key_failure',
