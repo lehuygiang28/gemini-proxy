@@ -31,6 +31,8 @@ export interface SelectedApiKey {
     last_error_at: string | null;
     created_at: string | null;
     failure_count: number;
+    consecutive_failures: number;
+    cooldown_until: string | null;
 }
 
 type ApiKeyComputedStats = {
@@ -196,19 +198,45 @@ export class ApiKeyService {
         return apiKeys.length > 0 ? apiKeys[0] : null;
     }
 
-    /** Count available API keys for a user (including global keys with user_id null). */
+    /** Count active, non-cooled API keys for a user. */
     static async countAvailableApiKeys(c: Context<HonoApp>, userId: string): Promise<number> {
         const supabase = getSupabaseClient(c);
+        const nowIso = new Date().toISOString();
         const { count, error } = await supabase
             .from('api_keys')
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true)
             .is('deleted_at', null)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
         if (error) {
             throw new Error(`Failed to count API keys: ${error.message}`);
         }
         return count || 0;
+    }
+
+    /** Check whether an active key can become eligible after cooldown. */
+    static async hasActiveApiKey(
+        c: Context<HonoApp>,
+        userId: string,
+        excludeIds: string[] = [],
+    ): Promise<boolean> {
+        const supabase = getSupabaseClient(c);
+        let query = supabase
+            .from('api_keys')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_active', true)
+            .is('deleted_at', null)
+            .eq('user_id', userId);
+        if (excludeIds.length > 0) {
+            const inList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
+            query = query.not('id', 'in', inList);
+        }
+        const { count, error } = await query;
+        if (error) {
+            throw new Error(`Failed to count active API keys: ${error.message}`);
+        }
+        return (count ?? 0) > 0;
     }
 
     /**
@@ -224,14 +252,16 @@ export class ApiKeyService {
 
         // Helper to fetch a small candidate pool ordered for round-robin
         const fetchCandidates = async () => {
+            const nowIso = new Date().toISOString();
             let query = supabase
                 .from('api_keys')
                 .select(
-                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, is_active',
+                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active',
                 )
                 .eq('is_active', true)
                 .is('deleted_at', null)
-                .eq('user_id', params.userId);
+                .eq('user_id', params.userId)
+                .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
 
             const excludeIds =
                 params.excludeIds && params.excludeIds.length > 0 ? params.excludeIds : [];
@@ -255,7 +285,7 @@ export class ApiKeyService {
 
             const { data, error } = await query.limit(CANDIDATE_POOL_SIZE);
             if (error || !data || data.length === 0) return [] as SelectedApiKey[];
-            return data as unknown as SelectedApiKey[];
+            return data.filter((key) => !excludeIds.includes(key.id)) as SelectedApiKey[];
         };
 
         // Try to atomically reserve a key by conditionally updating last_used_at if unchanged
@@ -266,7 +296,8 @@ export class ApiKeyService {
                 .update({ last_used_at: nowIso, updated_at: nowIso })
                 .eq('id', candidate.id)
                 .eq('is_active', true)
-                .is('deleted_at', null);
+                .is('deleted_at', null)
+                .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
 
             if (candidate.last_used_at === null) {
                 updateQuery = updateQuery.is('last_used_at', null);
@@ -292,9 +323,13 @@ export class ApiKeyService {
             last_used_at: string | null;
             last_error_at: string | null;
             is_active?: boolean;
+            cooldown_until?: string | null;
         }): boolean => {
             // must be active
             if (key.is_active === false) return false;
+            if (key.cooldown_until && new Date(key.cooldown_until).getTime() > Date.now()) {
+                return false;
+            }
             // If no error ever, healthy
             if (!key.last_error_at) return true;
             // If never used, but has error timestamp, consider unhealthy to avoid thrashing
@@ -315,9 +350,13 @@ export class ApiKeyService {
             const { data: preferred, error: preferErr } = await getSupabaseClient(c)
                 .from('api_keys')
                 .select(
-                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, is_active',
+                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active',
                 )
                 .eq('id', params.preferKeyId)
+                .eq('user_id', params.userId)
+                .eq('is_active', true)
+                .is('deleted_at', null)
+                .or(`cooldown_until.is.null,cooldown_until.lte.${new Date().toISOString()}`)
                 .single();
             if (!preferErr && preferred && isHealthyForSticky(preferred)) {
                 const selected: SelectedApiKey = {
@@ -328,6 +367,8 @@ export class ApiKeyService {
                     last_error_at: preferred.last_error_at,
                     created_at: preferred.created_at,
                     failure_count: preferred.failure_count,
+                    consecutive_failures: preferred.consecutive_failures,
+                    cooldown_until: preferred.cooldown_until,
                 };
                 // Optimistic reservation to avoid concurrent reuse
                 const ok = await tryReserve(selected);

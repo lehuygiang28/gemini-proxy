@@ -16,12 +16,16 @@ CREATE TABLE IF NOT EXISTS api_keys (
     total_tokens BIGINT NOT NULL DEFAULT 0,
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
+    cooldown_until TIMESTAMP WITH TIME ZONE,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    disabled_reason TEXT,
     metadata JSONB NOT NULL DEFAULT '{}',
     deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     CONSTRAINT api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
-    CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10)
+    CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10),
+    CONSTRAINT api_keys_consecutive_failures_nonneg CHECK (consecutive_failures >= 0)
 );
 
 -- Proxy API Keys table - stores proxy access keys

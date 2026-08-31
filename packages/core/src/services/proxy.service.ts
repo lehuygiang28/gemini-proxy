@@ -4,20 +4,18 @@ import { ApiKeyService } from './api-key.service';
 import { ConfigService } from './config.service';
 import { ResponseHandlerService } from './response-handler.service';
 import { HonoApp } from '../types';
-import type { ProxyRequestDataParsed, ProxyRequestOptions, LoadBalanceStrategy } from '../types';
+import type { ProxyRequestDataParsed, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
 import type { ApiKeyWithStats } from './api-key.service';
 import type { Tables } from '@gemini-proxy/database';
-import { UsageMetadataParser } from '../utils/usage-metadata-parser';
-import {
-    ProxyError,
-    RateLimitError,
-    InvalidKeyError,
-    ServerError,
-    NetworkError,
-} from '../types/error.type';
+import { ProxyError, InvalidKeyError } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { getSupabaseClient } from './supabase.service';
+import { classifyUpstreamError } from '../retry/classify-upstream-error';
+import { createTimeoutSignal, mergeAbortSignals } from '../retry/create-timeout-signal';
+import { computeRetryDelayMs } from '../retry/retry-delay';
+import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
+import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
 
 // ===== INTERFACES =====
 interface RetryAttemptData {
@@ -26,6 +24,8 @@ interface RetryAttemptData {
     api_key_name?: string | null;
     error: { message: string; type: string; status?: number; code?: string };
     duration_ms: number;
+    waited_ms: number;
+    class: ClassifiedUpstreamFailure['class'];
     timestamp: string;
     provider_error?: {
         status?: number;
@@ -46,7 +46,6 @@ interface RequestContext {
     requestId: string;
     baseRequest: Request;
     retryConfig: RetryConfig;
-    options?: ProxyRequestOptions;
 }
 
 interface RequestValidationParams {
@@ -58,7 +57,6 @@ interface RequestValidationParams {
 interface ApiKeySelectionParams {
     c: Context<HonoApp>;
     currentAttempt: number;
-    options?: ProxyRequestOptions;
     proxyKeyId: string;
     apiFormat: ProxyRequestDataParsed['apiFormat'];
     model?: string;
@@ -70,7 +68,7 @@ interface AttemptParams {
     apiKeyValue: string;
     apiFormat: ProxyRequestDataParsed['apiFormat'];
     url: string;
-    c?: Context<HonoApp>;
+    timeoutMs: number;
 }
 
 interface RetryAttemptParams {
@@ -80,28 +78,8 @@ interface RetryAttemptParams {
     error: ProxyError;
     durationMs: number;
     providerError: ProviderErrorData;
-}
-
-interface ApiKeyUsageParams {
-    apiKeyId: string;
-    isSuccessful: boolean;
-    error?: ProxyError;
-    providerError?: ProviderErrorData;
-}
-
-interface RequestSuccessParams {
-    requestId: string;
-    apiKeyId: string;
-    proxyKeyId: string;
-    userId: string | null;
-    apiFormat: ProxyRequestDataParsed['apiFormat'];
-    requestData: any;
-    responseData: any;
-    responseBody: Response;
-    isStream: boolean;
-    durationMs: number; // Individual API call duration
-    totalResponseTimeMs: number; // Total response time from start to finish
-    retryAttempts: RetryAttemptData[];
+    waitedMs: number;
+    failureClass: ClassifiedUpstreamFailure['class'];
 }
 
 interface ErrorResponseParams {
@@ -112,26 +90,6 @@ interface ErrorResponseParams {
     lastError: ProxyError;
     lastProviderError: ProviderErrorData | null;
     retryAttempts: RetryAttemptData[];
-}
-
-interface ZeroCompletionParams {
-    response: Response;
-    apiFormat: ProxyRequestDataParsed['apiFormat'];
-    options?: { retry?: { onZeroCompletionTokens?: boolean } };
-}
-
-interface SyntheticFailureParams {
-    c: Context<HonoApp>;
-    firstResponse: Response;
-    firstApiKey: ApiKeyWithStats;
-    firstAttemptDuration: number;
-    baseRequest: Request;
-    retryConfig: RetryConfig;
-    requestId: string;
-    proxyApiKeyData: Tables<'proxy_api_keys'>;
-    proxyRequestDataParsed: ProxyRequestDataParsed;
-    options?: ProxyRequestOptions;
-    usedApiKeyIds: string[];
 }
 
 interface SuccessfulResponseParams {
@@ -156,8 +114,8 @@ interface InitialFailureParams {
     requestId: string;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
-    options?: ProxyRequestOptions;
     usedApiKeyIds: string[];
+    retryBudget: number;
 }
 
 export class ProxyService {
@@ -173,55 +131,14 @@ export class ProxyService {
         'HEAD',
         'OPTIONS',
     ];
-    private static readonly BLOCKED_RESPONSE_HEADERS = [
-        'content-encoding',
-        'transfer-encoding',
-        'connection',
-        'keep-alive',
-        'set-cookie',
-        'alt-svc',
-        'server-timing',
-        'vary',
-    ];
-
-    // High availability: Only retry errors that can be fixed by retrying
-    private static readonly RETRYABLE_STATUS_CODES = new Set([
-        401, // Unauthorized - API key issue
-        403, // Forbidden - API key permissions
-        408, // Request timeout - temporary network issue
-        409, // Conflict - temporary resource conflict
-        423, // Locked - resource might unlock
-        429, // Rate limit - definitely retry with different API key
-        500, // Internal server error - server down/issue, try different API key
-        502, // Bad gateway - upstream server issue, try different API key
-        503, // Service unavailable - server temporarily down, try different API key
-        504, // Gateway timeout - server timeout, try different API key
-        507, // Insufficient storage - server resource issue, try different API key
-        508, // Loop detected - server configuration issue, try different API key
-        509, // Bandwidth limit exceeded - server resource issue, try different API key
-        598, // Network read timeout - server network issue, try different API key
-        599, // Network connect timeout - server connection issue, try different API key
-    ]);
-
-    // Client errors that should NOT be retried
-    private static readonly NON_RETRYABLE_STATUS_CODES = new Set([
-        400, // Bad request - client error
-    ]);
-
     // ===== MAIN ENTRY POINT =====
     static async makeApiRequest(params: { c: Context<HonoApp> }): Promise<Response> {
         const { c } = params;
         const requestStartTime = Date.now(); // Track full request duration
         c.set('requestStartTime', requestStartTime); // Store in context for later use
         const context = this.extractRequestContext(c);
-        const {
-            proxyRequestDataParsed,
-            proxyApiKeyData,
-            requestId,
-            baseRequest,
-            retryConfig,
-            options,
-        } = context;
+        const { proxyRequestDataParsed, proxyApiKeyData, requestId, baseRequest, retryConfig } =
+            context;
 
         this.validateRequest({
             baseRequest,
@@ -229,24 +146,54 @@ export class ProxyService {
             url: proxyRequestDataParsed.urlToProxy,
         });
 
+        let availableKeysAtStart = 0;
+        try {
+            availableKeysAtStart = await ApiKeyService.countAvailableApiKeys(
+                c,
+                proxyApiKeyData.user_id,
+            );
+        } catch {
+            availableKeysAtStart = 0;
+        }
+        const retryBudget = this.calculateRetryAttempts(
+            retryConfig.maxRetries,
+            availableKeysAtStart,
+        );
         const usedApiKeyIds: string[] = [];
         const firstApiKey = await this.selectOptimalApiKey({
             c,
             currentAttempt: 0,
-            options,
             proxyKeyId: proxyApiKeyData.id,
             apiFormat: proxyRequestDataParsed.apiFormat,
             model: proxyRequestDataParsed.model,
             excludeIds: usedApiKeyIds,
         });
         usedApiKeyIds.push(firstApiKey.id);
-        const attemptResult = await this.performAttempt({
-            baseRequest,
-            apiKeyValue: firstApiKey.api_key_value,
-            apiFormat: proxyRequestDataParsed.apiFormat,
-            url: proxyRequestDataParsed.urlToProxy,
-            c,
-        });
+        const firstAttemptStartedAt = Date.now();
+        let attemptResult: { response: Response; durationMs: number; headers: Headers };
+        try {
+            attemptResult = await this.performAttempt({
+                baseRequest,
+                apiKeyValue: firstApiKey.api_key_value,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                url: proxyRequestDataParsed.urlToProxy,
+                timeoutMs: retryConfig.upstreamTimeoutMs,
+            });
+        } catch (error) {
+            return this.handleInitialAttemptException({
+                c,
+                error,
+                firstApiKey,
+                firstAttemptDuration: Date.now() - firstAttemptStartedAt,
+                baseRequest,
+                retryConfig,
+                requestId,
+                proxyApiKeyData,
+                proxyRequestDataParsed,
+                usedApiKeyIds,
+                retryBudget,
+            });
+        }
         const {
             response: firstResponse,
             headers: firstHeaders,
@@ -277,8 +224,8 @@ export class ProxyService {
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
-            options,
             usedApiKeyIds,
+            retryBudget,
         });
     }
 
@@ -288,7 +235,6 @@ export class ProxyService {
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
         const retryConfigBase = ConfigService.getRetryConfig(c);
-        const options = undefined;
         const retryConfig: RetryConfig = {
             ...retryConfigBase,
         };
@@ -326,7 +272,6 @@ export class ProxyService {
             requestId,
             baseRequest,
             retryConfig,
-            options,
         };
     }
 
@@ -404,46 +349,6 @@ export class ProxyService {
     }
 
     // ===== RESPONSE HANDLING =====
-    private static async handleSyntheticFailure(params: SyntheticFailureParams): Promise<Response> {
-        const {
-            c,
-            firstResponse,
-            firstApiKey,
-            firstAttemptDuration,
-            baseRequest,
-            retryConfig,
-            requestId,
-            proxyApiKeyData,
-            proxyRequestDataParsed,
-            options,
-        } = params;
-
-        const syntheticError = this.createSyntheticError(firstResponse.status);
-        const firstRetryAttempt = this.createRetryAttempt({
-            attemptNumber: 1,
-            apiKeyId: firstApiKey.id,
-            apiKeyName: firstApiKey.name,
-            error: syntheticError,
-            durationMs: firstAttemptDuration,
-            providerError: this.extractProviderError(firstResponse),
-        });
-
-        return this.retryApiRequest({
-            c,
-            baseRequest,
-            startAttemptIndex: 1,
-            retryConfig,
-            requestId,
-            proxyApiKeyData,
-            proxyRequestDataParsed,
-            initialError: syntheticError,
-            initialProviderError: this.extractProviderError(firstResponse),
-            initialRetryAttempt: firstRetryAttempt,
-            options,
-            usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
-        });
-    }
-
     private static async handleSuccessfulResponse(
         params: SuccessfulResponseParams,
     ): Promise<Response> {
@@ -459,6 +364,7 @@ export class ProxyService {
             requestId,
         } = params;
 
+        await recordApiKeySuccess(c, firstApiKey.id);
         return ResponseHandlerService.handleSuccess({
             c,
             response: firstResponse,
@@ -484,11 +390,23 @@ export class ProxyService {
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
-            options,
+            retryBudget,
         } = params;
 
-        const firstError = this.createProxyError(firstResponse.clone(), firstAttemptDuration);
         const firstProviderError = await this.extractProviderErrorWithBody(firstResponse.clone());
+        const firstFailure = classifyUpstreamError({
+            status: firstProviderError.status,
+            headers: firstProviderError.headers,
+            bodyText: firstProviderError.body,
+        });
+        const firstError = this.createClassifiedProxyError(firstFailure);
+        if (firstFailure.class !== UPSTREAM_FAILURE_CLASS.client_invalid) {
+            await recordApiKeyFailure(c, {
+                apiKeyId: firstApiKey.id,
+                failure: firstFailure,
+                consecutiveFailures: firstApiKey.consecutive_failures,
+            });
+        }
         const firstRetryAttempt = this.createRetryAttempt({
             attemptNumber: 1,
             apiKeyId: firstApiKey.id,
@@ -496,6 +414,8 @@ export class ProxyService {
             error: firstError,
             durationMs: firstAttemptDuration,
             providerError: firstProviderError,
+            waitedMs: 0,
+            failureClass: firstFailure.class,
         });
 
         return this.retryApiRequest({
@@ -509,8 +429,73 @@ export class ProxyService {
             initialError: firstError,
             initialProviderError: firstProviderError,
             initialRetryAttempt: firstRetryAttempt,
-            options,
             usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
+            retryBudget,
+        });
+    }
+
+    private static async handleInitialAttemptException(params: {
+        c: Context<HonoApp>;
+        error: unknown;
+        firstApiKey: ApiKeyWithStats;
+        firstAttemptDuration: number;
+        baseRequest: Request;
+        retryConfig: RetryConfig;
+        requestId: string;
+        proxyApiKeyData: Tables<'proxy_api_keys'>;
+        proxyRequestDataParsed: ProxyRequestDataParsed;
+        usedApiKeyIds: string[];
+        retryBudget: number;
+    }): Promise<Response> {
+        const isTimeout =
+            params.error instanceof DOMException && params.error.name === 'TimeoutError';
+        const isClientAbort =
+            params.baseRequest.signal.aborted ||
+            (params.error instanceof DOMException &&
+                params.error.name === 'AbortError' &&
+                !isTimeout);
+        const failureBase = classifyUpstreamError({
+            status: undefined,
+            headers: {},
+            bodyText: isClientAbort
+                ? 'client_aborted'
+                : isTimeout
+                  ? 'upstream_timeout'
+                  : 'network_error',
+        });
+        const failure: ClassifiedUpstreamFailure = isClientAbort
+            ? { ...failureBase, retryable: false, message: 'client_aborted' }
+            : failureBase;
+        if (!isClientAbort) {
+            await recordApiKeyFailure(params.c, {
+                apiKeyId: params.firstApiKey.id,
+                failure,
+                consecutiveFailures: params.firstApiKey.consecutive_failures,
+            });
+        }
+        const proxyError = this.createClassifiedProxyError(failure);
+        const retryAttempt = this.createRetryAttempt({
+            attemptNumber: 1,
+            apiKeyId: params.firstApiKey.id,
+            apiKeyName: params.firstApiKey.name,
+            error: proxyError,
+            durationMs: params.firstAttemptDuration,
+            providerError: { status: 0, headers: {}, body: '' },
+            waitedMs: 0,
+            failureClass: failure.class,
+        });
+        return this.retryApiRequest({
+            c: params.c,
+            baseRequest: params.baseRequest,
+            startAttemptIndex: 1,
+            retryConfig: params.retryConfig,
+            requestId: params.requestId,
+            proxyApiKeyData: params.proxyApiKeyData,
+            proxyRequestDataParsed: params.proxyRequestDataParsed,
+            initialError: proxyError,
+            initialRetryAttempt: retryAttempt,
+            usedApiKeyIds: params.usedApiKeyIds,
+            retryBudget: params.retryBudget,
         });
     }
 
@@ -526,8 +511,8 @@ export class ProxyService {
         initialError: ProxyError;
         initialProviderError?: ProviderErrorData;
         initialRetryAttempt?: RetryAttemptData;
-        options?: ProxyRequestOptions;
         usedApiKeyIds?: string[];
+        retryBudget: number;
     }): Promise<Response> {
         const {
             c,
@@ -540,8 +525,8 @@ export class ProxyService {
             initialError,
             initialProviderError,
             initialRetryAttempt,
-            options,
             usedApiKeyIds: initialUsedApiKeyIds = [],
+            retryBudget,
         } = params;
 
         let retryAttempts: RetryAttemptData[] = initialRetryAttempt ? [initialRetryAttempt] : [];
@@ -550,19 +535,23 @@ export class ProxyService {
             ? { ...initialProviderError }
             : null;
 
-        // Bound retries by dynamically available API keys for this user (including global keys)
-        let availableKeys = 0;
-        try {
-            availableKeys = await ApiKeyService.countAvailableApiKeys(c, proxyApiKeyData.user_id);
-        } catch (err) {
-            availableKeys = 0;
+        if (!initialError.retryable) {
+            return this.createErrorResponse(c, {
+                requestId,
+                proxyApiKeyData,
+                proxyRequestDataParsed,
+                baseRequest,
+                lastError,
+                lastProviderError,
+                retryAttempts,
+            });
         }
-        const retriesTimes = this.calculateRetryAttempts(retryConfig.maxRetries, availableKeys);
+
         console.log(
-            `Starting retry process: ${retriesTimes} attempts (maxRetries: ${retryConfig.maxRetries}, availableKeys: ${availableKeys})`,
+            `Starting retry process: ${retryBudget} attempts (maxRetries: ${retryConfig.maxRetries})`,
         );
 
-        if (retriesTimes === 0) {
+        if (retryBudget === 0) {
             console.log('No retries configured, returning initial error');
             return this.createErrorResponse(c, {
                 requestId,
@@ -576,26 +565,64 @@ export class ProxyService {
         }
 
         const usedApiKeyIds: string[] = [...initialUsedApiKeyIds];
+        let pendingWaitedMs = 0;
         for (
             let currentAttempt = startAttemptIndex;
-            currentAttempt <= retriesTimes;
+            currentAttempt <= retryBudget;
             currentAttempt++
         ) {
             let selectedApiKey: ApiKeyWithStats | undefined;
-            let attemptStart: number = Date.now();
+            let attemptStart = Date.now();
 
             try {
-                console.log(`Retry attempt ${currentAttempt} of ${retriesTimes}`);
-
-                selectedApiKey = await this.selectOptimalApiKey({
+                console.log(`Retry attempt ${currentAttempt} of ${retryBudget}`);
+                const selectionParams = {
                     c,
                     currentAttempt,
-                    options,
                     proxyKeyId: proxyApiKeyData.id,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     model: proxyRequestDataParsed.model,
                     excludeIds: usedApiKeyIds,
-                });
+                };
+                try {
+                    selectedApiKey = await this.selectOptimalApiKey(selectionParams);
+                } catch (selectionError) {
+                    const availableNow = await ApiKeyService.countAvailableApiKeys(
+                        c,
+                        proxyApiKeyData.user_id,
+                    );
+                    if (availableNow === 0) {
+                        const hasActiveKey = await ApiKeyService.hasActiveApiKey(
+                            c,
+                            proxyApiKeyData.user_id,
+                            usedApiKeyIds,
+                        );
+                        if (!hasActiveKey) {
+                            break;
+                        }
+                    }
+                    pendingWaitedMs = computeRetryDelayMs({
+                        attempt: currentAttempt,
+                        baseDelayMs: retryConfig.baseDelayMs,
+                        maxDelayMs: retryConfig.maxDelayMs,
+                        random: Math.random,
+                    });
+                    if (pendingWaitedMs > 0) {
+                        await new Promise<void>((resolve) => setTimeout(resolve, pendingWaitedMs));
+                    }
+                    try {
+                        selectedApiKey = await this.selectOptimalApiKey(selectionParams);
+                    } catch {
+                        console.warn(
+                            'No API key became eligible after retry delay:',
+                            selectionError,
+                        );
+                        break;
+                    }
+                }
+                if (!selectedApiKey) {
+                    break;
+                }
                 usedApiKeyIds.push(selectedApiKey.id);
                 attemptStart = Date.now();
 
@@ -604,13 +631,25 @@ export class ProxyService {
                     apiKeyValue: selectedApiKey.api_key_value,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     url: proxyRequestDataParsed.urlToProxy,
-                    c,
+                    timeoutMs: retryConfig.upstreamTimeoutMs,
                 });
                 const attemptDuration = Date.now() - attemptStart;
 
                 if (!response.ok) {
-                    const error = this.createProxyError(response, attemptDuration);
                     const providerError = await this.extractProviderErrorWithBody(response.clone());
+                    const failure = classifyUpstreamError({
+                        status: providerError.status,
+                        headers: providerError.headers,
+                        bodyText: providerError.body,
+                    });
+                    const error = this.createClassifiedProxyError(failure);
+                    if (failure.class !== UPSTREAM_FAILURE_CLASS.client_invalid) {
+                        await recordApiKeyFailure(c, {
+                            apiKeyId: selectedApiKey.id,
+                            failure,
+                            consecutiveFailures: selectedApiKey.consecutive_failures,
+                        });
+                    }
 
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
@@ -619,20 +658,21 @@ export class ProxyService {
                         error,
                         durationMs: attemptDuration,
                         providerError,
+                        waitedMs: pendingWaitedMs,
+                        failureClass: failure.class,
                     });
                     retryAttempts.push(retryAttempt);
-
-                    if (currentAttempt >= retriesTimes || !this.shouldRetry(error)) {
-                        lastError = error;
-                        lastProviderError = providerError;
-                        break;
-                    }
-
+                    pendingWaitedMs = 0;
                     lastError = error;
                     lastProviderError = providerError;
+
+                    if (currentAttempt >= retryBudget || !failure.retryable) {
+                        break;
+                    }
                     continue;
                 }
 
+                await recordApiKeySuccess(c, selectedApiKey.id);
                 return ResponseHandlerService.handleSuccess({
                     c,
                     response: response,
@@ -646,13 +686,30 @@ export class ProxyService {
                     retryAttempts: retryAttempts.length > 0 ? retryAttempts : [],
                 });
             } catch (error) {
-                const errorObj =
-                    error instanceof ProxyError
-                        ? error
-                        : new ProxyError(
-                              error instanceof Error ? error.message : 'Unknown error',
-                              'server_error',
-                          );
+                const isTimeout = error instanceof DOMException && error.name === 'TimeoutError';
+                const isClientAbort =
+                    baseRequest.signal.aborted ||
+                    (error instanceof DOMException && error.name === 'AbortError' && !isTimeout);
+                const failureBase = classifyUpstreamError({
+                    status: undefined,
+                    headers: {},
+                    bodyText: isClientAbort
+                        ? 'client_aborted'
+                        : isTimeout
+                          ? 'upstream_timeout'
+                          : 'network_error',
+                });
+                const failure: ClassifiedUpstreamFailure = isClientAbort
+                    ? { ...failureBase, retryable: false, message: 'client_aborted' }
+                    : failureBase;
+                const errorObj = this.createClassifiedProxyError(failure);
+                if (selectedApiKey && !isClientAbort) {
+                    await recordApiKeyFailure(c, {
+                        apiKeyId: selectedApiKey.id,
+                        failure,
+                        consecutiveFailures: selectedApiKey.consecutive_failures,
+                    });
+                }
 
                 const retryAttempt = this.createRetryAttempt({
                     attemptNumber: currentAttempt + 1,
@@ -661,11 +718,17 @@ export class ProxyService {
                     error: errorObj,
                     durationMs: Date.now() - attemptStart,
                     providerError: { status: 0, headers: {}, body: '' },
+                    waitedMs: pendingWaitedMs,
+                    failureClass: failure.class,
                 });
                 retryAttempts.push(retryAttempt);
+                pendingWaitedMs = 0;
 
                 lastError = errorObj;
-                break;
+                lastProviderError = null;
+                if (currentAttempt >= retryBudget || !failure.retryable) {
+                    break;
+                }
             }
         }
 
@@ -690,15 +753,6 @@ export class ProxyService {
         return 0;
     }
 
-    private static createSyntheticError(status: number): ProxyError {
-        return new ProxyError(
-            'Zero completion tokens detected',
-            'server_error',
-            status,
-            'zero_completion_tokens',
-        );
-    }
-
     private static createRetryAttempt(params: RetryAttemptParams): RetryAttemptData {
         return {
             attempt_number: params.attemptNumber,
@@ -711,20 +765,14 @@ export class ProxyService {
                 code: params.error.code,
             },
             duration_ms: params.durationMs,
+            waited_ms: params.waitedMs,
+            class: params.failureClass,
             timestamp: new Date().toISOString(),
             provider_error: {
                 status: params.providerError.status,
                 headers: params.providerError.headers,
                 raw_body: params.providerError.body,
             },
-        };
-    }
-
-    private static extractProviderError(response: Response): ProviderErrorData {
-        return {
-            status: response.status,
-            headers: Object.fromEntries(response.headers.entries()),
-            body: '',
         };
     }
 
@@ -771,200 +819,36 @@ export class ProxyService {
     }
 
     // ===== ERROR HANDLING =====
-    private static createProxyError(response: Response, durationMs: number): ProxyError {
-        const status = response.status;
-
-        // High availability: Only retry errors that can be fixed by retrying
-        if (this.RETRYABLE_STATUS_CODES.has(status)) {
-            return this.createRetryableError(status, response);
-        }
-
-        if (this.NON_RETRYABLE_STATUS_CODES.has(status)) {
-            return this.createNonRetryableError(status);
-        }
-
-        // All 5xx server errors are retryable for high availability
-        // Even if not in our specific list, they indicate server issues that might be resolved with different API keys
-        if (status >= 500) {
-            return new ServerError('Server error - retry with different API key', status);
-        }
-
-        if (status >= 400 && status < 500) {
-            return this.createNonRetryableError(status);
-        }
-
-        return new NetworkError('Network error');
-    }
-
-    private static createRetryableError(status: number, response: Response): ProxyError {
-        switch (status) {
-            case 401:
-                return new InvalidKeyError('Invalid API key');
-            case 403:
-                return new ProxyError(
-                    'Forbidden - insufficient permissions',
-                    'invalid_key',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 408:
-                return new ProxyError(
-                    'Request timeout',
-                    'network_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 409:
-                return new ProxyError(
-                    'Resource conflict',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 423:
-                return new ProxyError(
-                    'Resource locked',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 429:
-                return new RateLimitError(
-                    'Rate limit exceeded',
-                    response.headers.get('retry-after')
-                        ? parseInt(response.headers.get('retry-after')!)
-                        : undefined,
-                );
-            case 500:
-                return new ProxyError(
-                    'Internal server error - server down/issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 502:
-                return new ProxyError(
-                    'Bad gateway - upstream server issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 503:
-                return new ProxyError(
-                    'Service unavailable - server temporarily down',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 504:
-                return new ProxyError(
-                    'Gateway timeout - server timeout',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 507:
-                return new ProxyError(
-                    'Insufficient storage - server resource issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 508:
-                return new ProxyError(
-                    'Loop detected - server configuration issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 509:
-                return new ProxyError(
-                    'Bandwidth limit exceeded - server resource issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 598:
-                return new ProxyError(
-                    'Network read timeout - server network issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            case 599:
-                return new ProxyError(
-                    'Network connect timeout - server connection issue',
-                    'server_error',
-                    status,
-                    undefined,
-                    undefined,
-                    true,
-                );
-            default:
-                return new NetworkError('Network error');
-        }
-    }
-
-    private static createNonRetryableError(status: number): ProxyError {
-        const messages = {
-            400: 'Bad request - malformed request',
-        };
-
+    private static createClassifiedProxyError(failure: ClassifiedUpstreamFailure): ProxyError {
+        const errorType =
+            failure.class === UPSTREAM_FAILURE_CLASS.client_invalid
+                ? 'validation_error'
+                : failure.class === UPSTREAM_FAILURE_CLASS.key_invalid ||
+                    failure.class === UPSTREAM_FAILURE_CLASS.key_permission
+                  ? 'invalid_key'
+                  : failure.class === UPSTREAM_FAILURE_CLASS.rate_limit ||
+                      failure.class === UPSTREAM_FAILURE_CLASS.spend_limit
+                    ? 'rate_limit'
+                    : failure.class === UPSTREAM_FAILURE_CLASS.transient
+                      ? 'network_error'
+                      : 'unknown';
         return new ProxyError(
-            messages[status as keyof typeof messages] || `Client error: ${status}`,
-            'validation_error',
-            status,
+            failure.message,
+            errorType,
+            failure.status,
             undefined,
             undefined,
-            false,
+            failure.retryable,
         );
-    }
-
-    private static shouldRetry(error: ProxyError): boolean {
-        const shouldRetry = error.retryable;
-
-        if (shouldRetry) {
-            console.log(`Will retry error: ${error.type} (${error.status}) - ${error.message}`);
-        } else {
-            console.log(
-                `Will NOT retry error: ${error.type} (${error.status}) - ${error.message} - Client error or non-retryable`,
-            );
-        }
-
-        return shouldRetry;
     }
 
     // ===== API KEY SELECTION =====
     private static async selectOptimalApiKey(
         params: ApiKeySelectionParams,
     ): Promise<ApiKeyWithStats> {
-        const { c, currentAttempt, options, proxyKeyId, apiFormat, model, excludeIds } = params;
+        const { c, currentAttempt, proxyKeyId, apiFormat, model, excludeIds } = params;
 
-        const strategy = this.getLoadBalanceStrategy(c, options);
+        const strategy = this.getLoadBalanceStrategy(c);
 
         let preferKeyId: string | null = null;
         if (strategy === 'sticky_until_error') {
@@ -1002,28 +886,18 @@ export class ProxyService {
         return {
             id: selected.id,
             api_key_value: selected.api_key_value,
+            name: selected.name,
             created_at: selected.created_at,
             last_used_at: selected.last_used_at,
             last_error_at: selected.last_error_at,
             failure_count: selected.failure_count,
+            consecutive_failures: selected.consecutive_failures,
+            cooldown_until: selected.cooldown_until,
         } as unknown as ApiKeyWithStats;
     }
 
-    private static getLoadBalanceStrategy(
-        c: Context<HonoApp>,
-        options?: ProxyRequestOptions,
-    ): LoadBalanceStrategy {
-        return options?.loadbalance?.strategy || ConfigService.getLoadBalanceStrategy(c);
-    }
-
-    private static hasRecentError(apiKey: ApiKeyWithStats): boolean {
-        if (!apiKey.last_error_at) return false;
-        const errorAt = new Date(apiKey.last_error_at as string).getTime();
-        const lastUsedAt = apiKey.last_used_at
-            ? new Date(apiKey.last_used_at as string).getTime()
-            : 0;
-        // Consider "recent" if the last error happened after or at the last usage
-        return errorAt >= lastUsedAt;
+    private static getLoadBalanceStrategy(c: Context<HonoApp>): LoadBalanceStrategy {
+        return ConfigService.getLoadBalanceStrategy(c);
     }
 
     private static async getLastSuccessfulApiKeyIdForProxyKey(
@@ -1106,7 +980,7 @@ export class ProxyService {
     private static async performAttempt(
         params: AttemptParams,
     ): Promise<{ response: Response; durationMs: number; headers: Headers }> {
-        const { baseRequest, apiKeyValue, apiFormat, url, c } = params;
+        const { baseRequest, apiKeyValue, apiFormat, url, timeoutMs } = params;
 
         // Always create a fresh clone from the original base request for this attempt
         // This ensures we never consume the original request body
@@ -1170,10 +1044,12 @@ export class ProxyService {
         }
 
         // Use the fresh clone's body directly - no need for complex fallback logic
+        const signal = mergeAbortSignals([createTimeoutSignal(timeoutMs), baseRequest.signal]);
         const requestInit: RequestInit = {
             method: attemptRequest.method,
             headers,
             body: attemptRequest.body,
+            signal,
         };
 
         // Add duplex mode for Node.js environments if body exists
@@ -1182,52 +1058,17 @@ export class ProxyService {
         }
 
         const start = Date.now();
-        const response = await fetch(new Request(url, requestInit));
+        let response: Response;
+        try {
+            response = await fetch(new Request(url, requestInit));
+        } catch (error) {
+            if (signal.aborted && signal.reason !== undefined) {
+                throw signal.reason;
+            }
+            throw error;
+        }
         const durationMs = Date.now() - start;
 
         return { response, durationMs, headers };
-    }
-
-    // ===== RESPONSE FILTERING =====
-    private static filterResponseHeaders(headers: Headers): Headers {
-        const filteredHeaders = new Headers();
-
-        headers.forEach((value, key) => {
-            const lowerKey = key.toLowerCase();
-            if (!this.BLOCKED_RESPONSE_HEADERS.includes(lowerKey)) {
-                filteredHeaders.set(key, value);
-            }
-        });
-
-        return filteredHeaders;
-    }
-
-    // ===== ZERO COMPLETION DETECTION =====
-    private static async shouldTreatOkAsFailure(params: ZeroCompletionParams): Promise<boolean> {
-        const { response, apiFormat, options } = params;
-        const retryOpts = options?.retry || {};
-        if (!retryOpts.onZeroCompletionTokens) return false;
-
-        try {
-            const cloned = response.clone();
-            const text = await cloned.text();
-
-            const parsed = UsageMetadataParser.parseFromResponseBody(text, apiFormat);
-            if (!parsed) {
-                const isEmpty = !text || text.trim().length === 0;
-                if (isEmpty) return true;
-                return false;
-            }
-
-            const hasAnyTokenSignal =
-                (parsed.totalTokens ?? 0) > 0 || (parsed.promptTokens ?? 0) > 0;
-            if (hasAnyTokenSignal && parsed.completionTokens === 0) {
-                return true;
-            }
-        } catch {
-            // If parsing fails, do not force retry
-        }
-
-        return false;
     }
 }

@@ -12,8 +12,11 @@ export type Database = {
                 Row: {
                     api_key_value: string;
                     completion_tokens: number;
+                    consecutive_failures: number;
+                    cooldown_until: string | null;
                     created_at: string;
                     deleted_at: string | null;
+                    disabled_reason: string | null;
                     failure_count: number;
                     id: string;
                     is_active: boolean;
@@ -31,8 +34,11 @@ export type Database = {
                 Insert: {
                     api_key_value: string;
                     completion_tokens?: number;
+                    consecutive_failures?: number;
+                    cooldown_until?: string | null;
                     created_at?: string;
                     deleted_at?: string | null;
+                    disabled_reason?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -50,8 +56,11 @@ export type Database = {
                 Update: {
                     api_key_value?: string;
                     completion_tokens?: number;
+                    consecutive_failures?: number;
+                    cooldown_until?: string | null;
                     created_at?: string;
                     deleted_at?: string | null;
+                    disabled_reason?: string | null;
                     failure_count?: number;
                     id?: string;
                     is_active?: boolean;
@@ -270,6 +279,19 @@ export type Database = {
                     p_completion?: number;
                     p_total?: number;
                 };
+                Returns: undefined;
+            };
+            record_api_key_failure: {
+                Args: {
+                    p_id: string;
+                    p_disable: boolean;
+                    p_cooldown_until: string | null;
+                    p_reason: string | null;
+                };
+                Returns: undefined;
+            };
+            record_api_key_success: {
+                Args: { p_id: string };
                 Returns: undefined;
             };
             get_retry_statistics: {
