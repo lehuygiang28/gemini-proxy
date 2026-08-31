@@ -13,10 +13,7 @@ type LegacyKeyObject = {
     label?: string;
 };
 
-function extractLegacyEntry(
-    item: unknown,
-    index: number,
-): { apiKeyValue: string; name: string } {
+function extractLegacyEntry(item: unknown, index: number): { apiKeyValue: string; name: string } {
     const defaultName = `legacy-import-${index + 1}`;
     if (typeof item === 'string') {
         return { apiKeyValue: item.trim(), name: defaultName };

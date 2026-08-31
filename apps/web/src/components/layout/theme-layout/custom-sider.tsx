@@ -1,29 +1,13 @@
 import React, { useContext, type CSSProperties, type ReactNode } from 'react';
-import {
-    Layout,
-    Menu,
-    Grid,
-    Drawer,
-    Button,
-    theme,
-    ConfigProvider,
-    type MenuProps,
-} from 'antd';
+import { Layout, Menu, Grid, Drawer, Button, theme, ConfigProvider, type MenuProps } from 'antd';
 import {
     UnorderedListOutlined,
     BarsOutlined,
     LeftOutlined,
     RightOutlined,
 } from '@ant-design/icons';
-import {
-    type TreeMenuItem,
-    useMenu,
-    useLink,
-} from '@refinedev/core';
-import {
-    useThemedLayoutContext,
-    type RefineThemedLayoutSiderProps,
-} from '@refinedev/antd';
+import { type TreeMenuItem, useMenu, useLink } from '@refinedev/core';
+import { useThemedLayoutContext, type RefineThemedLayoutSiderProps } from '@refinedev/antd';
 import { CustomTitle } from './custom-title';
 
 const drawerButtonStyles: CSSProperties = {
@@ -72,9 +56,7 @@ function buildMenuItems(
                     <Link to={list ?? ''} style={linkStyle}>
                         {label}
                     </Link>
-                    {!siderCollapsed && isSelected ? (
-                        <div className="ant-menu-tree-arrow" />
-                    ) : null}
+                    {!siderCollapsed && isSelected ? <div className="ant-menu-tree-arrow" /> : null}
                 </>
             ),
             style: linkStyle,
@@ -93,12 +75,8 @@ export function CustomSider({
     siderItemsAreCollapsed = true,
 }: RefineThemedLayoutSiderProps) {
     const { token } = theme.useToken();
-    const {
-        siderCollapsed,
-        setSiderCollapsed,
-        mobileSiderOpen,
-        setMobileSiderOpen,
-    } = useThemedLayoutContext();
+    const { siderCollapsed, setSiderCollapsed, mobileSiderOpen, setMobileSiderOpen } =
+        useThemedLayoutContext();
     const direction = useContext(ConfigProvider.ConfigContext)?.direction;
     const Link = useLink();
     const { menuItems, selectedKey, defaultOpenKeys } = useMenu({ meta });

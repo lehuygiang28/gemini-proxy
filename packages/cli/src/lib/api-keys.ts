@@ -1,9 +1,5 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import {
-    parseApiKeyImport,
-    planApiKeyImport,
-    type ImportParseResult,
-} from '@gemini-proxy/core';
+import { parseApiKeyImport, planApiKeyImport, type ImportParseResult } from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
 import { UsersManager } from './users';
 import { colors } from './colors';
@@ -327,12 +323,11 @@ export class ApiKeysManager {
                 metadata: importKey.metadata,
                 user_id: firstUser.id,
             }));
-        const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = plan.updates.map(
-            (entry) => ({
+        const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> =
+            plan.updates.map((entry) => ({
                 id: entry.id,
                 updates: entry.updates,
-            }),
-        );
+            }));
 
         if (!options.dryRun) {
             try {

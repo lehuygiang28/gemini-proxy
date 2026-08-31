@@ -180,9 +180,7 @@ export function PricingSettingsForm() {
         setSaving(true);
         try {
             const rows = values.pricing_rows ?? [];
-            const modelIds = rows
-                .map((row) => row.modelId?.trim().toLowerCase())
-                .filter(Boolean);
+            const modelIds = rows.map((row) => row.modelId?.trim().toLowerCase()).filter(Boolean);
             if (new Set(modelIds).size !== modelIds.length) {
                 notification.open({
                     type: 'error',
@@ -256,7 +254,9 @@ export function PricingSettingsForm() {
                                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                                     description={
                                         <Space direction="vertical" size={4}>
-                                            <Text>{translate('settings.pricing.yourPricesEmpty')}</Text>
+                                            <Text>
+                                                {translate('settings.pricing.yourPricesEmpty')}
+                                            </Text>
                                             <Text type="secondary">
                                                 {translate('settings.pricing.yourPricesEmptyDesc')}
                                             </Text>
@@ -265,7 +265,14 @@ export function PricingSettingsForm() {
                                     style={{ margin: '8px 0 16px' }}
                                 />
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 12,
+                                        marginBottom: 12,
+                                    }}
+                                >
                                     {fields.map((field) => (
                                         <div
                                             key={field.key}
@@ -310,7 +317,9 @@ export function PricingSettingsForm() {
                                                 label={translate('settings.pricing.sendLabel')}
                                                 style={{ margin: 0 }}
                                                 rules={[{ required: true }]}
-                                                tooltip={translate('settings.pricing.perMillionHint')}
+                                                tooltip={translate(
+                                                    'settings.pricing.perMillionHint',
+                                                )}
                                             >
                                                 <InputNumber
                                                     min={0}
@@ -324,7 +333,9 @@ export function PricingSettingsForm() {
                                                 label={translate('settings.pricing.receiveLabel')}
                                                 style={{ margin: 0 }}
                                                 rules={[{ required: true }]}
-                                                tooltip={translate('settings.pricing.perMillionHint')}
+                                                tooltip={translate(
+                                                    'settings.pricing.perMillionHint',
+                                                )}
                                             >
                                                 <InputNumber
                                                     min={0}
@@ -400,18 +411,24 @@ export function PricingSettingsForm() {
                                     <Space wrap style={{ marginBottom: 12 }}>
                                         <Segmented
                                             value={familyFilter}
-                                            onChange={(value) => setFamilyFilter(value as FamilyFilter)}
+                                            onChange={(value) =>
+                                                setFamilyFilter(value as FamilyFilter)
+                                            }
                                             options={[
                                                 {
                                                     label: translate('settings.pricing.filterAll'),
                                                     value: 'all',
                                                 },
                                                 {
-                                                    label: translate('settings.pricing.filterGemini'),
+                                                    label: translate(
+                                                        'settings.pricing.filterGemini',
+                                                    ),
                                                     value: 'gemini',
                                                 },
                                                 {
-                                                    label: translate('settings.pricing.filterGemma'),
+                                                    label: translate(
+                                                        'settings.pricing.filterGemma',
+                                                    ),
                                                     value: 'gemma',
                                                 },
                                             ]}
@@ -419,7 +436,9 @@ export function PricingSettingsForm() {
                                         <Select
                                             showSearch
                                             allowClear
-                                            placeholder={translate('settings.pricing.referenceSearch')}
+                                            placeholder={translate(
+                                                'settings.pricing.referenceSearch',
+                                            )}
                                             style={{ minWidth: 260 }}
                                             options={modelOptions}
                                             value={referenceFilter || undefined}
@@ -482,7 +501,9 @@ export function PricingSettingsForm() {
                                                             size="small"
                                                             icon={<EditOutlined />}
                                                             disabled={customized}
-                                                            onClick={() => addOverrideFromBuiltin(row)}
+                                                            onClick={() =>
+                                                                addOverrideFromBuiltin(row)
+                                                            }
                                                         >
                                                             {customized
                                                                 ? translate(

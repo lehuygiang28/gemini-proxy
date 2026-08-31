@@ -63,10 +63,7 @@ export class ResponseHandlerService {
                     usage,
                     responseText,
                 });
-                void executeWithWaitUntil(
-                    c,
-                    BackgroundService.executeAllOperations(c, requestId),
-                );
+                void executeWithWaitUntil(c, BackgroundService.executeAllOperations(c, requestId));
             },
         });
     }

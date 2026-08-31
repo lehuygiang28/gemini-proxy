@@ -2,11 +2,11 @@
 
 Schema changes are versioned with the [official Supabase CLI](https://supabase.com/docs/guides/cli) at the repo root.
 
-| Path | Purpose |
-| ---- | ------- |
-| [`supabase/migrations/`](../supabase/migrations/) | **Source of truth** — ordered SQL migrations |
+| Path                                                                      | Purpose                                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [`supabase/migrations/`](../supabase/migrations/)                         | **Source of truth** — ordered SQL migrations                         |
 | [`packages/database/sql/schema.sql`](../packages/database/sql/schema.sql) | SQL Editor fallback dump (keep in sync manually when schema changes) |
-| [`packages/database/.env`](../packages/database/.env) | `SUPABASE_DB_URL` for remote apply (not committed) |
+| [`packages/database/.env`](../packages/database/.env)                     | `SUPABASE_DB_URL` for remote apply (not committed)                   |
 
 ## OSS clone (no Docker)
 
@@ -47,11 +47,11 @@ Never edit old migration files after they are merged to `main`.
 
 Workflow: [`.github/workflows/supabase.yml`](../.github/workflows/supabase.yml)
 
-| Event | GitHub Environment | Behavior |
-| ----- | ------------------ | -------- |
-| **Pull request** | — | `supabase start` on a fresh runner, verify `migration list --local` |
-| **Push to `develop`** | `staging` | `supabase db push` to staging Supabase project |
-| **Push to `main`** | `production` | `supabase db push` to production Supabase project |
+| Event                 | GitHub Environment | Behavior                                                            |
+| --------------------- | ------------------ | ------------------------------------------------------------------- |
+| **Pull request**      | —                  | `supabase start` on a fresh runner, verify `migration list --local` |
+| **Push to `develop`** | `staging`          | `supabase db push` to staging Supabase project                      |
+| **Push to `main`**    | `production`       | `supabase db push` to production Supabase project                   |
 
 Forks without environments/secrets skip the remote push (job exits 0 with a log message).
 
@@ -61,9 +61,9 @@ Repo → **Settings → Environments** → create `staging` and `production`.
 
 Add the **same secret name** on each environment (values differ per Supabase project):
 
-| Environment | Secret | Value |
-| ----------- | ------ | ----- |
-| `staging` | `SUPABASE_DB_URL` | Session pooler URI for the **staging** Supabase project |
+| Environment  | Secret            | Value                                                      |
+| ------------ | ----------------- | ---------------------------------------------------------- |
+| `staging`    | `SUPABASE_DB_URL` | Session pooler URI for the **staging** Supabase project    |
 | `production` | `SUPABASE_DB_URL` | Session pooler URI for the **production** Supabase project |
 
 Get the URI from **Supabase Dashboard → Connect → Session pooler**.
@@ -74,10 +74,10 @@ Optional on `production`: enable **Required reviewers** or **Deployment branches
 
 `SUPABASE_DB_URL` is **not** used by the web app. Configure these per Vercel environment instead:
 
-| Vercel env | Supabase project |
-| ---------- | ---------------- |
-| Preview | staging |
-| Production | production |
+| Vercel env  | Supabase project  |
+| ----------- | ----------------- |
+| Preview     | staging           |
+| Production  | production        |
 | Development | local dev project |
 
 Variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_ANON_SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.

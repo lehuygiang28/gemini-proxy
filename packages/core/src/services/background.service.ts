@@ -2,7 +2,10 @@ import { Context } from 'hono';
 
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
-import { estimateCostFromParsedUsage, visibleCompletionTokensForKeys } from '../utils/cost-estimator';
+import {
+    estimateCostFromParsedUsage,
+    visibleCompletionTokensForKeys,
+} from '../utils/cost-estimator';
 import type { CustomModelPricingMap } from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
@@ -819,9 +822,7 @@ export class BackgroundService {
             parsed[modelId.trim().toLowerCase()] = {
                 inputPerMillion: input,
                 outputPerMillion: output,
-                ...(Number.isFinite(cache) && cache >= 0
-                    ? { cachedInputPerMillion: cache }
-                    : {}),
+                ...(Number.isFinite(cache) && cache >= 0 ? { cachedInputPerMillion: cache } : {}),
             };
         }
         return parsed;

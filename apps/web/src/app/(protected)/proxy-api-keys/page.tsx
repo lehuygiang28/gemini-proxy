@@ -480,7 +480,9 @@ export default function ProxyApiKeysListPage() {
                                                         'proxy_api_keys.rotate.description',
                                                     )}
                                                     onConfirm={() => handleRotate(record)}
-                                                    okText={translate('proxy_api_keys.rotate.confirm')}
+                                                    okText={translate(
+                                                        'proxy_api_keys.rotate.confirm',
+                                                    )}
                                                     cancelText={translate('buttons.cancel')}
                                                 >
                                                     <Button

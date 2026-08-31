@@ -71,7 +71,8 @@ export function JsonTreeViewer({
                     ...theme,
                     backgroundColor: 'transparent',
                     fontSize: 12,
-                    fontFamily: 'var(--gp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+                    fontFamily:
+                        'var(--gp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
                 }}
                 collapsed={collapsed}
                 displayDataTypes={false}

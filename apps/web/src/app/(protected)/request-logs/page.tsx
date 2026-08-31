@@ -60,8 +60,7 @@ export default function RequestLogsListPage() {
     const [chartRange, setChartRange] = useState<RequestLogsVolumeRange>('7d');
     const liveMode: NonNullable<LiveModeProps['liveMode']> = isLive ? 'auto' : 'off';
 
-    const dateLocaleFormat =
-        getLocale() === 'vi' ? 'DD/MM/YYYY HH:mm:ss' : 'YYYY-MM-DD HH:mm:ss';
+    const dateLocaleFormat = getLocale() === 'vi' ? 'DD/MM/YYYY HH:mm:ss' : 'YYYY-MM-DD HH:mm:ss';
 
     const deepLinkInitialFilters = useMemo(
         () => buildRequestLogDeepLinkInitialFilters(searchParams),
@@ -89,7 +88,8 @@ export default function RequestLogsListPage() {
         sorters: {
             initial: [{ field: 'created_at', order: 'desc' }],
         },
-        filters: deepLinkInitialFilters.length > 0 ? { initial: deepLinkInitialFilters } : undefined,
+        filters:
+            deepLinkInitialFilters.length > 0 ? { initial: deepLinkInitialFilters } : undefined,
         onSearch: (values) => buildRequestLogSearchFilters(values),
     });
 

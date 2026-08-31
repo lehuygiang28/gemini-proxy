@@ -3,12 +3,7 @@
 import { ColorModeContext } from '@contexts/color-mode';
 import type { RefineThemedLayoutHeaderProps } from '@refinedev/antd';
 import { useGetIdentity, useLogout, useWarnAboutChange, useTranslation } from '@refinedev/core';
-import {
-    DownOutlined,
-    LogoutOutlined,
-    SettingOutlined,
-    UserOutlined,
-} from '@ant-design/icons';
+import { DownOutlined, LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Layout as AntdLayout, Avatar, Dropdown, Menu, Space, Switch, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';

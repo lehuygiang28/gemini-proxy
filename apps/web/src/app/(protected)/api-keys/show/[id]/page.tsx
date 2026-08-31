@@ -131,18 +131,12 @@ export default function ApiKeysShowPage() {
                         <Descriptions bordered column={1} size="middle">
                             <Descriptions.Item label={translate('api_keys.tokens.totalTokens')}>
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(
-                                        record.total_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.total_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item label={translate('api_keys.tokens.promptTokens')}>
                                 <Text>
-                                    {formatTokenCount(
-                                        record.prompt_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.prompt_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item

@@ -176,7 +176,11 @@ export default function ApiKeysListPage() {
     );
 
     return (
-        <List headerButtons={<CreateButton />} title={translate('api_keys.titles.list')} breadcrumb={false}>
+        <List
+            headerButtons={<CreateButton />}
+            title={translate('api_keys.titles.list')}
+            breadcrumb={false}
+        >
             {/* Filters */}
             <Card
                 styles={{
@@ -205,7 +209,10 @@ export default function ApiKeysListPage() {
                 <Form {...searchFormProps} layout="vertical">
                     <Row gutter={[token.marginMD, token.marginMD]}>
                         <Col xs={24} sm={12} md={10}>
-                            <Form.Item name="name" label={translate('api_keys.filters.searchByName')}>
+                            <Form.Item
+                                name="name"
+                                label={translate('api_keys.filters.searchByName')}
+                            >
                                 <Search
                                     placeholder={translate('api_keys.placeholders.searchName')}
                                     allowClear
@@ -215,7 +222,10 @@ export default function ApiKeysListPage() {
                             </Form.Item>
                         </Col>
                         <Col xs={24} sm={12} md={7}>
-                            <Form.Item name="provider" label={translate('api_keys.fields.provider')}>
+                            <Form.Item
+                                name="provider"
+                                label={translate('api_keys.fields.provider')}
+                            >
                                 <Select
                                     placeholder={translate('api_keys.placeholders.allProviders')}
                                     allowClear

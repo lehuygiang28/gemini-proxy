@@ -5,7 +5,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { List } from '@refinedev/antd';
 import { useTranslation } from '@refinedev/core';
 import { Tabs, Typography } from 'antd';
-import { AppearanceSettings, ObservabilitySettingsForm, PricingSettingsForm } from '@/features/settings';
+import {
+    AppearanceSettings,
+    ObservabilitySettingsForm,
+    PricingSettingsForm,
+} from '@/features/settings';
 
 const { Title, Paragraph } = Typography;
 

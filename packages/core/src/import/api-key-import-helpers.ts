@@ -16,8 +16,8 @@ export function findExistingKey<T extends Pick<ExistingImportKey, 'api_key_value
     if (!incoming.metadata.connection_id) return undefined;
     return existing.find(
         (key) =>
-            (key.metadata as { connection_id?: string } | null | undefined)?.connection_id
-                === incoming.metadata.connection_id,
+            (key.metadata as { connection_id?: string } | null | undefined)?.connection_id ===
+            incoming.metadata.connection_id,
     );
 }
 
@@ -92,9 +92,7 @@ export function planApiKeyImport(
 
         if (matchedKey?.id) {
             if (matchedKey.api_key_value !== importKey.api_key_value && !options.overwriteSecrets) {
-                warnings.push(
-                    `Key "${importKey.name}": stored secret was not rotated`,
-                );
+                warnings.push(`Key "${importKey.name}": stored secret was not rotated`);
             }
 
             const nextValue =

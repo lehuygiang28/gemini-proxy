@@ -25,12 +25,12 @@ Allow users to paste or upload a 9router full database export JSON and import **
 
 **Critical distinction:**
 
-| 9router field | Contents | Import? |
-| --- | --- | --- |
-| `providerConnections` where `provider === "gemini"` | Upstream Gemini API keys (`apiKey`) | **Yes** |
-| `apiKeys` | 9router client auth keys (`sk-...`) | **No** |
-| Other providers (`nvidia`, `openai-compatible-*`, …) | Non-Gemini upstream | **No** |
-| `proxyPools`, `settings`, `combos`, … | Infra / routing config | **No** |
+| 9router field                                        | Contents                            | Import? |
+| ---------------------------------------------------- | ----------------------------------- | ------- |
+| `providerConnections` where `provider === "gemini"`  | Upstream Gemini API keys (`apiKey`) | **Yes** |
+| `apiKeys`                                            | 9router client auth keys (`sk-...`) | **No**  |
+| Other providers (`nvidia`, `openai-compatible-*`, …) | Non-Gemini upstream                 | **No**  |
+| `proxyPools`, `settings`, `combos`, …                | Infra / routing config              | **No**  |
 
 gemini-proxy stores keys as `api_keys` rows with `provider: "googleaistudio"`.
 
@@ -66,22 +66,22 @@ All formats converge to:
 type NormalizedImportKey = {
   name: string;
   api_key_value: string;
-  provider: 'googleaistudio';
+  provider: "googleaistudio";
   is_active: boolean;
   metadata: {
-    source: '9router' | 'native' | 'legacy';
-    connection_id?: string;       // 9router providerConnections[].id
+    source: "9router" | "native" | "legacy";
+    connection_id?: string; // 9router providerConnections[].id
     priority?: number;
     test_status?: string;
-    imported_at: string;          // ISO timestamp at parse time
+    imported_at: string; // ISO timestamp at parse time
   };
 };
 
 type ImportParseResult = {
-  format: '9router' | 'native' | 'legacy-array' | 'unknown';
+  format: "9router" | "native" | "legacy-array" | "unknown";
   keys: NormalizedImportKey[];
   stats: {
-    total_connections?: number;   // 9router only
+    total_connections?: number; // 9router only
     gemini_connections?: number;
     imported_keys?: number;
     skipped_unsupported?: number;
@@ -94,12 +94,12 @@ type ImportParseResult = {
 
 ## Format detection
 
-| Condition | Format |
-| --- | --- |
-| Object with `Array.isArray(providerConnections)` | `9router` |
-| Object with `Array.isArray(api_keys)` | `native` |
-| Top-level JSON array | `legacy-array` |
-| Else | `unknown` → throw descriptive error |
+| Condition                                        | Format                              |
+| ------------------------------------------------ | ----------------------------------- |
+| Object with `Array.isArray(providerConnections)` | `9router`                           |
+| Object with `Array.isArray(api_keys)`            | `native`                            |
+| Top-level JSON array                             | `legacy-array`                      |
+| Else                                             | `unknown` → throw descriptive error |
 
 Detection runs before provider-specific parsing.
 
@@ -108,25 +108,25 @@ Detection runs before provider-specific parsing.
 **Filter:**
 
 ```typescript
-connection.provider === 'gemini'
-  && connection.authType === 'apikey'
-  && typeof connection.apiKey === 'string'
-  && connection.apiKey.trim().length > 0
-  && !isMaskedApiKey(connection.apiKey)
-  && connection.apiKey.trim().length >= 10
+connection.provider === "gemini" &&
+  connection.authType === "apikey" &&
+  typeof connection.apiKey === "string" &&
+  connection.apiKey.trim().length > 0 &&
+  !isMaskedApiKey(connection.apiKey) &&
+  connection.apiKey.trim().length >= 10;
 ```
 
 **Transform:**
 
-| 9router | gemini-proxy |
-| --- | --- |
-| `name` | `name` (fallback: `gemini-import-{index}`) |
-| `apiKey.trim()` | `api_key_value` |
-| `isActive ?? true` | `is_active` |
-| `id` | `metadata.connection_id` |
+| 9router                  | gemini-proxy                                |
+| ------------------------ | ------------------------------------------- |
+| `name`                   | `name` (fallback: `gemini-import-{index}`)  |
+| `apiKey.trim()`          | `api_key_value`                             |
+| `isActive ?? true`       | `is_active`                                 |
+| `id`                     | `metadata.connection_id`                    |
 | `priority`, `testStatus` | `metadata.priority`, `metadata.test_status` |
-| — | `metadata.source = '9router'` |
-| — | `provider = 'googleaistudio'` |
+| —                        | `metadata.source = '9router'`               |
+| —                        | `provider = 'googleaistudio'`               |
 
 **Do not import:** trailing-space keys are trimmed; proxy pool bindings (`providerSpecificData.proxyPoolId`) are stored in metadata only if useful for debugging — not applied to gproxy routing.
 
@@ -173,13 +173,13 @@ Detected format: 9router
 
 ## Error handling
 
-| Case | Behavior |
-| --- | --- |
-| Invalid JSON | Throw / show parse error |
-| `unknown` format | Error: unsupported import format |
+| Case                       | Behavior                              |
+| -------------------------- | ------------------------------------- |
+| Invalid JSON               | Throw / show parse error              |
+| `unknown` format           | Error: unsupported import format      |
 | 9router with 0 gemini keys | Warning; import completes with 0 keys |
-| Masked `apiKey` | Skip row; append warning |
-| Empty file / empty array | Error: no keys found |
+| Masked `apiKey`            | Skip row; append warning              |
+| Empty file / empty array   | Error: no keys found                  |
 
 ## Security
 
@@ -208,9 +208,9 @@ CLI integration can reuse fixture via manual `import --dry-run` smoke test.
 
 ## Files to touch (implementation reference)
 
-| Area | Files |
-| --- | --- |
-| Core parser | `packages/core/src/import/*`, export from `packages/core/src/index.ts` |
-| Core tests | `packages/core/test/import/*`, `packages/core/test/fixtures/9router-export.fixture.json` |
-| CLI | `packages/cli/package.json` (add `@gemini-proxy/core`), `packages/cli/src/lib/api-keys.ts`, `packages/cli/src/commands/api-keys.ts` |
-| Web | `apps/web/src/app/(protected)/api-keys/create/page.tsx`, locale strings if needed |
+| Area        | Files                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Core parser | `packages/core/src/import/*`, export from `packages/core/src/index.ts`                                                              |
+| Core tests  | `packages/core/test/import/*`, `packages/core/test/fixtures/9router-export.fixture.json`                                            |
+| CLI         | `packages/cli/package.json` (add `@gemini-proxy/core`), `packages/cli/src/lib/api-keys.ts`, `packages/cli/src/commands/api-keys.ts` |
+| Web         | `apps/web/src/app/(protected)/api-keys/create/page.tsx`, locale strings if needed                                                   |

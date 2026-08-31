@@ -136,7 +136,12 @@ export default function ProxyApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} onFinish={handleFinish} layout="vertical" autoComplete="off">
+                        <Form
+                            {...formProps}
+                            onFinish={handleFinish}
+                            layout="vertical"
+                            autoComplete="off"
+                        >
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('proxy_api_keys.edit.basicInfo')}
                             </Divider>
