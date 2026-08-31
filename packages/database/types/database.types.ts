@@ -272,6 +272,41 @@ export type Database = {
                     },
                 ];
             };
+            proxy_reconciliation_needed: {
+                Row: {
+                    created_at: string;
+                    last_error: string | null;
+                    proxy_key_id: string;
+                    request_id: string;
+                    resolved_at: string | null;
+                    user_id: string;
+                };
+                Insert: {
+                    created_at?: string;
+                    last_error?: string | null;
+                    proxy_key_id: string;
+                    request_id: string;
+                    resolved_at?: string | null;
+                    user_id: string;
+                };
+                Update: {
+                    created_at?: string;
+                    last_error?: string | null;
+                    proxy_key_id?: string;
+                    request_id?: string;
+                    resolved_at?: string | null;
+                    user_id?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'proxy_reconciliation_needed_proxy_key_id_fkey';
+                        columns: ['proxy_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'proxy_api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
             user_settings: {
                 Row: {
                     custom_model_pricing: Json;
@@ -460,6 +495,30 @@ export type Database = {
                     p_reserved_tokens: number;
                     p_reserved_usd: number;
                 };
+                Returns: undefined;
+            };
+            finalize_proxy_request: {
+                Args: {
+                    p_request_id: string;
+                    p_proxy_key_id: string;
+                    p_api_key_id: string | null;
+                    p_user_id: string;
+                    p_is_successful: boolean;
+                    p_request_data: Json;
+                    p_response_data: Json | null;
+                    p_usage: Json;
+                    p_reserved_tokens: number;
+                    p_reserved_usd: number;
+                    p_actual_tokens: number;
+                    p_actual_usd: number;
+                    p_minute_start: string | null;
+                    p_day_start: string | null;
+                    p_month_start: string | null;
+                };
+                Returns: undefined;
+            };
+            reconcile_proxy_request: {
+                Args: { p_request_id: string };
                 Returns: undefined;
             };
             get_retry_statistics: {
