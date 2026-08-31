@@ -73,7 +73,9 @@ export class DataSanitizer {
             ...this.SENSITIVE_JSON_FIELDS,
             ...extraFieldNames.map((name) => name.toLowerCase()),
         ];
-        return names.some((name) => lower === name || lower.endsWith(name));
+        return names.some(
+            (name) => lower === name || lower.endsWith(`_${name}`) || lower.endsWith(`-${name}`),
+        );
     }
 
     private static redactSecretStrings(value: string): string {

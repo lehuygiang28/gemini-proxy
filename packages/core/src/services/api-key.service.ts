@@ -75,23 +75,6 @@ async function excludeModelCooledKeys(
 }
 
 export class ApiKeyService {
-    /**
-     * Get the proxy API key from the request, this not api use for GOOGLE, this is our system api key.
-     * @param c - The Hono context
-     * @returns The proxy API key
-     */
-    static getProxyApiKeyFromHeader(c: Context<HonoApp>): string {
-        const path = c.req.path;
-        if (path.includes('/gemini/')) {
-            return c.req.header('x-goog-api-key') || '';
-        } else if (path.includes('/openai/')) {
-            // Bearer <token>
-            const authHeader = c.req.header('authorization') || '';
-            return authHeader.split(' ')[1];
-        }
-        return '';
-    }
-
     static async getSmartApiKeys(
         c: Context<HonoApp>,
         params: ApiKeyParams,

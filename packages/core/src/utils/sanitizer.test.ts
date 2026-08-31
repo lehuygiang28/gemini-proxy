@@ -41,4 +41,15 @@ describe('DataSanitizer JSON field redaction', () => {
         );
         expect(actual.body).toEqual({ foo_secret: '[REDACTED]', visible: 'ok' });
     });
+
+    it('does not redact field names that merely contain a sensitive suffix', () => {
+        const actual = DataSanitizer.sanitizePayloadBody(
+            JSON.stringify({ mysecret: 'keep', user_secret: 'hide', 'session-token': 'hide' }),
+        );
+        expect(actual.body).toEqual({
+            mysecret: 'keep',
+            user_secret: '[REDACTED]',
+            'session-token': '[REDACTED]',
+        });
+    });
 });

@@ -380,7 +380,7 @@ describe('classifyUpstreamError', () => {
         expect(actual.keyWide).toBe(true);
     });
 
-    it('does not clamp HTTP-date Retry-After deltas to 3600 seconds', () => {
+    it('clamps HTTP-date Retry-After deltas to 3600 seconds', () => {
         const now = new Date('2026-08-31T12:00:00.000Z');
         vi.useFakeTimers();
         vi.setSystemTime(now);
@@ -390,7 +390,7 @@ describe('classifyUpstreamError', () => {
             headers: { 'Retry-After': futureDate.toUTCString() },
             bodyText: '',
         });
-        expect(actual.retryAfterSeconds).toBe(7200);
+        expect(actual.retryAfterSeconds).toBe(3600);
         vi.useRealTimers();
     });
 

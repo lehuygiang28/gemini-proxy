@@ -27,10 +27,10 @@ export class UsersManager {
             listUsers: async () => {
                 const { data, error } =
                     await supabase.client.auth.admin.listUsers(listOwnerDirectoryPage());
-                if (error || !data?.users) {
-                    return [];
+                if (error) {
+                    throw new Error(error.message);
                 }
-                return data.users.map((user) => ({
+                return (data?.users ?? []).map((user) => ({
                     id: user.id,
                     email: user.email,
                 }));

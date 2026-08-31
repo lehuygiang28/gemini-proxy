@@ -9,6 +9,9 @@ let supabaseFactory: SupabaseFactory | null = null;
 let client: SupabaseClient<Database> | null = null;
 
 export function setSupabaseFactoryForTests(factory: SupabaseFactory | null): void {
+    if (!process.env.VITEST && process.env.NODE_ENV !== 'test') {
+        throw new Error('setSupabaseFactoryForTests is only available in tests');
+    }
     supabaseFactory = factory;
 }
 

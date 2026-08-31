@@ -113,7 +113,7 @@ function parseRetryAfterSeconds(headerValue: string | undefined): number | null 
     if (deltaSeconds <= 0) {
         return RETRY_AFTER_MIN_SECONDS;
     }
-    return deltaSeconds;
+    return clampRetryAfterSeconds(deltaSeconds);
 }
 
 function parseRetryInfoSeconds(details: GoogleErrorDetail[]): number | null {

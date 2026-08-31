@@ -12,6 +12,8 @@ concurrency:
 jobs:
     quality:
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
         env:
             NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
             NEXT_PUBLIC_ANON_SUPABASE_KEY: sb_publishable_ci-placeholder
@@ -19,6 +21,8 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY: sb_secret_ci-placeholder
         steps:
             - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
             - uses: pnpm/action-setup@v4
               with:
                   version: 10.18.1
