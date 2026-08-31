@@ -133,6 +133,23 @@ describe('proxy contract: auth and headers', () => {
         expect(originRequests).toHaveLength(0);
     });
 
+    it('strips x-gproxy response headers from the client', async () => {
+        const actual = await invokeCore(
+            '/gemini/v1beta/models/gemini-flash:generateContent',
+            {
+                method: 'POST',
+                headers: {
+                    'x-goog-api-key': CONTRACT_PROXY_KEY,
+                    'content-type': 'application/json',
+                },
+                body: '{}',
+            },
+            { originHeaders: { 'x-gproxy-internal': 'secret' } },
+        );
+        expect(actual.status).toBe(200);
+        expect(actual.headers.get('x-gproxy-internal')).toBeNull();
+    });
+
     it('rejects goog header and Bearer together with 400', async () => {
         const actual = await invokeCore('/gemini/v1beta/models/gemini-flash:generateContent', {
             method: 'POST',

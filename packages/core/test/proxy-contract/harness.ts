@@ -24,6 +24,7 @@ export type InvokeCoreOptions = {
     supabaseThrows?: boolean;
     extraApiKeys?: boolean;
     originBody?: unknown;
+    originHeaders?: HeadersInit;
 };
 
 type QueryResult = {
@@ -174,7 +175,10 @@ export async function invokeCore(
             originRequests.push(request);
             return new Response(JSON.stringify(options.originBody ?? { candidates: [] }), {
                 status: 200,
-                headers: { 'content-type': 'application/json' },
+                headers: {
+                    'content-type': 'application/json',
+                    ...Object.fromEntries(new Headers(options.originHeaders ?? {}).entries()),
+                },
             });
         },
     );

@@ -56,12 +56,15 @@ export class ProxyKeysManager {
 
     static async create(
         proxyKeyData: Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'>,
+        ownerOptions?: { readonly quick?: boolean },
     ): Promise<ProxyApiKey> {
         await supabase.init();
 
-        // Auto-assign user_id if not provided
         let finalProxyKeyData = { ...proxyKeyData };
-        const ownerId = await UsersManager.getDefaultUser(finalProxyKeyData.user_id ?? undefined);
+        const ownerId = await UsersManager.getDefaultUser(
+            finalProxyKeyData.user_id ?? undefined,
+            ownerOptions,
+        );
         if (finalProxyKeyData.user_id !== ownerId) {
             UsersManager.notifyAutoAssignment(ownerId);
         }

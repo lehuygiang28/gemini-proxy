@@ -8,7 +8,6 @@ import type { ProxyRequestDataParsed, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
 import type { ApiKeyWithStats } from './api-key.service';
 import type { Tables } from '@gemini-proxy/database';
-import { UsageMetadataParser } from '../utils/usage-metadata-parser';
 import {
     ProxyError,
     RateLimitError,
@@ -110,25 +109,6 @@ interface ErrorResponseParams {
     lastError: ProxyError;
     lastProviderError: ProviderErrorData | null;
     retryAttempts: RetryAttemptData[];
-}
-
-interface ZeroCompletionParams {
-    response: Response;
-    apiFormat: ProxyRequestDataParsed['apiFormat'];
-    options?: { retry?: { onZeroCompletionTokens?: boolean } };
-}
-
-interface SyntheticFailureParams {
-    c: Context<HonoApp>;
-    firstResponse: Response;
-    firstApiKey: ApiKeyWithStats;
-    firstAttemptDuration: number;
-    baseRequest: Request;
-    retryConfig: RetryConfig;
-    requestId: string;
-    proxyApiKeyData: Tables<'proxy_api_keys'>;
-    proxyRequestDataParsed: ProxyRequestDataParsed;
-    usedApiKeyIds: string[];
 }
 
 interface SuccessfulResponseParams {
@@ -390,44 +370,6 @@ export class ProxyService {
     }
 
     // ===== RESPONSE HANDLING =====
-    private static async handleSyntheticFailure(params: SyntheticFailureParams): Promise<Response> {
-        const {
-            c,
-            firstResponse,
-            firstApiKey,
-            firstAttemptDuration,
-            baseRequest,
-            retryConfig,
-            requestId,
-            proxyApiKeyData,
-            proxyRequestDataParsed,
-        } = params;
-
-        const syntheticError = this.createSyntheticError(firstResponse.status);
-        const firstRetryAttempt = this.createRetryAttempt({
-            attemptNumber: 1,
-            apiKeyId: firstApiKey.id,
-            apiKeyName: firstApiKey.name,
-            error: syntheticError,
-            durationMs: firstAttemptDuration,
-            providerError: this.extractProviderError(firstResponse),
-        });
-
-        return this.retryApiRequest({
-            c,
-            baseRequest,
-            startAttemptIndex: 1,
-            retryConfig,
-            requestId,
-            proxyApiKeyData,
-            proxyRequestDataParsed,
-            initialError: syntheticError,
-            initialProviderError: this.extractProviderError(firstResponse),
-            initialRetryAttempt: firstRetryAttempt,
-            usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
-        });
-    }
-
     private static async handleSuccessfulResponse(
         params: SuccessfulResponseParams,
     ): Promise<Response> {
@@ -530,7 +472,7 @@ export class ProxyService {
             ? { ...initialProviderError }
             : null;
 
-        // Bound retries by dynamically available API keys for this user (including global keys)
+        // Bound retries by dynamically available API keys for this user
         let availableKeys = 0;
         try {
             availableKeys = await ApiKeyService.countAvailableApiKeys(c, proxyApiKeyData.user_id);
@@ -667,15 +609,6 @@ export class ProxyService {
             return Math.min(maxRetries, availableApiKeys);
         }
         return 0;
-    }
-
-    private static createSyntheticError(status: number): ProxyError {
-        return new ProxyError(
-            'Zero completion tokens detected',
-            'server_error',
-            status,
-            'zero_completion_tokens',
-        );
     }
 
     private static createRetryAttempt(params: RetryAttemptParams): RetryAttemptData {
@@ -1170,40 +1103,14 @@ export class ProxyService {
 
         headers.forEach((value, key) => {
             const lowerKey = key.toLowerCase();
-            if (!this.BLOCKED_RESPONSE_HEADERS.includes(lowerKey)) {
+            if (
+                !this.BLOCKED_RESPONSE_HEADERS.includes(lowerKey) &&
+                !lowerKey.startsWith('x-gproxy-')
+            ) {
                 filteredHeaders.set(key, value);
             }
         });
 
         return filteredHeaders;
-    }
-
-    // ===== ZERO COMPLETION DETECTION =====
-    private static async shouldTreatOkAsFailure(params: ZeroCompletionParams): Promise<boolean> {
-        const { response, apiFormat, options } = params;
-        const retryOpts = options?.retry || {};
-        if (!retryOpts.onZeroCompletionTokens) return false;
-
-        try {
-            const cloned = response.clone();
-            const text = await cloned.text();
-
-            const parsed = UsageMetadataParser.parseFromResponseBody(text, apiFormat);
-            if (!parsed) {
-                const isEmpty = !text || text.trim().length === 0;
-                if (isEmpty) return true;
-                return false;
-            }
-
-            const hasAnyTokenSignal =
-                (parsed.totalTokens ?? 0) > 0 || (parsed.promptTokens ?? 0) > 0;
-            if (hasAnyTokenSignal && parsed.completionTokens === 0) {
-                return true;
-            }
-        } catch {
-            // If parsing fails, do not force retry
-        }
-
-        return false;
     }
 }

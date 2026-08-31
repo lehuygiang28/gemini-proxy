@@ -37,13 +37,13 @@ function readValidCredential(
 export function extractProxyCredential(input: {
     readonly header: (name: string) => string | undefined;
 }): ExtractedProxyCredential | ProxyCredentialConflict | null {
-    const goog = readValidCredential(input.header('x-goog-api-key')?.trim(), 'x-goog-api-key');
-    const bearer = readValidCredential(
-        readBearerToken(input.header('authorization')),
-        'authorization',
-    );
-    if (goog && bearer) {
+    const googRaw = input.header('x-goog-api-key')?.trim();
+    const bearerRaw = readBearerToken(input.header('authorization'));
+    if (googRaw && bearerRaw) {
         return { error: 'conflicting_credentials' };
     }
-    return goog ?? bearer;
+    return (
+        readValidCredential(googRaw, 'x-goog-api-key') ??
+        readValidCredential(bearerRaw, 'authorization')
+    );
 }

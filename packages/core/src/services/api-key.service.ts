@@ -196,7 +196,7 @@ export class ApiKeyService {
         return apiKeys.length > 0 ? apiKeys[0] : null;
     }
 
-    /** Count available API keys for a user (including global keys with user_id null). */
+    /** Count available API keys owned by this user. */
     static async countAvailableApiKeys(c: Context<HonoApp>, userId: string): Promise<number> {
         const supabase = getSupabaseClient(c);
         const { count, error } = await supabase

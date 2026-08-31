@@ -31,6 +31,28 @@ describe('extractProxyCredential', () => {
         expect(actual).toEqual({ error: 'conflicting_credentials' });
     });
 
+    it('returns conflicting_credentials when goog is valid and Bearer is present but invalid', () => {
+        const actual = extractProxyCredential({
+            header: (name) => {
+                if (name.toLowerCase() === 'x-goog-api-key') return VALID_KEY;
+                if (name.toLowerCase() === 'authorization') return 'Bearer short';
+                return undefined;
+            },
+        });
+        expect(actual).toEqual({ error: 'conflicting_credentials' });
+    });
+
+    it('ignores x-api-key when goog is present', () => {
+        const actual = extractProxyCredential({
+            header: (name) => {
+                if (name.toLowerCase() === 'x-goog-api-key') return VALID_KEY;
+                if (name.toLowerCase() === 'x-api-key') return OTHER_VALID_KEY;
+                return undefined;
+            },
+        });
+        expect(actual).toEqual({ value: VALID_KEY, source: 'x-goog-api-key' });
+    });
+
     it('ignores query key when headers are missing', () => {
         const actual = extractProxyCredential({
             header: () => undefined,
