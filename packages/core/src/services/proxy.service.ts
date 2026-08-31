@@ -4,7 +4,7 @@ import { ApiKeyService } from './api-key.service';
 import { ConfigService } from './config.service';
 import { ResponseHandlerService } from './response-handler.service';
 import { HonoApp } from '../types';
-import type { ProxyRequestDataParsed, ProxyRequestOptions, LoadBalanceStrategy } from '../types';
+import type { ProxyRequestDataParsed, LoadBalanceStrategy } from '../types';
 import type { RetryConfig } from './config.service';
 import type { ApiKeyWithStats } from './api-key.service';
 import type { Tables } from '@gemini-proxy/database';
@@ -46,7 +46,6 @@ interface RequestContext {
     requestId: string;
     baseRequest: Request;
     retryConfig: RetryConfig;
-    options?: ProxyRequestOptions;
 }
 
 interface RequestValidationParams {
@@ -58,7 +57,6 @@ interface RequestValidationParams {
 interface ApiKeySelectionParams {
     c: Context<HonoApp>;
     currentAttempt: number;
-    options?: ProxyRequestOptions;
     proxyKeyId: string;
     apiFormat: ProxyRequestDataParsed['apiFormat'];
     model?: string;
@@ -130,7 +128,6 @@ interface SyntheticFailureParams {
     requestId: string;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
-    options?: ProxyRequestOptions;
     usedApiKeyIds: string[];
 }
 
@@ -156,7 +153,6 @@ interface InitialFailureParams {
     requestId: string;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
-    options?: ProxyRequestOptions;
     usedApiKeyIds: string[];
 }
 
@@ -214,14 +210,8 @@ export class ProxyService {
         const requestStartTime = Date.now(); // Track full request duration
         c.set('requestStartTime', requestStartTime); // Store in context for later use
         const context = this.extractRequestContext(c);
-        const {
-            proxyRequestDataParsed,
-            proxyApiKeyData,
-            requestId,
-            baseRequest,
-            retryConfig,
-            options,
-        } = context;
+        const { proxyRequestDataParsed, proxyApiKeyData, requestId, baseRequest, retryConfig } =
+            context;
 
         this.validateRequest({
             baseRequest,
@@ -233,7 +223,6 @@ export class ProxyService {
         const firstApiKey = await this.selectOptimalApiKey({
             c,
             currentAttempt: 0,
-            options,
             proxyKeyId: proxyApiKeyData.id,
             apiFormat: proxyRequestDataParsed.apiFormat,
             model: proxyRequestDataParsed.model,
@@ -277,7 +266,6 @@ export class ProxyService {
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
-            options,
             usedApiKeyIds,
         });
     }
@@ -288,7 +276,6 @@ export class ProxyService {
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
         const retryConfigBase = ConfigService.getRetryConfig(c);
-        const options = undefined;
         const retryConfig: RetryConfig = {
             ...retryConfigBase,
         };
@@ -326,7 +313,6 @@ export class ProxyService {
             requestId,
             baseRequest,
             retryConfig,
-            options,
         };
     }
 
@@ -415,7 +401,6 @@ export class ProxyService {
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
-            options,
         } = params;
 
         const syntheticError = this.createSyntheticError(firstResponse.status);
@@ -439,7 +424,6 @@ export class ProxyService {
             initialError: syntheticError,
             initialProviderError: this.extractProviderError(firstResponse),
             initialRetryAttempt: firstRetryAttempt,
-            options,
             usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
         });
     }
@@ -484,7 +468,6 @@ export class ProxyService {
             requestId,
             proxyApiKeyData,
             proxyRequestDataParsed,
-            options,
         } = params;
 
         const firstError = this.createProxyError(firstResponse.clone(), firstAttemptDuration);
@@ -509,7 +492,6 @@ export class ProxyService {
             initialError: firstError,
             initialProviderError: firstProviderError,
             initialRetryAttempt: firstRetryAttempt,
-            options,
             usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
         });
     }
@@ -526,7 +508,6 @@ export class ProxyService {
         initialError: ProxyError;
         initialProviderError?: ProviderErrorData;
         initialRetryAttempt?: RetryAttemptData;
-        options?: ProxyRequestOptions;
         usedApiKeyIds?: string[];
     }): Promise<Response> {
         const {
@@ -540,7 +521,6 @@ export class ProxyService {
             initialError,
             initialProviderError,
             initialRetryAttempt,
-            options,
             usedApiKeyIds: initialUsedApiKeyIds = [],
         } = params;
 
@@ -590,7 +570,6 @@ export class ProxyService {
                 selectedApiKey = await this.selectOptimalApiKey({
                     c,
                     currentAttempt,
-                    options,
                     proxyKeyId: proxyApiKeyData.id,
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     model: proxyRequestDataParsed.model,
@@ -962,9 +941,9 @@ export class ProxyService {
     private static async selectOptimalApiKey(
         params: ApiKeySelectionParams,
     ): Promise<ApiKeyWithStats> {
-        const { c, currentAttempt, options, proxyKeyId, apiFormat, model, excludeIds } = params;
+        const { c, currentAttempt, proxyKeyId, apiFormat, model, excludeIds } = params;
 
-        const strategy = this.getLoadBalanceStrategy(c, options);
+        const strategy = this.getLoadBalanceStrategy(c);
 
         let preferKeyId: string | null = null;
         if (strategy === 'sticky_until_error') {
@@ -1009,11 +988,8 @@ export class ProxyService {
         } as unknown as ApiKeyWithStats;
     }
 
-    private static getLoadBalanceStrategy(
-        c: Context<HonoApp>,
-        options?: ProxyRequestOptions,
-    ): LoadBalanceStrategy {
-        return options?.loadbalance?.strategy || ConfigService.getLoadBalanceStrategy(c);
+    private static getLoadBalanceStrategy(c: Context<HonoApp>): LoadBalanceStrategy {
+        return ConfigService.getLoadBalanceStrategy(c);
     }
 
     private static hasRecentError(apiKey: ApiKeyWithStats): boolean {
