@@ -14,18 +14,6 @@ CREATE TABLE IF NOT EXISTS api_keys (
     prompt_tokens BIGINT NOT NULL DEFAULT 0,
     completion_tokens BIGINT NOT NULL DEFAULT 0,
     total_tokens BIGINT NOT NULL DEFAULT 0,
-    rpm_limit INTEGER,
-    tpm_limit INTEGER,
-    rpd_limit INTEGER,
-    max_concurrent INTEGER,
-    daily_budget_usd NUMERIC(12,6),
-    monthly_budget_usd NUMERIC(12,6),
-    allowed_models TEXT[],
-    denied_models TEXT[],
-    max_output_tokens INTEGER,
-    max_request_body_bytes INTEGER,
-    expires_at TIMESTAMPTZ,
-    inflight_count INTEGER NOT NULL DEFAULT 0,
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     cooldown_until TIMESTAMP WITH TIME ZONE,
@@ -52,6 +40,18 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     prompt_tokens BIGINT NOT NULL DEFAULT 0,
     completion_tokens BIGINT NOT NULL DEFAULT 0,
     total_tokens BIGINT NOT NULL DEFAULT 0,
+    rpm_limit INTEGER,
+    tpm_limit INTEGER,
+    rpd_limit INTEGER,
+    max_concurrent INTEGER,
+    daily_budget_usd NUMERIC(12,6),
+    monthly_budget_usd NUMERIC(12,6),
+    allowed_models TEXT[],
+    denied_models TEXT[],
+    max_output_tokens INTEGER,
+    max_request_body_bytes INTEGER,
+    expires_at TIMESTAMPTZ,
+    inflight_count INTEGER NOT NULL DEFAULT 0,
     last_used_at TIMESTAMP WITH TIME ZONE,
     last_error_at TIMESTAMP WITH TIME ZONE,
     metadata JSONB NOT NULL DEFAULT '{}',
@@ -1241,6 +1241,9 @@ COMMENT ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) IS
 CREATE OR REPLACE FUNCTION settle_proxy_request(
     p_proxy_key_id UUID,
     p_request_id TEXT,
+    p_minute_start TIMESTAMPTZ,
+    p_day_start TIMESTAMPTZ,
+    p_month_start TIMESTAMPTZ,
     p_reserved_tokens BIGINT,
     p_reserved_usd NUMERIC,
     p_actual_tokens BIGINT,
@@ -1251,10 +1254,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public', pg_catalog
 AS $$
-DECLARE
-    minute_start TIMESTAMPTZ := date_trunc('minute', NOW());
-    day_start TIMESTAMPTZ := date_trunc('day', NOW());
-    month_start TIMESTAMPTZ := date_trunc('month', NOW());
 BEGIN
     UPDATE proxy_api_keys
     SET inflight_count = GREATEST(inflight_count - 1, 0)
@@ -1275,9 +1274,21 @@ BEGIN
         settled_cost_usd = settled_cost_usd + GREATEST(COALESCE(p_actual_usd, 0), 0)
     WHERE proxy_key_id = p_proxy_key_id
       AND (
-          (window_type = 'minute' AND window_start = minute_start)
-          OR (window_type = 'day' AND window_start = day_start)
-          OR (window_type = 'month' AND window_start = month_start)
+          (
+              p_minute_start IS NOT NULL
+              AND window_type = 'minute'
+              AND window_start = p_minute_start
+          )
+          OR (
+              p_day_start IS NOT NULL
+              AND window_type = 'day'
+              AND window_start = p_day_start
+          )
+          OR (
+              p_month_start IS NOT NULL
+              AND window_type = 'month'
+              AND window_start = p_month_start
+          )
       );
 
     PERFORM p_request_id;
@@ -1297,7 +1308,9 @@ REVOKE ALL ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGIN
 REVOKE ALL ON FUNCTION record_api_key_failure(UUID, BOOLEAN, TIMESTAMPTZ, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION record_api_key_success(UUID) FROM PUBLIC;
 REVOKE ALL ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) FROM PUBLIC;
-REVOKE ALL ON FUNCTION settle_proxy_request(UUID, TEXT, BIGINT, NUMERIC, BIGINT, NUMERIC)
+REVOKE ALL ON FUNCTION settle_proxy_request(
+    UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
+)
     FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
 GRANT EXECUTE ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) TO service_role;
@@ -1306,7 +1319,9 @@ GRANT EXECUTE ON FUNCTION record_api_key_failure(UUID, BOOLEAN, TIMESTAMPTZ, TEX
 GRANT EXECUTE ON FUNCTION record_api_key_success(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER)
     TO service_role;
-GRANT EXECUTE ON FUNCTION settle_proxy_request(UUID, TEXT, BIGINT, NUMERIC, BIGINT, NUMERIC)
+GRANT EXECUTE ON FUNCTION settle_proxy_request(
+    UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
+)
     TO service_role;
 
 -- Add comments for documentation

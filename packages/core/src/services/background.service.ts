@@ -613,6 +613,9 @@ export class BackgroundService {
             p_reserved_usd: reservation.reserved_usd,
             p_actual_tokens: actualTokens,
             p_actual_usd: actualUsd,
+            p_minute_start: reservation.window_starts.minute,
+            p_day_start: reservation.window_starts.day,
+            p_month_start: reservation.window_starts.month,
         });
         if (error) {
             throw error;

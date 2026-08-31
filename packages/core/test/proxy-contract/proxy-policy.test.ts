@@ -103,8 +103,20 @@ describe('proxy contract: proxy-key policy', () => {
     });
 
     it('settles a successful request with parsed actual usage', async () => {
+        const windowStarts = {
+            minute: '2026-08-31T12:22:00.000Z',
+            day: '2026-08-31T00:00:00.000Z',
+            month: '2026-08-01T00:00:00.000Z',
+        };
         const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
-            admitResults: [{ ok: true, reserved_tokens: 256, reserved_usd: 0.001 }],
+            admitResults: [
+                {
+                    ok: true,
+                    reserved_tokens: 256,
+                    reserved_usd: 0.001,
+                    window_starts: windowStarts,
+                },
+            ],
             originBody: {
                 candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
                 usageMetadata: {
@@ -124,6 +136,9 @@ describe('proxy contract: proxy-key policy', () => {
                 p_reserved_usd: 0.001,
                 p_actual_tokens: 12,
                 p_actual_usd: expect.any(Number),
+                p_minute_start: windowStarts.minute,
+                p_day_start: windowStarts.day,
+                p_month_start: windowStarts.month,
             }),
         });
     });

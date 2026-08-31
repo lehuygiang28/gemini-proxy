@@ -46,18 +46,10 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
     if (!data) {
         return c.json(
             {
-                error: 'Unauthorized',
+                error: 'policy_denied',
+                code: 'unknown_key',
                 message: 'Provided proxy API key is not valid',
-            },
-            401,
-        );
-    }
-
-    if (!data.is_active) {
-        return c.json(
-            {
-                error: 'Unauthorized',
-                message: 'Provided proxy API key is not active',
+                gproxy_request_id: c.get('proxyRequestId'),
             },
             401,
         );

@@ -25,6 +25,11 @@ export type AdmitResult = {
     code?: string;
     reserved_tokens?: number;
     reserved_usd?: number;
+    window_starts?: {
+        minute: string | null;
+        day: string | null;
+        month: string | null;
+    };
 };
 
 export type InvokeCoreOptions = {
@@ -203,11 +208,15 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
             rpcCalls.push({ name, args });
             if (name === 'admit_proxy_request') {
                 return {
-                    data: options.admitResults?.shift() ?? {
-                        ok: true,
-                        reserved_tokens: 8192,
-                        reserved_usd: 0,
-                    },
+                    data:
+                        options.admitResults?.shift() ??
+                        (isActive
+                            ? {
+                                  ok: true,
+                                  reserved_tokens: 8192,
+                                  reserved_usd: 0,
+                              }
+                            : { ok: false, code: 'inactive_key' }),
                     error: null,
                 };
             }

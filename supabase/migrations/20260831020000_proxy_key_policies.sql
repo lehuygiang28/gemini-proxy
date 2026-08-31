@@ -228,6 +228,9 @@ COMMENT ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) IS
 CREATE OR REPLACE FUNCTION settle_proxy_request(
     p_proxy_key_id UUID,
     p_request_id TEXT,
+    p_minute_start TIMESTAMPTZ,
+    p_day_start TIMESTAMPTZ,
+    p_month_start TIMESTAMPTZ,
     p_reserved_tokens BIGINT,
     p_reserved_usd NUMERIC,
     p_actual_tokens BIGINT,
@@ -238,10 +241,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public', pg_catalog
 AS $$
-DECLARE
-    minute_start TIMESTAMPTZ := date_trunc('minute', NOW());
-    day_start TIMESTAMPTZ := date_trunc('day', NOW());
-    month_start TIMESTAMPTZ := date_trunc('month', NOW());
 BEGIN
     UPDATE proxy_api_keys
     SET inflight_count = GREATEST(inflight_count - 1, 0)
@@ -262,9 +261,21 @@ BEGIN
         settled_cost_usd = settled_cost_usd + GREATEST(COALESCE(p_actual_usd, 0), 0)
     WHERE proxy_key_id = p_proxy_key_id
       AND (
-          (window_type = 'minute' AND window_start = minute_start)
-          OR (window_type = 'day' AND window_start = day_start)
-          OR (window_type = 'month' AND window_start = month_start)
+          (
+              p_minute_start IS NOT NULL
+              AND window_type = 'minute'
+              AND window_start = p_minute_start
+          )
+          OR (
+              p_day_start IS NOT NULL
+              AND window_type = 'day'
+              AND window_start = p_day_start
+          )
+          OR (
+              p_month_start IS NOT NULL
+              AND window_type = 'month'
+              AND window_start = p_month_start
+          )
       );
 
     PERFORM p_request_id;
@@ -272,9 +283,13 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) FROM PUBLIC;
-REVOKE ALL ON FUNCTION settle_proxy_request(UUID, TEXT, BIGINT, NUMERIC, BIGINT, NUMERIC)
+REVOKE ALL ON FUNCTION settle_proxy_request(
+    UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
+)
     FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER)
     TO service_role;
-GRANT EXECUTE ON FUNCTION settle_proxy_request(UUID, TEXT, BIGINT, NUMERIC, BIGINT, NUMERIC)
+GRANT EXECUTE ON FUNCTION settle_proxy_request(
+    UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
+)
     TO service_role;

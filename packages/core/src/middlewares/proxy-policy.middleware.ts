@@ -12,6 +12,11 @@ type AdmitResult = {
     code?: string;
     reserved_tokens?: number;
     reserved_usd?: number;
+    window_starts?: {
+        minute?: string | null;
+        day?: string | null;
+        month?: string | null;
+    };
 };
 
 const DENY_STATUS: Record<string, ContentfulStatusCode> = {
@@ -145,6 +150,11 @@ export async function proxyPolicyMiddleware(
     c.set('proxyPolicyReservation', {
         reserved_tokens: Number(result.reserved_tokens ?? 0),
         reserved_usd: Number(result.reserved_usd ?? 0),
+        window_starts: {
+            minute: result.window_starts?.minute ?? null,
+            day: result.window_starts?.day ?? null,
+            month: result.window_starts?.month ?? null,
+        },
     });
     await next();
 }

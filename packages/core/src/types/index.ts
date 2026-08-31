@@ -35,6 +35,11 @@ export interface Variables extends HonoVariables {
     proxyPolicyReservation?: {
         reserved_tokens: number;
         reserved_usd: number;
+        window_starts: {
+            minute: string | null;
+            day: string | null;
+            month: string | null;
+        };
     };
     proxyRequestOptions?: ProxyRequestOptions;
     requestStartTime?: number;

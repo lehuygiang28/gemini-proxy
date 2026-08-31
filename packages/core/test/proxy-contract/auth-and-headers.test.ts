@@ -34,12 +34,16 @@ describe('proxy contract: auth and headers', () => {
             { proxyKey: null },
         );
         expect(actual.status).toBe(401);
-        const body = (await actual.json()) as { message: string };
-        expect(body.message).toBe('Provided proxy API key is not valid');
+        expect(await actual.json()).toEqual({
+            error: 'policy_denied',
+            code: 'unknown_key',
+            message: 'Provided proxy API key is not valid',
+            gproxy_request_id: expect.any(String),
+        });
         expect(originRequests).toHaveLength(0);
     });
 
-    it('rejects inactive proxy key with 401', async () => {
+    it('rejects an inactive valid-looking proxy key with inactive_key 400', async () => {
         const actual = await invokeCore(
             '/gemini/v1beta/models/gemini-flash:generateContent',
             {
@@ -49,9 +53,13 @@ describe('proxy contract: auth and headers', () => {
             },
             { proxyKeyActive: false },
         );
-        expect(actual.status).toBe(401);
-        const body = (await actual.json()) as { message: string };
-        expect(body.message).toBe('Provided proxy API key is not active');
+        expect(actual.status).toBe(400);
+        expect(await actual.json()).toEqual({
+            error: 'policy_denied',
+            code: 'inactive_key',
+            message: expect.any(String),
+            gproxy_request_id: expect.any(String),
+        });
         expect(originRequests).toHaveLength(0);
     });
 

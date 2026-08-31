@@ -385,6 +385,9 @@ export type Database = {
                 Args: {
                     p_actual_tokens: number;
                     p_actual_usd: number;
+                    p_day_start: string | null;
+                    p_minute_start: string | null;
+                    p_month_start: string | null;
                     p_proxy_key_id: string;
                     p_request_id: string;
                     p_reserved_tokens: number;
