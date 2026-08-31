@@ -8,6 +8,7 @@ export interface SanitizeOptions {
     redactHeaders?: boolean;
     truncateLength?: number;
     redactUrls?: boolean;
+    extraFieldNames?: string[];
 }
 
 export type SanitizedPayloadBody = {
@@ -33,12 +34,29 @@ export class DataSanitizer {
         'x-refresh-token',
     ];
 
-    private static readonly SENSITIVE_URL_PATTERNS = [
-        /api_key=/i,
-        /token=/i,
-        /key=/i,
-        /auth=/i,
-        /password=/i,
+    private static readonly SENSITIVE_JSON_FIELDS = [
+        'authorization',
+        'api_key',
+        'apikey',
+        'api_key_value',
+        'proxy_key_value',
+        'proxy_api_key',
+        'x-goog-api-key',
+        'x-api-key',
+        'password',
+        'secret',
+        'token',
+        'access_token',
+        'refresh_token',
+        'private_key',
+        'cookie',
+    ];
+
+    private static readonly SECRET_STRING_PATTERNS: readonly RegExp[] = [
+        /Bearer\s+[A-Za-z0-9._-]+/gi,
+        /\bsk-[A-Za-z0-9]{20,}\b/g,
+        /\bAIza[A-Za-z0-9_-]{10,}\b/g,
+        /\bAQ\.[A-Za-z0-9._-]{10,}\b/g,
     ];
 
     private static readonly DEFAULT_OPTIONS: SanitizeOptions = {
@@ -48,6 +66,42 @@ export class DataSanitizer {
         truncateLength: 1000,
         redactUrls: false,
     };
+
+    private static isSensitiveJsonField(key: string, extraFieldNames: string[] = []): boolean {
+        const lower = key.toLowerCase();
+        const names = [
+            ...this.SENSITIVE_JSON_FIELDS,
+            ...extraFieldNames.map((name) => name.toLowerCase()),
+        ];
+        return names.some((name) => lower === name || lower.endsWith(name));
+    }
+
+    private static redactSecretStrings(value: string): string {
+        let redacted = value;
+        for (const pattern of this.SECRET_STRING_PATTERNS) {
+            redacted = redacted.replace(new RegExp(pattern.source, pattern.flags), '[REDACTED]');
+        }
+        return redacted;
+    }
+
+    private static walkJson(value: unknown, extraFieldNames: string[]): unknown {
+        if (typeof value === 'string') {
+            return this.redactSecretStrings(value);
+        }
+        if (Array.isArray(value)) {
+            return value.map((item) => this.walkJson(item, extraFieldNames));
+        }
+        if (value !== null && typeof value === 'object') {
+            const sanitized: Record<string, unknown> = {};
+            for (const [key, child] of Object.entries(value)) {
+                sanitized[key] = this.isSensitiveJsonField(key, extraFieldNames)
+                    ? '[REDACTED]'
+                    : this.walkJson(child, extraFieldNames);
+            }
+            return sanitized;
+        }
+        return value;
+    }
 
     static sanitizeObject(obj: any, options: SanitizeOptions = {}): any {
         const opts = { ...this.DEFAULT_OPTIONS, ...options };
@@ -65,11 +119,13 @@ export class DataSanitizer {
         }
 
         if (typeof obj === 'object') {
-            const sanitized: any = {};
+            const sanitized: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(obj)) {
-                const sanitizedKey = this.sanitizeKey(key, opts);
-                const sanitizedValue = this.sanitizeObject(value, opts);
-                sanitized[sanitizedKey] = sanitizedValue;
+                if (this.isSensitiveJsonField(key, opts.extraFieldNames)) {
+                    sanitized[key] = '[REDACTED]';
+                } else {
+                    sanitized[key] = this.sanitizeObject(value, opts);
+                }
             }
             return sanitized;
         }
@@ -81,16 +137,10 @@ export class DataSanitizer {
         const opts = { ...this.DEFAULT_OPTIONS, ...options };
         let sanitized = str;
 
-        // Redact API keys and tokens
         if (opts.redactApiKeys || opts.redactTokens) {
-            // Redact API keys (typically 40+ character alphanumeric strings)
-            sanitized = sanitized.replace(/[a-zA-Z0-9]{40,}/g, '[REDACTED_API_KEY]');
-
-            // Redact Bearer tokens
-            sanitized = sanitized.replace(/Bearer\s+[a-zA-Z0-9._-]+/g, 'Bearer [REDACTED_TOKEN]');
+            sanitized = this.redactSecretStrings(sanitized);
         }
 
-        // Redact sensitive URL parameters
         if (opts.redactUrls) {
             sanitized = sanitized.replace(
                 /([?&])(api_key|token|key|auth|password)=[^&]*/gi,
@@ -98,7 +148,6 @@ export class DataSanitizer {
             );
         }
 
-        // Truncate if too long
         if (opts.truncateLength && sanitized.length > opts.truncateLength) {
             sanitized = sanitized.substring(0, opts.truncateLength) + ' [TRUNCATED]';
         }
@@ -106,18 +155,7 @@ export class DataSanitizer {
         return sanitized;
     }
 
-    static sanitizeKey(key: string, options: SanitizeOptions = {}): string {
-        const opts = { ...this.DEFAULT_OPTIONS, ...options };
-
-        // Check if key contains sensitive information
-        const lowerKey = key.toLowerCase();
-        if (
-            opts.redactHeaders &&
-            this.SENSITIVE_HEADERS.some((header) => lowerKey.includes(header))
-        ) {
-            return '[REDACTED_HEADER]';
-        }
-
+    static sanitizeKey(key: string, _options: SanitizeOptions = {}): string {
         return key;
     }
 
@@ -154,17 +192,14 @@ export class DataSanitizer {
         const preservedTruncated = sanitized.body_truncated;
         const preservedChars = sanitized.body_chars;
 
-        // Sanitize headers
         if (sanitized.headers) {
             sanitized.headers = this.sanitizeHeaders(sanitized.headers, opts);
         }
 
-        // Sanitize URL
         if (sanitized.url) {
             sanitized.url = this.sanitizeString(sanitized.url, opts);
         }
 
-        // Bodies are prepared via sanitizePayloadBody — do not re-apply 1000-char API-key shredder
         if (preservedBody !== undefined) {
             sanitized.body = preservedBody;
             sanitized.body_truncated = preservedTruncated;
@@ -184,12 +219,10 @@ export class DataSanitizer {
         const preservedTruncated = sanitized.body_truncated;
         const preservedChars = sanitized.body_chars;
 
-        // Sanitize headers
         if (sanitized.headers) {
             sanitized.headers = this.sanitizeHeaders(sanitized.headers, opts);
         }
 
-        // Bodies are prepared via sanitizePayloadBody — do not re-apply 1000-char API-key shredder
         if (preservedBody !== undefined) {
             sanitized.body = preservedBody;
             sanitized.body_truncated = preservedTruncated;
@@ -201,28 +234,33 @@ export class DataSanitizer {
 
     /**
      * Prepare a request/response payload body for storage.
-     * Truncates to maxChars; redacts Bearer/sk- secrets only — not generic long alphanumerics.
+     * Field-name walk after JSON parse, then explicit secret regexes. Truncates to maxChars.
      */
     static sanitizePayloadBody(
         text: string,
         maxChars: number = DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+        options?: { extraFieldNames?: string[] },
     ): SanitizedPayloadBody {
-        let redacted = text
-            .replace(/Bearer\s+[a-zA-Z0-9._-]+/gi, 'Bearer [REDACTED_TOKEN]')
-            .replace(/\bsk-[a-zA-Z0-9]{20,}\b/g, '[REDACTED_API_KEY]');
-        const originalLength = redacted.length;
-        const body_truncated = originalLength > maxChars;
-        if (body_truncated) {
-            redacted = redacted.substring(0, maxChars);
-        }
-        let body: string | Record<string, unknown> | unknown[] = redacted;
+        const extraFieldNames = options?.extraFieldNames ?? [];
+        let body: string | Record<string, unknown> | unknown[] = text;
         try {
-            const parsed: unknown = JSON.parse(redacted);
+            const parsed: unknown = JSON.parse(text);
             if (parsed !== null && typeof parsed === 'object') {
-                body = parsed as Record<string, unknown> | unknown[];
+                body = this.walkJson(parsed, extraFieldNames) as
+                    | Record<string, unknown>
+                    | unknown[];
+            } else if (typeof parsed === 'string') {
+                body = this.redactSecretStrings(parsed);
             }
         } catch {
-            // keep as string (SSE streams, plain text)
+            body = this.redactSecretStrings(text);
+        }
+
+        const serialized = typeof body === 'string' ? body : JSON.stringify(body);
+        const originalLength = serialized.length;
+        const body_truncated = originalLength > maxChars;
+        if (body_truncated) {
+            body = serialized.substring(0, maxChars);
         }
         return {
             body,
