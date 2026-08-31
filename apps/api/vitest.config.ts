@@ -7,8 +7,8 @@ const packageDir = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
     resolve: {
         alias: {
-            '@gemini-proxy/core': path.resolve(packageDir, '../core/src/index.ts'),
-            '@gemini-proxy/database': path.resolve(packageDir, '../database/index.ts'),
+            '@gemini-proxy/core': path.resolve(packageDir, '../../packages/core/src/index.ts'),
+            '@gemini-proxy/database': path.resolve(packageDir, '../../packages/database/index.ts'),
         },
     },
     test: {
