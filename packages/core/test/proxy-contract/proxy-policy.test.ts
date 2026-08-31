@@ -187,7 +187,7 @@ describe('proxy contract: proxy-key policy', () => {
         await flushWaitUntil();
 
         expect(rpcCalls).toContainEqual({
-            name: 'settle_proxy_request',
+            name: 'finalize_proxy_request',
             args: expect.objectContaining({
                 p_proxy_key_id: CONTRACT_PROXY_KEY_ID,
                 p_request_id: expect.any(String),
@@ -217,7 +217,7 @@ describe('proxy contract: proxy-key policy', () => {
 
         expect(actualResponse.status).toBe(502);
         expect(rpcCalls).toContainEqual({
-            name: 'settle_proxy_request',
+            name: 'finalize_proxy_request',
             args: expect.objectContaining({
                 p_reserved_tokens: 128,
                 p_reserved_usd: 0.0005,
@@ -255,7 +255,7 @@ describe('proxy contract: proxy-key policy', () => {
         await flushWaitUntil();
 
         expect(rpcCalls).toContainEqual({
-            name: 'settle_proxy_request',
+            name: 'finalize_proxy_request',
             args: expect.objectContaining({
                 p_proxy_key_id: CONTRACT_PROXY_KEY_ID,
                 p_request_id: expect.any(String),
@@ -268,6 +268,6 @@ describe('proxy contract: proxy-key policy', () => {
                 p_month_start: windowStarts.month,
             }),
         });
-        expect(rpcCalls.filter((call) => call.name === 'settle_proxy_request')).toHaveLength(1);
+        expect(rpcCalls.filter((call) => call.name === 'finalize_proxy_request')).toHaveLength(1);
     });
 });

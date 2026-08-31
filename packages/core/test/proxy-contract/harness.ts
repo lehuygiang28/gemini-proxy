@@ -18,6 +18,7 @@ export const CONTRACT_GEMINI_KEY_2 = 'AIzaSyTESTGEMINIKEY00000000002';
 
 export const originRequests: Request[] = [];
 export const rpcCalls: { name: string; args: unknown }[] = [];
+export const reconciliationInserts: Record<string, unknown>[] = [];
 const waitUntilPromises: Promise<unknown>[] = [];
 
 export type AdmitResult = {
@@ -45,6 +46,7 @@ export type InvokeCoreOptions = {
     originHeaders?: HeadersInit;
     environment?: Record<string, string>;
     admitResults?: AdmitResult[];
+    finalizeResults?: Array<'ok' | 'error'>;
 };
 
 type QueryResult = {
@@ -87,6 +89,7 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
     order: (...args: unknown[]) => unknown;
     limit: (...args: unknown[]) => unknown;
     update: (...args: unknown[]) => unknown;
+    insert: (...args: unknown[]) => unknown;
     upsert: (...args: unknown[]) => unknown;
     maybeSingle: () => Promise<QueryResult>;
     single: () => Promise<QueryResult>;
@@ -141,6 +144,7 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
         order: (..._args: unknown[]) => query,
         limit: (..._args: unknown[]) => query,
         update: (..._args: unknown[]) => query,
+        insert: (..._args: unknown[]) => query,
         upsert: (..._args: unknown[]) => query,
         maybeSingle: async () => getResult(filters),
         single: async () => getResult(filters),
@@ -284,6 +288,25 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                     return { data: filtered, error: null, count: filtered.length };
                 });
             }
+            if (table === 'proxy_reconciliation_needed') {
+                const query = createQuery(() => ({
+                    data: reconciliationInserts,
+                    error: null,
+                    count: reconciliationInserts.length,
+                }));
+                const recordWrite = (payload: unknown) => {
+                    const rows = Array.isArray(payload) ? payload : [payload];
+                    for (const row of rows) {
+                        if (row && typeof row === 'object') {
+                            reconciliationInserts.push(row as Record<string, unknown>);
+                        }
+                    }
+                    return query;
+                };
+                query.insert = recordWrite;
+                query.upsert = recordWrite;
+                return query;
+            }
             return createQuery(() => ({ data: null, error: null }));
         },
         async rpc(name: string, args: unknown) {
@@ -301,6 +324,13 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                             : { ok: false, code: 'inactive_key' }),
                     error: null,
                 };
+            }
+            if (name === 'finalize_proxy_request') {
+                const next = options.finalizeResults?.shift() ?? 'ok';
+                if (next === 'error') {
+                    return { data: null, error: { message: 'finalize failed' } };
+                }
+                return { data: null, error: null };
             }
             if (name === 'settle_proxy_request') {
                 return { data: null, error: null };
@@ -449,6 +479,7 @@ export async function flushWaitUntil(): Promise<void> {
 export function resetContractHarness(): void {
     originRequests.length = 0;
     rpcCalls.length = 0;
+    reconciliationInserts.length = 0;
     waitUntilPromises.length = 0;
     persistedKeyPatches.clear();
     persistedModelCooldowns.length = 0;
