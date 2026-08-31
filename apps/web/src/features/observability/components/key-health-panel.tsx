@@ -55,26 +55,30 @@ export function KeyHealthPanel({
     const { translate } = useTranslation();
     const items = useMemo(() => {
         const mapped: HealthItem[] = [
-            ...apiKeys.map((key) => ({
-                id: key.id,
-                name: key.name,
-                kind: 'api' as const,
-                isActive: key.is_active,
-                successRate: calculateSuccessRate(key.success_count, key.failure_count),
-                failureCount: key.failure_count,
-                totalTokens: key.total_tokens,
-                cooldownUntil: key.cooldown_until,
-            })),
-            ...proxyKeys.map((key) => ({
-                id: key.id,
-                name: key.name,
-                kind: 'proxy' as const,
-                isActive: key.is_active,
-                successRate: calculateSuccessRate(key.success_count, key.failure_count),
-                failureCount: key.failure_count,
-                totalTokens: key.total_tokens,
-                cooldownUntil: null,
-            })),
+            ...apiKeys.map(
+                (key): HealthItem => ({
+                    id: key.id,
+                    name: key.name,
+                    kind: 'api',
+                    isActive: key.is_active,
+                    successRate: calculateSuccessRate(key.success_count, key.failure_count),
+                    failureCount: key.failure_count,
+                    totalTokens: key.total_tokens,
+                    cooldownUntil: key.cooldown_until,
+                }),
+            ),
+            ...proxyKeys.map(
+                (key): HealthItem => ({
+                    id: key.id,
+                    name: key.name,
+                    kind: 'proxy',
+                    isActive: key.is_active,
+                    successRate: calculateSuccessRate(key.success_count, key.failure_count),
+                    failureCount: key.failure_count,
+                    totalTokens: key.total_tokens,
+                    cooldownUntil: null,
+                }),
+            ),
         ];
         return mapped
             .sort((left, right) => {
