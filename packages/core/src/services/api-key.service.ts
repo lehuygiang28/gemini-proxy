@@ -239,6 +239,37 @@ export class ApiKeyService {
         return (count ?? 0) > 0;
     }
 
+    /** Return the shortest remaining cooldown among unused active keys. */
+    static async getSoonestRemainingCooldownMs(
+        c: Context<HonoApp>,
+        userId: string,
+        excludeIds: string[] = [],
+    ): Promise<number | null> {
+        const supabase = getSupabaseClient(c);
+        const nowMs = Date.now();
+        const nowIso = new Date(nowMs).toISOString();
+        let query = supabase
+            .from('api_keys')
+            .select('cooldown_until')
+            .eq('is_active', true)
+            .is('deleted_at', null)
+            .eq('user_id', userId)
+            .gt('cooldown_until', nowIso);
+        if (excludeIds.length > 0) {
+            const inList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
+            query = query.not('id', 'in', inList);
+        }
+        const { data, error } = await query.order('cooldown_until', { ascending: true }).limit(1);
+        if (error) {
+            throw new Error(`Failed to query API key cooldown: ${error.message}`);
+        }
+        const cooldownUntil = data?.[0]?.cooldown_until;
+        if (!cooldownUntil) {
+            return null;
+        }
+        return Math.max(0, new Date(cooldownUntil).getTime() - Date.now());
+    }
+
     /**
      * Reserve the next best API key according to selection criteria, excluding used IDs.
      * It immediately updates last_used_at to reduce race conditions across concurrent requests.

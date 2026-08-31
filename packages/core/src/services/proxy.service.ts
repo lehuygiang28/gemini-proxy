@@ -587,37 +587,55 @@ export class ProxyService {
                 try {
                     selectedApiKey = await this.selectOptimalApiKey(selectionParams);
                 } catch (selectionError) {
+                    if (baseRequest.signal.aborted) {
+                        break;
+                    }
                     const availableNow = await ApiKeyService.countAvailableApiKeys(
                         c,
                         proxyApiKeyData.user_id,
                     );
-                    if (availableNow === 0) {
-                        const hasActiveKey = await ApiKeyService.hasActiveApiKey(
-                            c,
-                            proxyApiKeyData.user_id,
-                            usedApiKeyIds,
-                        );
-                        if (!hasActiveKey) {
-                            break;
+                    if (availableNow > 0) {
+                        try {
+                            selectedApiKey = await this.selectOptimalApiKey(selectionParams);
+                        } catch {
+                            selectedApiKey = undefined;
                         }
                     }
-                    pendingWaitedMs = computeRetryDelayMs({
-                        attempt: currentAttempt,
-                        baseDelayMs: retryConfig.baseDelayMs,
-                        maxDelayMs: retryConfig.maxDelayMs,
-                        random: Math.random,
-                    });
-                    if (pendingWaitedMs > 0) {
-                        await new Promise<void>((resolve) => setTimeout(resolve, pendingWaitedMs));
-                    }
-                    try {
-                        selectedApiKey = await this.selectOptimalApiKey(selectionParams);
-                    } catch {
-                        console.warn(
-                            'No API key became eligible after retry delay:',
-                            selectionError,
+                    if (!selectedApiKey) {
+                        const remainingCooldownMs =
+                            await ApiKeyService.getSoonestRemainingCooldownMs(
+                                c,
+                                proxyApiKeyData.user_id,
+                                usedApiKeyIds,
+                            );
+                        if (remainingCooldownMs === null) {
+                            break;
+                        }
+                        pendingWaitedMs = Math.min(
+                            remainingCooldownMs,
+                            computeRetryDelayMs({
+                                attempt: currentAttempt,
+                                baseDelayMs: retryConfig.baseDelayMs,
+                                maxDelayMs: retryConfig.maxDelayMs,
+                                random: Math.random,
+                            }),
                         );
-                        break;
+                        const didCompleteWait = await this.waitForRetryDelay(
+                            pendingWaitedMs,
+                            baseRequest.signal,
+                        );
+                        if (!didCompleteWait || baseRequest.signal.aborted) {
+                            break;
+                        }
+                        try {
+                            selectedApiKey = await this.selectOptimalApiKey(selectionParams);
+                        } catch {
+                            console.warn(
+                                'No API key became eligible after retry delay:',
+                                selectionError,
+                            );
+                            break;
+                        }
                     }
                 }
                 if (!selectedApiKey) {
@@ -751,6 +769,33 @@ export class ProxyService {
             return Math.min(maxRetries, availableApiKeys);
         }
         return 0;
+    }
+
+    private static async waitForRetryDelay(
+        delayMs: number,
+        clientSignal: AbortSignal,
+    ): Promise<boolean> {
+        if (clientSignal.aborted) {
+            return false;
+        }
+        if (delayMs <= 0) {
+            return true;
+        }
+        return new Promise<boolean>((resolve) => {
+            let timeoutId: ReturnType<typeof setTimeout> | undefined;
+            const finishWait = (didComplete: boolean): void => {
+                if (timeoutId === undefined) {
+                    return;
+                }
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+                clientSignal.removeEventListener('abort', handleAbort);
+                resolve(didComplete);
+            };
+            const handleAbort = (): void => finishWait(false);
+            timeoutId = setTimeout(() => finishWait(true), delayMs);
+            clientSignal.addEventListener('abort', handleAbort, { once: true });
+        });
     }
 
     private static createRetryAttempt(params: RetryAttemptParams): RetryAttemptData {

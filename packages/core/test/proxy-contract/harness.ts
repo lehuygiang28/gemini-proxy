@@ -24,6 +24,7 @@ export type InvokeCoreOptions = {
     proxyKeyActive?: boolean;
     supabaseThrows?: boolean;
     extraApiKeys?: boolean;
+    extraApiKeyCooldownUntil?: string | null;
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
     environment?: Record<string, string>;
@@ -37,12 +38,14 @@ type QueryResult = {
 
 type QueryFilters = {
     excludedIds: Set<string>;
+    cooldownAfter: string | null;
     cooldownBefore: string | null;
 };
 
 function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
     select: (...args: unknown[]) => unknown;
     eq: (...args: unknown[]) => unknown;
+    gt: (...args: unknown[]) => unknown;
     is: (...args: unknown[]) => unknown;
     not: (...args: unknown[]) => unknown;
     or: (...args: unknown[]) => unknown;
@@ -59,11 +62,18 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
 } {
     const filters: QueryFilters = {
         excludedIds: new Set<string>(),
+        cooldownAfter: null,
         cooldownBefore: null,
     };
     const query = {
         select: (..._args: unknown[]) => query,
         eq: (..._args: unknown[]) => query,
+        gt: (column: unknown, value: unknown) => {
+            if (column === 'cooldown_until' && typeof value === 'string') {
+                filters.cooldownAfter = value;
+            }
+            return query;
+        },
         is: (..._args: unknown[]) => query,
         not: (column: unknown, operator: unknown, value: unknown) => {
             if (column === 'id' && operator === 'in' && typeof value === 'string') {
@@ -130,7 +140,7 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                       created_at: new Date().toISOString(),
                       failure_count: 0,
                       consecutive_failures: 0,
-                      cooldown_until: null,
+                      cooldown_until: options.extraApiKeyCooldownUntil ?? null,
                       is_active: true,
                   },
               ]
@@ -145,6 +155,13 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                 return createQuery((filters) => {
                     const filteredApiKeys = apiKeys.filter((apiKey) => {
                         if (filters.excludedIds.has(apiKey.id)) {
+                            return false;
+                        }
+                        if (
+                            filters.cooldownAfter !== null &&
+                            (apiKey.cooldown_until === null ||
+                                apiKey.cooldown_until <= filters.cooldownAfter)
+                        ) {
                             return false;
                         }
                         if (
@@ -209,6 +226,9 @@ export async function invokeCore(
     options: InvokeCoreOptions = {},
 ): Promise<Response> {
     originRequests.length = 0;
+    for (const [name, value] of Object.entries(options.environment ?? {})) {
+        vi.stubEnv(name, value);
+    }
     setSupabaseFactoryForTests((_c: Context) => {
         if (options.supabaseThrows) {
             throw new Error('supabase probe failed');
@@ -253,4 +273,5 @@ export function resetContractHarness(): void {
     setSupabaseFactoryForTests(null);
     resetSupabaseClient();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
 }

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiKeyService } from '../../src/services/api-key.service';
 import {
     CONTRACT_API_KEY_ID,
     CONTRACT_GEMINI_KEY_2,
@@ -25,6 +26,7 @@ function createProxyRequestInit(signal?: AbortSignal): RequestInit {
 
 describe('proxy contract: timeout and retry', () => {
     afterEach(() => {
+        vi.restoreAllMocks();
         resetContractHarness();
     });
 
@@ -65,6 +67,38 @@ describe('proxy contract: timeout and retry', () => {
                 p_cooldown_until: expect.any(String),
             }),
         });
+    });
+
+    it('immediately retries reservation when an eligible key exists', async () => {
+        const reserveNextApiKey = ApiKeyService.reserveNextApiKey.bind(ApiKeyService);
+        let reservationCallCount = 0;
+        vi.spyOn(ApiKeyService, 'reserveNextApiKey').mockImplementation(async (context, params) => {
+            reservationCallCount += 1;
+            if (reservationCallCount === 2) {
+                throw new Error('simulated reservation race');
+            }
+            return reserveNextApiKey(context, params);
+        });
+        vi.spyOn(Math, 'random').mockReturnValue(1);
+        const startedAt = Date.now();
+
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            environment: {
+                PROXY_RETRY_BASE_DELAY_MS: '250',
+                PROXY_RETRY_MAX_DELAY_MS: '250',
+            },
+            originResponses: [
+                new Response(JSON.stringify({ error: { message: 'upstream unavailable' } }), {
+                    status: 503,
+                }),
+                new Response(JSON.stringify({ candidates: [] }), { status: 200 }),
+            ],
+        });
+
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+        expect(Date.now() - startedAt).toBeLessThan(100);
     });
 
     it('disables key A after 401 then uses key B', async () => {
@@ -111,13 +145,47 @@ describe('proxy contract: timeout and retry', () => {
         ).toBe(false);
     });
 
-    it('retries another key after an upstream timeout', async () => {
+    it('waits only for the shorter remaining key cooldown', async () => {
+        vi.spyOn(Math, 'random').mockReturnValue(1);
+        const startedAt = Date.now();
         const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
             extraApiKeys: true,
-            environment: { PROXY_UPSTREAM_TIMEOUT_MS: '50' },
+            extraApiKeyCooldownUntil: new Date(Date.now() + 200).toISOString(),
+            environment: {
+                PROXY_RETRY_BASE_DELAY_MS: '1000',
+                PROXY_RETRY_MAX_DELAY_MS: '1000',
+            },
             originResponses: [
-                async () => {
-                    throw new DOMException('The operation timed out.', 'TimeoutError');
+                new Response(JSON.stringify({ error: { message: 'upstream unavailable' } }), {
+                    status: 503,
+                }),
+                new Response(JSON.stringify({ candidates: [] }), { status: 200 }),
+            ],
+        });
+
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+        expect(Date.now() - startedAt).toBeLessThan(600);
+    });
+
+    it('retries another key after an upstream timeout', async () => {
+        let firstAttemptSignal: AbortSignal | undefined;
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            environment: { PROXY_UPSTREAM_TIMEOUT_MS: '1000' },
+            originResponses: [
+                async (request) => {
+                    firstAttemptSignal = request.signal;
+                    if (request.signal.aborted) {
+                        throw request.signal.reason;
+                    }
+                    await new Promise<never>((_resolve, reject) => {
+                        request.signal.addEventListener(
+                            'abort',
+                            () => reject(request.signal.reason),
+                            { once: true },
+                        );
+                    });
                 },
                 new Response(JSON.stringify({ candidates: [] }), { status: 200 }),
             ],
@@ -125,22 +193,30 @@ describe('proxy contract: timeout and retry', () => {
 
         expect(actualResponse.status).toBe(200);
         expect(originRequests).toHaveLength(2);
+        expect(firstAttemptSignal?.aborted).toBe(true);
     });
 
-    it('does not retry when the client aborts', async () => {
+    it('does not reserve or call another key when the client aborts during cooldown wait', async () => {
         const clientAbortController = new AbortController();
-        clientAbortController.abort(new DOMException('client aborted', 'AbortError'));
+        vi.spyOn(Math, 'random').mockReturnValue(1);
 
         const actualResponse = await invokeCore(
             PROXY_PATH,
             createProxyRequestInit(clientAbortController.signal),
             {
                 extraApiKeys: true,
+                extraApiKeyCooldownUntil: new Date(Date.now() + 200).toISOString(),
+                environment: {
+                    PROXY_RETRY_BASE_DELAY_MS: '1000',
+                    PROXY_RETRY_MAX_DELAY_MS: '1000',
+                },
                 originResponses: [
-                    async (request) => {
-                        if (request.signal.aborted) {
-                            throw request.signal.reason;
-                        }
+                    async () => {
+                        setTimeout(() => {
+                            clientAbortController.abort(
+                                new DOMException('client aborted', 'AbortError'),
+                            );
+                        }, 50);
                         return new Response(JSON.stringify({ error: { message: 'aborted' } }), {
                             status: 500,
                         });
