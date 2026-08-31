@@ -1,7 +1,7 @@
 # P0/P1 master architecture — Gemini-native gateway
 
 **Date:** 2026-08-31
-**Status:** Section 1 approved (including `/v1` amendment). Remaining feature specs require review before implementation plans.
+**Status:** Sections 0–5 approved (locked decisions + continue). Implementation plans follow; one PR per spec, stacked.
 **Positioning:** Self-hosted, Gemini-native, edge-first gateway. Do not become a multi-provider LiteLLM/Portkey clone.
 **Approach:** Direction B — layered incremental. Keep Hono, Supabase, and Refine. Do not add Redis, a queue service, OpenTelemetry, or a new microservice.
 
@@ -9,16 +9,16 @@ This document is the source of truth when a feature spec conflicts with it. Feat
 
 ## Specs in this program
 
-| ID  | Priority | Spec | Status |
-| --- | -------- | ---- | ------ |
-| 0   | —        | This master architecture | Approved |
-| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-ci-contract-tests-design.md) | Presented; awaiting formal approval |
-| 2   | P0       | Tenant ownership, CLI, auth, and log privacy | Not yet presented in detail |
-| 3   | P0       | Routing (`/v1`), passthrough, retry, and cooldown | Not yet presented in detail |
-| 4   | P1       | Proxy-key policy, timezone, admission, and budget | Not yet presented in detail |
-| 5   | P1       | Persistence reliability, dashboard alerts, and reconciliation | Not yet presented in detail |
+| ID  | Priority | Spec | Plan | Status |
+| --- | -------- | ---- | ---- | ------ |
+| 0   | —        | This master architecture | — | Approved |
+| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-ci-contract-tests-design.md) | [plan](../plans/2026-08-31-ci-contract-tests.md) | Approved |
+| 2   | P0       | [Tenant, CLI, auth, privacy](./2026-08-31-auth-tenant-log-privacy-design.md) | [plan](../plans/2026-08-31-auth-tenant-log-privacy.md) | Approved |
+| 3   | P0       | [`/v1` routing, passthrough, retry, cooldown](./2026-08-31-v1-routing-retry-cooldown-design.md) | [plan](../plans/2026-08-31-v1-routing-retry-cooldown.md) | Approved |
+| 4   | P1       | [Proxy-key policy, timezone, admission](./2026-08-31-proxy-key-policy-design.md) | [plan](../plans/2026-08-31-proxy-key-policy.md) | Approved |
+| 5   | P1       | [Persistence, alerts, reconciliation](./2026-08-31-persistence-reliability-design.md) | [plan](../plans/2026-08-31-persistence-reliability.md) | Approved |
 
-Write implementation plans only after the matching spec is approved. Each approved spec is one plan and one PR (stacked if needed).
+Each spec is one implementation plan and one PR (stacked).
 
 ### Dropped from this program
 
@@ -40,7 +40,7 @@ Superseded drafts (do not implement):
 - [Interactions affinity](./2026-08-31-interactions-resource-affinity-design.md)
 - [OpenTelemetry alerting](./2026-08-31-otel-alerting-design.md)
 
-Prior drafts of auth, retry, and proxy-key policy remain on disk until their replacement sections are approved. They are not implementation authorization.
+Replacement specs for auth, `/v1`+retry, policy, and persistence are the implementation authorization. Older timeout-retry / TPM-concurrency drafts stay on disk as SUPERSEDED.
 
 ## Locked product decisions
 

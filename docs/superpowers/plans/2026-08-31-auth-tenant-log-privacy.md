@@ -1,8 +1,8 @@
 # Auth, tenant isolation, and log privacy Implementation Plan
 
-> **FROZEN.** Not implementation authorization. Rewrite after program spec 2 is approved. Query `?key=` is not a valid credential.
-
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+> Most of this plan has landed on `cursor/auth-tenant-log-privacy-a451`. Remaining Task 4: drop `query-key`, return conflict when both goog and Bearer are present (400).
 
 **Goal:** Path-independent proxy credential extraction, tenant-only Gemini keys, JSON-field redaction, CLI owner resolver, delete `x-gproxy-*` and zero-completion retry, add `/healthz` and `/readyz`.
 
@@ -139,6 +139,16 @@ export async function resolveOwnerUserId(input: {
 
 ---
 
+### Task 4: Drop query-key; conflict on both headers
+
+Locked: no `?key=` / `x-api-key`. Both `x-goog-api-key` and `Authorization: Bearer` → 400 `conflicting_credentials`.
+
+- [ ] **Step 1:** Change `extract-proxy-credential.test.ts`: query-only → null; both valid headers → `{ error: 'conflicting_credentials' }`; goog-only and bearer-only still work. Watch RED (query-only currently returns a credential).
+- [ ] **Step 2:** Implement. Middleware maps conflict → 400 JSON. Contract: `?key=` only 401; both headers 400.
+- [ ] **Step 3:** Commit `fix(core): reject query keys and conflicting proxy credentials`
+
+---
+
 ## Spec coverage
 
-Credential sources, query stripping, tenant SQL, CLI 0/1/many, redaction, header deletion, synthetic retry deletion, healthz/readyz — all tasked. Encryption remains out of scope.
+Credential sources, query stripping, tenant SQL, CLI 0/1/many, redaction, header deletion, synthetic retry deletion, healthz/readyz, no `?key=`, both-headers 400. Encryption remains out of scope.

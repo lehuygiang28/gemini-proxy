@@ -1,176 +1,110 @@
-# P1 — Proxy-key policy, atomic admission, and budget settlement
-
-> **DRAFT FROZEN.** Not implementation authorization. The replacement is program spec 4 (RPM, request/day, token/day, USD/month, model allowlist, `expires_at`, IANA timezone). TPM / max-concurrent / max-output / max-body from this draft are not locked.
+# P1 — Proxy-key policy, timezone, admission, and budget
 
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
-**Depends on:** spec 2 (tenant-owned proxy keys, no client headers).
-**Approach:** Limits live on `proxy_api_keys` rows. Admit with a single SQL RPC before upstream fetch. Settle after the response. Null means unlimited.
+**Depends on:** spec 2 (tenant-owned proxy keys). Spec 3 provides parsed `model` / `apiFormat` for managed endpoints.
+**Status:** Approved (locked decisions + continue). Replaces the frozen TPM/concurrency draft.
+**Approach:** Limits live on `proxy_api_keys`. Admit with one SQL RPC before upstream. Settle after the response. Null means unlimited. Daily/monthly windows use the owner's IANA timezone.
 
 ## Goal
 
-A proxy key can cap RPM, TPM, RPD, concurrency, daily/monthly USD, model allow/deny, max output tokens, and max body size. Concurrent requests cannot overshoot because reservation is atomic in Postgres. Holders of the key cannot raise the caps.
+A proxy key can cap RPM, request/day, token/day, estimated USD/month, model allowlist, and `expires_at`. RPM and request/day are hard atomic limits. Token/day and USD/month are guardrails (settled + outstanding reservations). Holders of the key cannot raise caps via headers.
 
-## Why not headers
+## Schema (additive)
 
-Spec 2 deleted `x-gproxy-*`. Policy is operator-configured on the key (web UI + CLI later). The data plane only reads the row.
+On `proxy_api_keys` (keep existing columns that already match; do not add TPM / max_concurrent / max_output / max_body as locked requirements — if they already exist from a prior draft, leave them unused by admit unless already wired, and do not document them as supported):
 
-## Schema
+| Column | Type | Rule |
+| ------ | ---- | ---- |
+| `rpm_limit` | INTEGER NULL | null or > 0. Hard. |
+| `rpd_limit` | INTEGER NULL | request/day, null or > 0. Hard. |
+| `token_day_limit` | BIGINT NULL | token/day guardrail, null or > 0. |
+| `monthly_budget_usd` | NUMERIC(12,6) NULL | USD/month guardrail, null or > 0. |
+| `allowed_models` | TEXT[] NULL | null/empty = all models. Trailing `*` glob only. |
+| `expires_at` | TIMESTAMPTZ NULL | null = no expiry. |
 
-Migration `supabase/migrations/YYYYMMDDHHMMSS_proxy_key_policies.sql`. Mirror `schema.sql`.
+On `user_settings`:
 
 ```sql
-ALTER TABLE proxy_api_keys
-    ADD COLUMN IF NOT EXISTS rpm_limit INTEGER,
-    ADD COLUMN IF NOT EXISTS tpm_limit INTEGER,
-    ADD COLUMN IF NOT EXISTS rpd_limit INTEGER,
-    ADD COLUMN IF NOT EXISTS max_concurrent INTEGER,
-    ADD COLUMN IF NOT EXISTS daily_budget_usd NUMERIC(12,6),
-    ADD COLUMN IF NOT EXISTS monthly_budget_usd NUMERIC(12,6),
-    ADD COLUMN IF NOT EXISTS allowed_models TEXT[],
-    ADD COLUMN IF NOT EXISTS denied_models TEXT[],
-    ADD COLUMN IF NOT EXISTS max_output_tokens INTEGER,
-    ADD COLUMN IF NOT EXISTS max_request_body_bytes INTEGER,
-    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS inflight_count INTEGER NOT NULL DEFAULT 0;
-
-ALTER TABLE proxy_api_keys
-    ADD CONSTRAINT proxy_api_keys_rpm_limit_pos CHECK (rpm_limit IS NULL OR rpm_limit > 0),
-    ADD CONSTRAINT proxy_api_keys_tpm_limit_pos CHECK (tpm_limit IS NULL OR tpm_limit > 0),
-    ADD CONSTRAINT proxy_api_keys_rpd_limit_pos CHECK (rpd_limit IS NULL OR rpd_limit > 0),
-    ADD CONSTRAINT proxy_api_keys_max_concurrent_pos CHECK (max_concurrent IS NULL OR max_concurrent > 0),
-    ADD CONSTRAINT proxy_api_keys_max_output_pos CHECK (max_output_tokens IS NULL OR max_output_tokens > 0),
-    ADD CONSTRAINT proxy_api_keys_max_body_pos CHECK (max_request_body_bytes IS NULL OR max_request_body_bytes > 0),
-    ADD CONSTRAINT proxy_api_keys_inflight_nonneg CHECK (inflight_count >= 0);
-
-CREATE TABLE IF NOT EXISTS proxy_key_quota_windows (
-    proxy_key_id UUID NOT NULL REFERENCES proxy_api_keys(id) ON DELETE CASCADE,
-    window_type TEXT NOT NULL CHECK (window_type IN ('minute', 'day', 'month')),
-    window_start TIMESTAMPTZ NOT NULL,
-    request_count BIGINT NOT NULL DEFAULT 0,
-    token_count BIGINT NOT NULL DEFAULT 0,
-    reserved_tokens BIGINT NOT NULL DEFAULT 0,
-    reserved_cost_usd NUMERIC(12,6) NOT NULL DEFAULT 0,
-    settled_cost_usd NUMERIC(12,6) NOT NULL DEFAULT 0,
-    PRIMARY KEY (proxy_key_id, window_type, window_start)
-);
-
-CREATE INDEX IF NOT EXISTS idx_proxy_key_quota_windows_start
-    ON proxy_key_quota_windows (window_start);
-
-ALTER TABLE proxy_key_quota_windows ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view quota windows for their proxy keys"
-    ON proxy_key_quota_windows FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM proxy_api_keys p
-            WHERE p.id = proxy_key_id
-              AND (p.user_id = (SELECT auth.uid()) OR (SELECT auth.role()) = 'service_role')
-        )
-    );
-
--- service_role insert/update via RPC only
+ALTER TABLE user_settings
+  ADD COLUMN timezone TEXT NOT NULL DEFAULT 'UTC';
+ALTER TABLE user_settings
+  ADD CONSTRAINT user_settings_timezone_iana
+    CHECK (timezone ~ '^[A-Za-z0-9_+\-/]+$');
 ```
 
-Window starts are truncated:
+Validate IANA at write time in the web/CLI layer with `Intl.supportedValuesOf('timeZone')` (or `dayjs/timezone` loaded zone list). Invalid timezone → 400 / CLI error. **No silent fallback.** Unset column default is `UTC`.
 
-- `minute` → `date_trunc('minute', now())`
-- `day` → `date_trunc('day', now())` UTC
-- `month` → `date_trunc('month', now())` UTC
+## Windows
 
-Do not add IP allowlists in v1 (Cloudflare/Vercel client IP headers are inconsistent; YAGNI until a real demand). `allowed_origins` is also deferred.
+Store `window_start` in **UTC**.
 
-### Admit RPC
+- Minute: `date_trunc('minute', now())` UTC (RPM is not timezone-shifted).
+- Day: start of civil day in `user_settings.timezone`, converted to UTC timestamptz.
+- Month: start of civil month in that timezone, converted to UTC.
 
-`admit_proxy_request(p_proxy_key_id uuid, p_model text, p_estimated_tokens bigint, p_estimated_usd numeric, p_body_bytes integer) RETURNS jsonb`
+Changing timezone does **not** reset the active day/month row. New zone applies when the next period starts (new `window_start`).
 
-Runs as `SECURITY DEFINER`, `GRANT EXECUTE TO service_role`.
+`proxy_key_quota_windows` stays the ledger: `window_type IN ('minute','day','month')`, `request_count`, `token_count`, `reserved_tokens`, `reserved_cost_usd`, `settled_cost_usd`.
 
-Steps inside one transaction:
+## Admit RPC
 
-1. `SELECT … FOR UPDATE` the `proxy_api_keys` row (`deleted_at IS NULL`). Missing → `{ ok: false, code: 'unknown_key' }`.
-2. If `is_active = false` → `inactive_key`.
-3. If `expires_at IS NOT NULL AND expires_at <= now()` → `expired_key`.
-4. Model: if `denied_models` contains `p_model` (or a prefix match — **exact match only** in v1, plus trailing `*` glob: `gemini-2.5-*`) → `model_denied`. If `allowed_models` is non-null and non-empty and no entry matches → `model_denied`. Null/empty allowlist = all models allowed (minus deny). Unknown/missing model: if allowlist is set, deny (`model_required`).
-5. If `max_request_body_bytes` set and `p_body_bytes` exceeds → `body_too_large`.
-6. If `max_concurrent` set and `inflight_count >= max_concurrent` → `concurrency`.
-7. Upsert minute and day windows. If `rpm_limit` is set and minute `request_count >= rpm_limit` → `rpm`. If `rpd_limit` is set and day `request_count >= rpd_limit` → `rpd`. If `tpm_limit` is set and `(token_count + reserved_tokens + p_estimated_tokens) > tpm_limit` on the minute window → `tpm`.
-8. Daily/monthly budget (window table is the only ledger): if the matching limit is set and `(reserved_cost_usd + settled_cost_usd + p_estimated_usd) > limit` → `budget`.
-9. Increment `inflight_count` by 1. Increment window `request_count` by 1. Add `p_estimated_tokens` to `reserved_tokens`. Add `p_estimated_usd` to `reserved_cost_usd`. Do not add estimates to `token_count` or `settled_cost_usd`.
-10. Return `{ ok: true, reserved_tokens, reserved_usd, window_starts: { minute, day, month } }`.
+`admit_proxy_request(...) RETURNS jsonb`, `SECURITY DEFINER`, `GRANT EXECUTE TO service_role` only.
 
-Middleware stores `reserved_tokens` / `reserved_usd` on `c.set('proxyPolicyReservation')` and copies them into `request_logs.performance_metrics` (`policy_reserved_tokens`, `policy_reserved_usd`) so settle can reverse the reservation.
+Fail closed:
 
-### Settle RPC
+| Code | HTTP | When |
+| ---- | ---- | ---- |
+| `unknown_key` | 401 | missing / deleted |
+| `inactive_key` | 400 | `is_active=false` |
+| `expired_key` | 400 | `expires_at <= now()` |
+| `model_required` | 400 | managed endpoint, empty model, non-empty allowlist |
+| `model_denied` | 400 | model fails allowlist |
+| `rpm` | 429 | minute request_count would exceed `rpm_limit` |
+| `rpd` | 429 | day request_count would exceed `rpd_limit` |
+| `tokens` | 429 | day settled tokens + reserved + estimate would exceed `token_day_limit` |
+| `budget` | 429 | month settled USD + reserved + estimate would exceed `monthly_budget_usd` |
 
-`settle_proxy_request(p_proxy_key_id uuid, p_request_id text, p_reserved_tokens bigint, p_reserved_usd numeric, p_actual_tokens bigint, p_actual_usd numeric) RETURNS void`
+Passthrough (no model parser): skip model allowlist and token/USD estimates (estimate 0). Still enforce expiry, RPM, RPD.
 
-```text
-inflight_count = GREATEST(inflight_count - 1, 0)
-reserved_tokens = GREATEST(reserved_tokens - p_reserved_tokens, 0)
-reserved_cost_usd = GREATEST(reserved_cost_usd - p_reserved_usd, 0)
-token_count += p_actual_tokens
-settled_cost_usd += p_actual_usd
-```
+Do **not** call Google `countTokens`. Token estimate for managed generateContent: `max(policy-less estimate from peeked max output if present, 0)` or a small default (e.g. 8192) documented in the plan. USD estimate: existing `estimateGeminiCostUsd` with estimated output tokens; use 0 when null.
 
-`BackgroundService` always settles after admit (success, error, client abort) via `waitUntil`. Skip settle when admit never ran (`/healthz`).
+Envelope: `{ error: 'policy_denied', code, message, gproxy_request_id }`.
 
-If the isolate dies before settle, `inflight_count` can leak. v1 has no lease table: operators may `UPDATE proxy_api_keys SET inflight_count = 0`. Do not add `reset_stale_proxy_inflight` now.
+Admit increments request_count on minute+day, reserved_tokens / reserved_cost_usd on day+month.
 
-### Estimates on admit
+## Settle RPC
 
-- `p_estimated_tokens`: `max_output_tokens` from policy if set, else `8192`. Do **not** parse the request body for `generationConfig.maxOutputTokens` beyond a cheap JSON peek already done for `model` (spec 6 will share the parsed body). If body has `generationConfig.maxOutputTokens` or OpenAI `max_tokens`, use `min(that, policy max_output_tokens ?? that)`.
-- `p_estimated_usd`: `estimateGeminiCostUsd` with estimated output tokens and zero input (under-reserve input). Overshoot risk is accepted; daily budget is a soft-ish cap. Documented as such.
-- `p_body_bytes`: `content-length` header if valid, else byte length of buffered body text when already extracted, else 0. If policy `max_request_body_bytes` is set and content-length missing, still enforce after `safelyExtractBodyText` when present.
+Idempotent on `p_request_id` via `proxy_key_settlements`. Always decrement inflight if that column exists. Apply actual tokens/USD with `GREATEST(..., 0)`. If actual > reserved, still record the full actual (guardrail may trip the **next** request). Bounded overage on the last concurrent request is accepted.
 
-### Data plane wiring
+Call settle from `BackgroundService` / `onError` after a successful admit. Spec 5 owns persist-failure behavior; this spec requires the RPC to be idempotent.
 
-New middleware `packages/core/src/middlewares/proxy-policy.middleware.ts` **after** `extractProxyDataMiddleware` (needs `model`) and **before** `ProxyService.makeApiRequest`.
+## Web UI
 
-- Calls `admit_proxy_request`.
-- On `{ ok: false }`, return 429 for rpm/tpm/rpd/concurrency/budget and 400 for model/body/expired, JSON `{ error: 'policy_denied', code, message, gproxy_request_id }`.
-- Stash reservation on context: `c.set('proxyPolicyReservation', { … })`.
-- `BackgroundService` always settles (success, error, client abort). If admit never ran (healthz), skip.
+Proxy-key create/edit: RPM, request/day, token/day, USD/month, allowlist (newline or tags, trailing `*` only), `expires_at`. Integer `InputNumber` `precision={0}`. Empty = unlimited.
 
-`max_output_tokens`: if set, **do not** rewrite the provider body in v1 (invasive). Enforce by deny when peeked `max_tokens` exceeds the cap; if the client omitted max tokens, admit uses the cap as the estimate only. Document: "hard reject when the client asks for more than the cap; omitted max is allowed."
+User settings: timezone `Select` of IANA names (searchable). No `useEffect` hydration.
 
-### Middleware order
-
-```text
-requestId → httpLogger → [healthz/readyz]
-→ validateProxyApiKey
-→ extractProxyData
-→ proxyPolicy
-→ ProxyService
-```
-
-### Web UI
-
-Proxy key create/edit: a "Limits" `Divider` with optional number inputs (empty = unlimited), `allowed_models` / `denied_models` as Ant Design `Select` `mode="tags"`, `expires_at` as `DatePicker`. Use Refine `useForm` `initialValues` from the record on edit — **no `useEffect`**. i18n en/vi. Show page displays current minute RPM as `request_count` from a Refine list on `proxy_key_quota_windows` if RLS SELECT is enough; otherwise omit live counters in v1 and only show configured caps.
-
-CLI: no new flags in this spec (web is the control plane). Optional follow-up.
-
-### ConfigService
-
-No env for per-key policy. Server-wide retries stay env.
+i18n en/vi. Help text: daily/monthly windows follow this timezone; quota is per proxy key, not per Google project.
 
 ## Tests
 
-- SQL: document RPC with examples in the spec; unit-test a **TypeScript replica** of matching/deny glob `matchModelPolicy(model, allowed, denied)` used by both the TS peek and comments in SQL. Implement glob in SQL with `LIKE` after replacing `*` with `%` (only trailing `*` allowed; reject `*` in the middle at write time in the UI validator).
-- Middleware tests with mocked supabase `.rpc('admit_proxy_request')`.
-- Contract: active key with `rpm_limit = 1`, second request same minute returns 429 `rpm` without calling upstream `fetch`.
-- Settle called on success and on 502 after retries exhausted.
-- Null limits: two requests both hit upstream.
+- `rpm_limit=1` → second request in the same UTC minute 429 `rpm`; origin fetch count 1.
+- null limits → both requests fetch origin.
+- `allowed_models=['gemini-2.5-*']` denies `gemini-1.5-pro`, allows `gemini-2.5-flash`.
+- `gemini-*-flash` (internal `*`) is exact equality, not a glob.
+- timezone `Asia/Bangkok`: day window_start is 17:00 UTC previous calendar day during ICT (UTC+7).
+- invalid timezone rejected.
+- token guardrail: reserved+settled blocks the next admit; a single request may complete if it was admitted.
+- passthrough: no model_denied when model missing.
+- existing contract auth tests stay green.
 
 ## Success criteria
 
-- Two concurrent requests with `max_concurrent = 1`: one 429 `concurrency`.
-- Allowlist `gemini-3.5-flash` rejects `gemini-3.5-pro`.
-- Empty limits behave like today's proxy key.
+Operators set limits without SQL. README does not claim TPM or Google-side quota.
 
 ## Out of scope
 
-- Slack alerts at 50/80/100% (spec 7). This spec may expose remaining quota in the admit JSON for spec 7 to read; include `usage: { rpm: { used, limit } }` in admit success **only if cheap**. Skip to keep RPC small; spec 7 queries windows.
-- IP/origin allowlists.
-- Per-model budgets.
+- Project pools / TPM as a locked proxy-key limit.
+- `countTokens` preflight.
+- Auto-release of stale reservations (spec 5: dashboard reconcile only).

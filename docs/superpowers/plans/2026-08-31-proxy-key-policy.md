@@ -1,21 +1,23 @@
-# Proxy-key policy and atomic admission Implementation Plan
-
-> **FROZEN.** Not implementation authorization. Rewrite after program spec 4 is approved (no TPM/concurrency as locked limits; add timezone).
+# Proxy-key policy, timezone, and atomic admission Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Optional RPM/TPM/RPD/concurrency/budget/model/body/expiry limits on each proxy key, enforced by Postgres admit/settle RPCs.
+> Prior draft landed TPM/concurrency/max-output on `cursor/proxy-key-policy-a451`. Remaining: `token_day_limit`, IANA timezone windows, admit uses timezone day/month starts. Do not treat TPM/max_concurrent as locked requirements.
 
-**Architecture:** Columns on `proxy_api_keys` + `proxy_key_quota_windows`. Middleware admits after model extraction. `BackgroundService` settles on flush/error. Window table is the only cost ledger.
+**Goal:** Optional RPM, request/day, token/day, USD/month, model allowlist, `expires_at` on each proxy key. Daily/monthly windows follow `user_settings.timezone`.
 
-**Tech Stack:** Supabase SQL, Hono middleware, Refine `useForm`, Vitest.
+**Architecture:** Columns on `proxy_api_keys` + `proxy_key_quota_windows`. Pure timezone window helper. Middleware admits after model extraction. `finalize`/`settle` in spec 5.
+
+**Tech Stack:** Supabase SQL, Hono middleware, Refine `useForm`, Vitest, `dayjs` timezone.
 
 ## Global Constraints
 
-- Null / empty limits = unlimited (today's behavior).
+- Null / empty limits = unlimited.
 - No request headers for policy.
-- Trailing `*` glob only on model lists; reject other wildcards in the UI.
-- `inflight_count` leak on crash is accepted (no lease table).
+- Trailing `*` glob only; internal `*` is exact equality.
+- Invalid timezone rejected (no silent UTC fallback).
+- Changing timezone does not reset the active bucket.
+- Do not call Google `countTokens`.
 - Spec: [policy](../specs/2026-08-31-proxy-key-policy-design.md).
 
 ## File map

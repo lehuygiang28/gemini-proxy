@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
-**Status:** Presented; awaiting formal approval before an implementation plan.
+**Status:** Approved.
 **Approach:** One GitHub Actions quality workflow plus a Node-side `coreApp.fetch` contract harness. Adapters stay thin; do not duplicate the suite inside Workers/Vercel runtimes in v1.
 
 ## Goal
