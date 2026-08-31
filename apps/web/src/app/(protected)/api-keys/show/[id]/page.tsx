@@ -17,10 +17,7 @@ import type { Tables } from '@gemini-proxy/database';
 import { SensitiveKeyDisplay, UsageStatistics, DateTimeDisplay } from '@/components/common';
 import { getProviderColor, getProviderText, formatTokenCount } from '@/utils/table-helpers';
 import { formatJsonDisplay } from '@/utils/table-helpers';
-import {
-    isCooldownActive,
-    isDisabledReason,
-} from '@/features/observability/api-key-cooldown';
+import { isCooldownActive, isDisabledReason } from '@/features/observability/api-key-cooldown';
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
@@ -56,9 +53,7 @@ export default function ApiKeysShowPage() {
 
     const nowMs = Date.now();
     const inCooldown = isCooldownActive(record.cooldown_until, nowMs);
-    const disabledReason = isDisabledReason(record.disabled_reason)
-        ? record.disabled_reason
-        : null;
+    const disabledReason = isDisabledReason(record.disabled_reason) ? record.disabled_reason : null;
 
     return (
         <Show title={<Title level={4}>{record.name}</Title>}>
@@ -100,9 +95,7 @@ export default function ApiKeysShowPage() {
                                     {disabledReason && (
                                         <Tag color="error">
                                             {translate('api_keys.fields.disabledReason')}:{' '}
-                                            {translate(
-                                                `api_keys.disabledReason.${disabledReason}`,
-                                            )}
+                                            {translate(`api_keys.disabledReason.${disabledReason}`)}
                                         </Tag>
                                     )}
                                 </Space>

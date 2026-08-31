@@ -1,7 +1,4 @@
-import {
-    ClassifiedUpstreamFailure,
-    UPSTREAM_FAILURE_CLASS,
-} from './types';
+import { ClassifiedUpstreamFailure, UPSTREAM_FAILURE_CLASS } from './types';
 
 export { UPSTREAM_FAILURE_CLASS } from './types';
 export type { ClassifiedUpstreamFailure } from './types';
@@ -52,7 +49,10 @@ function hasApiKeyInvalid(error: GoogleErrorBody['error'], bodyText: string): bo
     if (error?.message?.includes('API_KEY_INVALID') === true) {
         return true;
     }
-    if (Array.isArray(error?.details) && error.details.some((detail) => detail.reason === 'API_KEY_INVALID') === true) {
+    if (
+        Array.isArray(error?.details) &&
+        error.details.some((detail) => detail.reason === 'API_KEY_INVALID') === true
+    ) {
         return true;
     }
     return bodyText.includes('API_KEY_INVALID');
@@ -126,14 +126,7 @@ export function classifyUpstreamError(input: {
     const googleError = parseGoogleErrorBody(bodyText);
     const message = googleError?.message ?? (bodyText || 'upstream_error');
     if (status === undefined) {
-        return buildResult(
-            UPSTREAM_FAILURE_CLASS.transient,
-            true,
-            false,
-            null,
-            message,
-            status,
-        );
+        return buildResult(UPSTREAM_FAILURE_CLASS.transient, true, false, null, message, status);
     }
     if (status === 400 || status === 404) {
         return buildResult(

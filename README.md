@@ -68,19 +68,19 @@ Gemini Proxy is a comprehensive solution that allows you to:
 
 ## ✨ Core Features
 
-| Capability                                     | Status                              |
-| ---------------------------------------------- | ----------------------------------- |
-| Multi Gemini key rotation                      | Implemented                         |
-| Streaming                                      | Implemented                         |
-| Usage logs + Standard text/image cost estimate | Implemented                         |
-| Exponential backoff + Retry-After              | Implemented                         |
-| Circuit breaker / cooldown                     | Implemented                         |
-| Proxy-key RPM/TPM/budget                       | Spec 4                              |
-| Project-aware quota                            | Spec 5                              |
-| Interactions API + affinity                    | Spec 6                              |
-| OpenTelemetry / webhooks                       | Spec 7                              |
-| Response cache                                 | Not implemented                     |
-| Hash/encrypt at rest                           | Out of scope (plaintext by design)  |
+| Capability                                     | Status                             |
+| ---------------------------------------------- | ---------------------------------- |
+| Multi Gemini key rotation                      | Implemented                        |
+| Streaming                                      | Implemented                        |
+| Usage logs + Standard text/image cost estimate | Implemented                        |
+| Exponential backoff + Retry-After              | Implemented                        |
+| Circuit breaker / cooldown                     | Implemented                        |
+| Proxy-key RPM/TPM/budget                       | Spec 4                             |
+| Project-aware quota                            | Spec 5                             |
+| Interactions API + affinity                    | Spec 6                             |
+| OpenTelemetry / webhooks                       | Spec 7                             |
+| Response cache                                 | Not implemented                    |
+| Hash/encrypt at rest                           | Out of scope (plaintext by design) |
 
 ### 🌍 **Multi-Platform Support**
 

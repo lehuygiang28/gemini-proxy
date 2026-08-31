@@ -94,7 +94,12 @@ const ConsoleLists = forwardRef<ConsoleListsHandle, ConsoleListsProps>(function 
         onLiveEvent: onResourceLiveEvent,
     });
 
-    const proxyKeysListQuery = useList<Pick<Tables<'proxy_api_keys'>, 'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'>>({
+    const proxyKeysListQuery = useList<
+        Pick<
+            Tables<'proxy_api_keys'>,
+            'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'
+        >
+    >({
         resource: 'proxy_api_keys',
         pagination: { currentPage: 1, pageSize: 50 },
         filters: [{ field: 'deleted_at', operator: 'null', value: true }],

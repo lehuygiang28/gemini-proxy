@@ -1,9 +1,6 @@
 export type KeyBadgeState = 'active' | 'cooldown' | 'degraded' | 'disabled';
 
-export function isCooldownActive(
-    cooldownUntil: string | null | undefined,
-    nowMs: number,
-): boolean {
+export function isCooldownActive(cooldownUntil: string | null | undefined, nowMs: number): boolean {
     if (!cooldownUntil) {
         return false;
     }

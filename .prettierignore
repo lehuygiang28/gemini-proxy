@@ -15,3 +15,4 @@ coverage
 pnpm-lock.yaml
 **/CHANGELOG.md
 .superdesign
+.superpowers
