@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveOwnerUserId } from './resolve-owner-user';
+import { isCliInteractive, listOwnerDirectoryPage, resolveOwnerUserId } from './resolve-owner-user';
 
 const USER_A = '11111111-1111-4111-8111-111111111111';
 const USER_B = '22222222-2222-4222-8222-222222222222';
@@ -46,6 +46,16 @@ describe('resolveOwnerUserId', () => {
         });
         expect(actual).toBe(USER_B);
         expect(selectUser).toHaveBeenCalledOnce();
+    });
+
+    it('treats quick mode as non-interactive even when stdin is a TTY', () => {
+        expect(isCliInteractive({ quick: true, isTty: true })).toBe(false);
+        expect(isCliInteractive({ quick: false, isTty: true })).toBe(true);
+        expect(isCliInteractive({ isTty: false })).toBe(false);
+    });
+
+    it('lists at most two auth users to distinguish 0, 1, and 2+', () => {
+        expect(listOwnerDirectoryPage()).toEqual({ page: 1, perPage: 2 });
     });
 
     it('throws when userId is not a UUID', async () => {

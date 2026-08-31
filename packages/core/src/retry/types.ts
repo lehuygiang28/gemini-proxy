@@ -15,4 +15,12 @@ export interface ClassifiedUpstreamFailure {
     readonly retryAfterSeconds: number | null;
     readonly message: string;
     readonly status: number | undefined;
+    readonly keyWide: boolean;
 }
+
+export type CooldownScope = 'key' | 'key_model';
+
+export type CooldownComputation = {
+    readonly until: Date;
+    readonly scope: CooldownScope;
+};

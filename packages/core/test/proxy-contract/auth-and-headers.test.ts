@@ -128,4 +128,49 @@ describe('proxy contract: auth and headers', () => {
             `Bearer ${CONTRACT_GEMINI_KEY}`,
         );
     });
+
+    it('rejects query key as the only credential with 401', async () => {
+        const actual = await invokeCore(
+            `/gemini/v1beta/models/gemini-flash:generateContent?key=${CONTRACT_PROXY_KEY}`,
+            {
+                method: 'POST',
+                body: '{}',
+            },
+        );
+        expect(actual.status).toBe(401);
+        expect(originRequests).toHaveLength(0);
+    });
+
+    it('strips x-gproxy response headers from the client', async () => {
+        const actual = await invokeCore(
+            '/gemini/v1beta/models/gemini-flash:generateContent',
+            {
+                method: 'POST',
+                headers: {
+                    'x-goog-api-key': CONTRACT_PROXY_KEY,
+                    'content-type': 'application/json',
+                },
+                body: '{}',
+            },
+            { originHeaders: { 'x-gproxy-internal': 'secret' } },
+        );
+        expect(actual.status).toBe(200);
+        expect(actual.headers.get('x-gproxy-internal')).toBeNull();
+    });
+
+    it('rejects goog header and Bearer together with 400', async () => {
+        const actual = await invokeCore('/gemini/v1beta/models/gemini-flash:generateContent', {
+            method: 'POST',
+            headers: {
+                'x-goog-api-key': CONTRACT_PROXY_KEY,
+                authorization: `Bearer ${CONTRACT_PROXY_KEY}`,
+                'content-type': 'application/json',
+            },
+            body: '{}',
+        });
+        expect(actual.status).toBe(400);
+        const body = (await actual.json()) as { error: string };
+        expect(body.error).toBe('conflicting_credentials');
+        expect(originRequests).toHaveLength(0);
+    });
 });

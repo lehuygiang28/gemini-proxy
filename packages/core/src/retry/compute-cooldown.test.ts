@@ -3,16 +3,14 @@ import { UPSTREAM_FAILURE_CLASS } from './types';
 import { computeCooldownUntil } from './compute-cooldown';
 
 const NOW_MS = 1_700_000_000_000;
-const RANDOM_HALF = (): number => 0.5;
 
 describe('computeCooldownUntil', () => {
     it('returns null for client_invalid', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.client_invalid,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
         expect(actual).toBeNull();
     });
@@ -21,9 +19,8 @@ describe('computeCooldownUntil', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.key_invalid,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
         expect(actual).toBeNull();
     });
@@ -32,73 +29,97 @@ describe('computeCooldownUntil', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.unknown,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
         expect(actual).toBeNull();
     });
 
-    it('returns now + 15 minutes for key_permission', () => {
+    it('returns null for transient instead of a hard lock', () => {
+        const actual = computeCooldownUntil({
+            failureClass: UPSTREAM_FAILURE_CLASS.transient,
+            retryAfterSeconds: 30,
+            nowMs: NOW_MS,
+            keyWide: false,
+        });
+        expect(actual).toBeNull();
+    });
+
+    it('returns key_model scope and 15 minutes for key_permission by default', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.key_permission,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
-        expect(actual).toEqual(new Date(NOW_MS + 900_000));
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 900_000),
+            scope: 'key_model',
+        });
+    });
+
+    it('returns key scope for key_permission when structured details are key-wide', () => {
+        const actual = computeCooldownUntil({
+            failureClass: UPSTREAM_FAILURE_CLASS.key_permission,
+            retryAfterSeconds: null,
+            nowMs: NOW_MS,
+            keyWide: true,
+        });
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 900_000),
+            scope: 'key',
+        });
     });
 
     it('uses retryAfterSeconds for rate_limit when provided', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.rate_limit,
             retryAfterSeconds: 120,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
-        expect(actual).toEqual(new Date(NOW_MS + 120_000));
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 120_000),
+            scope: 'key_model',
+        });
     });
 
     it('defaults rate_limit cooldown to 60 seconds when retryAfterSeconds is null', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.rate_limit,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: false,
         });
-        expect(actual).toEqual(new Date(NOW_MS + 60_000));
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 60_000),
+            scope: 'key_model',
+        });
     });
 
-    it('returns now + 1 hour for spend_limit', () => {
+    it('returns key scope for rate_limit when structured details are project-wide', () => {
+        const actual = computeCooldownUntil({
+            failureClass: UPSTREAM_FAILURE_CLASS.rate_limit,
+            retryAfterSeconds: 60,
+            nowMs: NOW_MS,
+            keyWide: true,
+        });
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 60_000),
+            scope: 'key',
+        });
+    });
+
+    it('returns key scope and 1 hour for spend_limit', () => {
         const actual = computeCooldownUntil({
             failureClass: UPSTREAM_FAILURE_CLASS.spend_limit,
             retryAfterSeconds: null,
-            consecutiveFailures: 0,
             nowMs: NOW_MS,
-            random: RANDOM_HALF,
+            keyWide: true,
         });
-        expect(actual).toEqual(new Date(NOW_MS + 3_600_000));
+        expect(actual).toEqual({
+            until: new Date(NOW_MS + 3_600_000),
+            scope: 'key',
+        });
     });
-
-    it.each([
-        { consecutiveFailures: 0, expectedMs: 500 },
-        { consecutiveFailures: 1, expectedMs: 1_000 },
-        { consecutiveFailures: 8, expectedMs: 128_000 },
-        { consecutiveFailures: 9, expectedMs: 150_000 },
-    ])(
-        'computes transient cooldown with full jitter at consecutiveFailures=$consecutiveFailures',
-        ({ consecutiveFailures, expectedMs }) => {
-            const actual = computeCooldownUntil({
-                failureClass: UPSTREAM_FAILURE_CLASS.transient,
-                retryAfterSeconds: null,
-                consecutiveFailures,
-                nowMs: NOW_MS,
-                random: RANDOM_HALF,
-            });
-            expect(actual).toEqual(new Date(NOW_MS + expectedMs));
-        },
-    );
 });

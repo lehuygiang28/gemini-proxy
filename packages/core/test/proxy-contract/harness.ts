@@ -39,8 +39,10 @@ export type InvokeCoreOptions = {
     noApiKeys?: boolean;
     extraApiKeys?: boolean;
     extraApiKeyCooldownUntil?: string | null;
+    primaryApiKeyCooldownUntil?: string | null;
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
+    originHeaders?: HeadersInit;
     environment?: Record<string, string>;
     admitResults?: AdmitResult[];
 };
@@ -55,7 +57,24 @@ type QueryFilters = {
     excludedIds: Set<string>;
     cooldownAfter: string | null;
     cooldownBefore: string | null;
+    inValues: Record<string, unknown[]>;
+    eqValues: Record<string, unknown>;
 };
+
+type PersistedKeyPatch = {
+    cooldown_until?: string | null;
+    is_active?: boolean;
+    last_error_at?: string | null;
+};
+
+type ModelCooldownRow = {
+    api_key_id: string;
+    canonical_model: string;
+    cooldown_until: string;
+};
+
+const persistedKeyPatches = new Map<string, PersistedKeyPatch>();
+const persistedModelCooldowns: ModelCooldownRow[] = [];
 
 function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
     select: (...args: unknown[]) => unknown;
@@ -64,6 +83,7 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
     is: (...args: unknown[]) => unknown;
     not: (...args: unknown[]) => unknown;
     or: (...args: unknown[]) => unknown;
+    in: (...args: unknown[]) => unknown;
     order: (...args: unknown[]) => unknown;
     limit: (...args: unknown[]) => unknown;
     update: (...args: unknown[]) => unknown;
@@ -79,10 +99,17 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
         excludedIds: new Set<string>(),
         cooldownAfter: null,
         cooldownBefore: null,
+        inValues: {},
+        eqValues: {},
     };
     const query = {
         select: (..._args: unknown[]) => query,
-        eq: (..._args: unknown[]) => query,
+        eq: (column: unknown, value: unknown) => {
+            if (typeof column === 'string') {
+                filters.eqValues[column] = value;
+            }
+            return query;
+        },
         gt: (column: unknown, value: unknown) => {
             if (column === 'cooldown_until' && typeof value === 'string') {
                 filters.cooldownAfter = value;
@@ -102,6 +129,12 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
             if (typeof expression === 'string') {
                 const cooldownMatch = expression.match(/cooldown_until\.lte\.(.+)$/);
                 filters.cooldownBefore = cooldownMatch?.[1] ?? null;
+            }
+            return query;
+        },
+        in: (column: unknown, values: unknown) => {
+            if (typeof column === 'string' && Array.isArray(values)) {
+                filters.inValues[column] = values;
             }
             return query;
         },
@@ -133,38 +166,46 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                   max_output_tokens: null,
                   max_request_body_bytes: null,
               });
-    const apiKeys = options.noApiKeys
-        ? []
-        : [
-              {
-                  id: CONTRACT_API_KEY_ID,
-                  api_key_value: CONTRACT_GEMINI_KEY,
-                  name: 'contract-gemini',
-                  last_used_at: null,
-                  last_error_at: null,
-                  created_at: new Date().toISOString(),
-                  failure_count: 0,
-                  consecutive_failures: 0,
-                  cooldown_until: null,
-                  is_active: true,
-              },
-              ...(options.extraApiKeys
-                  ? [
-                        {
-                            id: CONTRACT_API_KEY_ID_2,
-                            api_key_value: CONTRACT_GEMINI_KEY_2,
-                            name: 'contract-gemini-2',
-                            last_used_at: null,
-                            last_error_at: null,
-                            created_at: new Date().toISOString(),
-                            failure_count: 0,
-                            consecutive_failures: 0,
-                            cooldown_until: options.extraApiKeyCooldownUntil ?? null,
-                            is_active: true,
-                        },
-                    ]
-                  : []),
-          ];
+    const apiKeys = (
+        options.noApiKeys
+            ? []
+            : [
+                  {
+                      id: CONTRACT_API_KEY_ID,
+                      api_key_value: CONTRACT_GEMINI_KEY,
+                      name: 'contract-gemini',
+                      last_used_at: null,
+                      last_error_at: null,
+                      created_at: new Date().toISOString(),
+                      failure_count: 0,
+                      consecutive_failures: 0,
+                      cooldown_until: options.primaryApiKeyCooldownUntil ?? null,
+                      is_active: true,
+                  },
+                  ...(options.extraApiKeys
+                      ? [
+                            {
+                                id: CONTRACT_API_KEY_ID_2,
+                                api_key_value: CONTRACT_GEMINI_KEY_2,
+                                name: 'contract-gemini-2',
+                                last_used_at: null,
+                                last_error_at: null,
+                                created_at: new Date().toISOString(),
+                                failure_count: 0,
+                                consecutive_failures: 0,
+                                cooldown_until: options.extraApiKeyCooldownUntil ?? null,
+                                is_active: true,
+                            },
+                        ]
+                      : []),
+              ]
+    ).map((apiKey) => {
+        const patch = persistedKeyPatches.get(apiKey.id);
+        if (!patch) {
+            return apiKey;
+        }
+        return { ...apiKey, ...patch };
+    });
     const client = {
         from(table: string) {
             if (table === 'proxy_api_keys') {
@@ -205,6 +246,44 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
             if (table === 'user_settings') {
                 return createQuery(() => ({ data: null, error: null }));
             }
+            if (table === 'api_key_model_cooldowns') {
+                return createQuery((filters) => {
+                    const nowIso = new Date().toISOString();
+                    const filtered = persistedModelCooldowns.filter((row) => {
+                        const ids = filters.inValues.api_key_id;
+                        if (Array.isArray(ids) && !ids.includes(row.api_key_id)) {
+                            return false;
+                        }
+                        const models = filters.inValues.canonical_model;
+                        if (Array.isArray(models) && !models.includes(row.canonical_model)) {
+                            return false;
+                        }
+                        if (
+                            filters.eqValues.canonical_model != null &&
+                            row.canonical_model !== filters.eqValues.canonical_model
+                        ) {
+                            return false;
+                        }
+                        if (
+                            filters.eqValues.api_key_id != null &&
+                            row.api_key_id !== filters.eqValues.api_key_id
+                        ) {
+                            return false;
+                        }
+                        if (
+                            filters.cooldownAfter !== null &&
+                            row.cooldown_until <= filters.cooldownAfter
+                        ) {
+                            return false;
+                        }
+                        if (filters.cooldownBefore !== null && row.cooldown_until > nowIso) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    return { data: filtered, error: null, count: filtered.length };
+                });
+            }
             return createQuery(() => ({ data: null, error: null }));
         },
         async rpc(name: string, args: unknown) {
@@ -225,6 +304,59 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
             }
             if (name === 'settle_proxy_request') {
                 return { data: null, error: null };
+            }
+            if (name === 'record_api_key_failure') {
+                const payload = args as {
+                    p_id: string;
+                    p_disable?: boolean;
+                    p_cooldown_until?: string | null;
+                    p_canonical_model?: string | null;
+                    p_scope?: 'key' | 'key_model' | null;
+                };
+                const patch = persistedKeyPatches.get(payload.p_id) ?? {};
+                patch.last_error_at = new Date().toISOString();
+                if (payload.p_disable) {
+                    patch.is_active = false;
+                }
+                if (
+                    payload.p_scope === 'key_model' &&
+                    payload.p_cooldown_until &&
+                    payload.p_canonical_model
+                ) {
+                    const existing = persistedModelCooldowns.findIndex(
+                        (row) =>
+                            row.api_key_id === payload.p_id &&
+                            row.canonical_model === payload.p_canonical_model,
+                    );
+                    const nextRow: ModelCooldownRow = {
+                        api_key_id: payload.p_id,
+                        canonical_model: payload.p_canonical_model,
+                        cooldown_until: payload.p_cooldown_until,
+                    };
+                    if (existing >= 0) {
+                        persistedModelCooldowns[existing] = nextRow;
+                    } else {
+                        persistedModelCooldowns.push(nextRow);
+                    }
+                } else if (payload.p_cooldown_until) {
+                    patch.cooldown_until = payload.p_cooldown_until;
+                }
+                persistedKeyPatches.set(payload.p_id, patch);
+            }
+            if (name === 'record_api_key_success') {
+                const payload = args as { p_id: string; p_canonical_model?: string | null };
+                if (payload.p_canonical_model) {
+                    for (let index = persistedModelCooldowns.length - 1; index >= 0; index -= 1) {
+                        const row = persistedModelCooldowns[index];
+                        if (
+                            row &&
+                            row.api_key_id === payload.p_id &&
+                            row.canonical_model === payload.p_canonical_model
+                        ) {
+                            persistedModelCooldowns.splice(index, 1);
+                        }
+                    }
+                }
             }
             return { data: null, error: null };
         },
@@ -295,7 +427,10 @@ export async function invokeCore(
             }
             return new Response(JSON.stringify(options.originBody ?? { candidates: [] }), {
                 status: 200,
-                headers: { 'content-type': 'application/json' },
+                headers: {
+                    'content-type': 'application/json',
+                    ...Object.fromEntries(new Headers(options.originHeaders ?? {}).entries()),
+                },
             });
         },
     );
@@ -314,6 +449,8 @@ export function resetContractHarness(): void {
     originRequests.length = 0;
     rpcCalls.length = 0;
     waitUntilPromises.length = 0;
+    persistedKeyPatches.clear();
+    persistedModelCooldowns.length = 0;
     setSupabaseFactoryForTests(null);
     resetSupabaseClient();
     vi.unstubAllGlobals();

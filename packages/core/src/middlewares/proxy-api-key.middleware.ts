@@ -1,14 +1,24 @@
 import { Context, Next } from 'hono';
 
 import { getSupabaseClient } from '../services/supabase.service';
-import { extractProxyCredential } from '../auth/extract-proxy-credential';
+import {
+    extractProxyCredential,
+    isProxyCredentialConflict,
+} from '../auth/extract-proxy-credential';
 
 export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
     const extracted = extractProxyCredential({
-        path: c.req.path,
         header: (name) => c.req.header(name),
-        queryKey: c.req.query('key'),
     });
+    if (isProxyCredentialConflict(extracted)) {
+        return c.json(
+            {
+                error: 'conflicting_credentials',
+                message: 'Provide either x-goog-api-key or Authorization: Bearer, not both',
+            },
+            400,
+        );
+    }
     if (!extracted) {
         return c.json(
             {

@@ -62,12 +62,15 @@ export class ApiKeysManager {
 
     static async create(
         apiKeyData: Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>,
+        ownerOptions?: { readonly quick?: boolean },
     ): Promise<ApiKey> {
         await supabase.init();
 
-        // Auto-assign user_id if not provided
         let finalApiKeyData = { ...apiKeyData };
-        const ownerId = await UsersManager.getDefaultUser(finalApiKeyData.user_id ?? undefined);
+        const ownerId = await UsersManager.getDefaultUser(
+            finalApiKeyData.user_id ?? undefined,
+            ownerOptions,
+        );
         if (finalApiKeyData.user_id !== ownerId) {
             UsersManager.notifyAutoAssignment(ownerId);
         }
