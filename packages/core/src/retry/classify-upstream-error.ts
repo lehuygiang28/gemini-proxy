@@ -52,7 +52,7 @@ function hasApiKeyInvalid(error: GoogleErrorBody['error'], bodyText: string): bo
     if (error?.message?.includes('API_KEY_INVALID') === true) {
         return true;
     }
-    if (error?.details?.some((detail) => detail.reason === 'API_KEY_INVALID') === true) {
+    if (Array.isArray(error?.details) && error.details.some((detail) => detail.reason === 'API_KEY_INVALID') === true) {
         return true;
     }
     return bodyText.includes('API_KEY_INVALID');
@@ -80,8 +80,8 @@ function parseRetryAfterSeconds(headerValue: string | undefined): number | null 
         return null;
     }
     const trimmed = headerValue.trim();
-    const asInteger = Number.parseInt(trimmed, 10);
-    if (!Number.isNaN(asInteger) && String(asInteger) === trimmed) {
+    if (/^\d+$/.test(trimmed)) {
+        const asInteger = Number.parseInt(trimmed, 10);
         return Math.min(RETRY_AFTER_MAX_SECONDS, Math.max(RETRY_AFTER_MIN_SECONDS, asInteger));
     }
     const targetMs = Date.parse(trimmed);
@@ -92,7 +92,7 @@ function parseRetryAfterSeconds(headerValue: string | undefined): number | null 
     if (deltaSeconds <= 0) {
         return RETRY_AFTER_MIN_SECONDS;
     }
-    return Math.min(RETRY_AFTER_MAX_SECONDS, Math.max(RETRY_AFTER_MIN_SECONDS, deltaSeconds));
+    return deltaSeconds;
 }
 
 function isTransientStatus(status: number): boolean {

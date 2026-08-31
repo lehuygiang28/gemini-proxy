@@ -268,4 +268,38 @@ describe('classifyUpstreamError', () => {
         });
         expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.spend_limit);
     });
+
+    it('does not clamp HTTP-date Retry-After deltas to 3600 seconds', () => {
+        const now = new Date('2026-08-31T12:00:00.000Z');
+        vi.useFakeTimers();
+        vi.setSystemTime(now);
+        const futureDate = new Date('2026-08-31T14:00:00.000Z');
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: { 'Retry-After': futureDate.toUTCString() },
+            bodyText: '',
+        });
+        expect(actual.retryAfterSeconds).toBe(7200);
+        vi.useRealTimers();
+    });
+
+    it('parses leading-zero integer Retry-After as delta seconds', () => {
+        const actual = classifyUpstreamError({
+            status: 429,
+            headers: { 'Retry-After': '0120' },
+            bodyText: '',
+        });
+        expect(actual.retryAfterSeconds).toBe(120);
+    });
+
+    it('classifies 403 with non-array error.details as key_permission without throwing', () => {
+        const actual = classifyUpstreamError({
+            status: 403,
+            headers: {},
+            bodyText: JSON.stringify({ error: { details: 'invalid' } }),
+        });
+        expect(actual.class).toBe(UPSTREAM_FAILURE_CLASS.key_permission);
+        expect(actual.retryable).toBe(true);
+        expect(actual.disableKey).toBe(false);
+    });
 });
