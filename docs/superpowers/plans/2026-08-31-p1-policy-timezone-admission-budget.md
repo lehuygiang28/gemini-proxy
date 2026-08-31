@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> Prior draft landed TPM/concurrency/max-output on `cursor/proxy-key-policy-a451`. Remaining: `token_day_limit`, IANA timezone windows, admit uses timezone day/month starts. Do not treat TPM/max_concurrent as locked requirements.
+> Prior draft on `cursor/proxy-key-policy-a451` wired TPM/concurrency/max-output. Realign: leave those columns unused by admit/UI/docs. Locked limits are RPM, RPD, `token_day_limit`, monthly USD, allowlist, `expires_at`, plus IANA timezone windows.
 
 **Goal:** Optional RPM, request/day, token/day, USD/month, model allowlist, `expires_at` on each proxy key. Daily/monthly windows follow `user_settings.timezone`.
 
@@ -18,7 +18,7 @@
 - Invalid timezone rejected (no silent UTC fallback).
 - Changing timezone does not reset the active bucket.
 - Do not call Google `countTokens`.
-- Spec: [policy](../specs/2026-08-31-proxy-key-policy-design.md).
+- Spec: [policy](../specs/2026-08-31-p1-policy-timezone-admission-budget-design.md).
 
 ## File map
 

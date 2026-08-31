@@ -12,11 +12,11 @@ This document is the source of truth when a feature spec conflicts with it. Feat
 | ID  | Priority | Spec | Plan | Status |
 | --- | -------- | ---- | ---- | ------ |
 | 0   | —        | This master architecture | — | Approved |
-| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-ci-contract-tests-design.md) | [plan](../plans/2026-08-31-ci-contract-tests.md) | Approved |
-| 2   | P0       | [Tenant, CLI, auth, privacy](./2026-08-31-auth-tenant-log-privacy-design.md) | [plan](../plans/2026-08-31-auth-tenant-log-privacy.md) | Approved |
-| 3   | P0       | [`/v1` routing, passthrough, retry, cooldown](./2026-08-31-v1-routing-retry-cooldown-design.md) | [plan](../plans/2026-08-31-v1-routing-retry-cooldown.md) | Approved |
-| 4   | P1       | [Proxy-key policy, timezone, admission](./2026-08-31-proxy-key-policy-design.md) | [plan](../plans/2026-08-31-proxy-key-policy.md) | Approved |
-| 5   | P1       | [Persistence, alerts, reconciliation](./2026-08-31-persistence-reliability-design.md) | [plan](../plans/2026-08-31-persistence-reliability.md) | Approved |
+| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-p0-ci-test-runtime-design.md) | [plan](../plans/2026-08-31-p0-ci-test-runtime.md) | Approved |
+| 2   | P0       | [Tenant, CLI, auth, privacy](./2026-08-31-p0-tenant-cli-auth-privacy-design.md) | [plan](../plans/2026-08-31-p0-tenant-cli-auth-privacy.md) | Approved |
+| 3   | P0       | [`/v1` routing, passthrough, retry, cooldown](./2026-08-31-p0-routing-retry-cooldown-design.md) | [plan](../plans/2026-08-31-p0-routing-retry-cooldown.md) | Approved |
+| 4   | P1       | [Proxy-key policy, timezone, admission](./2026-08-31-p1-policy-timezone-admission-budget-design.md) | [plan](../plans/2026-08-31-p1-policy-timezone-admission-budget.md) | Approved |
+| 5   | P1       | [Persistence, alerts, reconciliation](./2026-08-31-p1-persistence-alerts-reconciliation-design.md) | [plan](../plans/2026-08-31-p1-persistence-alerts-reconciliation.md) | Approved |
 
 Each spec is one implementation plan and one PR (stacked).
 
@@ -34,13 +34,28 @@ Do not implement, and treat prior drafts as superseded:
 
 **Invariant:** each Gemini API key belongs to its own Google project. Do not group keys as if they shared a quota bucket.
 
-Superseded drafts (do not implement):
+Those drafts are removed from this tree. Do not revive them. The six files in the table above are the only authorized specs for this program.
 
-- [project pool scheduler](./2026-08-31-project-pool-scheduler-design.md)
-- [Interactions affinity](./2026-08-31-interactions-resource-affinity-design.md)
-- [OpenTelemetry alerting](./2026-08-31-otel-alerting-design.md)
+Locked local filenames (do not rename again):
 
-Replacement specs for auth, `/v1`+retry, policy, and persistence are the implementation authorization. Older timeout-retry / TPM-concurrency drafts stay on disk as SUPERSEDED.
+- `docs/superpowers/specs/2026-08-31-p0-p1-master-architecture-design.md`
+- `docs/superpowers/specs/2026-08-31-p0-ci-test-runtime-design.md`
+- `docs/superpowers/specs/2026-08-31-p0-tenant-cli-auth-privacy-design.md`
+- `docs/superpowers/specs/2026-08-31-p0-routing-retry-cooldown-design.md`
+- `docs/superpowers/specs/2026-08-31-p1-policy-timezone-admission-budget-design.md`
+- `docs/superpowers/specs/2026-08-31-p1-persistence-alerts-reconciliation-design.md`
+
+### Stacked implementation PRs vs this lock
+
+Treat these as the live stack. Realign code; do not continue dropped work.
+
+| Spec | Branch / PR | vs lock |
+| ---- | ----------- | ------- |
+| 1 | `cursor/ci-contract-tests-a451` | Keep. Finish README matrix (`/v1`, pools/OTel out of scope) and the two stream contract cases. |
+| 2 | `cursor/auth-tenant-log-privacy-a451` | Keep. Finish CLI 0/1/2+ owner (including sync/`-q`), delete leftover `ProxyRequestOptions` / synthetic helpers. |
+| 3 | `cursor/timeout-retry-circuit-breaker-a451` | **Rewrite.** Old whole-key cooldown, in-request wait, and 5xx hard lock contradict spec 3. Add `/v1`, `api_key_model_cooldowns`, skip cooled keys, soft 5xx. |
+| 4 | `cursor/proxy-key-policy-a451` | **Rewrite.** Unwire TPM / max_concurrent / max_output / max_body / denied_models / daily USD. Add `token_day_limit` and IANA timezone windows. |
+| — | `cursor/project-pool-scheduler-a451` | **Drop.** Out of scope. Do not merge. |
 
 ## Locked product decisions
 

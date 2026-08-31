@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> `cursor/timeout-retry-circuit-breaker-a451` currently implements the deleted whole-key / in-request-wait draft. Realign that branch to this plan: `/v1` routing, `api_key_model_cooldowns`, skip cooled keys (no sleep), soft 5xx only.
+
 **Goal:** Canonical `/v1` with credential-based format detection, legacy paths kept, one-attempt-per-key retry without waiting on hard cooldown, hard cooldown scoped to `api_key + canonical model`.
 
 **Architecture:** Pure `normalizeV1Path` / `detectApiFormat` / `buildOriginUrl`. Classifier + cooldown math stay in `packages/core/src/retry/*`. New `api_key_model_cooldowns` table. `ProxyService` orchestrates only.
@@ -10,7 +12,7 @@
 
 ## Global Constraints
 
-- Spec: [v1 routing](../specs/2026-08-31-v1-routing-retry-cooldown-design.md). Master architecture wins on conflict.
+- Spec: [v1 routing](../specs/2026-08-31-p0-routing-retry-cooldown-design.md). Master architecture wins on conflict.
 - No `?key=`, no `x-api-key`. Both goog+Bearer → 400.
 - Do not wait in-request for hard cooldown. Cap 50 keys. `PROXY_MAX_RETRIES` 0 / N / -1.
 - 5xx is soft penalty, not `api_key_model_cooldowns`.

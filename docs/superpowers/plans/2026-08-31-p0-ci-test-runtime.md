@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> Most of this plan has landed on `cursor/ci-contract-tests-a451`. Remaining: README `/v1` advertisement and capability matrix rows for dropped pools/OTel (spec 3 README task may cover `/v1`).
+> Most of this plan has landed on `cursor/ci-contract-tests-a451`. Remaining: README capability matrix matching the locked spec (`/v1` advertised, pools/OTel/affinity out of scope) and the two stream contract cases.
 
 **Goal:** Make `pnpm test` / `pnpm lint` / `pnpm format:check` / `pnpm build` green in GitHub Actions and lock proxy auth/header behavior with a `coreApp.fetch` harness.
 
@@ -16,7 +16,7 @@
 - No live Gemini. No live Supabase. No Docker in `quality.yml`.
 - Do not add `x-gproxy-*` APIs. Do not hash/encrypt keys.
 - `waitUntil` mock must not wrap stream consume.
-- Follow [CI spec](../specs/2026-08-31-ci-contract-tests-design.md) and [master](../specs/2026-08-31-p0-p1-master-architecture-design.md).
+- Follow [CI spec](../specs/2026-08-31-p0-ci-test-runtime-design.md) and [master](../specs/2026-08-31-p0-p1-master-architecture-design.md).
 
 ## File map
 

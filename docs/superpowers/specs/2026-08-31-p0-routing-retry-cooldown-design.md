@@ -3,7 +3,7 @@
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 2 (tenant-owned keys, no `?key=`, no `x-gproxy-*`, no synthetic retry).
-**Status:** Approved (locked decisions + continue). Replaces `2026-08-31-timeout-retry-circuit-breaker-design.md`.
+**Status:** Approved (locked). This is spec 3. Do not implement whole-key cooldown, in-request wait, or 5xx hard lock.
 **Approach:** Canonical `/v1` with credential-based format detection. Pure modules classify errors and compute hard cooldown / soft penalty. Do not wait in-request for a cooled key. Port helpers from `feat/auto-detect-api-format` only; do not merge that branch.
 
 ## Goal

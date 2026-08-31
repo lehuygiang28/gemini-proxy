@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Spec: [persistence](../specs/2026-08-31-persistence-reliability-design.md).
+- Spec: [persistence](../specs/2026-08-31-p1-persistence-alerts-reconciliation-design.md).
 - Persistence failure must not convert upstream success into a client error.
 - No auto-release of stale reservations.
 - No OTel / Slack / email.

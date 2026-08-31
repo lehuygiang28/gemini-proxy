@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> Most of this plan has landed on `cursor/auth-tenant-log-privacy-a451`. Remaining Task 4: drop `query-key`, return conflict when both goog and Bearer are present (400).
+> Most of this plan has landed on `cursor/auth-tenant-log-privacy-a451` (including no `?key=` and 400 on conflicting credentials). Remaining: CLI 0/1/2+ owner on create/import/sync (including `-q`), delete leftover `ProxyRequestOptions` / synthetic zero-completion helpers, strip `x-gproxy-*` on responses.
 
 **Goal:** Path-independent proxy credential extraction, tenant-only Gemini keys, JSON-field redaction, CLI owner resolver, delete `x-gproxy-*` and zero-completion retry, add `/healthz` and `/readyz`.
 
@@ -17,7 +17,7 @@
 - Delete `ProxyRequestOptions` entirely.
 - HTTP 200 is never turned into a synthetic failure.
 - No new `useEffect` in web (this plan has no new forms).
-- Spec: [auth/privacy](../specs/2026-08-31-auth-tenant-log-privacy-design.md).
+- Spec: [auth/privacy](../specs/2026-08-31-p0-tenant-cli-auth-privacy-design.md).
 
 ## File map
 
