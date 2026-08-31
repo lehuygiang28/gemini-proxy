@@ -215,30 +215,6 @@ export class ApiKeyService {
         return count || 0;
     }
 
-    /** Check whether an active key can become eligible after cooldown. */
-    static async hasActiveApiKey(
-        c: Context<HonoApp>,
-        userId: string,
-        excludeIds: string[] = [],
-    ): Promise<boolean> {
-        const supabase = getSupabaseClient(c);
-        let query = supabase
-            .from('api_keys')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_active', true)
-            .is('deleted_at', null)
-            .eq('user_id', userId);
-        if (excludeIds.length > 0) {
-            const inList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
-            query = query.not('id', 'in', inList);
-        }
-        const { count, error } = await query;
-        if (error) {
-            throw new Error(`Failed to count active API keys: ${error.message}`);
-        }
-        return (count ?? 0) > 0;
-    }
-
     /** Return the shortest remaining cooldown among unused active keys. */
     static async getSoonestRemainingCooldownMs(
         c: Context<HonoApp>,

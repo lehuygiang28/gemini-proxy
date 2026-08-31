@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTimeoutSignal, mergeAbortSignals } from './create-timeout-signal';
+import {
+    cancelTimeoutSignal,
+    createTimeoutSignal,
+    mergeAbortSignals,
+} from './create-timeout-signal';
 
 describe('createTimeoutSignal', () => {
     beforeEach(() => {
@@ -15,6 +19,13 @@ describe('createTimeoutSignal', () => {
         expect(signal.aborted).toBe(false);
         vi.advanceTimersByTime(50);
         expect(signal.aborted).toBe(true);
+    });
+
+    it('does not abort after the timeout is cancelled', () => {
+        const signal = createTimeoutSignal(50);
+        cancelTimeoutSignal(signal);
+        vi.advanceTimersByTime(50);
+        expect(signal.aborted).toBe(false);
     });
 });
 

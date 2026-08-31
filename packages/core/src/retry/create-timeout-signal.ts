@@ -1,10 +1,22 @@
+const timeoutSignalCleanups = new WeakMap<AbortSignal, () => void>();
+
 export function createTimeoutSignal(timeoutMs: number): AbortSignal {
     const controller = new AbortController();
+    const signal = controller.signal;
     const timeoutId = setTimeout(() => {
         controller.abort(new DOMException('The operation timed out.', 'TimeoutError'));
     }, timeoutMs);
-    controller.signal.addEventListener('abort', () => clearTimeout(timeoutId), { once: true });
-    return controller.signal;
+    const cleanup = (): void => {
+        clearTimeout(timeoutId);
+        timeoutSignalCleanups.delete(signal);
+    };
+    timeoutSignalCleanups.set(signal, cleanup);
+    signal.addEventListener('abort', cleanup, { once: true });
+    return signal;
+}
+
+export function cancelTimeoutSignal(signal: AbortSignal): void {
+    timeoutSignalCleanups.get(signal)?.();
 }
 
 export function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {

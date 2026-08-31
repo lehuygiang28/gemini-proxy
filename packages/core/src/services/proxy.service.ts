@@ -12,7 +12,11 @@ import { ProxyError, InvalidKeyError } from '../types/error.type';
 import { HEADERS_REMOVE_TO_ORIGIN } from '../constants/headers-to-remove.constant';
 import { getSupabaseClient } from './supabase.service';
 import { classifyUpstreamError } from '../retry/classify-upstream-error';
-import { createTimeoutSignal, mergeAbortSignals } from '../retry/create-timeout-signal';
+import {
+    cancelTimeoutSignal,
+    createTimeoutSignal,
+    mergeAbortSignals,
+} from '../retry/create-timeout-signal';
 import { computeRetryDelayMs } from '../retry/retry-delay';
 import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
 import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
@@ -24,6 +28,7 @@ interface RetryAttemptData {
     api_key_name?: string | null;
     error: { message: string; type: string; status?: number; code?: string };
     duration_ms: number;
+    status: number;
     waited_ms: number;
     class: ClassifiedUpstreamFailure['class'];
     timestamp: string;
@@ -810,6 +815,7 @@ export class ProxyService {
                 code: params.error.code,
             },
             duration_ms: params.durationMs,
+            status: params.error.status ?? params.providerError.status,
             waited_ms: params.waitedMs,
             class: params.failureClass,
             timestamp: new Date().toISOString(),
@@ -1089,7 +1095,8 @@ export class ProxyService {
         }
 
         // Use the fresh clone's body directly - no need for complex fallback logic
-        const signal = mergeAbortSignals([createTimeoutSignal(timeoutMs), baseRequest.signal]);
+        const timeoutSignal = createTimeoutSignal(timeoutMs);
+        const signal = mergeAbortSignals([timeoutSignal, baseRequest.signal]);
         const requestInit: RequestInit = {
             method: attemptRequest.method,
             headers,
@@ -1111,6 +1118,8 @@ export class ProxyService {
                 throw signal.reason;
             }
             throw error;
+        } finally {
+            cancelTimeoutSignal(timeoutSignal);
         }
         const durationMs = Date.now() - start;
 

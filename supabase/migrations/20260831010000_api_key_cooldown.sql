@@ -47,6 +47,7 @@ BEGIN
         cooldown_until = NULL,
         disabled_reason = CASE
             WHEN disabled_reason = 'manual' THEN disabled_reason
+            WHEN is_active = false THEN disabled_reason
             ELSE NULL
         END
     WHERE id = p_id AND deleted_at IS NULL;
