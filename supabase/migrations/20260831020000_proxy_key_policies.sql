@@ -107,7 +107,10 @@ BEGIN
               OR (
                   right(pattern, 1) = '*'
                   AND position('*' IN left(pattern, length(pattern) - 1)) = 0
-                  AND p_model LIKE replace(pattern, '*', '%')
+                  AND left(
+                      p_model,
+                      char_length(left(pattern, length(pattern) - 1))
+                  ) = left(pattern, length(pattern) - 1)
               )
        ) THEN
         RETURN jsonb_build_object('ok', false, 'code', 'model_denied');
@@ -121,7 +124,10 @@ BEGIN
               OR (
                   right(pattern, 1) = '*'
                   AND position('*' IN left(pattern, length(pattern) - 1)) = 0
-                  AND p_model LIKE replace(pattern, '*', '%')
+                  AND left(
+                      p_model,
+                      char_length(left(pattern, length(pattern) - 1))
+                  ) = left(pattern, length(pattern) - 1)
               )
        ) THEN
         RETURN jsonb_build_object('ok', false, 'code', 'model_denied');

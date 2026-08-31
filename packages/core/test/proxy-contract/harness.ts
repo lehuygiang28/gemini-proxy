@@ -36,6 +36,7 @@ export type InvokeCoreOptions = {
     proxyKey?: Record<string, unknown> | null;
     proxyKeyActive?: boolean;
     supabaseThrows?: boolean;
+    noApiKeys?: boolean;
     extraApiKeys?: boolean;
     extraApiKeyCooldownUntil?: string | null;
     originBody?: unknown;
@@ -132,36 +133,38 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                   max_output_tokens: null,
                   max_request_body_bytes: null,
               });
-    const apiKeys = [
-        {
-            id: CONTRACT_API_KEY_ID,
-            api_key_value: CONTRACT_GEMINI_KEY,
-            name: 'contract-gemini',
-            last_used_at: null,
-            last_error_at: null,
-            created_at: new Date().toISOString(),
-            failure_count: 0,
-            consecutive_failures: 0,
-            cooldown_until: null,
-            is_active: true,
-        },
-        ...(options.extraApiKeys
-            ? [
-                  {
-                      id: CONTRACT_API_KEY_ID_2,
-                      api_key_value: CONTRACT_GEMINI_KEY_2,
-                      name: 'contract-gemini-2',
-                      last_used_at: null,
-                      last_error_at: null,
-                      created_at: new Date().toISOString(),
-                      failure_count: 0,
-                      consecutive_failures: 0,
-                      cooldown_until: options.extraApiKeyCooldownUntil ?? null,
-                      is_active: true,
-                  },
-              ]
-            : []),
-    ];
+    const apiKeys = options.noApiKeys
+        ? []
+        : [
+              {
+                  id: CONTRACT_API_KEY_ID,
+                  api_key_value: CONTRACT_GEMINI_KEY,
+                  name: 'contract-gemini',
+                  last_used_at: null,
+                  last_error_at: null,
+                  created_at: new Date().toISOString(),
+                  failure_count: 0,
+                  consecutive_failures: 0,
+                  cooldown_until: null,
+                  is_active: true,
+              },
+              ...(options.extraApiKeys
+                  ? [
+                        {
+                            id: CONTRACT_API_KEY_ID_2,
+                            api_key_value: CONTRACT_GEMINI_KEY_2,
+                            name: 'contract-gemini-2',
+                            last_used_at: null,
+                            last_error_at: null,
+                            created_at: new Date().toISOString(),
+                            failure_count: 0,
+                            consecutive_failures: 0,
+                            cooldown_until: options.extraApiKeyCooldownUntil ?? null,
+                            is_active: true,
+                        },
+                    ]
+                  : []),
+          ];
     const client = {
         from(table: string) {
             if (table === 'proxy_api_keys') {

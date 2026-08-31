@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
     CONTRACT_PROXY_KEY,
+    CONTRACT_PROXY_KEY_ID,
     flushWaitUntil,
     invokeCore,
     originRequests,
@@ -132,6 +133,8 @@ describe('proxy contract: proxy-key policy', () => {
         expect(rpcCalls).toContainEqual({
             name: 'settle_proxy_request',
             args: expect.objectContaining({
+                p_proxy_key_id: CONTRACT_PROXY_KEY_ID,
+                p_request_id: expect.any(String),
                 p_reserved_tokens: 256,
                 p_reserved_usd: 0.001,
                 p_actual_tokens: 12,
@@ -166,5 +169,49 @@ describe('proxy contract: proxy-key policy', () => {
                 p_actual_usd: 0,
             }),
         });
+    });
+
+    it('settles an admitted request when provider key selection throws', async () => {
+        const windowStarts = {
+            minute: '2026-08-31T12:28:00.000Z',
+            day: '2026-08-31T00:00:00.000Z',
+            month: '2026-08-01T00:00:00.000Z',
+        };
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            noApiKeys: true,
+            admitResults: [
+                {
+                    ok: true,
+                    reserved_tokens: 256,
+                    reserved_usd: 0.001,
+                    window_starts: windowStarts,
+                },
+            ],
+        });
+
+        expect(actualResponse.status).toBe(401);
+        expect(await actualResponse.json()).toEqual(
+            expect.objectContaining({ error: 'invalid_key', message: 'No API key found' }),
+        );
+        expect(originRequests).toHaveLength(0);
+        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(true);
+
+        await flushWaitUntil();
+
+        expect(rpcCalls).toContainEqual({
+            name: 'settle_proxy_request',
+            args: expect.objectContaining({
+                p_proxy_key_id: CONTRACT_PROXY_KEY_ID,
+                p_request_id: expect.any(String),
+                p_reserved_tokens: 256,
+                p_reserved_usd: 0.001,
+                p_actual_tokens: 0,
+                p_actual_usd: 0,
+                p_minute_start: windowStarts.minute,
+                p_day_start: windowStarts.day,
+                p_month_start: windowStarts.month,
+            }),
+        });
+        expect(rpcCalls.filter((call) => call.name === 'settle_proxy_request')).toHaveLength(1);
     });
 });
