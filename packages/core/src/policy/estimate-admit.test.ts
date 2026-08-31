@@ -44,6 +44,15 @@ describe('estimateAdmitTokens', () => {
         ).toBe(1024);
     });
 
+    it('ignores fractional peeked and policy values', () => {
+        expect(
+            estimateAdmitTokens({
+                peekedMaxOutput: 1.5,
+                policyMaxOutput: null,
+            }),
+        ).toBe(8192);
+    });
+
     it('ignores non-positive peeked and policy values', () => {
         expect(
             estimateAdmitTokens({

@@ -1,4 +1,18 @@
-import { globModel } from './glob-model';
+export function globModel(pattern: string, model: string): boolean {
+    if (pattern === '') {
+        return model === '';
+    }
+    const lastAsteriskIndex = pattern.lastIndexOf('*');
+    if (lastAsteriskIndex === -1) {
+        return pattern === model;
+    }
+    const firstAsteriskIndex = pattern.indexOf('*');
+    if (firstAsteriskIndex !== lastAsteriskIndex || lastAsteriskIndex !== pattern.length - 1) {
+        return pattern === model;
+    }
+    const prefix = pattern.slice(0, -1);
+    return model.startsWith(prefix);
+}
 
 function isEmptyList(list: string[] | null): boolean {
     return list == null || list.length === 0;
