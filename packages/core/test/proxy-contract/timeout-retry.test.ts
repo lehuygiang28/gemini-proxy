@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiKeyService } from '../../src/services/api-key.service';
 import {
     CONTRACT_API_KEY_ID,
+    CONTRACT_API_KEY_ID_2,
     CONTRACT_GEMINI_KEY,
     CONTRACT_GEMINI_KEY_2,
     CONTRACT_PROXY_KEY,
@@ -338,5 +339,64 @@ describe('proxy contract: timeout and retry', () => {
 
         expect(originRequests).toHaveLength(1);
         expect(actualResponse.status).not.toBe(200);
+    });
+
+    it('uses a later eligible key when the first five candidates are model-cooled', async () => {
+        const cooledUntil = new Date(Date.now() + 120_000).toISOString();
+        const apiKeyRows = Array.from({ length: 6 }, (_, index) => ({
+            id: `55555555-5555-4555-8555-55555555555${index}`,
+            api_key_value: `AIzaSyTESTGEMINIKEY0000000000${index}`,
+            name: `contract-gemini-${index}`,
+            last_used_at: new Date(Date.now() - (6 - index) * 60_000).toISOString(),
+            last_error_at: null,
+            created_at: new Date().toISOString(),
+            failure_count: 0,
+            consecutive_failures: 0,
+            cooldown_until: null,
+            is_active: true,
+        }));
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            apiKeyRows,
+            seedModelCooldowns: apiKeyRows.slice(0, 5).map((key) => ({
+                api_key_id: key.id,
+                canonical_model: 'gemini-flash',
+                cooldown_until: cooledUntil,
+            })),
+        });
+
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(
+            'AIzaSyTESTGEMINIKEY00000000005',
+        );
+    });
+
+    it('scopes Retry-After to this user and model instead of a foreign cooldown', async () => {
+        const userCooledUntil = new Date(Date.now() + 120_000).toISOString();
+        const foreignCooledUntil = new Date(Date.now() + 5_000).toISOString();
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            seedModelCooldowns: [
+                {
+                    api_key_id: CONTRACT_API_KEY_ID,
+                    canonical_model: 'gemini-flash',
+                    cooldown_until: userCooledUntil,
+                },
+                {
+                    api_key_id: CONTRACT_API_KEY_ID_2,
+                    canonical_model: 'gemini-flash',
+                    cooldown_until: userCooledUntil,
+                },
+                {
+                    api_key_id: '99999999-9999-4999-8999-999999999999',
+                    canonical_model: 'gemini-flash',
+                    cooldown_until: foreignCooledUntil,
+                },
+            ],
+        });
+
+        expect(actualResponse.status).toBe(429);
+        expect(originRequests).toHaveLength(0);
+        expect(actualResponse.headers.get('Retry-After')).toBe('120');
     });
 });

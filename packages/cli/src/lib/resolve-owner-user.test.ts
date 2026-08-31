@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isCliInteractive, listOwnerDirectoryPage, resolveOwnerUserId } from './resolve-owner-user';
+import {
+    isCliInteractive,
+    keysOwnedBy,
+    listOwnerDirectoryBatch,
+    listOwnerDirectoryPage,
+    listOwnerUsers,
+    resolveOwnerUserId,
+} from './resolve-owner-user';
 
 const USER_A = '11111111-1111-4111-8111-111111111111';
 const USER_B = '22222222-2222-4222-8222-222222222222';
@@ -56,6 +63,62 @@ describe('resolveOwnerUserId', () => {
 
     it('lists at most two auth users to distinguish 0, 1, and 2+', () => {
         expect(listOwnerDirectoryPage()).toEqual({ page: 1, perPage: 2 });
+    });
+
+    it('pages the full directory 100 at a time for interactive selection', () => {
+        expect(listOwnerDirectoryBatch(3)).toEqual({ page: 3, perPage: 100 });
+    });
+
+    it('fetches every owner page when the session is interactive', async () => {
+        const USER_C = '33333333-3333-4333-8333-333333333333';
+        const listedPages: Array<{ page: number; perPage: number }> = [];
+        const pageOne = Array.from({ length: 100 }, (_, index) => ({
+            id: index === 0 ? USER_A : `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, '0')}`,
+            email: `u${index}@example.com`,
+        }));
+        const actual = await listOwnerUsers({
+            interactive: true,
+            listPage: async (page) => {
+                listedPages.push(page);
+                if (page.page === 1) {
+                    return pageOne;
+                }
+                return [{ id: USER_C, email: 'c@example.com' }];
+            },
+        });
+        expect(listedPages).toEqual([
+            { page: 1, perPage: 100 },
+            { page: 2, perPage: 100 },
+        ]);
+        expect(actual).toHaveLength(101);
+        expect(actual[0]?.id).toBe(USER_A);
+        expect(actual[100]?.id).toBe(USER_C);
+    });
+
+    it('probes only the first two owners when the session is not interactive', async () => {
+        const listedPages: Array<{ page: number; perPage: number }> = [];
+        await listOwnerUsers({
+            interactive: false,
+            listPage: async (page) => {
+                listedPages.push(page);
+                return [
+                    { id: USER_A, email: 'a@example.com' },
+                    { id: USER_B, email: 'b@example.com' },
+                ];
+            },
+        });
+        expect(listedPages).toEqual([{ page: 1, perPage: 2 }]);
+    });
+
+    it('keeps only keys owned by the selected user', () => {
+        const actual = keysOwnedBy(
+            [
+                { id: 'own', user_id: USER_A },
+                { id: 'other', user_id: USER_B },
+            ],
+            USER_A,
+        );
+        expect(actual).toEqual([{ id: 'own', user_id: USER_A }]);
     });
 
     it('throws when userId is not a UUID', async () => {

@@ -253,6 +253,30 @@ CREATE TRIGGER update_user_settings_updated_at
     BEFORE UPDATE ON user_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE OR REPLACE FUNCTION reject_invalid_user_settings_timezone()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = 'public', pg_catalog
+AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_timezone_names
+        WHERE name = NEW.timezone
+    ) THEN
+        RAISE EXCEPTION 'invalid timezone: %', NEW.timezone
+            USING ERRCODE = '22023';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS reject_invalid_user_settings_timezone ON user_settings;
+CREATE TRIGGER reject_invalid_user_settings_timezone
+    BEFORE INSERT OR UPDATE OF timezone ON user_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION reject_invalid_user_settings_timezone();
+
 -- Row Level Security (RLS)
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_key_model_cooldowns ENABLE ROW LEVEL SECURITY;
@@ -424,7 +448,7 @@ COMMENT ON COLUMN user_settings.save_response_body IS
 COMMENT ON COLUMN user_settings.custom_model_pricing IS
     'Optional per-model USD/1M token overrides for cost estimates on new request logs.';
 COMMENT ON COLUMN user_settings.timezone IS
-    'IANA timezone for civil day/month quota windows. Default UTC. Changing timezone does not rewrite active window_start rows.';
+    'IANA timezone for civil day/month quota windows. Default UTC. Changing timezone does not rewrite or zero the active window_start row.';
 COMMENT ON COLUMN proxy_api_keys.token_day_limit IS
     'Token/day guardrail (settled + reserved). Null means unlimited.';
 
@@ -1251,10 +1275,43 @@ BEGIN
     IF owner_tz IS NULL THEN
         owner_tz := 'UTC';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_timezone_names
+        WHERE name = owner_tz
+    ) THEN
+        RETURN jsonb_build_object('ok', false, 'code', 'invalid_timezone');
+    END IF;
 
+    -- RPM is UTC minute. Reuse an unexpired day/month bucket so a timezone
+    -- change does not zero the active window; the new zone applies next period.
     minute_start := date_trunc('minute', NOW());
-    day_start := (date_trunc('day', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
-    month_start := (date_trunc('month', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
+
+    SELECT window_start
+    INTO day_start
+    FROM proxy_key_quota_windows
+    WHERE proxy_key_id = p_proxy_key_id
+      AND window_type = 'day'
+      AND window_start <= NOW()
+      AND window_start + INTERVAL '1 day' > NOW()
+    ORDER BY window_start DESC
+    LIMIT 1;
+    IF day_start IS NULL THEN
+        day_start := (date_trunc('day', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
+    END IF;
+
+    SELECT window_start
+    INTO month_start
+    FROM proxy_key_quota_windows
+    WHERE proxy_key_id = p_proxy_key_id
+      AND window_type = 'month'
+      AND window_start <= NOW()
+      AND window_start + INTERVAL '1 month' > NOW()
+    ORDER BY window_start DESC
+    LIMIT 1;
+    IF month_start IS NULL THEN
+        month_start := (date_trunc('month', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
+    END IF;
 
     IF COALESCE(p_managed, TRUE) THEN
         IF NULLIF(p_model, '') IS NULL
@@ -1362,7 +1419,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER, BOOLEAN) IS
-    'Atomically checks RPM/RPD (hard) and token-day/USD-month (guardrails). Passthrough (p_managed=false) skips allowlist. p_body_bytes is unused. Day/month windows follow user_settings.timezone.';
+    'Atomically checks RPM/RPD (hard) and token-day/USD-month (guardrails). Passthrough (p_managed=false) skips allowlist. p_body_bytes is unused. Day/month windows follow user_settings.timezone. Changing timezone keeps the unexpired bucket until window_start + 1 day/month.';
 
 CREATE OR REPLACE FUNCTION settle_proxy_request(
     p_proxy_key_id UUID,

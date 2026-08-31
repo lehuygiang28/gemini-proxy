@@ -52,4 +52,23 @@ describe('DataSanitizer JSON field redaction', () => {
             'session-token': '[REDACTED]',
         });
     });
+
+    it('redacts camelCase secret fields without matching mysecret', () => {
+        const actual = DataSanitizer.sanitizePayloadBody(
+            JSON.stringify({
+                accessToken: 'hide-access',
+                refreshToken: 'hide-refresh',
+                apiKeyValue: 'hide-key',
+                privateKey: 'hide-private',
+                mysecret: 'keep',
+            }),
+        );
+        expect(actual.body).toEqual({
+            accessToken: '[REDACTED]',
+            refreshToken: '[REDACTED]',
+            apiKeyValue: '[REDACTED]',
+            privateKey: '[REDACTED]',
+            mysecret: 'keep',
+        });
+    });
 });

@@ -5,6 +5,7 @@ import {
     type ProxyApiKeyUpdate,
 } from './database';
 import { UsersManager } from './users';
+import { keysOwnedBy } from './resolve-owner-user';
 import { colors } from './colors';
 import { v4 as uuidv4 } from 'uuid';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
@@ -238,6 +239,7 @@ export class ProxyKeysManager {
             overwrite?: boolean;
             skipDuplicates?: boolean;
             dryRun?: boolean;
+            userId?: string;
         } = {},
     ): Promise<{ created: number; updated: number; skipped: number; errors: string[] }> {
         if (!existsSync(filePath)) {
@@ -251,11 +253,9 @@ export class ProxyKeysManager {
             throw new Error('Invalid import file format');
         }
 
-        const existingKeys = await this.list();
+        const ownerId = await UsersManager.getDefaultUser(options.userId);
+        const existingKeys = keysOwnedBy(await this.list(), ownerId);
         const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
-
-        // Get first user for proxy key assignment
-        const ownerId = await UsersManager.getDefaultUser();
 
         // Prepare batch operations
         const keysToCreate: Array<Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];

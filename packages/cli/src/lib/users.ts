@@ -1,6 +1,6 @@
 import { select } from '@inquirer/prompts';
 import { supabase } from './database';
-import { isCliInteractive, listOwnerDirectoryPage, resolveOwnerUserId } from './resolve-owner-user';
+import { isCliInteractive, listOwnerUsers, resolveOwnerUserId } from './resolve-owner-user';
 
 export interface User {
     id: string;
@@ -25,15 +25,19 @@ export class UsersManager {
             userId,
             interactive,
             listUsers: async () => {
-                const { data, error } =
-                    await supabase.client.auth.admin.listUsers(listOwnerDirectoryPage());
-                if (error) {
-                    throw new Error(error.message);
-                }
-                return (data?.users ?? []).map((user) => ({
-                    id: user.id,
-                    email: user.email,
-                }));
+                return listOwnerUsers({
+                    interactive,
+                    listPage: async (page) => {
+                        const { data, error } = await supabase.client.auth.admin.listUsers(page);
+                        if (error) {
+                            throw new Error(error.message);
+                        }
+                        return (data?.users ?? []).map((user) => ({
+                            id: user.id,
+                            email: user.email,
+                        }));
+                    },
+                });
             },
             getUserById: async (id) => {
                 const { data, error } = await supabase.client.auth.admin.getUserById(id);

@@ -1,4 +1,6 @@
 export const HEADERS_REMOVE_TO_ORIGIN = [
+    'authorization',
+    'x-goog-api-key',
     'cookie',
     'origin',
     'x-forwarded-for',

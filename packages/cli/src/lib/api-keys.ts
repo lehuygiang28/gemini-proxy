@@ -2,6 +2,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { parseApiKeyImport, planApiKeyImport, type ImportParseResult } from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
 import { UsersManager } from './users';
+import { keysOwnedBy } from './resolve-owner-user';
 import { colors } from './colors';
 
 export type ApiKeyImportResult = {
@@ -253,6 +254,7 @@ export class ApiKeysManager {
             overwrite?: boolean;
             skipDuplicates?: boolean;
             dryRun?: boolean;
+            userId?: string;
         } = {},
     ): Promise<ApiKeyImportResult> {
         if (!existsSync(filePath)) {
@@ -262,8 +264,8 @@ export class ApiKeysManager {
         const fileContent = readFileSync(filePath, 'utf-8');
         const parsed = parseApiKeyImport(fileContent);
 
-        const ownerId = await UsersManager.getDefaultUser();
-        const existingKeys = (await this.list()).filter((key) => key.user_id === ownerId);
+        const ownerId = await UsersManager.getDefaultUser(options.userId);
+        const existingKeys = keysOwnedBy(await this.list(), ownerId);
         const plan = planApiKeyImport(
             existingKeys.map((key) => ({
                 id: key.id,

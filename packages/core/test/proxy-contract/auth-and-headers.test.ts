@@ -110,6 +110,41 @@ describe('proxy contract: auth and headers', () => {
         expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY);
     });
 
+    it('does not forward the Bearer proxy credential on a Gemini origin request', async () => {
+        const actual = await invokeCore('/gemini/v1beta/models/gemini-flash:generateContent', {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${CONTRACT_PROXY_KEY}`,
+                'content-type': 'application/json',
+            },
+            body: '{}',
+        });
+        expect(actual.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBe(CONTRACT_GEMINI_KEY);
+        expect(originRequests[0]!.headers.get('authorization')).toBeNull();
+    });
+
+    it('does not forward the goog proxy credential on an OpenAI origin request', async () => {
+        const actual = await invokeCore('/openai/chat/completions', {
+            method: 'POST',
+            headers: {
+                'x-goog-api-key': CONTRACT_PROXY_KEY,
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'gemini-flash',
+                messages: [{ role: 'user', content: 'ping' }],
+            }),
+        });
+        expect(actual.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(originRequests[0]!.headers.get('authorization')).toBe(
+            `Bearer ${CONTRACT_GEMINI_KEY}`,
+        );
+        expect(originRequests[0]!.headers.get('x-goog-api-key')).toBeNull();
+    });
+
     it('forwards openai key as Authorization Bearer', async () => {
         const actual = await invokeCore('/openai/chat/completions', {
             method: 'POST',

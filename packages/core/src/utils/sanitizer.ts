@@ -67,15 +67,20 @@ export class DataSanitizer {
         redactUrls: false,
     };
 
+    private static normalizeFieldName(key: string): string {
+        return key
+            .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+            .replace(/-/g, '_')
+            .toLowerCase();
+    }
+
     private static isSensitiveJsonField(key: string, extraFieldNames: string[] = []): boolean {
-        const lower = key.toLowerCase();
+        const snake = this.normalizeFieldName(key);
         const names = [
             ...this.SENSITIVE_JSON_FIELDS,
-            ...extraFieldNames.map((name) => name.toLowerCase()),
+            ...extraFieldNames.map((name) => this.normalizeFieldName(name)),
         ];
-        return names.some(
-            (name) => lower === name || lower.endsWith(`_${name}`) || lower.endsWith(`-${name}`),
-        );
+        return names.some((name) => snake === name || snake.endsWith(`_${name}`));
     }
 
     private static redactSecretStrings(value: string): string {

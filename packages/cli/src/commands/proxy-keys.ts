@@ -4,6 +4,7 @@ import { input, confirm, select } from '@inquirer/prompts';
 import ora from 'ora';
 import { ProxyKeysManager } from '../lib/proxy-keys';
 import { UsersManager } from '../lib/users';
+import { keysOwnedBy } from '../lib/resolve-owner-user';
 import { EnvParser } from '../lib/env-parser';
 import { Validation } from '../lib/validation';
 import { ErrorHandler } from '../lib/error-handler';
@@ -185,6 +186,7 @@ export function proxyKeysCommands(program: Command) {
         .option('-o, --overwrite', 'Overwrite existing keys')
         .option('-s, --skip-duplicates', 'Skip duplicate keys')
         .option('-d, --dry-run', 'Show what would be imported without actually importing')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .action(async (file, options) => {
             try {
                 Validation.validateFilePath(file);
@@ -194,6 +196,7 @@ export function proxyKeysCommands(program: Command) {
                     overwrite: options.overwrite,
                     skipDuplicates: options.skipDuplicates,
                     dryRun: options.dryRun,
+                    userId: options.userId,
                 });
 
                 spinner.succeed('Import completed');
@@ -281,7 +284,8 @@ export function proxyKeysCommands(program: Command) {
 
                 spinner.text = `Found ${envKeys.length} proxy API key(s) in .env file`;
 
-                const existingKeys = await ProxyKeysManager.list();
+                const ownerId = await UsersManager.getDefaultUser(options.userId);
+                const existingKeys = keysOwnedBy(await ProxyKeysManager.list(), ownerId);
                 const keysToCreate: typeof envKeys = [];
                 const keysToUpdate: Array<{ envKey: (typeof envKeys)[0]; dbKey: any }> = [];
                 const keysToDelete: typeof existingKeys = [];
@@ -354,8 +358,6 @@ export function proxyKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
-                    const ownerId = await UsersManager.getDefaultUser(options.userId);
-
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new proxy API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({

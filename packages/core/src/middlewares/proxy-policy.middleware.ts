@@ -29,6 +29,7 @@ const DENY_STATUS: Record<string, ContentfulStatusCode> = {
     expired_key: 400,
     inactive_key: 400,
     unknown_key: 401,
+    invalid_timezone: 400,
 };
 
 function parsePositiveInteger(value: unknown): number | undefined {

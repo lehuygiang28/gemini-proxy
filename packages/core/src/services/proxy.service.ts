@@ -173,7 +173,11 @@ export class ProxyService {
             });
         } catch (error) {
             if (error instanceof InvalidKeyError && error.message === 'No API key found') {
-                await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id);
+                await this.throwIfAllKeysCooled(
+                    c,
+                    proxyApiKeyData.user_id,
+                    proxyRequestDataParsed.model,
+                );
             }
             throw error;
         }
@@ -850,10 +854,19 @@ export class ProxyService {
         return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
     }
 
-    private static async throwIfAllKeysCooled(c: Context<HonoApp>, userId: string): Promise<void> {
+    private static async throwIfAllKeysCooled(
+        c: Context<HonoApp>,
+        userId: string,
+        canonicalModel?: string,
+    ): Promise<void> {
         let remainingMs: number | null;
         try {
-            remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(c, userId);
+            remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(
+                c,
+                userId,
+                [],
+                canonicalModel,
+            );
         } catch {
             return;
         }
@@ -873,6 +886,10 @@ export class ProxyService {
         const { c, currentAttempt, proxyKeyId, apiFormat, model, excludeIds } = params;
 
         const strategy = this.getLoadBalanceStrategy(c);
+        const proxyApiKeyData = c.get('proxyApiKeyData');
+        if (!proxyApiKeyData?.user_id) {
+            throw new InvalidKeyError('Proxy API key is missing owner');
+        }
 
         let preferKeyId: string | null = null;
         if (strategy === 'sticky_until_error') {
@@ -881,16 +898,13 @@ export class ProxyService {
                     proxyKeyId,
                     apiFormat,
                     model,
+                    userId: proxyApiKeyData.user_id,
                 });
             } catch (error) {
                 console.warn('Sticky selection lookup failed, falling back:', error);
             }
         }
 
-        const proxyApiKeyData = c.get('proxyApiKeyData');
-        if (!proxyApiKeyData?.user_id) {
-            throw new InvalidKeyError('Proxy API key is missing owner');
-        }
         const selected = await ApiKeyService.reserveNextApiKey(c, {
             userId: proxyApiKeyData.user_id,
             prioritizeLeastRecentlyUsed: true,
@@ -931,6 +945,7 @@ export class ProxyService {
             proxyKeyId: string;
             apiFormat: ProxyRequestDataParsed['apiFormat'];
             model?: string;
+            userId: string;
         },
     ): Promise<string | null> {
         const supabase = getSupabaseClient(c);
@@ -960,6 +975,7 @@ export class ProxyService {
                 .from('api_keys')
                 .select('id, is_active, last_used_at, last_error_at')
                 .eq('id', apiKeyId)
+                .eq('user_id', params.userId)
                 .single();
             if (!key || key.is_active === false) return null;
             const errAt = key.last_error_at ? new Date(key.last_error_at).getTime() : null;

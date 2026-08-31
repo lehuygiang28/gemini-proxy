@@ -33,6 +33,12 @@ export type AdmitResult = {
     };
 };
 
+type ModelCooldownRow = {
+    api_key_id: string;
+    canonical_model: string;
+    cooldown_until: string;
+};
+
 export type InvokeCoreOptions = {
     proxyKey?: Record<string, unknown> | null;
     proxyKeyActive?: boolean;
@@ -41,6 +47,19 @@ export type InvokeCoreOptions = {
     extraApiKeys?: boolean;
     extraApiKeyCooldownUntil?: string | null;
     primaryApiKeyCooldownUntil?: string | null;
+    apiKeyRows?: Array<{
+        id: string;
+        api_key_value: string;
+        name: string;
+        last_used_at: string | null;
+        last_error_at: string | null;
+        created_at: string;
+        failure_count: number;
+        consecutive_failures: number;
+        cooldown_until: string | null;
+        is_active: boolean;
+    }>;
+    seedModelCooldowns?: ModelCooldownRow[];
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
     originHeaders?: HeadersInit;
@@ -61,18 +80,13 @@ type QueryFilters = {
     cooldownBefore: string | null;
     inValues: Record<string, unknown[]>;
     eqValues: Record<string, unknown>;
+    limitCount: number | null;
 };
 
 type PersistedKeyPatch = {
     cooldown_until?: string | null;
     is_active?: boolean;
     last_error_at?: string | null;
-};
-
-type ModelCooldownRow = {
-    api_key_id: string;
-    canonical_model: string;
-    cooldown_until: string;
 };
 
 const persistedKeyPatches = new Map<string, PersistedKeyPatch>();
@@ -104,6 +118,7 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
         cooldownBefore: null,
         inValues: {},
         eqValues: {},
+        limitCount: null,
     };
     const query = {
         select: (..._args: unknown[]) => query,
@@ -142,17 +157,33 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
             return query;
         },
         order: (..._args: unknown[]) => query,
-        limit: (..._args: unknown[]) => query,
+        limit: (value: unknown) => {
+            if (typeof value === 'number') {
+                filters.limitCount = value;
+            }
+            return query;
+        },
         update: (..._args: unknown[]) => query,
         insert: (..._args: unknown[]) => query,
         upsert: (..._args: unknown[]) => query,
-        maybeSingle: async () => getResult(filters),
-        single: async () => getResult(filters),
+        maybeSingle: async () => applyLimit(getResult(filters)),
+        single: async () => applyLimit(getResult(filters)),
         then: (
             resolve: (value: QueryResult) => unknown,
             reject?: (reason: unknown) => unknown,
-        ): Promise<unknown> => Promise.resolve(getResult(filters)).then(resolve, reject),
+        ): Promise<unknown> =>
+            Promise.resolve(applyLimit(getResult(filters))).then(resolve, reject),
     };
+    function applyLimit(result: QueryResult): QueryResult {
+        if (filters.limitCount == null || !Array.isArray(result.data)) {
+            return result;
+        }
+        return {
+            ...result,
+            data: result.data.slice(0, filters.limitCount),
+            count: result.count,
+        };
+    }
     return query;
 }
 
@@ -171,38 +202,40 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                   max_request_body_bytes: null,
               });
     const apiKeys = (
-        options.noApiKeys
-            ? []
-            : [
-                  {
-                      id: CONTRACT_API_KEY_ID,
-                      api_key_value: CONTRACT_GEMINI_KEY,
-                      name: 'contract-gemini',
-                      last_used_at: null,
-                      last_error_at: null,
-                      created_at: new Date().toISOString(),
-                      failure_count: 0,
-                      consecutive_failures: 0,
-                      cooldown_until: options.primaryApiKeyCooldownUntil ?? null,
-                      is_active: true,
-                  },
-                  ...(options.extraApiKeys
-                      ? [
-                            {
-                                id: CONTRACT_API_KEY_ID_2,
-                                api_key_value: CONTRACT_GEMINI_KEY_2,
-                                name: 'contract-gemini-2',
-                                last_used_at: null,
-                                last_error_at: null,
-                                created_at: new Date().toISOString(),
-                                failure_count: 0,
-                                consecutive_failures: 0,
-                                cooldown_until: options.extraApiKeyCooldownUntil ?? null,
-                                is_active: true,
-                            },
-                        ]
-                      : []),
-              ]
+        options.apiKeyRows
+            ? options.apiKeyRows
+            : options.noApiKeys
+              ? []
+              : [
+                    {
+                        id: CONTRACT_API_KEY_ID,
+                        api_key_value: CONTRACT_GEMINI_KEY,
+                        name: 'contract-gemini',
+                        last_used_at: null,
+                        last_error_at: null,
+                        created_at: new Date().toISOString(),
+                        failure_count: 0,
+                        consecutive_failures: 0,
+                        cooldown_until: options.primaryApiKeyCooldownUntil ?? null,
+                        is_active: true,
+                    },
+                    ...(options.extraApiKeys
+                        ? [
+                              {
+                                  id: CONTRACT_API_KEY_ID_2,
+                                  api_key_value: CONTRACT_GEMINI_KEY_2,
+                                  name: 'contract-gemini-2',
+                                  last_used_at: null,
+                                  last_error_at: null,
+                                  created_at: new Date().toISOString(),
+                                  failure_count: 0,
+                                  consecutive_failures: 0,
+                                  cooldown_until: options.extraApiKeyCooldownUntil ?? null,
+                                  is_active: true,
+                              },
+                          ]
+                        : []),
+                ]
     ).map((apiKey) => {
         const patch = persistedKeyPatches.get(apiKey.id);
         if (!patch) {
@@ -425,6 +458,18 @@ export async function invokeCore(
     options: InvokeCoreOptions = {},
 ): Promise<Response> {
     originRequests.length = 0;
+    if (options.seedModelCooldowns) {
+        for (const row of options.seedModelCooldowns) {
+            const exists = persistedModelCooldowns.some(
+                (existing) =>
+                    existing.api_key_id === row.api_key_id &&
+                    existing.canonical_model === row.canonical_model,
+            );
+            if (!exists) {
+                persistedModelCooldowns.push(row);
+            }
+        }
+    }
     for (const [name, value] of Object.entries(options.environment ?? {})) {
         vi.stubEnv(name, value);
     }

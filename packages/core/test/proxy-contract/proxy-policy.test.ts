@@ -270,4 +270,16 @@ describe('proxy contract: proxy-key policy', () => {
         });
         expect(rpcCalls.filter((call) => call.name === 'finalize_proxy_request')).toHaveLength(1);
     });
+
+    it('returns invalid_timezone 400 instead of 500 when admit rejects the stored zone', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            admitResults: [{ ok: false, code: 'invalid_timezone' }],
+        });
+
+        expect(actualResponse.status).toBe(400);
+        expect(await actualResponse.json()).toEqual(
+            expect.objectContaining({ error: 'policy_denied', code: 'invalid_timezone' }),
+        );
+        expect(originRequests).toHaveLength(0);
+    });
 });

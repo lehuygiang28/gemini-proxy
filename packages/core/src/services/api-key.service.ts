@@ -232,13 +232,14 @@ export class ApiKeyService {
         c: Context<HonoApp>,
         userId: string,
         excludeIds: string[] = [],
+        canonicalModel?: string,
     ): Promise<number | null> {
         const supabase = getSupabaseClient(c);
         const nowMs = Date.now();
         const nowIso = new Date(nowMs).toISOString();
         let query = supabase
             .from('api_keys')
-            .select('cooldown_until')
+            .select('id, cooldown_until')
             .eq('is_active', true)
             .is('deleted_at', null)
             .eq('user_id', userId)
@@ -255,9 +256,27 @@ export class ApiKeyService {
         let remainingMs: number | null = cooldownUntil
             ? Math.max(0, new Date(cooldownUntil).getTime() - nowMs)
             : null;
+        const { data: ownedKeys, error: ownedError } = await supabase
+            .from('api_keys')
+            .select('id')
+            .eq('is_active', true)
+            .is('deleted_at', null)
+            .eq('user_id', userId);
+        if (ownedError) {
+            throw new Error(`Failed to query owned API keys: ${ownedError.message}`);
+        }
+        const ownedIds = (ownedKeys ?? [])
+            .map((row) => row.id)
+            .filter((id) => !excludeIds.includes(id));
+        if (ownedIds.length === 0) {
+            return remainingMs;
+        }
+        const model = canonicalModel && canonicalModel.trim() !== '' ? canonicalModel : '*';
         const { data: modelRows, error: modelError } = await supabase
             .from('api_key_model_cooldowns')
             .select('cooldown_until')
+            .in('api_key_id', ownedIds)
+            .in('canonical_model', [model, '*'])
             .gt('cooldown_until', nowIso)
             .order('cooldown_until', { ascending: true })
             .limit(1);
@@ -321,12 +340,17 @@ export class ApiKeyService {
                 query = query.order('created_at', { ascending: false, nullsFirst: true });
             }
 
-            const { data, error } = await query.limit(CANDIDATE_POOL_SIZE);
+            const { data, error } = await query.limit(50);
             if (error || !data || data.length === 0) return [] as SelectedApiKey[];
             const notExcluded = data.filter(
                 (key) => !excludeIds.includes(key.id),
             ) as SelectedApiKey[];
-            return excludeModelCooledKeys(supabase, notExcluded, params.canonicalModel);
+            const eligible = await excludeModelCooledKeys(
+                supabase,
+                notExcluded,
+                params.canonicalModel,
+            );
+            return eligible.slice(0, CANDIDATE_POOL_SIZE);
         };
 
         // Try to atomically reserve a key by conditionally updating last_used_at if unchanged
@@ -336,6 +360,7 @@ export class ApiKeyService {
                 .from('api_keys')
                 .update({ last_used_at: nowIso, updated_at: nowIso })
                 .eq('id', candidate.id)
+                .eq('user_id', params.userId)
                 .eq('is_active', true)
                 .is('deleted_at', null)
                 .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);

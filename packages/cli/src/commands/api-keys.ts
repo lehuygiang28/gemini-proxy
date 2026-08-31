@@ -4,6 +4,7 @@ import { input, password, select, confirm } from '@inquirer/prompts';
 import ora from 'ora';
 import { ApiKeysManager } from '../lib/api-keys';
 import { UsersManager } from '../lib/users';
+import { keysOwnedBy } from '../lib/resolve-owner-user';
 import { EnvParser } from '../lib/env-parser';
 import { Validation } from '../lib/validation';
 import { ErrorHandler } from '../lib/error-handler';
@@ -194,6 +195,7 @@ export function apiKeysCommands(program: Command) {
         .option('-o, --overwrite', 'Overwrite existing keys')
         .option('-s, --skip-duplicates', 'Skip duplicate keys')
         .option('-d, --dry-run', 'Show what would be imported without actually importing')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .action(async (file, options) => {
             try {
                 Validation.validateFilePath(file);
@@ -203,6 +205,7 @@ export function apiKeysCommands(program: Command) {
                     overwrite: options.overwrite,
                     skipDuplicates: options.skipDuplicates,
                     dryRun: options.dryRun,
+                    userId: options.userId,
                 });
 
                 spinner.succeed('Import completed');
@@ -316,7 +319,8 @@ export function apiKeysCommands(program: Command) {
 
                 spinner.text = `Found ${envKeys.length} API key(s) in .env file`;
 
-                const existingKeys = await ApiKeysManager.list();
+                const ownerId = await UsersManager.getDefaultUser(options.userId);
+                const existingKeys = keysOwnedBy(await ApiKeysManager.list(), ownerId);
                 const keysToCreate: typeof envKeys = [];
                 const keysToUpdate: Array<{ envKey: (typeof envKeys)[0]; dbKey: any }> = [];
                 const keysToDelete: typeof existingKeys = [];
@@ -386,8 +390,6 @@ export function apiKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
-                    const ownerId = await UsersManager.getDefaultUser(options.userId);
-
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({
