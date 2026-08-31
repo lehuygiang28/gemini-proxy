@@ -3,7 +3,10 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Tables } from '@gemini-proxy/database';
 import { getSupabaseClient } from './supabase.service';
+import { ProjectPoolScheduler, type SelectedApiKey } from '../scheduler/project-pool-scheduler';
 import type { HonoApp } from '../types';
+
+export type { SelectedApiKey } from '../scheduler/project-pool-scheduler';
 
 export interface ApiKeyParams {
     userId: string;
@@ -21,18 +24,6 @@ export interface ApiKeyWithStats extends Tables<'api_keys'> {
     hours_since_creation: number;
     hours_since_last_use: number;
     health_score: number;
-}
-
-export interface SelectedApiKey {
-    id: string;
-    api_key_value: string;
-    name?: string;
-    last_used_at: string | null;
-    last_error_at: string | null;
-    created_at: string | null;
-    failure_count: number;
-    consecutive_failures: number;
-    cooldown_until: string | null;
 }
 
 type ApiKeyComputedStats = {
@@ -254,143 +245,14 @@ export class ApiKeyService {
         c: Context<HonoApp>,
         params: ApiKeyParams & { excludeIds?: string[]; preferKeyId?: string | null },
     ): Promise<SelectedApiKey | null> {
-        const supabase = getSupabaseClient(c);
-        const CANDIDATE_POOL_SIZE = Math.max(3, Math.min(10, (params.count ?? 0) || 5));
-
-        // Helper to fetch a small candidate pool ordered for round-robin
-        const fetchCandidates = async () => {
-            const nowIso = new Date().toISOString();
-            let query = supabase
-                .from('api_keys')
-                .select(
-                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active',
-                )
-                .eq('is_active', true)
-                .is('deleted_at', null)
-                .eq('user_id', params.userId)
-                .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
-
-            const excludeIds =
-                params.excludeIds && params.excludeIds.length > 0 ? params.excludeIds : [];
-            if (excludeIds.length > 0) {
-                const inList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
-                query = query.not('id', 'in', inList);
-            }
-
-            // Primary RR ordering
-            query = query
-                .order('last_used_at', { ascending: true, nullsFirst: true })
-                .order('last_error_at', { ascending: true, nullsFirst: true });
-
-            // Preferences as tie-breakers
-            if (params.prioritizeLeastErrors) {
-                query = query.order('failure_count', { ascending: true, nullsFirst: true });
-            }
-            if (params.prioritizeNewer) {
-                query = query.order('created_at', { ascending: false, nullsFirst: true });
-            }
-
-            const { data, error } = await query.limit(CANDIDATE_POOL_SIZE);
-            if (error || !data || data.length === 0) return [] as SelectedApiKey[];
-            return data.filter((key) => !excludeIds.includes(key.id)) as SelectedApiKey[];
-        };
-
-        // Try to atomically reserve a key by conditionally updating last_used_at if unchanged
-        const tryReserve = async (candidate: SelectedApiKey): Promise<boolean> => {
-            const nowIso = new Date().toISOString();
-            let updateQuery = supabase
-                .from('api_keys')
-                .update({ last_used_at: nowIso, updated_at: nowIso })
-                .eq('id', candidate.id)
-                .eq('is_active', true)
-                .is('deleted_at', null)
-                .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
-
-            if (candidate.last_used_at === null) {
-                updateQuery = updateQuery.is('last_used_at', null);
-            } else {
-                updateQuery = updateQuery.eq('last_used_at', candidate.last_used_at);
-            }
-
-            const { error, data } = await updateQuery.select('id');
-            if (error) return false;
-            const ok = (data?.length ?? 0) > 0;
-            if (ok) {
-                const requestId = (c as any).get?.('proxyRequestId');
-                console.log(
-                    `[${requestId}] Reserved API key: ${candidate.id}` +
-                        (candidate.name ? ` (${candidate.name})` : ''),
-                );
-            }
-            return ok;
-        };
-
-        // Helper: determine if a key is healthy for sticky reuse
-        const isHealthyForSticky = (key: {
-            last_used_at: string | null;
-            last_error_at: string | null;
-            is_active?: boolean;
-            cooldown_until?: string | null;
-        }): boolean => {
-            // must be active
-            if (key.is_active === false) return false;
-            if (key.cooldown_until && new Date(key.cooldown_until).getTime() > Date.now()) {
-                return false;
-            }
-            // If no error ever, healthy
-            if (!key.last_error_at) return true;
-            // If never used, but has error timestamp, consider unhealthy to avoid thrashing
-            if (!key.last_used_at) return false;
-            // Healthy only when last error happened strictly before last successful use
-            try {
-                const errAt = new Date(key.last_error_at).getTime();
-                const usedAt = new Date(key.last_used_at).getTime();
-                return errAt < usedAt;
-            } catch {
-                // On parsing issues, be conservative
-                return false;
-            }
-        };
-
-        // Sticky try: prefer a specific key id if provided, not excluded, and healthy
-        if (params.preferKeyId && !(params.excludeIds || []).includes(params.preferKeyId)) {
-            const { data: preferred, error: preferErr } = await getSupabaseClient(c)
-                .from('api_keys')
-                .select(
-                    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active',
-                )
-                .eq('id', params.preferKeyId)
-                .eq('user_id', params.userId)
-                .eq('is_active', true)
-                .is('deleted_at', null)
-                .or(`cooldown_until.is.null,cooldown_until.lte.${new Date().toISOString()}`)
-                .single();
-            if (!preferErr && preferred && isHealthyForSticky(preferred)) {
-                const selected: SelectedApiKey = {
-                    id: preferred.id,
-                    api_key_value: preferred.api_key_value,
-                    name: preferred.name,
-                    last_used_at: preferred.last_used_at,
-                    last_error_at: preferred.last_error_at,
-                    created_at: preferred.created_at,
-                    failure_count: preferred.failure_count,
-                    consecutive_failures: preferred.consecutive_failures,
-                    cooldown_until: preferred.cooldown_until,
-                };
-                // Optimistic reservation to avoid concurrent reuse
-                const ok = await tryReserve(selected);
-                if (ok) return selected;
-            }
-        }
-
-        // Fetch a pool and attempt to reserve one atomically
-        const candidates = await fetchCandidates();
-        for (const candidate of candidates) {
-            const ok = await tryReserve(candidate);
-            if (ok) return candidate;
-        }
-
-        return null;
+        return ProjectPoolScheduler.reserveNext(c, {
+            userId: params.userId,
+            excludeKeyIds: params.excludeIds,
+            preferKeyId: params.preferKeyId,
+            candidateCount: params.count,
+            prioritizeLeastErrors: params.prioritizeLeastErrors,
+            prioritizeNewer: params.prioritizeNewer,
+        });
     }
 
     /** Update last_used_at to now without touching counters. */
