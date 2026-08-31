@@ -254,39 +254,17 @@ export class ProxyService {
         } = attemptResult;
 
         if (firstResponse.ok) {
-            const shouldTreatAsFailure = await this.shouldTreatOkAsFailure({
-                response: firstResponse.clone(),
-                apiFormat: proxyRequestDataParsed.apiFormat,
-                options,
+            return this.handleSuccessfulResponse({
+                c,
+                firstResponse,
+                firstApiKey,
+                firstAttemptDuration,
+                firstHeaders,
+                baseRequest,
+                proxyRequestDataParsed,
+                proxyApiKeyData,
+                requestId,
             });
-
-            if (shouldTreatAsFailure) {
-                return this.handleSyntheticFailure({
-                    c,
-                    firstResponse,
-                    firstApiKey,
-                    firstAttemptDuration,
-                    baseRequest,
-                    retryConfig,
-                    requestId,
-                    proxyApiKeyData,
-                    proxyRequestDataParsed,
-                    options,
-                    usedApiKeyIds,
-                });
-            } else {
-                return this.handleSuccessfulResponse({
-                    c,
-                    firstResponse,
-                    firstApiKey,
-                    firstAttemptDuration,
-                    firstHeaders,
-                    baseRequest,
-                    proxyRequestDataParsed,
-                    proxyApiKeyData,
-                    requestId,
-                });
-            }
         }
 
         return this.handleInitialFailure({
@@ -310,10 +288,9 @@ export class ProxyService {
         const proxyApiKeyData = c.get('proxyApiKeyData');
         const requestId = c.get('proxyRequestId');
         const retryConfigBase = ConfigService.getRetryConfig(c);
-        const options = c.get('proxyRequestOptions');
+        const options = undefined;
         const retryConfig: RetryConfig = {
             ...retryConfigBase,
-            ...(options?.retry || {}),
         };
 
         // Always create a fresh clone of the original request for all retries
@@ -652,36 +629,6 @@ export class ProxyService {
                     }
 
                     lastError = error;
-                    lastProviderError = providerError;
-                    continue;
-                }
-
-                const treatOkAsFailure = await this.shouldTreatOkAsFailure({
-                    response,
-                    apiFormat: proxyRequestDataParsed.apiFormat,
-                    options,
-                });
-                if (treatOkAsFailure) {
-                    const syntheticError = this.createSyntheticError(response.status);
-                    const providerError = this.extractProviderError(response);
-
-                    const retryAttempt = this.createRetryAttempt({
-                        attemptNumber: currentAttempt + 1,
-                        apiKeyId: selectedApiKey.id,
-                        apiKeyName: selectedApiKey.name,
-                        error: syntheticError,
-                        durationMs: attemptDuration,
-                        providerError,
-                    });
-                    retryAttempts.push(retryAttempt);
-
-                    if (currentAttempt >= retriesTimes || !this.shouldRetry(syntheticError)) {
-                        lastError = syntheticError;
-                        lastProviderError = providerError;
-                        break;
-                    }
-
-                    lastError = syntheticError;
                     lastProviderError = providerError;
                     continue;
                 }
@@ -1033,12 +980,14 @@ export class ProxyService {
         }
 
         const proxyApiKeyData = c.get('proxyApiKeyData');
+        if (!proxyApiKeyData?.user_id) {
+            throw new InvalidKeyError('Proxy API key is missing owner');
+        }
         const selected = await ApiKeyService.reserveNextApiKey(c, {
-            userId: proxyApiKeyData?.user_id ?? null,
-            prioritizeLeastRecentlyUsed:
-                options?.apiKeySelection?.prioritizeLeastRecentlyUsed ?? true,
-            prioritizeLeastErrors: options?.apiKeySelection?.prioritizeLeastErrors ?? true,
-            prioritizeNewer: options?.apiKeySelection?.prioritizeNewer ?? true,
+            userId: proxyApiKeyData.user_id,
+            prioritizeLeastRecentlyUsed: true,
+            prioritizeLeastErrors: true,
+            prioritizeNewer: true,
             excludeIds: excludeIds || [],
             preferKeyId: preferKeyId,
         });

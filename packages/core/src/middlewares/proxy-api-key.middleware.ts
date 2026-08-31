@@ -1,11 +1,15 @@
 import { Context, Next } from 'hono';
 
-import { ApiKeyService } from '../services/api-key.service';
 import { getSupabaseClient } from '../services/supabase.service';
+import { extractProxyCredential } from '../auth/extract-proxy-credential';
 
 export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
-    const proxyApiKey = ApiKeyService.getProxyApiKeyFromHeader(c);
-    if (!proxyApiKey) {
+    const extracted = extractProxyCredential({
+        path: c.req.path,
+        header: (name) => c.req.header(name),
+        queryKey: c.req.query('key'),
+    });
+    if (!extracted) {
         return c.json(
             {
                 error: 'Unauthorized',
@@ -14,6 +18,7 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
             401,
         );
     }
+    const proxyApiKey = extracted.value;
 
     const supabase = getSupabaseClient(c);
 
@@ -53,6 +58,16 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
                 message: 'Provided proxy API key is not active',
             },
             401,
+        );
+    }
+
+    if (!data.user_id) {
+        return c.json(
+            {
+                error: 'server_error',
+                message: 'Proxy API key is missing owner',
+            },
+            500,
         );
     }
 

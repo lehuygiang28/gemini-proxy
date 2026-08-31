@@ -10,6 +10,7 @@ import type { CustomModelPricingMap } from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
+import { ConfigService } from './config.service';
 import type { HonoApp, ProxyRequestDataParsed } from '../types';
 import type { Json } from '@gemini-proxy/database';
 import type { ProxyError } from '../types/error.type';
@@ -233,6 +234,7 @@ export class BackgroundService {
             responseData,
             requestText,
             responseText,
+            extraFieldNames: ConfigService.getRedactJsonFields(c),
         });
 
         // Log request (with token usage and model)
@@ -360,6 +362,7 @@ export class BackgroundService {
             responseData,
             requestText,
             responseText: null,
+            extraFieldNames: ConfigService.getRedactJsonFields(c),
         });
 
         // Log failed request
@@ -864,16 +867,32 @@ export class BackgroundService {
         responseData?: Record<string, unknown>;
         requestText: string | null;
         responseText: string | null;
+        extraFieldNames?: string[];
     }): void {
-        const { settings, requestData, responseData, requestText, responseText } = params;
+        const { settings, requestData, responseData, requestText, responseText, extraFieldNames } =
+            params;
         if (!settings.detailed_observability) {
             return;
         }
         if (settings.save_request_body && requestText) {
-            Object.assign(requestData, DataSanitizer.sanitizePayloadBody(requestText));
+            Object.assign(
+                requestData,
+                DataSanitizer.sanitizePayloadBody(
+                    requestText,
+                    DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+                    { extraFieldNames },
+                ),
+            );
         }
         if (settings.save_response_body && responseText && responseData) {
-            Object.assign(responseData, DataSanitizer.sanitizePayloadBody(responseText));
+            Object.assign(
+                responseData,
+                DataSanitizer.sanitizePayloadBody(
+                    responseText,
+                    DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+                    { extraFieldNames },
+                ),
+            );
         }
     }
 

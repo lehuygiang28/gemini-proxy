@@ -51,4 +51,16 @@ export class ConfigService {
     static getLoadBalanceStrategy(c: Context): LoadBalanceStrategy {
         return this.getConfig(c).loadbalance.strategy;
     }
+
+    static getRedactJsonFields(c: Context): string[] {
+        const envVars = env(c);
+        const raw = envVars.PROXY_REDACT_JSON_FIELDS;
+        if (!raw) {
+            return [];
+        }
+        return String(raw)
+            .split(',')
+            .map((name) => name.trim())
+            .filter((name) => name.length > 0);
+    }
 }

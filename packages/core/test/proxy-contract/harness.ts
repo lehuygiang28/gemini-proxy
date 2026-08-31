@@ -13,12 +13,17 @@ export const CONTRACT_GEMINI_KEY = 'AIzaSyTESTGEMINIKEY00000000001';
 export const CONTRACT_USER_ID = '11111111-1111-1111-1111-111111111111';
 export const CONTRACT_PROXY_KEY_ID = '22222222-2222-2222-2222-222222222222';
 export const CONTRACT_API_KEY_ID = '33333333-3333-3333-3333-333333333333';
+export const CONTRACT_API_KEY_ID_2 = '44444444-4444-4444-4444-444444444444';
+export const CONTRACT_GEMINI_KEY_2 = 'AIzaSyTESTGEMINIKEY00000000002';
 
 export const originRequests: Request[] = [];
 
 export type InvokeCoreOptions = {
     proxyKey?: Record<string, unknown> | null;
     proxyKeyActive?: boolean;
+    supabaseThrows?: boolean;
+    extraApiKeys?: boolean;
+    originBody?: unknown;
 };
 
 type QueryResult = {
@@ -87,6 +92,20 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
             failure_count: 0,
             is_active: true,
         },
+        ...(options.extraApiKeys
+            ? [
+                  {
+                      id: CONTRACT_API_KEY_ID_2,
+                      api_key_value: CONTRACT_GEMINI_KEY_2,
+                      name: 'contract-gemini-2',
+                      last_used_at: null,
+                      last_error_at: null,
+                      created_at: new Date().toISOString(),
+                      failure_count: 0,
+                      is_active: true,
+                  },
+              ]
+            : []),
     ];
     const client = {
         from(table: string) {
@@ -142,13 +161,18 @@ export async function invokeCore(
     options: InvokeCoreOptions = {},
 ): Promise<Response> {
     originRequests.length = 0;
-    setSupabaseFactoryForTests((_c: Context) => createMockSupabase(options));
+    setSupabaseFactoryForTests((_c: Context) => {
+        if (options.supabaseThrows) {
+            throw new Error('supabase probe failed');
+        }
+        return createMockSupabase(options);
+    });
     vi.stubGlobal(
         'fetch',
         async (input: RequestInfo | URL, requestInit?: RequestInit): Promise<Response> => {
             const request = input instanceof Request ? input : new Request(input, requestInit);
             originRequests.push(request);
-            return new Response(JSON.stringify({ candidates: [] }), {
+            return new Response(JSON.stringify(options.originBody ?? { candidates: [] }), {
                 status: 200,
                 headers: { 'content-type': 'application/json' },
             });

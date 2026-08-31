@@ -30,6 +30,11 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
 
     const envVariables = env(c);
     let rawBodyText: string | null = null;
+    const forwardedQuery = new URLSearchParams(queryParams);
+    forwardedQuery.delete('key');
+    forwardedQuery.delete('api_key');
+    const forwardedQueryString = forwardedQuery.toString();
+    const forwardedQuerySuffix = forwardedQueryString ? `?${forwardedQueryString}` : '';
 
     // For Gemini, we can often determine model and stream from the URL path
     if (apiFormat === 'gemini') {
@@ -61,7 +66,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
             envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
                 'https://generativelanguage.googleapis.com/',
             allPathParts.slice(proxyIndex + 1).join('/'),
-        )}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
+        )}${forwardedQuerySuffix}`;
     } else {
         // For OpenAI-compatible APIs, we need to parse the body to get model and stream
         if (c.req.header('content-type')?.includes('application/json')) {
@@ -82,7 +87,7 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
             envVariables?.GOOGLE_OPENAI_API_BASE_URL ??
                 'https://generativelanguage.googleapis.com/v1beta/openai/',
             allPathParts.slice(proxyIndex + 1).join('/'),
-        )}${queryParams ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
+        )}${forwardedQuerySuffix}`;
     }
 
     c.set('proxyRequestDataParsed', {

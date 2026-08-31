@@ -6,7 +6,7 @@ import { getSupabaseClient } from './supabase.service';
 import type { HonoApp } from '../types';
 
 export interface ApiKeyParams {
-    userId: string | null;
+    userId: string;
     prioritizeNewer?: boolean;
     prioritizeLeastErrors?: boolean;
     prioritizeLeastRecentlyUsed?: boolean;
@@ -72,7 +72,7 @@ export class ApiKeyService {
             .select('*')
             .eq('is_active', true)
             .is('deleted_at', null)
-            .or(`user_id.is.null, user_id.eq.${params.userId}`)
+            .eq('user_id', params.userId)
             .order('last_used_at', { ascending: true })
             .order('last_error_at', { ascending: true })
             .order('failure_count', { ascending: true });
@@ -197,17 +197,14 @@ export class ApiKeyService {
     }
 
     /** Count available API keys for a user (including global keys with user_id null). */
-    static async countAvailableApiKeys(
-        c: Context<HonoApp>,
-        userId: string | null,
-    ): Promise<number> {
+    static async countAvailableApiKeys(c: Context<HonoApp>, userId: string): Promise<number> {
         const supabase = getSupabaseClient(c);
         const { count, error } = await supabase
             .from('api_keys')
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true)
             .is('deleted_at', null)
-            .or(`user_id.is.null, user_id.eq.${userId}`);
+            .eq('user_id', userId);
         if (error) {
             throw new Error(`Failed to count API keys: ${error.message}`);
         }
@@ -234,7 +231,7 @@ export class ApiKeyService {
                 )
                 .eq('is_active', true)
                 .is('deleted_at', null)
-                .or(`user_id.is.null, user_id.eq.${params.userId}`);
+                .eq('user_id', params.userId);
 
             const excludeIds =
                 params.excludeIds && params.excludeIds.length > 0 ? params.excludeIds : [];

@@ -125,10 +125,7 @@ export class ResponseHandlerService {
                 });
             }
             const safeHeaders = this.filterResponseHeaders(providerHeaders);
-            safeHeaders.set('x-gproxy-error-type', lastError.type);
-            if (lastError.code) safeHeaders.set('x-gproxy-error-code', lastError.code);
-            safeHeaders.set('x-gproxy-error-message', lastError.message);
-            safeHeaders.set('x-gproxy-request-id', requestId);
+            safeHeaders.set('x-request-id', requestId);
             const statusToReturn = lastProviderError.status || lastError.status || 500;
             return new Response(lastProviderError.body || '', {
                 status: statusToReturn,
