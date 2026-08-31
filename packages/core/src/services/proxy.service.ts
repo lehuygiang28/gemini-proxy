@@ -17,7 +17,6 @@ import {
     createTimeoutSignal,
     mergeAbortSignals,
 } from '../retry/create-timeout-signal';
-import { computeRetryDelayMs } from '../retry/retry-delay';
 import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
 import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
 
@@ -607,40 +606,7 @@ export class ProxyService {
                         }
                     }
                     if (!selectedApiKey) {
-                        const remainingCooldownMs =
-                            await ApiKeyService.getSoonestRemainingCooldownMs(
-                                c,
-                                proxyApiKeyData.user_id,
-                                usedApiKeyIds,
-                            );
-                        if (remainingCooldownMs === null) {
-                            break;
-                        }
-                        pendingWaitedMs = Math.min(
-                            remainingCooldownMs,
-                            computeRetryDelayMs({
-                                attempt: currentAttempt,
-                                baseDelayMs: retryConfig.baseDelayMs,
-                                maxDelayMs: retryConfig.maxDelayMs,
-                                random: Math.random,
-                            }),
-                        );
-                        const didCompleteWait = await this.waitForRetryDelay(
-                            pendingWaitedMs,
-                            baseRequest.signal,
-                        );
-                        if (!didCompleteWait || baseRequest.signal.aborted) {
-                            break;
-                        }
-                        try {
-                            selectedApiKey = await this.selectOptimalApiKey(selectionParams);
-                        } catch {
-                            console.warn(
-                                'No API key became eligible after retry delay:',
-                                selectionError,
-                            );
-                            break;
-                        }
+                        break;
                     }
                 }
                 if (!selectedApiKey) {
@@ -774,33 +740,6 @@ export class ProxyService {
             return Math.min(maxRetries, availableApiKeys);
         }
         return 0;
-    }
-
-    private static async waitForRetryDelay(
-        delayMs: number,
-        clientSignal: AbortSignal,
-    ): Promise<boolean> {
-        if (clientSignal.aborted) {
-            return false;
-        }
-        if (delayMs <= 0) {
-            return true;
-        }
-        return new Promise<boolean>((resolve) => {
-            let timeoutId: ReturnType<typeof setTimeout> | undefined;
-            const finishWait = (didComplete: boolean): void => {
-                if (timeoutId === undefined) {
-                    return;
-                }
-                clearTimeout(timeoutId);
-                timeoutId = undefined;
-                clientSignal.removeEventListener('abort', handleAbort);
-                resolve(didComplete);
-            };
-            const handleAbort = (): void => finishWait(false);
-            timeoutId = setTimeout(() => finishWait(true), delayMs);
-            clientSignal.addEventListener('abort', handleAbort, { once: true });
-        });
     }
 
     private static createRetryAttempt(params: RetryAttemptParams): RetryAttemptData {

@@ -147,16 +147,11 @@ describe('proxy contract: timeout and retry', () => {
         ).toBe(false);
     });
 
-    it('waits only for the shorter remaining key cooldown', async () => {
-        vi.spyOn(Math, 'random').mockReturnValue(1);
+    it('returns the last error immediately when remaining keys are in hard cooldown', async () => {
         const startedAt = Date.now();
         const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
             extraApiKeys: true,
-            extraApiKeyCooldownUntil: new Date(Date.now() + 200).toISOString(),
-            environment: {
-                PROXY_RETRY_BASE_DELAY_MS: '1000',
-                PROXY_RETRY_MAX_DELAY_MS: '1000',
-            },
+            extraApiKeyCooldownUntil: new Date(Date.now() + 60_000).toISOString(),
             originResponses: [
                 new Response(JSON.stringify({ error: { message: 'upstream unavailable' } }), {
                     status: 503,
@@ -165,9 +160,9 @@ describe('proxy contract: timeout and retry', () => {
             ],
         });
 
-        expect(actualResponse.status).toBe(200);
-        expect(originRequests).toHaveLength(2);
-        expect(Date.now() - startedAt).toBeLessThan(600);
+        expect(actualResponse.status).toBe(503);
+        expect(originRequests).toHaveLength(1);
+        expect(Date.now() - startedAt).toBeLessThan(100);
     });
 
     it('retries another key after an upstream timeout', async () => {
@@ -198,30 +193,21 @@ describe('proxy contract: timeout and retry', () => {
         expect(firstAttemptSignal?.aborted).toBe(true);
     });
 
-    it('does not reserve or call another key when the client aborts during cooldown wait', async () => {
+    it('does not wait on a cooled key after the client aborts the first attempt', async () => {
         const clientAbortController = new AbortController();
-        vi.spyOn(Math, 'random').mockReturnValue(1);
 
         const actualResponse = await invokeCore(
             PROXY_PATH,
             createProxyRequestInit(clientAbortController.signal),
             {
                 extraApiKeys: true,
-                extraApiKeyCooldownUntil: new Date(Date.now() + 200).toISOString(),
-                environment: {
-                    PROXY_RETRY_BASE_DELAY_MS: '1000',
-                    PROXY_RETRY_MAX_DELAY_MS: '1000',
-                },
+                extraApiKeyCooldownUntil: new Date(Date.now() + 60_000).toISOString(),
                 originResponses: [
                     async () => {
-                        setTimeout(() => {
-                            clientAbortController.abort(
-                                new DOMException('client aborted', 'AbortError'),
-                            );
-                        }, 50);
-                        return new Response(JSON.stringify({ error: { message: 'aborted' } }), {
-                            status: 500,
-                        });
+                        clientAbortController.abort(
+                            new DOMException('client aborted', 'AbortError'),
+                        );
+                        throw clientAbortController.signal.reason;
                     },
                     new Response(JSON.stringify({ candidates: [] }), { status: 200 }),
                 ],
