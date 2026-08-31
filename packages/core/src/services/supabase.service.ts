@@ -3,8 +3,14 @@ import { env } from 'hono/adapter';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@gemini-proxy/database';
 
-// Singleton instance
-let client: SupabaseClient | null = null;
+export type SupabaseFactory = (c: Context) => SupabaseClient<Database>;
+
+let supabaseFactory: SupabaseFactory | null = null;
+let client: SupabaseClient<Database> | null = null;
+
+export function setSupabaseFactoryForTests(factory: SupabaseFactory | null): void {
+    supabaseFactory = factory;
+}
 
 /**
  * Get or create a Supabase client instance (singleton pattern)
@@ -13,7 +19,9 @@ let client: SupabaseClient | null = null;
  * @returns The Supabase client instance
  */
 export function getSupabaseClient(c: Context): SupabaseClient<Database> {
-    // Return existing client if already created
+    if (supabaseFactory) {
+        return supabaseFactory(c);
+    }
     if (client) {
         return client;
     }

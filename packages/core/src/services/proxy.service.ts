@@ -1190,15 +1190,18 @@ export class ProxyService {
 
         const headers = new Headers(attemptRequest.headers);
 
-        // Remove internal control headers so they are not sent to the origin
-        headers.forEach((_v, k) => {
+        const hopByHopKeys: string[] = [];
+        headers.forEach((_value, key) => {
             if (
-                k.toLowerCase().startsWith('x-gproxy-') ||
-                HEADERS_REMOVE_TO_ORIGIN.includes(k.toLowerCase())
+                key.toLowerCase().startsWith('x-gproxy-') ||
+                HEADERS_REMOVE_TO_ORIGIN.includes(key.toLowerCase())
             ) {
-                headers.delete(k);
+                hopByHopKeys.push(key);
             }
         });
+        for (const key of hopByHopKeys) {
+            headers.delete(key);
+        }
 
         // Set origin header properly using URL parsing
         try {
