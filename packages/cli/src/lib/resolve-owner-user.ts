@@ -1,5 +1,19 @@
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+export function isCliInteractive(input: {
+    readonly quick?: boolean;
+    readonly isTty: boolean;
+}): boolean {
+    if (input.quick) {
+        return false;
+    }
+    return input.isTty;
+}
+
+export function listOwnerDirectoryPage(): { readonly page: 1; readonly perPage: 2 } {
+    return { page: 1, perPage: 2 };
+}
+
 export async function resolveOwnerUserId(input: {
     readonly userId?: string;
     readonly interactive: boolean;

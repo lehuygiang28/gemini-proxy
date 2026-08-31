@@ -3,6 +3,7 @@ import { colors } from '../lib/colors';
 import { input, confirm, select } from '@inquirer/prompts';
 import ora from 'ora';
 import { ProxyKeysManager } from '../lib/proxy-keys';
+import { UsersManager } from '../lib/users';
 import { EnvParser } from '../lib/env-parser';
 import { Validation } from '../lib/validation';
 import { ErrorHandler } from '../lib/error-handler';
@@ -112,17 +113,20 @@ export function proxyKeysCommands(program: Command) {
 
             const spinner = ora('Creating proxy API key...').start();
             try {
-                const proxyKey = await ProxyKeysManager.create({
-                    name: name,
-                    proxy_key_value: keyValue,
-                    user_id: userId || null,
-                    is_active: true,
-                    success_count: 0,
-                    failure_count: 0,
-                    prompt_tokens: 0,
-                    completion_tokens: 0,
-                    total_tokens: 0,
-                });
+                const proxyKey = await ProxyKeysManager.create(
+                    {
+                        name: name,
+                        proxy_key_value: keyValue,
+                        user_id: userId || null,
+                        is_active: true,
+                        success_count: 0,
+                        failure_count: 0,
+                        prompt_tokens: 0,
+                        completion_tokens: 0,
+                        total_tokens: 0,
+                    },
+                    { quick: Boolean(options.quick) },
+                );
 
                 spinner.succeed('Proxy API key created successfully');
                 console.log('\n' + colors.green('Created Proxy API Key:'));
@@ -263,6 +267,7 @@ export function proxyKeysCommands(program: Command) {
         .description('Sync proxy API keys from .env file to database')
         .option('-f, --force', 'Skip confirmation for deletions')
         .option('-d, --dry-run', 'Show what would be synced without actually syncing')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .action(async (options) => {
             const spinner = ora('Syncing proxy API keys from .env...').start();
 
@@ -349,16 +354,8 @@ export function proxyKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
-                    // Get first user for proxy key assignment
-                    const { UsersManager } = await import('../lib/users');
-                    const firstUser = await UsersManager.getFirstUser();
-                    if (!firstUser) {
-                        throw new Error(
-                            'No users found in the database. Please create a user first.',
-                        );
-                    }
+                    const ownerId = await UsersManager.getDefaultUser(options.userId);
 
-                    // Create new keys in batch
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new proxy API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({
@@ -370,7 +367,7 @@ export function proxyKeysCommands(program: Command) {
                             prompt_tokens: 0,
                             completion_tokens: 0,
                             total_tokens: 0,
-                            user_id: firstUser.id,
+                            user_id: ownerId,
                         }));
                         await ProxyKeysManager.bulkCreate(createData);
                     }

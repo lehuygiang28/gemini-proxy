@@ -198,7 +198,7 @@ export class ApiKeyService {
         return apiKeys.length > 0 ? apiKeys[0] : null;
     }
 
-    /** Count active, non-cooled API keys for a user. */
+    /** Count active, non-cooled API keys owned by this user. */
     static async countAvailableApiKeys(c: Context<HonoApp>, userId: string): Promise<number> {
         const supabase = getSupabaseClient(c);
         const nowIso = new Date().toISOString();

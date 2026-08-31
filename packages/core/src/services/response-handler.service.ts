@@ -159,9 +159,13 @@ export class ResponseHandlerService {
             'vary',
         ]);
         headers.forEach((value, key) => {
-            if (!excludeHeaders.has(key.toLowerCase())) {
-                filtered.set(key, value);
+            if (
+                excludeHeaders.has(key.toLowerCase()) ||
+                key.toLowerCase().startsWith('x-gproxy-')
+            ) {
+                return;
             }
+            filtered.set(key, value);
         });
         return filtered;
     }

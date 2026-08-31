@@ -27,6 +27,7 @@ export type InvokeCoreOptions = {
     extraApiKeyCooldownUntil?: string | null;
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
+    originHeaders?: HeadersInit;
     environment?: Record<string, string>;
 };
 
@@ -259,7 +260,10 @@ export async function invokeCore(
             }
             return new Response(JSON.stringify(options.originBody ?? { candidates: [] }), {
                 status: 200,
-                headers: { 'content-type': 'application/json' },
+                headers: {
+                    'content-type': 'application/json',
+                    ...Object.fromEntries(new Headers(options.originHeaders ?? {}).entries()),
+                },
             });
         },
     );
