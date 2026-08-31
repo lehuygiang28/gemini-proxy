@@ -1,8 +1,18 @@
 import { isValidProxyApiKeyValue } from '../keys/is-valid-proxy-api-key';
 
+export type ProxyCredentialConflict = {
+    readonly error: 'conflicting_credentials';
+};
+
 export interface ExtractedProxyCredential {
     readonly value: string;
-    readonly source: 'x-goog-api-key' | 'authorization' | 'query-key';
+    readonly source: 'x-goog-api-key' | 'authorization';
+}
+
+export function isProxyCredentialConflict(
+    value: ExtractedProxyCredential | ProxyCredentialConflict | null,
+): value is ProxyCredentialConflict {
+    return value !== null && 'error' in value;
 }
 
 function readBearerToken(authorization: string | undefined): string | undefined {
@@ -14,29 +24,26 @@ function readBearerToken(authorization: string | undefined): string | undefined 
     return token || undefined;
 }
 
-export function extractProxyCredential(input: {
-    readonly path: string;
-    readonly header: (name: string) => string | undefined;
-    readonly queryKey: string | undefined;
-}): ExtractedProxyCredential | null {
-    const candidates: ExtractedProxyCredential[] = [];
-    const goog = input.header('x-goog-api-key')?.trim();
-    if (goog) {
-        candidates.push({ value: goog, source: 'x-goog-api-key' });
+function readValidCredential(
+    value: string | undefined,
+    source: ExtractedProxyCredential['source'],
+): ExtractedProxyCredential | null {
+    if (!value || !isValidProxyApiKeyValue(value)) {
+        return null;
     }
-    const bearer = readBearerToken(input.header('authorization'));
-    if (bearer) {
-        candidates.push({ value: bearer, source: 'authorization' });
-    }
-    const queryKey = input.queryKey?.trim();
-    if (queryKey) {
-        candidates.push({ value: queryKey, source: 'query-key' });
-    }
+    return { value: value.trim(), source };
+}
 
-    for (const candidate of candidates) {
-        if (isValidProxyApiKeyValue(candidate.value)) {
-            return candidate;
-        }
+export function extractProxyCredential(input: {
+    readonly header: (name: string) => string | undefined;
+}): ExtractedProxyCredential | ProxyCredentialConflict | null {
+    const goog = readValidCredential(input.header('x-goog-api-key')?.trim(), 'x-goog-api-key');
+    const bearer = readValidCredential(
+        readBearerToken(input.header('authorization')),
+        'authorization',
+    );
+    if (goog && bearer) {
+        return { error: 'conflicting_credentials' };
     }
-    return null;
+    return goog ?? bearer;
 }
