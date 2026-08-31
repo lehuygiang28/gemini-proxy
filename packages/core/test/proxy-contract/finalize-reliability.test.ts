@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
     CONTRACT_PROXY_KEY,
+    CONTRACT_PROXY_KEY_ID,
     flushWaitUntil,
     invokeCore,
     originRequests,
     reconciliationInserts,
+    requestLogInserts,
     resetContractHarness,
     rpcCalls,
 } from './harness';
@@ -89,5 +91,43 @@ describe('proxy contract: finalize reliability', () => {
         expect(actualResponse.status).toBe(429);
         expect(rpcCalls.filter((call) => call.name === 'finalize_proxy_request')).toHaveLength(3);
         expect(reconciliationInserts).toHaveLength(1);
+    });
+
+    it('writes a request_logs stub when finalize exhausts so dashboard retry can replay', async () => {
+        const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            finalizeResults: ['error', 'error', 'error'],
+            admitResults: [
+                {
+                    ok: true,
+                    reserved_tokens: 8192,
+                    reserved_usd: 0.01,
+                    window_starts: {
+                        minute: '2026-08-31T12:28:00.000Z',
+                        day: '2026-08-31T00:00:00.000Z',
+                        month: '2026-08-01T00:00:00.000Z',
+                    },
+                },
+            ],
+        });
+        await firstResponse.text();
+        await flushWaitUntil();
+
+        expect(firstResponse.status).toBe(200);
+        expect(reconciliationInserts).toHaveLength(1);
+        expect(requestLogInserts).toEqual([
+            expect.objectContaining({
+                request_id: expect.any(String),
+                proxy_key_id: CONTRACT_PROXY_KEY_ID,
+                user_id: expect.any(String),
+                is_successful: true,
+                performance_metrics: expect.objectContaining({
+                    policy_reserved_tokens: 8192,
+                    policy_reserved_usd: 0.01,
+                    policy_minute_start: '2026-08-31T12:28:00.000Z',
+                    policy_day_start: '2026-08-31T00:00:00.000Z',
+                    policy_month_start: '2026-08-01T00:00:00.000Z',
+                }),
+            }),
+        ]);
     });
 });

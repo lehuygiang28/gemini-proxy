@@ -19,6 +19,7 @@ export const CONTRACT_GEMINI_KEY_2 = 'AIzaSyTESTGEMINIKEY00000000002';
 export const originRequests: Request[] = [];
 export const rpcCalls: { name: string; args: unknown }[] = [];
 export const reconciliationInserts: Record<string, unknown>[] = [];
+export const requestLogInserts: Record<string, unknown>[] = [];
 const waitUntilPromises: Promise<unknown>[] = [];
 
 export type AdmitResult = {
@@ -278,7 +279,23 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                 });
             }
             if (table === 'request_logs') {
-                return createQuery(() => ({ data: [], error: null }));
+                const query = createQuery(() => ({
+                    data: requestLogInserts,
+                    error: null,
+                    count: requestLogInserts.length,
+                }));
+                const recordWrite = (payload: unknown) => {
+                    const rows = Array.isArray(payload) ? payload : [payload];
+                    for (const row of rows) {
+                        if (row && typeof row === 'object') {
+                            requestLogInserts.push(row as Record<string, unknown>);
+                        }
+                    }
+                    return query;
+                };
+                query.insert = recordWrite;
+                query.upsert = recordWrite;
+                return query;
             }
             if (table === 'user_settings') {
                 return createQuery(() => ({ data: null, error: null }));
@@ -525,6 +542,7 @@ export function resetContractHarness(): void {
     originRequests.length = 0;
     rpcCalls.length = 0;
     reconciliationInserts.length = 0;
+    requestLogInserts.length = 0;
     waitUntilPromises.length = 0;
     persistedKeyPatches.clear();
     persistedModelCooldowns.length = 0;

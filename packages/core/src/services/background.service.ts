@@ -463,7 +463,9 @@ export class BackgroundService {
                 promises.push(
                     persistWithRetry(() =>
                         this.finalizeProxyRequest(c, requestId, operations.requestLog),
-                    ).catch((error) => this.recordReconciliationNeeded(c, requestId, error)),
+                    ).catch((error) =>
+                        this.recordReconciliationNeeded(c, requestId, error, operations.requestLog),
+                    ),
                 );
             }
             if (operations.apiKeyTouches.length > 0) {
@@ -619,22 +621,63 @@ export class BackgroundService {
         c: Context<HonoApp>,
         requestId: string,
         error: unknown,
+        requestLog?: RequestLogData,
     ): Promise<void> {
         const proxyKey = c.get('proxyApiKeyData');
+        const reservation = c.get('proxyPolicyReservation');
         const lastError = error instanceof Error ? error.message : String(error);
         console.error(`Failed to finalize proxy request ${requestId}:`, error);
-        const { error: insertError } = await getSupabaseClient(c)
-            .from('proxy_reconciliation_needed')
-            .upsert(
-                {
-                    request_id: requestId,
-                    proxy_key_id: proxyKey.id,
-                    user_id: proxyKey.user_id,
-                    last_error: lastError,
-                    resolved_at: null,
-                },
-                { onConflict: 'request_id' },
-            );
+        const supabase = getSupabaseClient(c);
+        const usage = requestLog?.usageMetadata;
+        const performanceMetrics = {
+            ...(requestLog?.performanceMetrics ?? {}),
+            ...(reservation
+                ? {
+                      policy_reserved_tokens: reservation.reserved_tokens,
+                      policy_reserved_usd: reservation.reserved_usd,
+                      policy_minute_start: reservation.window_starts.minute,
+                      policy_day_start: reservation.window_starts.day,
+                      policy_month_start: reservation.window_starts.month,
+                  }
+                : {}),
+        };
+        const { error: logError } = await supabase.from('request_logs').upsert(
+            {
+                request_id: requestId,
+                proxy_key_id: requestLog?.proxyKeyId ?? proxyKey.id,
+                api_key_id: requestLog?.apiKeyId ?? null,
+                user_id: requestLog?.userId ?? proxyKey.user_id,
+                api_format: requestLog?.apiFormat ?? 'gemini',
+                request_data: (requestLog?.requestData ?? {}) as Json,
+                response_data: (requestLog?.responseData ?? null) as Json | null,
+                is_successful: requestLog?.isSuccessful ?? false,
+                is_stream: Boolean(requestLog?.isStream),
+                error_details: (requestLog?.errorDetails ?? { message: lastError }) as Json,
+                performance_metrics: performanceMetrics as Json,
+                usage_metadata: {
+                    total_tokens: usage?.totalTokens ?? 0,
+                    estimated_cost_usd: usage?.estimatedCostUsd ?? 0,
+                    prompt_tokens: usage?.promptTokens ?? 0,
+                    completion_tokens: usage?.completionTokens ?? 0,
+                    model: usage?.model ?? null,
+                } as Json,
+                retry_attempts: (requestLog?.retryAttempts ?? []) as Json,
+            },
+            { onConflict: 'request_id' },
+        );
+        if (logError) {
+            console.error(`Failed to persist request_logs stub for retry ${requestId}:`, logError);
+        }
+        const { error: insertError } = await supabase.from('proxy_reconciliation_needed').upsert(
+            {
+                request_id: requestId,
+                proxy_key_id: proxyKey.id,
+                user_id: proxyKey.user_id,
+                last_error: lastError,
+                resolved_at: null,
+            },
+            { onConflict: 'request_id' },
+        );
         if (insertError) {
             console.error(
                 `Failed to record reconciliation row for request ${requestId}:`,
