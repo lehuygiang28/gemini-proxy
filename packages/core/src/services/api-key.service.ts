@@ -356,14 +356,18 @@ export class ApiKeyService {
         // Try to atomically reserve a key by conditionally updating last_used_at if unchanged
         const tryReserve = async (candidate: SelectedApiKey): Promise<boolean> => {
             const nowIso = new Date().toISOString();
+            // Do not put cooldown_until in a PATCH `.or()` filter. PostgREST
+            // evaluates `or` against the JSON payload CTE, so a column that is
+            // not in the body fails with 42703 ("column ... does not exist")
+            // and reserveNextApiKey returns null → 401 No API key found.
+            // Cooldown is already applied when fetching candidates.
             let updateQuery = supabase
                 .from('api_keys')
                 .update({ last_used_at: nowIso, updated_at: nowIso })
                 .eq('id', candidate.id)
                 .eq('user_id', params.userId)
                 .eq('is_active', true)
-                .is('deleted_at', null)
-                .or(`cooldown_until.is.null,cooldown_until.lte.${nowIso}`);
+                .is('deleted_at', null);
 
             if (candidate.last_used_at === null) {
                 updateQuery = updateQuery.is('last_used_at', null);

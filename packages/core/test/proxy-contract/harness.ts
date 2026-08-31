@@ -82,6 +82,8 @@ type QueryFilters = {
     inValues: Record<string, unknown[]>;
     eqValues: Record<string, unknown>;
     limitCount: number | null;
+    /** PostgREST PATCH `or` is evaluated against the payload CTE, not the table. */
+    patchOrMissingColumn: string | null;
 };
 
 type PersistedKeyPatch = {
@@ -120,7 +122,9 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
         inValues: {},
         eqValues: {},
         limitCount: null,
+        patchOrMissingColumn: null,
     };
+    let updatePayload: Record<string, unknown> | null = null;
     const query = {
         select: (..._args: unknown[]) => query,
         eq: (column: unknown, value: unknown) => {
@@ -148,6 +152,14 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
             if (typeof expression === 'string') {
                 const cooldownMatch = expression.match(/cooldown_until\.lte\.(.+)$/);
                 filters.cooldownBefore = cooldownMatch?.[1] ?? null;
+                if (updatePayload) {
+                    const missing = [...expression.matchAll(/([a-z_]+)\./gi)]
+                        .map((match) => match[1])
+                        .find((column) => column && !(column in updatePayload));
+                    if (missing) {
+                        filters.patchOrMissingColumn = missing;
+                    }
+                }
             }
             return query;
         },
@@ -164,7 +176,13 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
             }
             return query;
         },
-        update: (..._args: unknown[]) => query,
+        update: (payload: unknown) => {
+            updatePayload =
+                payload !== null && typeof payload === 'object' && !Array.isArray(payload)
+                    ? (payload as Record<string, unknown>)
+                    : {};
+            return query;
+        },
         insert: (..._args: unknown[]) => query,
         upsert: (..._args: unknown[]) => query,
         maybeSingle: async () => applyLimit(getResult(filters)),
@@ -176,6 +194,15 @@ function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
             Promise.resolve(applyLimit(getResult(filters))).then(resolve, reject),
     };
     function applyLimit(result: QueryResult): QueryResult {
+        if (filters.patchOrMissingColumn) {
+            return {
+                data: null,
+                error: {
+                    code: '42703',
+                    message: `column api_keys.${filters.patchOrMissingColumn} does not exist`,
+                },
+            };
+        }
         if (filters.limitCount == null || !Array.isArray(result.data)) {
             return result;
         }
