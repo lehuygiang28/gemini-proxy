@@ -7,16 +7,7 @@ import { Col, DatePicker, Divider, Form, InputNumber, Row, Select, Typography } 
 import dayjs, { type Dayjs } from 'dayjs';
 import { hasValidModelPatterns } from './has-valid-model-patterns';
 
-const INTEGER_LIMIT_FIELDS = [
-    'rpm_limit',
-    'tpm_limit',
-    'rpd_limit',
-    'max_concurrent',
-    'max_output_tokens',
-    'max_request_body_bytes',
-] as const;
-
-const BUDGET_LIMIT_FIELDS = ['daily_budget_usd', 'monthly_budget_usd'] as const;
+const INTEGER_LIMIT_FIELDS = ['rpm_limit', 'rpd_limit', 'token_day_limit'] as const;
 
 export function ProxyKeyLimitsFields() {
     const { translate } = useTranslation();
@@ -55,37 +46,23 @@ export function ProxyKeyLimitsFields() {
                         </Form.Item>
                     </Col>
                 ))}
-                {BUDGET_LIMIT_FIELDS.map((fieldName: (typeof BUDGET_LIMIT_FIELDS)[number]) => (
-                    <Col xs={24} md={12} key={fieldName}>
-                        <Form.Item
-                            label={translate(`proxy_api_keys.fields.${fieldName}`)}
-                            name={fieldName}
-                        >
-                            <InputNumber
-                                min={0}
-                                step={0.000001}
-                                placeholder={unlimitedPlaceholder}
-                                style={{ width: '100%' }}
-                            />
-                        </Form.Item>
-                    </Col>
-                ))}
                 <Col xs={24} md={12}>
                     <Form.Item
-                        label={translate('proxy_api_keys.fields.allowed_models')}
-                        name="allowed_models"
-                        rules={modelPatternRules}
+                        label={translate('proxy_api_keys.fields.monthly_budget_usd')}
+                        name="monthly_budget_usd"
                     >
-                        <Select
-                            mode="tags"
-                            placeholder={translate('proxy_api_keys.placeholders.modelPatterns')}
+                        <InputNumber
+                            min={0.000001}
+                            step={0.000001}
+                            placeholder={unlimitedPlaceholder}
+                            style={{ width: '100%' }}
                         />
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
                     <Form.Item
-                        label={translate('proxy_api_keys.fields.denied_models')}
-                        name="denied_models"
+                        label={translate('proxy_api_keys.fields.allowed_models')}
+                        name="allowed_models"
                         rules={modelPatternRules}
                     >
                         <Select

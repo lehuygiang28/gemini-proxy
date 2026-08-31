@@ -34,9 +34,7 @@ export const validateProxyApiKeyMiddleware = async (c: Context, next: Next) => {
 
     const { data, error } = await supabase
         .from('proxy_api_keys')
-        .select(
-            'id, user_id, name, is_active, deleted_at, max_output_tokens, max_request_body_bytes',
-        )
+        .select('id, user_id, name, is_active, deleted_at')
         .eq('proxy_key_value', proxyApiKey)
         .is('deleted_at', null)
         .limit(1)

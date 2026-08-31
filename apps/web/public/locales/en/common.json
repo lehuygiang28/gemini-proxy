@@ -392,15 +392,10 @@
             "details": "Proxy API Key Details",
             "metadata": "Metadata",
             "rpm_limit": "Requests per minute",
-            "tpm_limit": "Tokens per minute",
             "rpd_limit": "Requests per day",
-            "max_concurrent": "Maximum concurrent requests",
-            "daily_budget_usd": "Daily budget (USD)",
+            "token_day_limit": "Tokens per day",
             "monthly_budget_usd": "Monthly budget (USD)",
-            "max_output_tokens": "Maximum output tokens",
-            "max_request_body_bytes": "Maximum request body (bytes)",
             "allowed_models": "Allowed models",
-            "denied_models": "Denied models",
             "expires_at": "Expires at"
         },
         "placeholders": {
@@ -465,7 +460,7 @@
         },
         "limits": {
             "title": "Limits",
-            "unlimitedHint": "All limits are optional. Leave a field empty for unlimited access or no expiry."
+            "unlimitedHint": "All limits are optional. Empty means unlimited. Daily and monthly windows follow your timezone in Settings. Quota is per proxy key, not per Google project."
         },
         "edit": {
             "editing": "Editing {name}",
@@ -774,10 +769,11 @@
     },
     "settings": {
         "title": "Settings",
-        "subtitle": "Control detailed request logging and console preferences.",
+        "subtitle": "Control logging, quota timezone, pricing, and console preferences.",
         "tabs": {
             "observability": "Observability",
             "pricing": "Pricing",
+            "timezone": "Timezone",
             "appearance": "Appearance"
         },
         "appearance": {
@@ -786,6 +782,15 @@
             "dark": "Dark",
             "light": "Light",
             "hint": "Stored in a browser cookie. Does not affect request logging."
+        },
+        "timezone": {
+            "label": "Quota timezone",
+            "placeholder": "Search IANA timezones",
+            "extra": "Daily and monthly proxy-key windows follow this timezone. Changing it does not reset the active day or month bucket.",
+            "invalid": "Choose a valid IANA timezone. UTC is not used as a silent fallback.",
+            "saved": "Timezone saved",
+            "savedDesc": "New day and month quota windows will use this timezone.",
+            "saveFailed": "Failed to save timezone"
         },
         "observability": {
             "saved": "Settings saved",

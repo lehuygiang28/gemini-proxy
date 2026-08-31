@@ -173,7 +173,7 @@ export class ProxyService {
             });
         } catch (error) {
             if (error instanceof InvalidKeyError && error.message === 'No API key found') {
-                await this.throwAllKeysCooled(c, proxyApiKeyData.user_id);
+                await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id);
             }
             throw error;
         }
@@ -850,17 +850,20 @@ export class ProxyService {
         return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
     }
 
-    private static async throwAllKeysCooled(c: Context<HonoApp>, userId: string): Promise<never> {
-        let retryAfter: number | undefined;
+    private static async throwIfAllKeysCooled(c: Context<HonoApp>, userId: string): Promise<void> {
+        let remainingMs: number | null;
         try {
-            const remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(c, userId);
-            if (remainingMs != null) {
-                retryAfter = Math.max(1, Math.ceil(remainingMs / 1000));
-            }
+            remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(c, userId);
         } catch {
-            retryAfter = undefined;
+            return;
         }
-        throw new RateLimitError('All provider keys are in cooldown', retryAfter);
+        if (remainingMs == null || remainingMs <= 0) {
+            return;
+        }
+        throw new RateLimitError(
+            'All provider keys are in cooldown',
+            Math.max(1, Math.ceil(remainingMs / 1000)),
+        );
     }
 
     // ===== API KEY SELECTION =====

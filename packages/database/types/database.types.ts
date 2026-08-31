@@ -135,6 +135,7 @@ export type Database = {
                     rpd_limit: number | null;
                     rpm_limit: number | null;
                     success_count: number;
+                    token_day_limit: number | null;
                     tpm_limit: number | null;
                     total_tokens: number;
                     updated_at: string;
@@ -165,6 +166,7 @@ export type Database = {
                     rpd_limit?: number | null;
                     rpm_limit?: number | null;
                     success_count?: number;
+                    token_day_limit?: number | null;
                     tpm_limit?: number | null;
                     total_tokens?: number;
                     updated_at?: string;
@@ -195,6 +197,7 @@ export type Database = {
                     rpd_limit?: number | null;
                     rpm_limit?: number | null;
                     success_count?: number;
+                    token_day_limit?: number | null;
                     tpm_limit?: number | null;
                     total_tokens?: number;
                     updated_at?: string;
@@ -276,6 +279,7 @@ export type Database = {
                     id: string;
                     save_request_body: boolean;
                     save_response_body: boolean;
+                    timezone: string;
                     updated_at: string;
                 };
                 Insert: {
@@ -284,6 +288,7 @@ export type Database = {
                     id: string;
                     save_request_body?: boolean;
                     save_response_body?: boolean;
+                    timezone?: string;
                     updated_at?: string;
                 };
                 Update: {
@@ -292,6 +297,7 @@ export type Database = {
                     id?: string;
                     save_request_body?: boolean;
                     save_response_body?: boolean;
+                    timezone?: string;
                     updated_at?: string;
                 };
                 Relationships: [];
@@ -372,9 +378,10 @@ export type Database = {
         Functions: {
             admit_proxy_request: {
                 Args: {
-                    p_body_bytes: number;
+                    p_body_bytes?: number;
                     p_estimated_tokens: number;
                     p_estimated_usd: number;
+                    p_managed?: boolean;
                     p_model: string;
                     p_proxy_key_id: string;
                 };

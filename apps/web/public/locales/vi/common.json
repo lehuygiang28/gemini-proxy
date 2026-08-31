@@ -392,15 +392,10 @@
             "details": "Chi tiết khóa proxy",
             "metadata": "Metadata",
             "rpm_limit": "Số request mỗi phút",
-            "tpm_limit": "Số token mỗi phút",
             "rpd_limit": "Số request mỗi ngày",
-            "max_concurrent": "Số request đồng thời tối đa",
-            "daily_budget_usd": "Ngân sách mỗi ngày (USD)",
+            "token_day_limit": "Số token mỗi ngày",
             "monthly_budget_usd": "Ngân sách mỗi tháng (USD)",
-            "max_output_tokens": "Số token đầu ra tối đa",
-            "max_request_body_bytes": "Kích thước body request tối đa (byte)",
             "allowed_models": "Model được phép",
-            "denied_models": "Model bị chặn",
             "expires_at": "Hết hạn lúc"
         },
         "placeholders": {
@@ -465,7 +460,7 @@
         },
         "limits": {
             "title": "Giới hạn",
-            "unlimitedHint": "Mọi giới hạn đều không bắt buộc. Để trống để không giới hạn hoặc không đặt ngày hết hạn."
+            "unlimitedHint": "Mọi giới hạn đều không bắt buộc. Để trống nghĩa là không giới hạn. Cửa sổ ngày/tháng theo múi giờ trong Cài đặt. Hạn mức theo từng khóa proxy, không theo Google project."
         },
         "edit": {
             "editing": "Đang sửa {name}",
@@ -774,14 +769,28 @@
     },
     "settings": {
         "title": "Cài đặt",
-        "subtitle": "Kiểm soát ghi nhật ký request chi tiết và tùy chọn bảng điều khiển.",
-        "tabs": { "observability": "Giám sát", "pricing": "Giá token", "appearance": "Giao diện" },
+        "subtitle": "Kiểm soát ghi nhật ký, múi giờ hạn mức, giá token và tùy chọn bảng điều khiển.",
+        "tabs": {
+            "observability": "Giám sát",
+            "pricing": "Giá token",
+            "timezone": "Múi giờ",
+            "appearance": "Giao diện"
+        },
         "appearance": {
             "title": "Giao diện",
             "colorMode": "Chế độ màu",
             "dark": "Tối",
             "light": "Sáng",
             "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi nhật ký request."
+        },
+        "timezone": {
+            "label": "Múi giờ hạn mức",
+            "placeholder": "Tìm múi giờ IANA",
+            "extra": "Cửa sổ hạn mức ngày và tháng của khóa proxy theo múi giờ này. Đổi múi giờ không đặt lại bucket ngày/tháng đang chạy.",
+            "invalid": "Chọn múi giờ IANA hợp lệ. Không tự chuyển về UTC.",
+            "saved": "Đã lưu múi giờ",
+            "savedDesc": "Cửa sổ hạn mức ngày và tháng mới sẽ dùng múi giờ này.",
+            "saveFailed": "Lưu múi giờ thất bại"
         },
         "observability": {
             "saved": "Đã lưu cài đặt",

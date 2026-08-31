@@ -21,14 +21,11 @@ type AdmitResult = {
 
 const DENY_STATUS: Record<string, ContentfulStatusCode> = {
     rpm: 429,
-    tpm: 429,
     rpd: 429,
-    concurrency: 429,
+    tokens: 429,
     budget: 429,
     model_denied: 400,
     model_required: 400,
-    body_too_large: 400,
-    max_output_tokens: 400,
     expired_key: 400,
     inactive_key: 400,
     unknown_key: 401,
@@ -36,14 +33,6 @@ const DENY_STATUS: Record<string, ContentfulStatusCode> = {
 
 function parsePositiveInteger(value: unknown): number | undefined {
     return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
-}
-
-function parseContentLength(value: string | undefined): number | undefined {
-    if (!value || !/^\d+$/.test(value)) {
-        return undefined;
-    }
-    const parsed = Number(value);
-    return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
 function parseBody(bodyText: string | null): Record<string, unknown> | null {
@@ -92,54 +81,32 @@ export async function proxyPolicyMiddleware(
 ): Promise<Response | void> {
     const proxyKey = c.get('proxyApiKeyData');
     const requestData = c.get('proxyRequestDataParsed');
-    const contentLength = parseContentLength(c.req.header('content-length'));
-    if (
-        proxyKey.max_request_body_bytes !== null &&
-        contentLength !== undefined &&
-        contentLength > proxyKey.max_request_body_bytes
-    ) {
-        return createDenyResponse(c, 'body_too_large', 'Request body exceeds the proxy key limit');
+    const managed = requestData.managed;
+    let estimatedTokens = 0;
+    let estimatedUsd = 0;
+    if (managed) {
+        const bodyText = await safelyExtractBodyText(c);
+        const peekedMaxOutput = peekMaxOutput(parseBody(bodyText));
+        estimatedTokens = estimateAdmitTokens({ peekedMaxOutput });
+        estimatedUsd =
+            estimateGeminiCostUsd({
+                model: requestData.model ?? 'unknown',
+                promptTokens: 0,
+                cacheTokens: 0,
+                completionTokens: estimatedTokens,
+                thoughtsTokens: 0,
+                toolUsePromptTokens: 0,
+                totalTokens: estimatedTokens,
+            })?.usd ?? 0;
     }
-    const bodyText = await safelyExtractBodyText(c);
-    const bodyBytes =
-        contentLength ?? (bodyText === null ? 0 : new TextEncoder().encode(bodyText).byteLength);
-    if (proxyKey.max_request_body_bytes !== null && bodyBytes > proxyKey.max_request_body_bytes) {
-        return createDenyResponse(c, 'body_too_large', 'Request body exceeds the proxy key limit');
-    }
-    const parsedBody = parseBody(bodyText);
-    const peekedMaxOutput = peekMaxOutput(parsedBody);
-    if (
-        proxyKey.max_output_tokens !== null &&
-        peekedMaxOutput !== undefined &&
-        peekedMaxOutput > proxyKey.max_output_tokens
-    ) {
-        return createDenyResponse(
-            c,
-            'max_output_tokens',
-            'Requested output tokens exceed the proxy key limit',
-        );
-    }
-    const estimatedTokens = estimateAdmitTokens({
-        peekedMaxOutput,
-        policyMaxOutput: proxyKey.max_output_tokens,
-    });
-    const estimatedUsd =
-        estimateGeminiCostUsd({
-            model: requestData.model ?? 'unknown',
-            promptTokens: 0,
-            cacheTokens: 0,
-            completionTokens: estimatedTokens,
-            thoughtsTokens: 0,
-            toolUsePromptTokens: 0,
-            totalTokens: estimatedTokens,
-        })?.usd ?? 0;
     const supabase = getSupabaseClient(c);
     const { data, error } = await supabase.rpc('admit_proxy_request', {
         p_proxy_key_id: proxyKey.id,
         p_model: requestData.model ?? '',
         p_estimated_tokens: estimatedTokens,
         p_estimated_usd: estimatedUsd,
-        p_body_bytes: bodyBytes,
+        p_body_bytes: 0,
+        p_managed: managed,
     });
     if (error) {
         console.error('Failed to admit proxy request:', error);

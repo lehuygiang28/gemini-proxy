@@ -6,15 +6,10 @@ describe('normalizeProxyKeyLimits', () => {
         const inputValues: Record<string, unknown> = {
             name: 'SDK key',
             rpm_limit: undefined,
-            tpm_limit: null,
             rpd_limit: '',
-            max_concurrent: undefined,
-            daily_budget_usd: '',
+            token_day_limit: undefined,
             monthly_budget_usd: null,
-            max_output_tokens: undefined,
-            max_request_body_bytes: '',
             allowed_models: [],
-            denied_models: undefined,
             expires_at: '',
         };
 
@@ -23,15 +18,10 @@ describe('normalizeProxyKeyLimits', () => {
         expect(actualValues).toEqual({
             name: 'SDK key',
             rpm_limit: null,
-            tpm_limit: null,
             rpd_limit: null,
-            max_concurrent: null,
-            daily_budget_usd: null,
+            token_day_limit: null,
             monthly_budget_usd: null,
-            max_output_tokens: null,
-            max_request_body_bytes: null,
             allowed_models: null,
-            denied_models: null,
             expires_at: null,
         });
     });
@@ -42,9 +32,9 @@ describe('normalizeProxyKeyLimits', () => {
         };
         const inputValues: Record<string, unknown> = {
             rpm_limit: 60,
-            daily_budget_usd: 1.25,
+            token_day_limit: 1_000_000,
+            monthly_budget_usd: 12.5,
             allowed_models: ['gemini-2.5-*'],
-            denied_models: ['gemini-2.5-pro'],
             expires_at: inputDate,
         };
 
@@ -52,16 +42,11 @@ describe('normalizeProxyKeyLimits', () => {
 
         expect(actualValues).toEqual({
             rpm_limit: 60,
-            daily_budget_usd: 1.25,
-            allowed_models: ['gemini-2.5-*'],
-            denied_models: ['gemini-2.5-pro'],
-            expires_at: '2026-09-01T12:00:00.000Z',
-            tpm_limit: null,
             rpd_limit: null,
-            max_concurrent: null,
-            monthly_budget_usd: null,
-            max_output_tokens: null,
-            max_request_body_bytes: null,
+            token_day_limit: 1_000_000,
+            monthly_budget_usd: 12.5,
+            allowed_models: ['gemini-2.5-*'],
+            expires_at: '2026-09-01T12:00:00.000Z',
         });
     });
 });

@@ -394,6 +394,7 @@ export async function invokeCore(
     init: RequestInit = {},
     options: InvokeCoreOptions = {},
 ): Promise<Response> {
+    originRequests.length = 0;
     for (const [name, value] of Object.entries(options.environment ?? {})) {
         vi.stubEnv(name, value);
     }

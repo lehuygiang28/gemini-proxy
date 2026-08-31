@@ -18,26 +18,16 @@ function isEmptyList(list: string[] | null): boolean {
     return list == null || list.length === 0;
 }
 
-function matchesAnyPattern(patterns: string[], model: string): boolean {
-    return patterns.some((pattern) => globModel(pattern, model));
-}
-
 export function matchModelPolicy(input: {
     readonly model: string | undefined;
     readonly allowed: string[] | null;
-    readonly denied: string[] | null;
 }): 'ok' | 'model_denied' | 'model_required' {
-    const { model, allowed, denied } = input;
-    const hasAllowed = !isEmptyList(allowed);
-    const hasDenied = !isEmptyList(denied);
-    if (hasAllowed && model === undefined) {
+    const { model, allowed } = input;
+    if (isEmptyList(allowed)) {
+        return 'ok';
+    }
+    if (model === undefined) {
         return 'model_required';
     }
-    if (model !== undefined && hasDenied && matchesAnyPattern(denied!, model)) {
-        return 'model_denied';
-    }
-    if (hasAllowed && model !== undefined && !matchesAnyPattern(allowed!, model)) {
-        return 'model_denied';
-    }
-    return 'ok';
+    return allowed!.some((pattern) => globModel(pattern, model)) ? 'ok' : 'model_denied';
 }

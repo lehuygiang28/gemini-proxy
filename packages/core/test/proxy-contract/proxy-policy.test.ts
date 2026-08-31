@@ -38,14 +38,16 @@ describe('proxy contract: proxy-key policy', () => {
 
         const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), options);
         await firstResponse.text();
+        expect(firstResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+
         const secondResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), options);
 
-        expect(firstResponse.status).toBe(200);
         expect(secondResponse.status).toBe(429);
         expect(await secondResponse.json()).toEqual(
             expect.objectContaining({ error: 'policy_denied', code: 'rpm' }),
         );
-        expect(originRequests).toHaveLength(1);
+        expect(originRequests).toHaveLength(0);
     });
 
     it('allows two requests when all limits are null', async () => {
@@ -61,12 +63,13 @@ describe('proxy contract: proxy-key policy', () => {
 
         const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), { proxyKey });
         await firstResponse.text();
+        expect(originRequests).toHaveLength(1);
         const secondResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), { proxyKey });
         await secondResponse.text();
 
         expect(firstResponse.status).toBe(200);
         expect(secondResponse.status).toBe(200);
-        expect(originRequests).toHaveLength(2);
+        expect(originRequests).toHaveLength(1);
     });
 
     it('returns model_denied 400 without fetching origin', async () => {
@@ -81,7 +84,7 @@ describe('proxy contract: proxy-key policy', () => {
         expect(originRequests).toHaveLength(0);
     });
 
-    it('hard-rejects output tokens above the key cap before admit', async () => {
+    it('does not deny peeked max output tokens as a proxy-key cap', async () => {
         const body = JSON.stringify({ generationConfig: { maxOutputTokens: 257 } });
         const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(body), {
             proxyKey: {
@@ -94,16 +97,14 @@ describe('proxy contract: proxy-key policy', () => {
                 max_request_body_bytes: null,
             },
         });
+        await actualResponse.text();
 
-        expect(actualResponse.status).toBe(400);
-        expect(await actualResponse.json()).toEqual(
-            expect.objectContaining({ error: 'policy_denied', code: 'max_output_tokens' }),
-        );
-        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(false);
-        expect(originRequests).toHaveLength(0);
+        expect(actualResponse.status).toBe(200);
+        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(true);
+        expect(originRequests).toHaveLength(1);
     });
 
-    it('hard-rejects an oversized content-length before admit or origin', async () => {
+    it('does not deny oversized content-length as a proxy-key cap', async () => {
         const requestInit = createProxyRequestInit('{}');
         requestInit.headers = {
             ...requestInit.headers,
@@ -120,13 +121,42 @@ describe('proxy contract: proxy-key policy', () => {
                 max_request_body_bytes: 10,
             },
         });
+        await actualResponse.text();
 
-        expect(actualResponse.status).toBe(400);
+        expect(actualResponse.status).toBe(200);
+        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(true);
+        expect(originRequests).toHaveLength(1);
+    });
+
+    it('returns tokens 429 when the day token guardrail denies admit', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            admitResults: [{ ok: false, code: 'tokens' }],
+        });
+
+        expect(actualResponse.status).toBe(429);
         expect(await actualResponse.json()).toEqual(
-            expect.objectContaining({ error: 'policy_denied', code: 'body_too_large' }),
+            expect.objectContaining({ error: 'policy_denied', code: 'tokens' }),
         );
-        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(false);
         expect(originRequests).toHaveLength(0);
+    });
+
+    it('skips model allowlist for Gemini passthrough and estimates zero tokens', async () => {
+        const actualResponse = await invokeCore(
+            '/gemini/v1beta/models/gemini-2.5-flash:countTokens',
+            createProxyRequestInit(),
+        );
+        await actualResponse.text();
+
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(rpcCalls).toContainEqual({
+            name: 'admit_proxy_request',
+            args: expect.objectContaining({
+                p_managed: false,
+                p_estimated_tokens: 0,
+                p_estimated_usd: 0,
+            }),
+        });
     });
 
     it('settles a successful request with parsed actual usage', async () => {

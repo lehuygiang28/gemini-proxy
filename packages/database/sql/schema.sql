@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     rpm_limit INTEGER,
     tpm_limit INTEGER,
     rpd_limit INTEGER,
+    token_day_limit BIGINT,
     max_concurrent INTEGER,
     daily_budget_usd NUMERIC(12,6),
     monthly_budget_usd NUMERIC(12,6),
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     CONSTRAINT proxy_api_keys_rpm_limit_pos CHECK (rpm_limit IS NULL OR rpm_limit > 0),
     CONSTRAINT proxy_api_keys_tpm_limit_pos CHECK (tpm_limit IS NULL OR tpm_limit > 0),
     CONSTRAINT proxy_api_keys_rpd_limit_pos CHECK (rpd_limit IS NULL OR rpd_limit > 0),
+    CONSTRAINT proxy_api_keys_token_day_limit_pos CHECK (token_day_limit IS NULL OR token_day_limit > 0),
     CONSTRAINT proxy_api_keys_max_concurrent_pos
         CHECK (max_concurrent IS NULL OR max_concurrent > 0),
     CONSTRAINT proxy_api_keys_max_output_pos
@@ -110,7 +112,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
     save_request_body BOOLEAN NOT NULL DEFAULT false,
     save_response_body BOOLEAN NOT NULL DEFAULT false,
     custom_model_pricing JSONB NOT NULL DEFAULT '{}'::jsonb,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    timezone TEXT NOT NULL DEFAULT 'UTC',
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT user_settings_timezone_iana CHECK (timezone ~ '^[A-Za-z0-9_+\-/]+$')
 );
 
 -- Soft-delete aware uniqueness (alive rows only)
@@ -396,6 +400,10 @@ COMMENT ON COLUMN user_settings.save_response_body IS
     'When detailed_observability is on, persist sanitized response bodies on request_logs.';
 COMMENT ON COLUMN user_settings.custom_model_pricing IS
     'Optional per-model USD/1M token overrides for cost estimates on new request logs.';
+COMMENT ON COLUMN user_settings.timezone IS
+    'IANA timezone for civil day/month quota windows. Default UTC. Changing timezone does not rewrite active window_start rows.';
+COMMENT ON COLUMN proxy_api_keys.token_day_limit IS
+    'Token/day guardrail (settled + reserved). Null means unlimited.';
 
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
@@ -1150,12 +1158,14 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER);
 CREATE OR REPLACE FUNCTION admit_proxy_request(
     p_proxy_key_id UUID,
     p_model TEXT,
     p_estimated_tokens BIGINT,
     p_estimated_usd NUMERIC,
-    p_body_bytes INTEGER
+    p_body_bytes INTEGER DEFAULT 0,
+    p_managed BOOLEAN DEFAULT TRUE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -1164,9 +1174,10 @@ SET search_path = 'public', pg_catalog
 AS $$
 DECLARE
     proxy_key proxy_api_keys%ROWTYPE;
-    minute_start TIMESTAMPTZ := date_trunc('minute', NOW());
-    day_start TIMESTAMPTZ := date_trunc('day', NOW());
-    month_start TIMESTAMPTZ := date_trunc('month', NOW());
+    owner_tz TEXT := 'UTC';
+    minute_start TIMESTAMPTZ;
+    day_start TIMESTAMPTZ;
+    month_start TIMESTAMPTZ;
     estimated_tokens BIGINT := GREATEST(COALESCE(p_estimated_tokens, 0), 0);
     estimated_usd NUMERIC := GREATEST(COALESCE(p_estimated_usd, 0), 0);
     minute_window proxy_key_quota_windows%ROWTYPE;
@@ -1189,51 +1200,41 @@ BEGIN
     IF proxy_key.expires_at IS NOT NULL AND proxy_key.expires_at <= NOW() THEN
         RETURN jsonb_build_object('ok', false, 'code', 'expired_key');
     END IF;
-    IF NULLIF(p_model, '') IS NULL
-       AND COALESCE(cardinality(proxy_key.allowed_models), 0) > 0 THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'model_required');
+
+    SELECT COALESCE(NULLIF(us.timezone, ''), 'UTC')
+    INTO owner_tz
+    FROM user_settings us
+    WHERE us.id = proxy_key.user_id;
+    IF owner_tz IS NULL THEN
+        owner_tz := 'UTC';
     END IF;
-    IF NULLIF(p_model, '') IS NOT NULL
-       AND COALESCE(cardinality(proxy_key.denied_models), 0) > 0
-       AND EXISTS (
-           SELECT 1
-           FROM unnest(proxy_key.denied_models) AS pattern
-           WHERE p_model = pattern
-              OR (
-                  right(pattern, 1) = '*'
-                  AND position('*' IN left(pattern, length(pattern) - 1)) = 0
-                  AND left(
-                      p_model,
-                      char_length(left(pattern, length(pattern) - 1))
-                  ) = left(pattern, length(pattern) - 1)
-              )
-       ) THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'model_denied');
-    END IF;
-    IF NULLIF(p_model, '') IS NOT NULL
-       AND COALESCE(cardinality(proxy_key.allowed_models), 0) > 0
-       AND NOT EXISTS (
-           SELECT 1
-           FROM unnest(proxy_key.allowed_models) AS pattern
-           WHERE p_model = pattern
-              OR (
-                  right(pattern, 1) = '*'
-                  AND position('*' IN left(pattern, length(pattern) - 1)) = 0
-                  AND left(
-                      p_model,
-                      char_length(left(pattern, length(pattern) - 1))
-                  ) = left(pattern, length(pattern) - 1)
-              )
-       ) THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'model_denied');
-    END IF;
-    IF proxy_key.max_request_body_bytes IS NOT NULL
-       AND COALESCE(p_body_bytes, 0) > proxy_key.max_request_body_bytes THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'body_too_large');
-    END IF;
-    IF proxy_key.max_concurrent IS NOT NULL
-       AND proxy_key.inflight_count >= proxy_key.max_concurrent THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'concurrency');
+
+    minute_start := date_trunc('minute', NOW());
+    day_start := (date_trunc('day', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
+    month_start := (date_trunc('month', NOW() AT TIME ZONE owner_tz) AT TIME ZONE owner_tz);
+
+    IF COALESCE(p_managed, TRUE) THEN
+        IF NULLIF(p_model, '') IS NULL
+           AND COALESCE(cardinality(proxy_key.allowed_models), 0) > 0 THEN
+            RETURN jsonb_build_object('ok', false, 'code', 'model_required');
+        END IF;
+        IF NULLIF(p_model, '') IS NOT NULL
+           AND COALESCE(cardinality(proxy_key.allowed_models), 0) > 0
+           AND NOT EXISTS (
+               SELECT 1
+               FROM unnest(proxy_key.allowed_models) AS pattern
+               WHERE p_model = pattern
+                  OR (
+                      right(pattern, 1) = '*'
+                      AND position('*' IN left(pattern, length(pattern) - 1)) = 0
+                      AND left(
+                          p_model,
+                          char_length(left(pattern, length(pattern) - 1))
+                      ) = left(pattern, length(pattern) - 1)
+                  )
+           ) THEN
+            RETURN jsonb_build_object('ok', false, 'code', 'model_denied');
+        END IF;
     END IF;
 
     INSERT INTO proxy_key_quota_windows (proxy_key_id, window_type, window_start)
@@ -1275,17 +1276,11 @@ BEGIN
        AND day_window.request_count >= proxy_key.rpd_limit THEN
         RETURN jsonb_build_object('ok', false, 'code', 'rpd');
     END IF;
-    IF proxy_key.tpm_limit IS NOT NULL
-       AND minute_window.token_count
-           + minute_window.reserved_tokens
-           + estimated_tokens > proxy_key.tpm_limit THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'tpm');
-    END IF;
-    IF proxy_key.daily_budget_usd IS NOT NULL
-       AND day_window.reserved_cost_usd
-           + day_window.settled_cost_usd
-           + estimated_usd > proxy_key.daily_budget_usd THEN
-        RETURN jsonb_build_object('ok', false, 'code', 'budget');
+    IF proxy_key.token_day_limit IS NOT NULL
+       AND day_window.token_count
+           + day_window.reserved_tokens
+           + estimated_tokens > proxy_key.token_day_limit THEN
+        RETURN jsonb_build_object('ok', false, 'code', 'tokens');
     END IF;
     IF proxy_key.monthly_budget_usd IS NOT NULL
        AND month_window.reserved_cost_usd
@@ -1323,8 +1318,8 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) IS
-    'Atomically checks proxy-key limits, increments inflight/request counts, and reserves estimated tokens and cost. Estimates stay in reserved ledgers until settle moves actual usage to token_count and settled_cost_usd.';
+COMMENT ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER, BOOLEAN) IS
+    'Atomically checks RPM/RPD (hard) and token-day/USD-month (guardrails). Passthrough (p_managed=false) skips allowlist. p_body_bytes is unused. Day/month windows follow user_settings.timezone.';
 
 CREATE OR REPLACE FUNCTION settle_proxy_request(
     p_proxy_key_id UUID,
@@ -1402,7 +1397,7 @@ REVOKE ALL ON FUNCTION increment_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIG
 REVOKE ALL ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BIGINT, BIGINT, BIGINT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION record_api_key_failure(UUID, BOOLEAN, TIMESTAMPTZ, TEXT, TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION record_api_key_success(UUID, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER, BOOLEAN) FROM PUBLIC;
 REVOKE ALL ON FUNCTION settle_proxy_request(
     UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
 )
@@ -1412,7 +1407,7 @@ GRANT EXECUTE ON FUNCTION increment_proxy_api_key_usage(UUID, BIGINT, BIGINT, BI
 GRANT EXECUTE ON FUNCTION record_api_key_failure(UUID, BOOLEAN, TIMESTAMPTZ, TEXT, TEXT, TEXT)
     TO service_role;
 GRANT EXECUTE ON FUNCTION record_api_key_success(UUID, TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER)
+GRANT EXECUTE ON FUNCTION admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER, BOOLEAN)
     TO service_role;
 GRANT EXECUTE ON FUNCTION settle_proxy_request(
     UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TIMESTAMPTZ, BIGINT, NUMERIC, BIGINT, NUMERIC
