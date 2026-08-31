@@ -35,11 +35,21 @@ import {
 const LIVE_FEED_SELECT =
     'id, request_id, api_format, is_stream, is_successful, performance_metrics, usage_metadata, created_at, api_key_id, proxy_key_id, api_keys(id,name,deleted_at), proxy_api_keys(id,name,deleted_at)';
 
-const KEY_SELECT = 'id, name, is_active, success_count, failure_count, total_tokens';
+const API_KEY_SELECT =
+    'id, name, is_active, success_count, failure_count, total_tokens, cooldown_until, disabled_reason, consecutive_failures';
+const PROXY_KEY_SELECT = 'id, name, is_active, success_count, failure_count, total_tokens';
 
 type KeyHealthRow = Pick<
     Tables<'api_keys'>,
-    'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'
+    | 'id'
+    | 'name'
+    | 'is_active'
+    | 'success_count'
+    | 'failure_count'
+    | 'total_tokens'
+    | 'cooldown_until'
+    | 'disabled_reason'
+    | 'consecutive_failures'
 >;
 
 type LiveMode = NonNullable<LiveModeProps['liveMode']>;
@@ -79,17 +89,17 @@ const ConsoleLists = forwardRef<ConsoleListsHandle, ConsoleListsProps>(function 
         pagination: { currentPage: 1, pageSize: 50 },
         filters: [{ field: 'deleted_at', operator: 'null', value: true }],
         sorters: [{ field: 'failure_count', order: 'desc' }],
-        meta: { select: KEY_SELECT },
+        meta: { select: API_KEY_SELECT },
         liveMode,
         onLiveEvent: onResourceLiveEvent,
     });
 
-    const proxyKeysListQuery = useList<KeyHealthRow>({
+    const proxyKeysListQuery = useList<Pick<Tables<'proxy_api_keys'>, 'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'>>({
         resource: 'proxy_api_keys',
         pagination: { currentPage: 1, pageSize: 50 },
         filters: [{ field: 'deleted_at', operator: 'null', value: true }],
         sorters: [{ field: 'failure_count', order: 'desc' }],
-        meta: { select: KEY_SELECT },
+        meta: { select: PROXY_KEY_SELECT },
         liveMode,
         onLiveEvent: onResourceLiveEvent,
     });

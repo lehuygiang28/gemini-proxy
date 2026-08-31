@@ -73,8 +73,8 @@ Gemini Proxy is a comprehensive solution that allows you to:
 | Multi Gemini key rotation                      | Implemented                         |
 | Streaming                                      | Implemented                         |
 | Usage logs + Standard text/image cost estimate | Implemented                         |
-| Exponential backoff + Retry-After              | Spec 3 (not implemented until then) |
-| Circuit breaker / cooldown                     | Spec 3                              |
+| Exponential backoff + Retry-After              | Implemented                         |
+| Circuit breaker / cooldown                     | Implemented                         |
 | Proxy-key RPM/TPM/budget                       | Spec 4                              |
 | Project-aware quota                            | Spec 5                              |
 | Interactions API + affinity                    | Spec 6                              |

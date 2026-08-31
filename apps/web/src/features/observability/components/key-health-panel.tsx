@@ -9,7 +9,13 @@ const { Text } = Typography;
 
 type ApiKeyRow = Pick<
     Tables<'api_keys'>,
-    'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'
+    | 'id'
+    | 'name'
+    | 'is_active'
+    | 'success_count'
+    | 'failure_count'
+    | 'total_tokens'
+    | 'cooldown_until'
 >;
 
 type ProxyKeyRow = Pick<
@@ -33,6 +39,7 @@ type HealthItem = {
     successRate: number;
     failureCount: number;
     totalTokens: number;
+    cooldownUntil: string | null;
 };
 
 /**
@@ -56,6 +63,7 @@ export function KeyHealthPanel({
                 successRate: calculateSuccessRate(key.success_count, key.failure_count),
                 failureCount: key.failure_count,
                 totalTokens: key.total_tokens,
+                cooldownUntil: key.cooldown_until,
             })),
             ...proxyKeys.map((key) => ({
                 id: key.id,
@@ -65,6 +73,7 @@ export function KeyHealthPanel({
                 successRate: calculateSuccessRate(key.success_count, key.failure_count),
                 failureCount: key.failure_count,
                 totalTokens: key.total_tokens,
+                cooldownUntil: null,
             })),
         ];
         return mapped
@@ -144,6 +153,7 @@ export function KeyHealthPanel({
                             isActive={item.isActive}
                             successRate={item.successRate}
                             failureCount={item.failureCount}
+                            cooldownUntil={item.cooldownUntil}
                         />
                     </div>
                 ))

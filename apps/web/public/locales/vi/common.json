@@ -206,7 +206,19 @@
             "created": "Ngày tạo",
             "updated": "Cập nhật lần cuối",
             "details": "Chi tiết khóa API",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "cooldown": "Thời gian chờ",
+            "disabledReason": "Lý do vô hiệu",
+            "consecutiveFailures": "Lỗi liên tiếp"
+        },
+        "cooldown": {
+            "active": "Đang chờ"
+        },
+        "disabledReason": {
+            "invalid_key": "Khóa không hợp lệ",
+            "permission": "Không có quyền",
+            "spend_limit": "Giới hạn chi tiêu",
+            "manual": "Thủ công"
         },
         "placeholders": {
             "searchName": "Tìm tên khóa API...",
@@ -721,6 +733,7 @@
         "requestTitle": "Request {id}",
         "keyMeta": "{kind} · {count} token · {fails, plural, one {# lần thất bại} other {# lần thất bại}}",
         "healthDisabled": "tắt",
+        "healthCooldown": "chờ",
         "statsFailed": "Một số thống kê không tải được",
         "statsFailedDesc": "Luồng trực tiếp vẫn có thể hoạt động. Bấm Làm mới để thử lại các RPC thất bại.",
         "emptyHourly": "Không có dữ liệu theo giờ",

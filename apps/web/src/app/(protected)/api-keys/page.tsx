@@ -128,9 +128,15 @@ export default function ApiKeysListPage() {
             updateApiKey({
                 resource: API_KEYS_RESOURCE,
                 id: record.id,
-                values: {
-                    is_active: checked,
-                },
+                values: checked
+                    ? {
+                          is_active: true,
+                          disabled_reason: null,
+                          cooldown_until: null,
+                      }
+                    : {
+                          is_active: false,
+                      },
                 mutationMode: 'optimistic',
                 successNotification: {
                     type: 'success',
@@ -335,6 +341,7 @@ export default function ApiKeysListPage() {
                                             : 100
                                     }
                                     failureCount={record.failure_count}
+                                    cooldownUntil={record.cooldown_until}
                                 />
                             ),
                         },

@@ -206,7 +206,19 @@
             "created": "Created",
             "updated": "Last Updated",
             "details": "API Key Details",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "cooldown": "Cooldown",
+            "disabledReason": "Disabled reason",
+            "consecutiveFailures": "Consecutive failures"
+        },
+        "cooldown": {
+            "active": "In cooldown"
+        },
+        "disabledReason": {
+            "invalid_key": "Invalid key",
+            "permission": "Permission denied",
+            "spend_limit": "Spend limit",
+            "manual": "Manual"
         },
         "placeholders": {
             "searchName": "Search API key names...",
@@ -721,6 +733,7 @@
         "requestTitle": "Request {id}",
         "keyMeta": "{kind} · {count} tokens · {fails, plural, one {# fail} other {# fails}}",
         "healthDisabled": "disabled",
+        "healthCooldown": "cooldown",
         "statsFailed": "Some statistics failed to load",
         "statsFailedDesc": "Live feed may still work. Use Refresh to retry failed RPCs.",
         "emptyHourly": "No hourly data",
