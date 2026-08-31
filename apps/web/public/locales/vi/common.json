@@ -170,6 +170,7 @@
             "list": "Nhật ký | Gemini Proxy",
             "show": "#{id} Nhật ký | Gemini Proxy"
         },
+        "proxy_reconciliation_needed": { "list": "Đối soát | Gemini Proxy" },
         "user_settings": { "list": "Cài đặt | Gemini Proxy" }
     },
     "header": {
@@ -700,6 +701,24 @@
             "loadingKeys": "Đang tải tên khóa API…",
             "attempt": "Lần thử #{number}"
         }
+    },
+    "proxy_reconciliation_needed": {
+        "proxy_reconciliation_needed": "Đối soát",
+        "titles": { "list": "Đối soát" },
+        "heldTitle": "Reservation vẫn được giữ",
+        "heldCopy": "Giới hạn vẫn fail-closed cho đến khi bạn thử lại. Đối soát chạy lại cùng RPC finalize idempotent; hệ thống không tự nhả reservation cũ.",
+        "retrySuccess": "Đã gửi đối soát",
+        "retrySuccessDesc": "Finalize đã chạy lại cho request này. Nếu settlement đã tồn tại, bộ đếm không bị nhân đôi.",
+        "retryFailed": "Đối soát thất bại",
+        "retryFailedDesc": "Không chạy lại được finalize cho request này.",
+        "fields": {
+            "requestId": "Mã request",
+            "proxyKey": "Khóa proxy",
+            "lastError": "Lỗi gần nhất",
+            "created": "Thời gian"
+        },
+        "actions": { "retry": "Thử lại" },
+        "empty": "Không có reservation kẹt"
     },
     "user_settings": {
         "user_settings": "Cài đặt",

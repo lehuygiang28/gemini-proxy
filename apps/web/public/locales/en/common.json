@@ -170,6 +170,7 @@
             "list": "Logs | Gemini Proxy",
             "show": "#{id} Log | Gemini Proxy"
         },
+        "proxy_reconciliation_needed": { "list": "Reconciliation | Gemini Proxy" },
         "user_settings": { "list": "Settings | Gemini Proxy" }
     },
     "header": {
@@ -700,6 +701,24 @@
             "loadingKeys": "Loading API key names…",
             "attempt": "Attempt #{number}"
         }
+    },
+    "proxy_reconciliation_needed": {
+        "proxy_reconciliation_needed": "Reconciliation",
+        "titles": { "list": "Reconciliation" },
+        "heldTitle": "Reservations stay held",
+        "heldCopy": "Limits stay fail-closed until you retry. Reconcile re-runs the same idempotent finalize RPC; it does not auto-release stale reservations.",
+        "retrySuccess": "Reconcile queued",
+        "retrySuccessDesc": "Finalize ran again for this request. If settlement already existed, counters were not doubled.",
+        "retryFailed": "Reconcile failed",
+        "retryFailedDesc": "Could not re-run finalize for this request.",
+        "fields": {
+            "requestId": "Request ID",
+            "proxyKey": "Proxy key",
+            "lastError": "Last error",
+            "created": "Created"
+        },
+        "actions": { "retry": "Retry" },
+        "empty": "No stale reservations"
     },
     "user_settings": {
         "user_settings": "Settings",

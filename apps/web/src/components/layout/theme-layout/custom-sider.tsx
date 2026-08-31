@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import { type TreeMenuItem, useMenu, useLink } from '@refinedev/core';
 import { useThemedLayoutContext, type RefineThemedLayoutSiderProps } from '@refinedev/antd';
+import { ReconciliationSiderBadge } from '@/features/reconciliation';
 import { CustomTitle } from './custom-title';
 
 const drawerButtonStyles: CSSProperties = {
@@ -48,14 +49,21 @@ function buildMenuItems(
         const isSelected = key === selectedKey;
         const linkStyle: CSSProperties =
             activeItemDisabled && isSelected ? { pointerEvents: 'none' } : {};
+        const linkLabel = (
+            <Link to={list ?? ''} style={linkStyle}>
+                {label}
+            </Link>
+        );
         return {
             key: String(key),
             icon,
             label: (
                 <>
-                    <Link to={list ?? ''} style={linkStyle}>
-                        {label}
-                    </Link>
+                    {item.name === 'proxy_reconciliation_needed' ? (
+                        <ReconciliationSiderBadge>{linkLabel}</ReconciliationSiderBadge>
+                    ) : (
+                        linkLabel
+                    )}
                     {!siderCollapsed && isSelected ? <div className="ant-menu-tree-arrow" /> : null}
                 </>
             ),
