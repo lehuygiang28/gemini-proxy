@@ -74,6 +74,7 @@ export type InvokeCoreOptions = {
     apiKeys?: ContractApiKeyFixture[];
     projectPools?: ContractProjectPoolFixture[];
     quotaWindows?: ContractQuotaWindowFixture[];
+    projectPoolFetchError?: boolean;
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
     environment?: Record<string, string>;
@@ -306,6 +307,12 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                 });
             }
             if (table === 'google_project_pools') {
+                if (options.projectPoolFetchError) {
+                    return createQuery(() => ({
+                        data: null,
+                        error: { message: 'pool fetch failed' },
+                    }));
+                }
                 return createQuery(
                     (filters) => {
                         const filteredPools = projectPools.filter((pool) =>

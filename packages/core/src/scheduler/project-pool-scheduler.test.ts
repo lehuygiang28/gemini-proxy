@@ -141,4 +141,41 @@ describe('selectPoolAndKey', () => {
 
         expect(actualSelection).toEqual({ keyId: 'key-b', poolId: 'pool-b' });
     });
+
+    it('prefers an unused unlabeled pool over a used unlabeled pool', () => {
+        const candidates = [
+            createCandidate('key-a', 'pool-a', '2026-08-31T10:00:00.000Z'),
+            createCandidate('key-b', 'pool-b', '2026-08-31T11:00:00.000Z'),
+        ];
+        const pools = [
+            createPool('pool-a', { minuteRequests: 1 }),
+            createPool('pool-b', { minuteRequests: 0 }),
+        ];
+
+        const actualSelection = select(candidates, pools);
+
+        expect(actualSelection).toEqual({ keyId: 'key-b', poolId: 'pool-b' });
+    });
+
+    it('does not schedule a key when its pool row is missing and still schedules a singleton', () => {
+        const candidates = [
+            createCandidate('key-a', 'pool-a', '2026-08-31T10:00:00.000Z'),
+            createCandidate('key-b', null, '2026-08-31T11:00:00.000Z'),
+        ];
+
+        const actualSelection = select(candidates, []);
+
+        expect(actualSelection).toEqual({ keyId: 'key-b', poolId: null });
+    });
+
+    it('does not schedule any key when every candidate pool row is missing', () => {
+        const candidates = [
+            createCandidate('key-a', 'pool-a', null),
+            createCandidate('key-b', 'pool-b', null),
+        ];
+
+        const actualSelection = select(candidates, []);
+
+        expect(actualSelection).toBeNull();
+    });
 });

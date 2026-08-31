@@ -115,8 +115,13 @@ function isTimestampInFuture(timestamp: string | null, nowMs: number): boolean {
     return timestamp !== null && new Date(timestamp).getTime() > nowMs;
 }
 
-function isPoolAvailable(pool: PoolWindowState | undefined, nowMs: number): boolean {
-    if (!pool) return true;
+function isAssignedPoolAvailable(
+    projectPoolId: string | null,
+    pool: PoolWindowState | undefined,
+    nowMs: number,
+): boolean {
+    if (projectPoolId === null) return true;
+    if (!pool) return false;
     if (isTimestampInFuture(pool.cooldownUntil, nowMs)) return false;
     if (pool.rpmLimit !== null && pool.minuteRequests >= pool.rpmLimit) return false;
     return pool.tpmLimit === null || pool.minuteTokens < pool.tpmLimit;
@@ -176,7 +181,7 @@ export function selectPoolAndKey(input: SelectPoolAndKeyInput): PoolAndKeySelect
         }
         const pool =
             candidate.projectPoolId === null ? undefined : poolById.get(candidate.projectPoolId);
-        return isPoolAvailable(pool, input.nowMs);
+        return isAssignedPoolAvailable(candidate.projectPoolId, pool, input.nowMs);
     });
     const preferredCandidate = eligibleCandidates.find(
         (candidate) => candidate.id === input.preferKeyId && isHealthyForSticky(candidate),
@@ -231,14 +236,13 @@ function mapPoolWindowState(
     },
     window: { request_count: number; token_count: number } | undefined,
 ): PoolWindowState {
-    const hasDeclaredLimits = pool.rpm_limit !== null || pool.tpm_limit !== null;
     return {
         poolId: pool.id,
         cooldownUntil: pool.cooldown_until,
         rpmLimit: pool.rpm_limit,
         tpmLimit: pool.tpm_limit,
-        minuteRequests: hasDeclaredLimits ? (window?.request_count ?? 0) : 0,
-        minuteTokens: hasDeclaredLimits ? (window?.token_count ?? 0) : 0,
+        minuteRequests: window?.request_count ?? 0,
+        minuteTokens: window?.token_count ?? 0,
     };
 }
 
