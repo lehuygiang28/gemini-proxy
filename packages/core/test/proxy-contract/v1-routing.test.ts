@@ -23,6 +23,26 @@ describe('proxy contract: /v1 routing', () => {
         expect(originRequests[0]!.headers.get('x-goog-api-key')).toBeTruthy();
     });
 
+    it('routes GET /v1/models with goog header to Gemini v1beta models list', async () => {
+        const actual = await invokeCore('/v1/models', {
+            method: 'GET',
+            headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+        });
+        expect(actual.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(new URL(originRequests[0]!.url).pathname).toBe('/v1beta/models');
+    });
+
+    it('routes GET /v1/models with goog header to Gemini v1beta models list', async () => {
+        const actual = await invokeCore('/v1/models', {
+            method: 'GET',
+            headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+        });
+        expect(actual.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(new URL(originRequests[0]!.url).pathname).toBe('/v1beta/models');
+    });
+
     it('routes POST /v1/chat/completions with Bearer to OpenAI origin', async () => {
         const actual = await invokeCore('/v1/chat/completions', {
             method: 'POST',

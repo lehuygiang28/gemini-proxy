@@ -22,7 +22,7 @@ function geminiRemainder(path: string): string {
     if (withoutGateway.startsWith('v1beta/') || withoutGateway.startsWith('v1/')) {
         return withoutGateway;
     }
-    if (withoutGateway.startsWith('models/')) {
+    if (withoutGateway === 'models' || withoutGateway.startsWith('models/')) {
         return `v1beta/${withoutGateway}`;
     }
     return withoutGateway;

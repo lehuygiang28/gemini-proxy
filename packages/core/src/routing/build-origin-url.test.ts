@@ -18,6 +18,17 @@ describe('buildOriginUrl', () => {
         );
     });
 
+    it('prefixes v1beta for GET /v1/models list', () => {
+        const actual = buildOriginUrl({
+            apiFormat: 'gemini',
+            path: '/v1/models',
+            rawSearch: '',
+            geminiBaseUrl: GEMINI_BASE,
+            openaiBaseUrl: OPENAI_BASE,
+        });
+        expect(actual).toBe('https://generativelanguage.googleapis.com/v1beta/models');
+    });
+
     it('keeps v1beta remainder after /v1/v1beta normalize', () => {
         const actual = buildOriginUrl({
             apiFormat: 'gemini',
