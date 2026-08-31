@@ -48,6 +48,7 @@ export function ProxyKeyLimitsFields() {
                         >
                             <InputNumber
                                 min={1}
+                                precision={0}
                                 placeholder={unlimitedPlaceholder}
                                 style={{ width: '100%' }}
                             />

@@ -446,7 +446,9 @@ export class BackgroundService {
             const policyReservation = c.get('proxyPolicyReservation');
             if (policyReservation) {
                 promises.push(
-                    this.settleProxyPolicy(c, requestId, operations.requestLog).catch((error) => {
+                    persistWithRetry(() =>
+                        this.settleProxyPolicy(c, requestId, operations.requestLog),
+                    ).catch((error) => {
                         console.error(
                             `Failed to settle proxy policy reservation for request ${requestId}:`,
                             error,

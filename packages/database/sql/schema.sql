@@ -84,6 +84,12 @@ CREATE TABLE IF NOT EXISTS proxy_key_quota_windows (
     PRIMARY KEY (proxy_key_id, window_type, window_start)
 );
 
+CREATE TABLE IF NOT EXISTS proxy_key_settlements (
+    request_id TEXT PRIMARY KEY,
+    proxy_key_id UUID NOT NULL REFERENCES proxy_api_keys(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Per-user settings (id = auth.users.id)
 CREATE TABLE IF NOT EXISTS user_settings (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -222,6 +228,7 @@ CREATE TRIGGER update_user_settings_updated_at
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_key_quota_windows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proxy_key_settlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
@@ -255,6 +262,13 @@ CREATE POLICY "Users can view quota windows for their proxy keys"
               )
         )
     );
+
+DROP POLICY IF EXISTS "Service role can manage proxy key settlements"
+    ON proxy_key_settlements;
+CREATE POLICY "Service role can manage proxy key settlements"
+    ON proxy_key_settlements FOR ALL
+    USING ((SELECT auth.role()) = 'service_role')
+    WITH CHECK ((SELECT auth.role()) = 'service_role');
 
 DROP POLICY IF EXISTS "Users can manage their own user_settings" ON user_settings;
 CREATE POLICY "Users can manage their own user_settings" ON user_settings
@@ -1261,6 +1275,15 @@ SECURITY DEFINER
 SET search_path = 'public', pg_catalog
 AS $$
 BEGIN
+    -- The insert and quota updates share a transaction, making retries safe after ambiguous failures.
+    INSERT INTO proxy_key_settlements (request_id, proxy_key_id)
+    VALUES (p_request_id, p_proxy_key_id)
+    ON CONFLICT (request_id) DO NOTHING;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
     UPDATE proxy_api_keys
     SET inflight_count = GREATEST(inflight_count - 1, 0)
     WHERE id = p_proxy_key_id
@@ -1296,8 +1319,6 @@ BEGIN
               AND window_start = p_month_start
           )
       );
-
-    PERFORM p_request_id;
 END;
 $$;
 

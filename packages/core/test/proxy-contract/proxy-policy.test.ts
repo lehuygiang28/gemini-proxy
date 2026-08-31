@@ -103,6 +103,32 @@ describe('proxy contract: proxy-key policy', () => {
         expect(originRequests).toHaveLength(0);
     });
 
+    it('hard-rejects an oversized content-length before admit or origin', async () => {
+        const requestInit = createProxyRequestInit('{}');
+        requestInit.headers = {
+            ...requestInit.headers,
+            'content-length': '999',
+        };
+        const actualResponse = await invokeCore(PROXY_PATH, requestInit, {
+            proxyKey: {
+                id: '22222222-2222-2222-2222-222222222222',
+                user_id: '11111111-1111-1111-1111-111111111111',
+                name: 'body-capped-contract-proxy',
+                is_active: true,
+                deleted_at: null,
+                max_output_tokens: null,
+                max_request_body_bytes: 10,
+            },
+        });
+
+        expect(actualResponse.status).toBe(400);
+        expect(await actualResponse.json()).toEqual(
+            expect.objectContaining({ error: 'policy_denied', code: 'body_too_large' }),
+        );
+        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(false);
+        expect(originRequests).toHaveLength(0);
+    });
+
     it('settles a successful request with parsed actual usage', async () => {
         const windowStarts = {
             minute: '2026-08-31T12:22:00.000Z',

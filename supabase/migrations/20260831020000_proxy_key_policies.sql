@@ -39,7 +39,14 @@ CREATE TABLE IF NOT EXISTS proxy_key_quota_windows (
 CREATE INDEX IF NOT EXISTS idx_proxy_key_quota_windows_start
     ON proxy_key_quota_windows (window_start);
 
+CREATE TABLE IF NOT EXISTS proxy_key_settlements (
+    request_id TEXT PRIMARY KEY,
+    proxy_key_id UUID NOT NULL REFERENCES proxy_api_keys(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE proxy_key_quota_windows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proxy_key_settlements ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view quota windows for their proxy keys"
     ON proxy_key_quota_windows FOR SELECT
@@ -54,6 +61,11 @@ CREATE POLICY "Users can view quota windows for their proxy keys"
               )
         )
     );
+
+CREATE POLICY "Service role can manage proxy key settlements"
+    ON proxy_key_settlements FOR ALL
+    USING ((SELECT auth.role()) = 'service_role')
+    WITH CHECK ((SELECT auth.role()) = 'service_role');
 
 CREATE OR REPLACE FUNCTION admit_proxy_request(
     p_proxy_key_id UUID,
@@ -248,6 +260,15 @@ SECURITY DEFINER
 SET search_path = 'public', pg_catalog
 AS $$
 BEGIN
+    -- The insert and quota updates share a transaction, making retries safe after ambiguous failures.
+    INSERT INTO proxy_key_settlements (request_id, proxy_key_id)
+    VALUES (p_request_id, p_proxy_key_id)
+    ON CONFLICT (request_id) DO NOTHING;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
     UPDATE proxy_api_keys
     SET inflight_count = GREATEST(inflight_count - 1, 0)
     WHERE id = p_proxy_key_id
@@ -283,8 +304,6 @@ BEGIN
               AND window_start = p_month_start
           )
       );
-
-    PERFORM p_request_id;
 END;
 $$;
 

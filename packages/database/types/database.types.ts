@@ -211,6 +211,32 @@ export type Database = {
                     },
                 ];
             };
+            proxy_key_settlements: {
+                Row: {
+                    created_at: string;
+                    proxy_key_id: string;
+                    request_id: string;
+                };
+                Insert: {
+                    created_at?: string;
+                    proxy_key_id: string;
+                    request_id: string;
+                };
+                Update: {
+                    created_at?: string;
+                    proxy_key_id?: string;
+                    request_id?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'proxy_key_settlements_proxy_key_id_fkey';
+                        columns: ['proxy_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'proxy_api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
             user_settings: {
                 Row: {
                     custom_model_pricing: Json;

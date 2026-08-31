@@ -92,7 +92,20 @@ export async function proxyPolicyMiddleware(
 ): Promise<Response | void> {
     const proxyKey = c.get('proxyApiKeyData');
     const requestData = c.get('proxyRequestDataParsed');
+    const contentLength = parseContentLength(c.req.header('content-length'));
+    if (
+        proxyKey.max_request_body_bytes !== null &&
+        contentLength !== undefined &&
+        contentLength > proxyKey.max_request_body_bytes
+    ) {
+        return createDenyResponse(c, 'body_too_large', 'Request body exceeds the proxy key limit');
+    }
     const bodyText = await safelyExtractBodyText(c);
+    const bodyBytes =
+        contentLength ?? (bodyText === null ? 0 : new TextEncoder().encode(bodyText).byteLength);
+    if (proxyKey.max_request_body_bytes !== null && bodyBytes > proxyKey.max_request_body_bytes) {
+        return createDenyResponse(c, 'body_too_large', 'Request body exceeds the proxy key limit');
+    }
     const parsedBody = parseBody(bodyText);
     const peekedMaxOutput = peekMaxOutput(parsedBody);
     if (
@@ -120,9 +133,6 @@ export async function proxyPolicyMiddleware(
             toolUsePromptTokens: 0,
             totalTokens: estimatedTokens,
         })?.usd ?? 0;
-    const contentLength = parseContentLength(c.req.header('content-length'));
-    const bodyBytes =
-        contentLength ?? (bodyText === null ? 0 : new TextEncoder().encode(bodyText).byteLength);
     const supabase = getSupabaseClient(c);
     const { data, error } = await supabase.rpc('admit_proxy_request', {
         p_proxy_key_id: proxyKey.id,
