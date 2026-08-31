@@ -1,0 +1,28 @@
+name: Quality
+
+on:
+    pull_request:
+    push:
+        branches: [main, develop]
+
+concurrency:
+    group: quality-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    quality:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10.18.1
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm format:check
+            - run: pnpm lint
+            - run: pnpm test
+            - run: pnpm build

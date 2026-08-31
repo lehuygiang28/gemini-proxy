@@ -293,9 +293,24 @@ importers:
         specifier: ^11.1.0
         version: 11.1.0
     devDependencies:
+      '@ai-sdk/google':
+        specifier: ^2.0.6
+        version: 2.0.7(zod@3.25.76)
+      '@google/genai':
+        specifier: ^1.15.0
+        version: 1.15.0
+      '@hono/node-server':
+        specifier: ^1.18.2
+        version: 1.19.0(hono@4.9.2)
       '@types/node':
         specifier: ^20.11.16
         version: 20.19.11
+      ai:
+        specifier: ^5.0.15
+        version: 5.0.19(zod@3.25.76)
+      openai:
+        specifier: ^5.12.2
+        version: 5.13.1(ws@8.21.0)(zod@3.25.76)
       tsdown:
         specifier: ^0.17.0
         version: 0.17.0(typescript@5.9.2)
@@ -9051,7 +9066,7 @@ snapshots:
   '@google/genai@1.15.0':
     dependencies:
       google-auth-library: 9.15.1
-      ws: 8.18.3
+      ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -9870,7 +9885,7 @@ snapshots:
       react: 19.1.2
       react-dom: 19.1.2(react@19.1.2)
       sanitize-html: 2.17.0
-      ws: 8.18.3
+      ws: 8.21.0
     transitivePeerDependencies:
       - '@babel/preset-env'
       - bufferutil
