@@ -79,60 +79,137 @@ export type Database = {
             };
             proxy_api_keys: {
                 Row: {
+                    allowed_models: string[] | null;
                     completion_tokens: number;
                     created_at: string;
+                    daily_budget_usd: number | null;
                     deleted_at: string | null;
+                    denied_models: string[] | null;
+                    expires_at: string | null;
                     failure_count: number;
                     id: string;
+                    inflight_count: number;
                     is_active: boolean;
                     last_error_at: string | null;
                     last_used_at: string | null;
+                    max_concurrent: number | null;
+                    max_output_tokens: number | null;
+                    max_request_body_bytes: number | null;
                     metadata: Json;
+                    monthly_budget_usd: number | null;
                     name: string;
                     prompt_tokens: number;
                     proxy_key_value: string;
+                    rpd_limit: number | null;
+                    rpm_limit: number | null;
                     success_count: number;
+                    tpm_limit: number | null;
                     total_tokens: number;
                     updated_at: string;
                     user_id: string;
                 };
                 Insert: {
+                    allowed_models?: string[] | null;
                     completion_tokens?: number;
                     created_at?: string;
+                    daily_budget_usd?: number | null;
                     deleted_at?: string | null;
+                    denied_models?: string[] | null;
+                    expires_at?: string | null;
                     failure_count?: number;
                     id?: string;
+                    inflight_count?: number;
                     is_active?: boolean;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
+                    max_concurrent?: number | null;
+                    max_output_tokens?: number | null;
+                    max_request_body_bytes?: number | null;
                     metadata?: Json;
+                    monthly_budget_usd?: number | null;
                     name: string;
                     prompt_tokens?: number;
                     proxy_key_value: string;
+                    rpd_limit?: number | null;
+                    rpm_limit?: number | null;
                     success_count?: number;
+                    tpm_limit?: number | null;
                     total_tokens?: number;
                     updated_at?: string;
                     user_id: string;
                 };
                 Update: {
+                    allowed_models?: string[] | null;
                     completion_tokens?: number;
                     created_at?: string;
+                    daily_budget_usd?: number | null;
                     deleted_at?: string | null;
+                    denied_models?: string[] | null;
+                    expires_at?: string | null;
                     failure_count?: number;
                     id?: string;
+                    inflight_count?: number;
                     is_active?: boolean;
                     last_error_at?: string | null;
                     last_used_at?: string | null;
+                    max_concurrent?: number | null;
+                    max_output_tokens?: number | null;
+                    max_request_body_bytes?: number | null;
                     metadata?: Json;
+                    monthly_budget_usd?: number | null;
                     name?: string;
                     prompt_tokens?: number;
                     proxy_key_value?: string;
+                    rpd_limit?: number | null;
+                    rpm_limit?: number | null;
                     success_count?: number;
+                    tpm_limit?: number | null;
                     total_tokens?: number;
                     updated_at?: string;
                     user_id?: string;
                 };
                 Relationships: [];
+            };
+            proxy_key_quota_windows: {
+                Row: {
+                    proxy_key_id: string;
+                    request_count: number;
+                    reserved_cost_usd: number;
+                    reserved_tokens: number;
+                    settled_cost_usd: number;
+                    token_count: number;
+                    window_start: string;
+                    window_type: string;
+                };
+                Insert: {
+                    proxy_key_id: string;
+                    request_count?: number;
+                    reserved_cost_usd?: number;
+                    reserved_tokens?: number;
+                    settled_cost_usd?: number;
+                    token_count?: number;
+                    window_start: string;
+                    window_type: string;
+                };
+                Update: {
+                    proxy_key_id?: string;
+                    request_count?: number;
+                    reserved_cost_usd?: number;
+                    reserved_tokens?: number;
+                    settled_cost_usd?: number;
+                    token_count?: number;
+                    window_start?: string;
+                    window_type?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'proxy_key_quota_windows_proxy_key_id_fkey';
+                        columns: ['proxy_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'proxy_api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
             };
             user_settings: {
                 Row: {
@@ -235,6 +312,16 @@ export type Database = {
             [_ in never]: never;
         };
         Functions: {
+            admit_proxy_request: {
+                Args: {
+                    p_body_bytes: number;
+                    p_estimated_tokens: number;
+                    p_estimated_usd: number;
+                    p_model: string;
+                    p_proxy_key_id: string;
+                };
+                Returns: Json;
+            };
             cleanup_old_request_logs: {
                 Args: { p_days_to_keep?: number };
                 Returns: number;
@@ -292,6 +379,17 @@ export type Database = {
             };
             record_api_key_success: {
                 Args: { p_id: string };
+                Returns: undefined;
+            };
+            settle_proxy_request: {
+                Args: {
+                    p_actual_tokens: number;
+                    p_actual_usd: number;
+                    p_proxy_key_id: string;
+                    p_request_id: string;
+                    p_reserved_tokens: number;
+                    p_reserved_usd: number;
+                };
                 Returns: undefined;
             };
             get_retry_statistics: {

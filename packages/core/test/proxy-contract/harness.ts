@@ -18,6 +18,14 @@ export const CONTRACT_GEMINI_KEY_2 = 'AIzaSyTESTGEMINIKEY00000000002';
 
 export const originRequests: Request[] = [];
 export const rpcCalls: { name: string; args: unknown }[] = [];
+const waitUntilPromises: Promise<unknown>[] = [];
+
+export type AdmitResult = {
+    ok: boolean;
+    code?: string;
+    reserved_tokens?: number;
+    reserved_usd?: number;
+};
 
 export type InvokeCoreOptions = {
     proxyKey?: Record<string, unknown> | null;
@@ -28,6 +36,7 @@ export type InvokeCoreOptions = {
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
     environment?: Record<string, string>;
+    admitResults?: AdmitResult[];
 };
 
 type QueryResult = {
@@ -115,6 +124,8 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                   name: 'contract-proxy',
                   is_active: isActive,
                   deleted_at: null,
+                  max_output_tokens: null,
+                  max_request_body_bytes: null,
               });
     const apiKeys = [
         {
@@ -190,6 +201,19 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
         },
         async rpc(name: string, args: unknown) {
             rpcCalls.push({ name, args });
+            if (name === 'admit_proxy_request') {
+                return {
+                    data: options.admitResults?.shift() ?? {
+                        ok: true,
+                        reserved_tokens: 8192,
+                        reserved_usd: 0,
+                    },
+                    error: null,
+                };
+            }
+            if (name === 'settle_proxy_request') {
+                return { data: null, error: null };
+            }
             return { data: null, error: null };
         },
     };
@@ -214,6 +238,7 @@ export function createExecutionCtx(): {
 } {
     return {
         waitUntil: (promise: Promise<unknown>): void => {
+            waitUntilPromises.push(promise);
             void promise.catch(() => undefined);
         },
         passThroughOnException: (): void => undefined,
@@ -225,7 +250,6 @@ export async function invokeCore(
     init: RequestInit = {},
     options: InvokeCoreOptions = {},
 ): Promise<Response> {
-    originRequests.length = 0;
     for (const [name, value] of Object.entries(options.environment ?? {})) {
         vi.stubEnv(name, value);
     }
@@ -267,9 +291,17 @@ export async function invokeCore(
     return coreApp.fetch(request, createContractEnv(options.environment), createExecutionCtx());
 }
 
+export async function flushWaitUntil(): Promise<void> {
+    while (waitUntilPromises.length > 0) {
+        const pending = waitUntilPromises.splice(0);
+        await Promise.allSettled(pending);
+    }
+}
+
 export function resetContractHarness(): void {
     originRequests.length = 0;
     rpcCalls.length = 0;
+    waitUntilPromises.length = 0;
     setSupabaseFactoryForTests(null);
     resetSupabaseClient();
     vi.unstubAllGlobals();

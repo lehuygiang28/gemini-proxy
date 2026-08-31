@@ -178,6 +178,7 @@ export class BackgroundService {
         };
         const fallbackModel = proxyRequestDataParsed.model || 'unknown';
         const settings = await this.loadUserSettings(c, userId);
+        const policyReservation = c.get('proxyPolicyReservation');
         const cost = estimateCostFromParsedUsage(
             { ...tokenUsage, model: tokenUsage.model || fallbackModel },
             fallbackModel,
@@ -252,6 +253,12 @@ export class BackgroundService {
                 duration_ms: durationMs,
                 total_response_time_ms: totalResponseTimeMs,
                 attempt_count: retryAttempts.length + 1,
+                ...(policyReservation
+                    ? {
+                          policy_reserved_tokens: policyReservation.reserved_tokens,
+                          policy_reserved_usd: policyReservation.reserved_usd,
+                      }
+                    : {}),
             },
             retryAttempts,
             totalResponseTimeMs,
@@ -325,6 +332,7 @@ export class BackgroundService {
         this.initializeRequest(requestId);
 
         const settings = await this.loadUserSettings(c, userId);
+        const policyReservation = c.get('proxyPolicyReservation');
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -380,6 +388,12 @@ export class BackgroundService {
                 duration_ms: 0,
                 total_response_time_ms: totalResponseTimeMs,
                 attempt_count: retryAttempts.length,
+                ...(policyReservation
+                    ? {
+                          policy_reserved_tokens: policyReservation.reserved_tokens,
+                          policy_reserved_usd: policyReservation.reserved_usd,
+                      }
+                    : {}),
             },
             errorDetails: {
                 message: error.message,
@@ -429,6 +443,17 @@ export class BackgroundService {
 
         try {
             const promises: Promise<void>[] = [];
+            const policyReservation = c.get('proxyPolicyReservation');
+            if (policyReservation) {
+                promises.push(
+                    this.settleProxyPolicy(c, requestId, operations.requestLog).catch((error) => {
+                        console.error(
+                            `Failed to settle proxy policy reservation for request ${requestId}:`,
+                            error,
+                        );
+                    }),
+                );
+            }
             if (operations.requestLog) {
                 promises.push(
                     persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!)).catch(
@@ -564,6 +589,35 @@ export class BackgroundService {
     }
 
     // ===== DATABASE OPERATIONS =====
+
+    private static async settleProxyPolicy(
+        c: Context<HonoApp>,
+        requestId: string,
+        requestLog: RequestLogData | undefined,
+    ): Promise<void> {
+        const reservation = c.get('proxyPolicyReservation');
+        if (!reservation) {
+            return;
+        }
+        const actualTokens =
+            requestLog?.isSuccessful === true ? (requestLog.usageMetadata?.totalTokens ?? 0) : 0;
+        const actualUsd =
+            requestLog?.isSuccessful === true
+                ? (requestLog.usageMetadata?.estimatedCostUsd ?? 0)
+                : 0;
+        const supabase = getSupabaseClient(c);
+        const { error } = await supabase.rpc('settle_proxy_request', {
+            p_proxy_key_id: c.get('proxyApiKeyData').id,
+            p_request_id: requestId,
+            p_reserved_tokens: reservation.reserved_tokens,
+            p_reserved_usd: reservation.reserved_usd,
+            p_actual_tokens: actualTokens,
+            p_actual_usd: actualUsd,
+        });
+        if (error) {
+            throw error;
+        }
+    }
 
     private static async insertRequestLog(c: Context<HonoApp>, log: RequestLogData): Promise<void> {
         const supabase = getSupabaseClient(c);

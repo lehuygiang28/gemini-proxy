@@ -10,6 +10,7 @@ import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { validateProxyApiKeyMiddleware } from './middlewares/proxy-api-key.middleware';
 import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
 import { extractProxyDataMiddleware } from './middlewares/extract-proxy-data.middleware';
+import { proxyPolicyMiddleware } from './middlewares/proxy-policy.middleware';
 import { ProxyService } from './services/proxy.service';
 import { getSupabaseClient } from './services/supabase.service';
 
@@ -79,6 +80,7 @@ export const coreApp = new Hono<HonoApp>()
     })
     .use('/*', validateProxyApiKeyMiddleware)
     .use('/*', extractProxyDataMiddleware)
+    .use('/*', proxyPolicyMiddleware)
     // Main handler route for all requests
     .use('/*', async (c) => {
         return ProxyService.makeApiRequest({ c });

@@ -1,0 +1,155 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+    CONTRACT_PROXY_KEY,
+    flushWaitUntil,
+    invokeCore,
+    originRequests,
+    resetContractHarness,
+    rpcCalls,
+} from './harness';
+
+const PROXY_PATH = '/gemini/v1beta/models/gemini-2.5-flash:generateContent';
+
+function createProxyRequestInit(body = '{}'): RequestInit {
+    return {
+        method: 'POST',
+        headers: {
+            'x-goog-api-key': CONTRACT_PROXY_KEY,
+            'content-type': 'application/json',
+            'content-length': String(new TextEncoder().encode(body).byteLength),
+        },
+        body,
+    };
+}
+
+describe('proxy contract: proxy-key policy', () => {
+    afterEach(() => {
+        resetContractHarness();
+    });
+
+    it('returns rpm 429 on a second request without fetching origin', async () => {
+        const options = {
+            admitResults: [
+                { ok: true, reserved_tokens: 8192, reserved_usd: 0 },
+                { ok: false, code: 'rpm' },
+            ],
+        };
+
+        const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), options);
+        await firstResponse.text();
+        const secondResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), options);
+
+        expect(firstResponse.status).toBe(200);
+        expect(secondResponse.status).toBe(429);
+        expect(await secondResponse.json()).toEqual(
+            expect.objectContaining({ error: 'policy_denied', code: 'rpm' }),
+        );
+        expect(originRequests).toHaveLength(1);
+    });
+
+    it('allows two requests when all limits are null', async () => {
+        const proxyKey = {
+            id: '22222222-2222-2222-2222-222222222222',
+            user_id: '11111111-1111-1111-1111-111111111111',
+            name: 'unlimited-contract-proxy',
+            is_active: true,
+            deleted_at: null,
+            max_output_tokens: null,
+            max_request_body_bytes: null,
+        };
+
+        const firstResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), { proxyKey });
+        await firstResponse.text();
+        const secondResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), { proxyKey });
+        await secondResponse.text();
+
+        expect(firstResponse.status).toBe(200);
+        expect(secondResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+    });
+
+    it('returns model_denied 400 without fetching origin', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            admitResults: [{ ok: false, code: 'model_denied' }],
+        });
+
+        expect(actualResponse.status).toBe(400);
+        expect(await actualResponse.json()).toEqual(
+            expect.objectContaining({ error: 'policy_denied', code: 'model_denied' }),
+        );
+        expect(originRequests).toHaveLength(0);
+    });
+
+    it('hard-rejects output tokens above the key cap before admit', async () => {
+        const body = JSON.stringify({ generationConfig: { maxOutputTokens: 257 } });
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(body), {
+            proxyKey: {
+                id: '22222222-2222-2222-2222-222222222222',
+                user_id: '11111111-1111-1111-1111-111111111111',
+                name: 'capped-contract-proxy',
+                is_active: true,
+                deleted_at: null,
+                max_output_tokens: 256,
+                max_request_body_bytes: null,
+            },
+        });
+
+        expect(actualResponse.status).toBe(400);
+        expect(await actualResponse.json()).toEqual(
+            expect.objectContaining({ error: 'policy_denied', code: 'max_output_tokens' }),
+        );
+        expect(rpcCalls.some((call) => call.name === 'admit_proxy_request')).toBe(false);
+        expect(originRequests).toHaveLength(0);
+    });
+
+    it('settles a successful request with parsed actual usage', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            admitResults: [{ ok: true, reserved_tokens: 256, reserved_usd: 0.001 }],
+            originBody: {
+                candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
+                usageMetadata: {
+                    promptTokenCount: 5,
+                    candidatesTokenCount: 7,
+                    totalTokenCount: 12,
+                },
+            },
+        });
+        await actualResponse.text();
+        await flushWaitUntil();
+
+        expect(rpcCalls).toContainEqual({
+            name: 'settle_proxy_request',
+            args: expect.objectContaining({
+                p_reserved_tokens: 256,
+                p_reserved_usd: 0.001,
+                p_actual_tokens: 12,
+                p_actual_usd: expect.any(Number),
+            }),
+        });
+    });
+
+    it('settles with zero actual usage after origin 502 retries are exhausted', async () => {
+        const actualResponse = await invokeCore(PROXY_PATH, createProxyRequestInit(), {
+            admitResults: [{ ok: true, reserved_tokens: 128, reserved_usd: 0.0005 }],
+            originResponses: [
+                new Response(JSON.stringify({ error: { message: 'bad gateway' } }), {
+                    status: 502,
+                    headers: { 'content-type': 'application/json' },
+                }),
+            ],
+        });
+        await actualResponse.text();
+        await flushWaitUntil();
+
+        expect(actualResponse.status).toBe(502);
+        expect(rpcCalls).toContainEqual({
+            name: 'settle_proxy_request',
+            args: expect.objectContaining({
+                p_reserved_tokens: 128,
+                p_reserved_usd: 0.0005,
+                p_actual_tokens: 0,
+                p_actual_usd: 0,
+            }),
+        });
+    });
+});
