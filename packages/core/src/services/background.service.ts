@@ -281,7 +281,6 @@ export class BackgroundService {
             },
         });
 
-        // Add retry attempts (if any)
         if (retryAttempts && retryAttempts.length > 0) {
             this.addRetryAttempts(requestId, retryAttempts);
         }
@@ -429,7 +428,6 @@ export class BackgroundService {
                 : null,
         });
 
-        // Add retry attempts (if any)
         if (retryAttempts && retryAttempts.length > 0) {
             this.addRetryAttempts(requestId, retryAttempts);
         }
@@ -553,35 +551,12 @@ export class BackgroundService {
     private static addRetryAttempts(requestId: string, retryAttempts: any[]): void {
         retryAttempts.forEach((attempt) => {
             if (attempt.api_key_id) {
-                // Add API key usage for failed attempt
-                this.addApiKeyUsage(requestId, {
-                    apiKeyId: attempt.api_key_id,
-                    isSuccessful: false,
-                    promptTokens: 0, // Failed attempts don't consume tokens
-                    completionTokens: 0,
-                    totalTokens: 0,
-                    errorDetails: {
-                        message: attempt.error.message,
-                        type: attempt.error.type,
-                        status: attempt.error.status,
-                        code: attempt.error.code,
-                        provider_status: attempt.provider_error?.status,
-                        provider_headers: attempt.provider_error?.headers,
-                        provider_raw_body: attempt.provider_error?.raw_body,
-                    },
-                });
-
-                // Schedule API key touch
                 this.addApiKeyTouch(requestId, {
                     apiKeyId: attempt.api_key_id,
                     touchType: 'last_error',
                 });
             }
         });
-
-        // Note: We don't add proxy API key usage for retry attempts
-        // because the proxy key is already tracked once per request (success/failure)
-        // Adding it per retry would duplicate the usage count incorrectly
     }
 
     // ===== DATABASE OPERATIONS =====

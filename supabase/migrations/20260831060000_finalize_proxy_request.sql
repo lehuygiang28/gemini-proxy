@@ -131,6 +131,21 @@ BEGIN
         GREATEST(COALESCE(p_actual_tokens, 0), 0)
     );
 
+    PERFORM increment_api_key_usage(
+        (attempt->>'api_key_id')::UUID,
+        0,
+        1,
+        0,
+        0,
+        0
+    )
+    FROM jsonb_array_elements(COALESCE(usage_json->'retry_attempts', '[]'::jsonb)) AS attempt
+    WHERE (attempt->>'api_key_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      AND (
+          p_api_key_id IS NULL
+          OR (attempt->>'api_key_id')::UUID IS DISTINCT FROM p_api_key_id
+      );
+
     UPDATE proxy_api_keys
     SET inflight_count = GREATEST(inflight_count - 1, 0)
     WHERE id = p_proxy_key_id
@@ -179,7 +194,23 @@ DECLARE
     log_row request_logs%ROWTYPE;
     metrics JSONB;
     usage_json JSONB;
+    recon_user UUID;
+    caller_role TEXT := COALESCE(auth.role(), '');
+    caller_id UUID := auth.uid();
 BEGIN
+    SELECT user_id INTO recon_user
+    FROM proxy_reconciliation_needed
+    WHERE request_id = p_request_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'reconciliation row not found';
+    END IF;
+
+    IF caller_role <> 'service_role'
+       AND (caller_id IS NULL OR recon_user IS DISTINCT FROM caller_id) THEN
+        RAISE EXCEPTION 'not authorized to reconcile this request';
+    END IF;
+
     SELECT * INTO log_row FROM request_logs WHERE request_id = p_request_id;
     IF FOUND THEN
         metrics := COALESCE(log_row.performance_metrics, '{}'::jsonb);
@@ -210,6 +241,12 @@ BEGIN
         );
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1 FROM proxy_key_settlements WHERE request_id = p_request_id
+    ) THEN
+        RAISE EXCEPTION 'finalize did not settle; reservation still held';
+    END IF;
+
     UPDATE proxy_reconciliation_needed
     SET resolved_at = NOW()
     WHERE request_id = p_request_id
@@ -232,4 +269,4 @@ COMMENT ON FUNCTION finalize_proxy_request(
 ) IS
     'Idempotent log + settlement + usage counters. Settlement insert wins once; retries skip counters.';
 COMMENT ON FUNCTION reconcile_proxy_request(TEXT) IS
-    'Re-runs finalize from request_logs if present (no-op when already settled) and marks the stale row resolved.';
+    'Owner-scoped replay of finalize. Resolves only after a settlement row exists.';
