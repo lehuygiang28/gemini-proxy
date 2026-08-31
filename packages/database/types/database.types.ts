@@ -25,6 +25,7 @@ export type Database = {
                     metadata: Json;
                     name: string;
                     prompt_tokens: number;
+                    project_pool_id: string | null;
                     provider: string;
                     success_count: number;
                     total_tokens: number;
@@ -47,6 +48,7 @@ export type Database = {
                     metadata?: Json;
                     name: string;
                     prompt_tokens?: number;
+                    project_pool_id?: string | null;
                     provider?: string;
                     success_count?: number;
                     total_tokens?: number;
@@ -69,13 +71,102 @@ export type Database = {
                     metadata?: Json;
                     name?: string;
                     prompt_tokens?: number;
+                    project_pool_id?: string | null;
                     provider?: string;
                     success_count?: number;
                     total_tokens?: number;
                     updated_at?: string;
                     user_id?: string;
                 };
+                Relationships: [
+                    {
+                        foreignKeyName: 'api_keys_project_pool_id_fkey';
+                        columns: ['project_pool_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'google_project_pools';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
+            google_project_pools: {
+                Row: {
+                    consecutive_failures: number;
+                    cooldown_until: string | null;
+                    created_at: string;
+                    google_project_id: string | null;
+                    id: string;
+                    metadata: Json;
+                    name: string;
+                    rpd_limit: number | null;
+                    rpm_limit: number | null;
+                    tier: string | null;
+                    tpm_limit: number | null;
+                    updated_at: string;
+                    user_id: string;
+                };
+                Insert: {
+                    consecutive_failures?: number;
+                    cooldown_until?: string | null;
+                    created_at?: string;
+                    google_project_id?: string | null;
+                    id?: string;
+                    metadata?: Json;
+                    name: string;
+                    rpd_limit?: number | null;
+                    rpm_limit?: number | null;
+                    tier?: string | null;
+                    tpm_limit?: number | null;
+                    updated_at?: string;
+                    user_id: string;
+                };
+                Update: {
+                    consecutive_failures?: number;
+                    cooldown_until?: string | null;
+                    created_at?: string;
+                    google_project_id?: string | null;
+                    id?: string;
+                    metadata?: Json;
+                    name?: string;
+                    rpd_limit?: number | null;
+                    rpm_limit?: number | null;
+                    tier?: string | null;
+                    tpm_limit?: number | null;
+                    updated_at?: string;
+                    user_id?: string;
+                };
                 Relationships: [];
+            };
+            project_pool_quota_windows: {
+                Row: {
+                    project_pool_id: string;
+                    request_count: number;
+                    token_count: number;
+                    window_start: string;
+                    window_type: string;
+                };
+                Insert: {
+                    project_pool_id: string;
+                    request_count?: number;
+                    token_count?: number;
+                    window_start: string;
+                    window_type: string;
+                };
+                Update: {
+                    project_pool_id?: string;
+                    request_count?: number;
+                    token_count?: number;
+                    window_start?: string;
+                    window_type?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'project_pool_quota_windows_project_pool_id_fkey';
+                        columns: ['project_pool_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'google_project_pools';
+                        referencedColumns: ['id'];
+                    },
+                ];
             };
             proxy_api_keys: {
                 Row: {

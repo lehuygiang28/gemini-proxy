@@ -5,7 +5,7 @@ import { getSupabaseClient } from '../services/supabase.service';
 import type { HonoApp } from '../types';
 
 const API_KEY_SELECT_FIELDS =
-    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active';
+    'id, api_key_value, name, last_used_at, last_error_at, created_at, failure_count, consecutive_failures, cooldown_until, is_active, project_pool_id';
 const DEFAULT_CANDIDATE_POOL_SIZE = 5;
 const MINIMUM_CANDIDATE_POOL_SIZE = 3;
 const MAXIMUM_CANDIDATE_POOL_SIZE = 10;
@@ -55,6 +55,7 @@ export interface SelectedApiKey {
     readonly failure_count: number;
     readonly consecutive_failures: number;
     readonly cooldown_until: string | null;
+    readonly project_pool_id: string | null;
 }
 
 export interface ProjectPoolReservationInput {
@@ -207,10 +208,99 @@ interface ReservationCandidate extends SchedulerCandidate {
     readonly selectedApiKey: SelectedApiKey;
 }
 
+function createMinuteWindowStartIso(nowMs: number): string {
+    return new Date(Math.floor(nowMs / 60_000) * 60_000).toISOString();
+}
+
+function collectDistinctPoolIds(candidates: ReservationCandidate[]): string[] {
+    return [
+        ...new Set(
+            candidates
+                .map((candidate) => candidate.projectPoolId)
+                .filter((poolId): poolId is string => poolId !== null),
+        ),
+    ];
+}
+
+function mapPoolWindowState(
+    pool: {
+        id: string;
+        cooldown_until: string | null;
+        rpm_limit: number | null;
+        tpm_limit: number | null;
+    },
+    window: { request_count: number; token_count: number } | undefined,
+): PoolWindowState {
+    const hasDeclaredLimits = pool.rpm_limit !== null || pool.tpm_limit !== null;
+    return {
+        poolId: pool.id,
+        cooldownUntil: pool.cooldown_until,
+        rpmLimit: pool.rpm_limit,
+        tpmLimit: pool.tpm_limit,
+        minuteRequests: hasDeclaredLimits ? (window?.request_count ?? 0) : 0,
+        minuteTokens: hasDeclaredLimits ? (window?.token_count ?? 0) : 0,
+    };
+}
+
+async function fetchPoolWindowStates(
+    supabase: SupabaseClient,
+    poolIds: string[],
+    nowMs: number,
+): Promise<PoolWindowState[]> {
+    if (poolIds.length === 0) return [];
+    const { data: poolRows, error: poolError } = await supabase
+        .from('google_project_pools')
+        .select('id, cooldown_until, rpm_limit, tpm_limit')
+        .in('id', poolIds);
+    if (poolError || !poolRows) return [];
+    const { data: windowRows } = await supabase
+        .from('project_pool_quota_windows')
+        .select('project_pool_id, request_count, token_count')
+        .eq('window_type', 'minute')
+        .eq('window_start', createMinuteWindowStartIso(nowMs))
+        .in('project_pool_id', poolIds);
+    const windowByPoolId = new Map(
+        (windowRows ?? []).map((window) => [window.project_pool_id, window]),
+    );
+    return poolRows.map((pool) => mapPoolWindowState(pool, windowByPoolId.get(pool.id)));
+}
+
+async function incrementPoolMinuteWindow(
+    supabase: SupabaseClient,
+    poolId: string,
+    nowMs: number,
+): Promise<void> {
+    const windowStart = createMinuteWindowStartIso(nowMs);
+    const { data, error } = await supabase
+        .from('project_pool_quota_windows')
+        .select('request_count')
+        .eq('project_pool_id', poolId)
+        .eq('window_type', 'minute')
+        .eq('window_start', windowStart);
+    if (error) return;
+    const existingWindow = Array.isArray(data) ? data[0] : data;
+    if (existingWindow) {
+        await supabase
+            .from('project_pool_quota_windows')
+            .update({ request_count: (existingWindow.request_count ?? 0) + 1 })
+            .eq('project_pool_id', poolId)
+            .eq('window_type', 'minute')
+            .eq('window_start', windowStart);
+        return;
+    }
+    await supabase.from('project_pool_quota_windows').upsert({
+        project_pool_id: poolId,
+        window_type: 'minute',
+        window_start: windowStart,
+        request_count: 1,
+        token_count: 0,
+    });
+}
+
 function mapReservationCandidate(row: ApiKeyReservationRow): ReservationCandidate {
     return {
         id: row.id,
-        projectPoolId: null,
+        projectPoolId: row.project_pool_id ?? null,
         lastUsedAt: row.last_used_at,
         lastErrorAt: row.last_error_at,
         failureCount: row.failure_count,
@@ -227,6 +317,7 @@ function mapReservationCandidate(row: ApiKeyReservationRow): ReservationCandidat
             failure_count: row.failure_count,
             consecutive_failures: row.consecutive_failures,
             cooldown_until: row.cooldown_until,
+            project_pool_id: row.project_pool_id ?? null,
         },
     };
 }
@@ -355,11 +446,16 @@ export class ProjectPoolScheduler {
             (candidate) =>
                 candidate.projectPoolId === null || !excludedPoolIds.has(candidate.projectPoolId),
         );
+        const pools = await fetchPoolWindowStates(
+            supabase,
+            collectDistinctPoolIds(eligibleCandidates),
+            nowMs,
+        );
         const attemptedKeyIds = new Set(input.excludeKeyIds ?? []);
         while (true) {
             const selection = selectPoolAndKey({
                 candidates: eligibleCandidates,
-                pools: [],
+                pools,
                 nowMs,
                 excludeKeyIds: [...attemptedKeyIds],
                 preferKeyId: input.preferKeyId ?? null,
@@ -371,7 +467,12 @@ export class ProjectPoolScheduler {
                 (currentCandidate) => currentCandidate.id === selection.keyId,
             );
             if (!candidate) return null;
-            if (await tryReserve(c, supabase, candidate)) return candidate.selectedApiKey;
+            if (await tryReserve(c, supabase, candidate)) {
+                if (candidate.projectPoolId !== null) {
+                    await incrementPoolMinuteWindow(supabase, candidate.projectPoolId, nowMs);
+                }
+                return candidate.selectedApiKey;
+            }
             attemptedKeyIds.add(candidate.id);
         }
     }

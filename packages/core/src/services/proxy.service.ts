@@ -18,7 +18,11 @@ import {
     mergeAbortSignals,
 } from '../retry/create-timeout-signal';
 import { computeRetryDelayMs } from '../retry/retry-delay';
-import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
+import {
+    recordApiKeyFailure,
+    recordApiKeySuccess,
+    doesFailureCoolProjectPool,
+} from '../retry/record-key-outcome';
 import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
 
 // ===== INTERFACES =====
@@ -66,6 +70,7 @@ interface ApiKeySelectionParams {
     apiFormat: ProxyRequestDataParsed['apiFormat'];
     model?: string;
     excludeIds?: string[];
+    excludePoolIds?: string[];
 }
 
 interface AttemptParams {
@@ -120,6 +125,7 @@ interface InitialFailureParams {
     proxyApiKeyData: Tables<'proxy_api_keys'>;
     proxyRequestDataParsed: ProxyRequestDataParsed;
     usedApiKeyIds: string[];
+    usedPoolIds: string[];
     retryBudget: number;
 }
 
@@ -165,6 +171,7 @@ export class ProxyService {
             availableKeysAtStart,
         );
         const usedApiKeyIds: string[] = [];
+        const usedPoolIds: string[] = [];
         const firstApiKey = await this.selectOptimalApiKey({
             c,
             currentAttempt: 0,
@@ -172,6 +179,7 @@ export class ProxyService {
             apiFormat: proxyRequestDataParsed.apiFormat,
             model: proxyRequestDataParsed.model,
             excludeIds: usedApiKeyIds,
+            excludePoolIds: usedPoolIds,
         });
         usedApiKeyIds.push(firstApiKey.id);
         const firstAttemptStartedAt = Date.now();
@@ -196,6 +204,7 @@ export class ProxyService {
                 proxyApiKeyData,
                 proxyRequestDataParsed,
                 usedApiKeyIds,
+                usedPoolIds,
                 retryBudget,
             });
         }
@@ -230,6 +239,7 @@ export class ProxyService {
             proxyApiKeyData,
             proxyRequestDataParsed,
             usedApiKeyIds,
+            usedPoolIds,
             retryBudget,
         });
     }
@@ -369,7 +379,7 @@ export class ProxyService {
             requestId,
         } = params;
 
-        await recordApiKeySuccess(c, firstApiKey.id);
+        await recordApiKeySuccess(c, firstApiKey.id, firstApiKey.project_pool_id);
         return ResponseHandlerService.handleSuccess({
             c,
             response: firstResponse,
@@ -410,6 +420,7 @@ export class ProxyService {
                 apiKeyId: firstApiKey.id,
                 failure: firstFailure,
                 consecutiveFailures: firstApiKey.consecutive_failures,
+                projectPoolId: firstApiKey.project_pool_id,
             });
         }
         const firstRetryAttempt = this.createRetryAttempt({
@@ -423,6 +434,8 @@ export class ProxyService {
             failureClass: firstFailure.class,
         });
 
+        const usedPoolIds = [...params.usedPoolIds];
+        this.rememberCooledPool(usedPoolIds, firstApiKey.project_pool_id, firstFailure.class);
         return this.retryApiRequest({
             c,
             baseRequest,
@@ -434,7 +447,8 @@ export class ProxyService {
             initialError: firstError,
             initialProviderError: firstProviderError,
             initialRetryAttempt: firstRetryAttempt,
-            usedApiKeyIds: [firstApiKey.id], // Exclude the failed API key from retries
+            usedApiKeyIds: [firstApiKey.id],
+            usedPoolIds,
             retryBudget,
         });
     }
@@ -450,6 +464,7 @@ export class ProxyService {
         proxyApiKeyData: Tables<'proxy_api_keys'>;
         proxyRequestDataParsed: ProxyRequestDataParsed;
         usedApiKeyIds: string[];
+        usedPoolIds: string[];
         retryBudget: number;
     }): Promise<Response> {
         const isTimeout =
@@ -476,6 +491,7 @@ export class ProxyService {
                 apiKeyId: params.firstApiKey.id,
                 failure,
                 consecutiveFailures: params.firstApiKey.consecutive_failures,
+                projectPoolId: params.firstApiKey.project_pool_id,
             });
         }
         const proxyError = this.createClassifiedProxyError(failure);
@@ -500,6 +516,7 @@ export class ProxyService {
             initialError: proxyError,
             initialRetryAttempt: retryAttempt,
             usedApiKeyIds: params.usedApiKeyIds,
+            usedPoolIds: params.usedPoolIds,
             retryBudget: params.retryBudget,
         });
     }
@@ -517,6 +534,7 @@ export class ProxyService {
         initialProviderError?: ProviderErrorData;
         initialRetryAttempt?: RetryAttemptData;
         usedApiKeyIds?: string[];
+        usedPoolIds?: string[];
         retryBudget: number;
     }): Promise<Response> {
         const {
@@ -531,6 +549,7 @@ export class ProxyService {
             initialProviderError,
             initialRetryAttempt,
             usedApiKeyIds: initialUsedApiKeyIds = [],
+            usedPoolIds: initialUsedPoolIds = [],
             retryBudget,
         } = params;
 
@@ -570,6 +589,7 @@ export class ProxyService {
         }
 
         const usedApiKeyIds: string[] = [...initialUsedApiKeyIds];
+        const usedPoolIds: string[] = [...initialUsedPoolIds];
         let pendingWaitedMs = 0;
         for (
             let currentAttempt = startAttemptIndex;
@@ -588,6 +608,7 @@ export class ProxyService {
                     apiFormat: proxyRequestDataParsed.apiFormat,
                     model: proxyRequestDataParsed.model,
                     excludeIds: usedApiKeyIds,
+                    excludePoolIds: usedPoolIds,
                 };
                 try {
                     selectedApiKey = await this.selectOptimalApiKey(selectionParams);
@@ -671,8 +692,14 @@ export class ProxyService {
                             apiKeyId: selectedApiKey.id,
                             failure,
                             consecutiveFailures: selectedApiKey.consecutive_failures,
+                            projectPoolId: selectedApiKey.project_pool_id,
                         });
                     }
+                    this.rememberCooledPool(
+                        usedPoolIds,
+                        selectedApiKey.project_pool_id,
+                        failure.class,
+                    );
 
                     const retryAttempt = this.createRetryAttempt({
                         attemptNumber: currentAttempt + 1,
@@ -695,7 +722,7 @@ export class ProxyService {
                     continue;
                 }
 
-                await recordApiKeySuccess(c, selectedApiKey.id);
+                await recordApiKeySuccess(c, selectedApiKey.id, selectedApiKey.project_pool_id);
                 return ResponseHandlerService.handleSuccess({
                     c,
                     response: response,
@@ -731,7 +758,13 @@ export class ProxyService {
                         apiKeyId: selectedApiKey.id,
                         failure,
                         consecutiveFailures: selectedApiKey.consecutive_failures,
+                        projectPoolId: selectedApiKey.project_pool_id,
                     });
+                    this.rememberCooledPool(
+                        usedPoolIds,
+                        selectedApiKey.project_pool_id,
+                        failure.class,
+                    );
                 }
 
                 const retryAttempt = this.createRetryAttempt({
@@ -894,10 +927,25 @@ export class ProxyService {
     }
 
     // ===== API KEY SELECTION =====
+    private static rememberCooledPool(
+        usedPoolIds: string[],
+        projectPoolId: string | null | undefined,
+        failureClass: ClassifiedUpstreamFailure['class'],
+    ): void {
+        if (!projectPoolId || !doesFailureCoolProjectPool(failureClass)) {
+            return;
+        }
+        if (usedPoolIds.includes(projectPoolId)) {
+            return;
+        }
+        usedPoolIds.push(projectPoolId);
+    }
+
     private static async selectOptimalApiKey(
         params: ApiKeySelectionParams,
     ): Promise<ApiKeyWithStats> {
-        const { c, currentAttempt, proxyKeyId, apiFormat, model, excludeIds } = params;
+        const { c, currentAttempt, proxyKeyId, apiFormat, model, excludeIds, excludePoolIds } =
+            params;
 
         const strategy = this.getLoadBalanceStrategy(c);
 
@@ -924,6 +972,7 @@ export class ProxyService {
             prioritizeLeastErrors: true,
             prioritizeNewer: true,
             excludeIds: excludeIds || [],
+            excludePoolIds: excludePoolIds || [],
             preferKeyId: preferKeyId,
         });
 
@@ -944,6 +993,7 @@ export class ProxyService {
             failure_count: selected.failure_count,
             consecutive_failures: selected.consecutive_failures,
             cooldown_until: selected.cooldown_until,
+            project_pool_id: selected.project_pool_id,
         } as unknown as ApiKeyWithStats;
     }
 

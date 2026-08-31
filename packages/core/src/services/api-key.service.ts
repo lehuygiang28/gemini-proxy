@@ -243,11 +243,16 @@ export class ApiKeyService {
      */
     static async reserveNextApiKey(
         c: Context<HonoApp>,
-        params: ApiKeyParams & { excludeIds?: string[]; preferKeyId?: string | null },
+        params: ApiKeyParams & {
+            excludeIds?: string[];
+            excludePoolIds?: string[];
+            preferKeyId?: string | null;
+        },
     ): Promise<SelectedApiKey | null> {
         return ProjectPoolScheduler.reserveNext(c, {
             userId: params.userId,
             excludeKeyIds: params.excludeIds,
+            excludePoolIds: params.excludePoolIds,
             preferKeyId: params.preferKeyId,
             candidateCount: params.count,
             prioritizeLeastErrors: params.prioritizeLeastErrors,

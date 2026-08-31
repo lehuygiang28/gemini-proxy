@@ -1,6 +1,28 @@
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+CREATE TABLE IF NOT EXISTS google_project_pools (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    google_project_id TEXT,
+    tier TEXT,
+    rpm_limit INTEGER,
+    tpm_limit INTEGER,
+    rpd_limit INTEGER,
+    cooldown_until TIMESTAMPTZ,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT google_project_pools_name_len CHECK (char_length(name) BETWEEN 1 AND 255),
+    CONSTRAINT google_project_pools_rpm_limit_pos CHECK (rpm_limit IS NULL OR rpm_limit > 0),
+    CONSTRAINT google_project_pools_tpm_limit_pos CHECK (tpm_limit IS NULL OR tpm_limit > 0),
+    CONSTRAINT google_project_pools_rpd_limit_pos CHECK (rpd_limit IS NULL OR rpd_limit > 0),
+    CONSTRAINT google_project_pools_consecutive_failures_nonneg
+        CHECK (consecutive_failures >= 0)
+);
+
 -- API Keys table - stores Google AI Studio API keys
 CREATE TABLE IF NOT EXISTS api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -23,6 +45,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    project_pool_id UUID REFERENCES google_project_pools(id) ON DELETE SET NULL,
     CONSTRAINT api_keys_name_length CHECK (char_length(name) >= 1 AND char_length(name) <= 255),
     CONSTRAINT api_keys_api_key_value_length CHECK (char_length(api_key_value) >= 10),
     CONSTRAINT api_keys_consecutive_failures_nonneg CHECK (consecutive_failures >= 0)
@@ -72,6 +95,15 @@ CREATE TABLE IF NOT EXISTS proxy_api_keys (
     CONSTRAINT proxy_api_keys_inflight_nonneg CHECK (inflight_count >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS project_pool_quota_windows (
+    project_pool_id UUID NOT NULL REFERENCES google_project_pools(id) ON DELETE CASCADE,
+    window_type TEXT NOT NULL CHECK (window_type IN ('minute', 'day')),
+    window_start TIMESTAMPTZ NOT NULL,
+    request_count BIGINT NOT NULL DEFAULT 0,
+    token_count BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (project_pool_id, window_type, window_start)
+);
+
 CREATE TABLE IF NOT EXISTS proxy_key_quota_windows (
     proxy_key_id UUID NOT NULL REFERENCES proxy_api_keys(id) ON DELETE CASCADE,
     window_type TEXT NOT NULL CHECK (window_type IN ('minute', 'day', 'month')),
@@ -101,6 +133,11 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 
 -- Soft-delete aware uniqueness (alive rows only)
+CREATE UNIQUE INDEX IF NOT EXISTS google_project_pools_user_name_uidx
+    ON google_project_pools (user_id, name);
+
+CREATE INDEX IF NOT EXISTS google_project_pools_user ON google_project_pools (user_id);
+
 CREATE UNIQUE INDEX IF NOT EXISTS api_keys_user_id_name_alive_uidx
     ON api_keys (user_id, name)
     WHERE deleted_at IS NULL;
@@ -139,6 +176,9 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_created_at ON api_keys(created_at);
 CREATE INDEX IF NOT EXISTS idx_api_keys_cooldown
     ON api_keys (user_id, is_active, cooldown_until)
     WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_api_keys_project_pool
+    ON api_keys (project_pool_id)
+    WHERE deleted_at IS NULL AND project_pool_id IS NOT NULL;
 
 -- Proxy API Keys indexes
 CREATE INDEX IF NOT EXISTS idx_proxy_api_keys_user_id ON proxy_api_keys(user_id);
@@ -209,6 +249,11 @@ END;
 $$;
 
 -- Triggers for automatic updated_at maintenance
+DROP TRIGGER IF EXISTS update_google_project_pools_updated_at ON google_project_pools;
+CREATE TRIGGER update_google_project_pools_updated_at
+    BEFORE UPDATE ON google_project_pools
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 DROP TRIGGER IF EXISTS update_api_keys_updated_at ON api_keys;
 CREATE TRIGGER update_api_keys_updated_at 
     BEFORE UPDATE ON api_keys 
@@ -225,14 +270,52 @@ CREATE TRIGGER update_user_settings_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Row Level Security (RLS)
+ALTER TABLE google_project_pools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_pool_quota_windows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_key_quota_windows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proxy_key_settlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE request_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies using subqueries to avoid re-evaluation
+DROP POLICY IF EXISTS "Users can manage their own google_project_pools"
+    ON google_project_pools;
+CREATE POLICY "Users can manage their own google_project_pools"
+    ON google_project_pools FOR ALL
+    USING (
+        user_id = (SELECT auth.uid()) OR
+        (SELECT auth.role()) = 'service_role'
+    );
+
+DROP POLICY IF EXISTS "Users can manage quota windows for their project pools"
+    ON project_pool_quota_windows;
+CREATE POLICY "Users can manage quota windows for their project pools"
+    ON project_pool_quota_windows FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM google_project_pools p
+            WHERE p.id = project_pool_id
+              AND (
+                  p.user_id = (SELECT auth.uid())
+                  OR (SELECT auth.role()) = 'service_role'
+              )
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+            FROM google_project_pools p
+            WHERE p.id = project_pool_id
+              AND (
+                  p.user_id = (SELECT auth.uid())
+                  OR (SELECT auth.role()) = 'service_role'
+              )
+        )
+    );
+
 DROP POLICY IF EXISTS "Users can manage their own api_keys" ON api_keys;
 CREATE POLICY "Users can manage their own api_keys" ON api_keys
     FOR ALL USING (
@@ -366,6 +449,8 @@ COMMENT ON COLUMN user_settings.save_response_body IS
 COMMENT ON COLUMN user_settings.custom_model_pricing IS
     'Optional per-model USD/1M token overrides for cost estimates on new request logs.';
 
+COMMENT ON TABLE google_project_pools IS 'Groups Gemini API keys that share a Google Cloud / AI Studio project quota domain';
+COMMENT ON TABLE project_pool_quota_windows IS 'Declared per-pool RPM/TPM/RPD usage windows used by the scheduler';
 COMMENT ON TABLE api_keys IS 'Stores Google AI Studio API keys with usage metadata and performance tracking';
 COMMENT ON TABLE proxy_api_keys IS 'Stores proxy access keys for client authentication and usage tracking';
 COMMENT ON TABLE request_logs IS 'Stores detailed logs of all proxy requests with performance metrics';
