@@ -1,5 +1,7 @@
 # P0 — Timeout, retry, cooldown, and circuit breaker
 
+> **DRAFT FROZEN.** Not implementation authorization. The replacement is program spec 3 (`/v1` routing, passthrough, retry, cooldown). Hard cooldown is `key + canonical model` (not whole-key by default). Do not wait in-request for a cooled key. `5xx` is a soft penalty, not a hard lock.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 2 (no global keys, no `ProxyRequestOptions`, no zero-completion retry).

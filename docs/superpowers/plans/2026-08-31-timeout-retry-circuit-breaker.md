@@ -1,5 +1,7 @@
 # Timeout, retry, cooldown, and circuit breaker Implementation Plan
 
+> **FROZEN.** Not implementation authorization. Rewrite after program spec 3 is approved (key+model hard cooldown, no in-request wait, 5xx soft penalty, `/v1`).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Per-attempt upstream timeout, classified Google errors, per-key cooldown, 401 disable, Retry-After honored as skip-not-sleep when another key exists.

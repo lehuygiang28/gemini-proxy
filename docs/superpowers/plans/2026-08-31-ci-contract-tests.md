@@ -1,5 +1,7 @@
 # CI, test baseline, and proxy contract tests Implementation Plan
 
+> **FROZEN.** Not implementation authorization until [CI spec](../specs/2026-08-31-ci-contract-tests-design.md) is formally approved. Rewrite this plan after approval; do not execute the old task list blindly (`?key=` is no longer a credential; capability matrix dropped pools/OTel/affinity).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make `pnpm test` / `pnpm lint` / `pnpm format:check` / `pnpm build` green in GitHub Actions and lock proxy auth/header behavior with a `coreApp.fetch` harness.

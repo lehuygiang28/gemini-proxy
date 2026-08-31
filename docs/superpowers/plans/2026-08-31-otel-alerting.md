@@ -1,5 +1,7 @@
 # OpenTelemetry, reliability signals, and generic webhooks Implementation Plan
 
+> **SUPERSEDED.** OpenTelemetry / OTLP is out of this program. Do not implement.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Always persist TTFT, abort, finish reason, and retry wait on `performance_metrics`. Optionally export OTLP/HTTP traces and POST a generic webhook at 50/80/100% quota.

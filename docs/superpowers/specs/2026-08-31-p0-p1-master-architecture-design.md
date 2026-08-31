@@ -1,216 +1,300 @@
 # P0/P1 master architecture — Gemini-native gateway
 
 **Date:** 2026-08-31
-**Status:** Locked for implementation planning
+**Status:** Section 1 approved (including `/v1` amendment). Remaining feature specs require review before implementation plans.
 **Positioning:** Self-hosted, Gemini-native, edge-first gateway. Do not become a multi-provider LiteLLM/Portkey clone.
+**Approach:** Direction B — layered incremental. Keep Hono, Supabase, and Refine. Do not add Redis, a queue service, OpenTelemetry, or a new microservice.
 
-This document locks shared decisions, compatibility, dependencies, and rollout across the seven feature specs. Feature details live in those specs; this file is the source of truth when they conflict.
+This document is the source of truth when a feature spec conflicts with it. Feature details live in the specs listed below. Do not reopen locked decisions during implementation.
 
 ## Specs in this program
 
-| ID  | Priority | Spec                                                                                              | Plan                                                          |
-| --- | -------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 0   | —        | This master architecture                                                                          | —                                                             |
-| 1   | P0       | [CI and contract tests](./2026-08-31-ci-contract-tests-design.md)                                 | [plan](../plans/2026-08-31-ci-contract-tests.md)              |
-| 2   | P0       | [Auth, tenant isolation, log privacy](./2026-08-31-auth-tenant-log-privacy-design.md)             | [plan](../plans/2026-08-31-auth-tenant-log-privacy.md)        |
-| 3   | P0       | [Timeout, retry, cooldown, circuit breaker](./2026-08-31-timeout-retry-circuit-breaker-design.md) | [plan](../plans/2026-08-31-timeout-retry-circuit-breaker.md)  |
-| 4   | P1       | [Proxy-key policy and atomic admission](./2026-08-31-proxy-key-policy-design.md)                  | [plan](../plans/2026-08-31-proxy-key-policy.md)               |
-| 5   | P1       | [Google project pools and quota scheduler](./2026-08-31-project-pool-scheduler-design.md)         | [plan](../plans/2026-08-31-project-pool-scheduler.md)         |
-| 6   | P1       | [Interactions API and resource affinity](./2026-08-31-interactions-resource-affinity-design.md)   | [plan](../plans/2026-08-31-interactions-resource-affinity.md) |
-| 7   | P1       | [OpenTelemetry, reliability signals, alerts](./2026-08-31-otel-alerting-design.md)                | [plan](../plans/2026-08-31-otel-alerting.md)                  |
+| ID  | Priority | Spec | Status |
+| --- | -------- | ---- | ------ |
+| 0   | —        | This master architecture | Approved |
+| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-ci-contract-tests-design.md) | Presented; awaiting formal approval |
+| 2   | P0       | Tenant ownership, CLI, auth, and log privacy | Not yet presented in detail |
+| 3   | P0       | Routing (`/v1`), passthrough, retry, and cooldown | Not yet presented in detail |
+| 4   | P1       | Proxy-key policy, timezone, admission, and budget | Not yet presented in detail |
+| 5   | P1       | Persistence reliability, dashboard alerts, and reconciliation | Not yet presented in detail |
+
+Write implementation plans only after the matching spec is approved. Each approved spec is one plan and one PR (stacked if needed).
+
+### Dropped from this program
+
+Do not implement, and treat prior drafts as superseded:
+
+- Google project pools, `google_project_pools` / `google_projects`, and a project-level scheduler.
+- Interactions-specific state or resource affinity tables.
+- OpenTelemetry / OTLP exporters.
+- Encryption or hashing of keys at rest.
+- Public `x-gproxy-*` request or response headers.
+- Zero-completion synthetic error/retry.
+- Merging `feat/auto-detect-api-format` wholesale (selective helper/test port only).
+
+**Invariant:** each Gemini API key belongs to its own Google project. Do not group keys as if they shared a quota bucket.
+
+Superseded drafts (do not implement):
+
+- [project pool scheduler](./2026-08-31-project-pool-scheduler-design.md)
+- [Interactions affinity](./2026-08-31-interactions-resource-affinity-design.md)
+- [OpenTelemetry alerting](./2026-08-31-otel-alerting-design.md)
+
+Prior drafts of auth, retry, and proxy-key policy remain on disk until their replacement sections are approved. They are not implementation authorization.
 
 ## Locked product decisions
 
-These were decided with the maintainer before writing the specs. Do not reopen them in implementation.
-
-1. **Keys stay plaintext.** Gemini keys (`api_keys.api_key_value`) and proxy keys (`proxy_api_keys.proxy_key_value`) remain readable. The UI and CLI continue to show and copy them. No hashing, envelope encryption, `GPROXY_MASTER_KEY`, or dual-read migration in this program.
-2. **Remove the entire `x-gproxy-*` public API.** Delete `proxyOptionsMiddleware`, `ProxyRequestOptions`, and every request header that let a client raise retries, change load-balancing, or pick keys. Server env (`PROXY_MAX_RETRIES`, `PROXY_LOADBALANCE_STRATEGY`) is the only control plane for those knobs until policy rows exist.
-3. **Delete zero-completion synthetic retry.** HTTP 200 is success. Do not clone/buffer a body to invent a failure when `completionTokens === 0`.
-4. **No global/shared keys.** Schema already has `api_keys.user_id UUID NOT NULL`. Delete every `user_id IS NULL` branch in core, SQL comments, and indexes. A Gemini key belongs to exactly one `auth.users` row.
-5. **CLI owner assignment is explicit when ambiguous.**
+1. **Keys stay plaintext.** Gemini keys (`api_keys.api_key_value`) and proxy keys (`proxy_api_keys.proxy_key_value`) remain readable. The UI and CLI continue to show, copy, and rotate them. No hashing, envelope encryption, master key, or encryption migration.
+2. **Secrets never appear** in logs, URLs, captured headers, or error payloads.
+3. **Every key belongs to exactly one user.** `user_id NOT NULL` with a foreign key to `auth.users`. Delete global/shared-key logic and every `user_id IS NULL` branch.
+4. **CLI owner assignment:**
    - 0 users → fail before insert.
-   - 1 user → auto-assign and print a warning.
-   - 2+ users → require `--user-id` in non-interactive mode, or an interactive select. Never silently pick `listUsers({ perPage: 1 })[0]`.
-   - Always validate UUID and that the user exists. Same rule for Gemini keys, proxy keys, import, and sync.
-6. **No client-facing `x-gproxy-*` response headers either.** Error JSON keeps `gproxy_request_id`. Optionally set standard `x-request-id` to the same UUID. Do not add `x-gproxy-attempts`, `x-gproxy-key-pool`, `x-gproxy-error-*`.
-7. **P2 is out of scope:** Files/Cache/Batch management UI, Live API ephemeral-token broker, full Gemini cost engine (audio/image-out/TTS/Live/embeddings/grounding/cache storage/Batch/Flex/Priority), web bundle analyzer.
+   - 1 user → auto-assign.
+   - 2+ users → require `--user-id` or interactive selection.
+   - Validate UUID and that the user exists in quick and interactive modes.
+   - Same rule for Gemini keys and proxy keys.
+5. **Canonical public API is `/v1`.** Users must not need `/gemini`, `/openai`, or `/api/gproxy`. README/quickstart advertise only `/v1`.
+6. **Format detection is by credential, not by path alone:**
+   - `x-goog-api-key` → Gemini.
+   - Strict `Authorization: Bearer` → OpenAI-compatible.
+   - Both present → `400`.
+   - No valid credential → `401`.
+   - Do not accept `x-api-key` or query `?key=`.
+7. **Path is for operation/model, not the sole format signal.** Normalize `/v1/models/...`, `/v1/v1/models/...`, and `/v1/v1beta/models/...`. Preserve the raw query string, including repeated parameters.
+8. **Legacy paths stay:** `/api/gproxy/gemini/*` and `/api/gproxy/openai/*` keep working (no breaking change).
+9. **No public `x-gproxy-*` headers** on request or response. Delete `proxyOptionsMiddleware` and `ProxyRequestOptions`. Do not add replacement headers. Error JSON may keep `gproxy_request_id`. Optionally set standard `x-request-id` to the same UUID.
+10. **Retry and load-balancing come only from server env:** `PROXY_MAX_RETRIES`, `PROXY_LOADBALANCE_STRATEGY`. `x-goog-api-key` remains because it is the Gemini client credential, not an internal control header.
+11. **HTTP 200 is success.** Do not invent a failure when completion tokens are zero.
+12. **No new infrastructure.** Hono is the HTTP boundary. Pure modules handle classification, retry, cooldown, policy, and timezone. Supabase RPCs handle admission, reservation, selection, and settlement. Transport only forwards. Refine + Supabase remain the dashboard state layer.
 
 ## Current architecture (do not reinvent)
 
 ```text
 Client SDK
-  → apps/web  /api/gproxy/*   (Next.js + @gemini-proxy/vercel, Node runtime)
-  → apps/api  /api/gproxy/*   (Node + @hono/node-server)
-  → packages/cloudflare       (Workers Module Worker)
+  → /v1/*                         (canonical)
+  → /api/gproxy/{gemini|openai}/* (legacy)
+       ↓
+  apps/web  Next.js + @gemini-proxy/vercel (Node runtime)
+  apps/api  Node + @hono/node-server
+  packages/cloudflare  Workers Module Worker
        ↓
   packages/core  Hono coreApp
        ↓
   packages/database  Supabase (service_role on the data plane)
 ```
 
-- **One data plane:** `ProxyService.makeApiRequest` in `@gemini-proxy/core`. Adapters must stay thin (`basePath('/api/gproxy').route('/*', coreApp)`).
-- **Auth on the data plane:** `validateProxyApiKeyMiddleware` looks up `proxy_api_keys.proxy_key_value` with the service role, then scopes Gemini key selection to that row's `user_id`.
+- **One data plane:** `ProxyService.makeApiRequest` in `@gemini-proxy/core`. Adapters stay thin.
+- **Auth on the data plane:** lookup `proxy_api_keys.proxy_key_value` with the service role, then scope Gemini key selection to that row's `user_id`.
 - **Control plane:** Refine + Ant Design + `@refinedev/supabase` (user JWT + RLS). New tables get RLS `user_id = auth.uid() OR service_role`.
 - **Background work:** `executeWithWaitUntil` (Hono `executionCtx` → `@vercel/functions` → await). Persist from stream `flush` / error handler only. Do not wrap the whole stream consume in `waitUntil`.
-- **Schema changes:** new file under `supabase/migrations/`, then mirror `packages/database/sql/schema.sql`, then regenerate `packages/database/types/database.types.ts`. Never edit merged migrations.
+- **Schema changes:** new file under `supabase/migrations/`, then mirror `packages/database/sql/schema.sql`, then update `packages/database/types/database.types.ts`. Never edit merged migrations.
 - **English** in code and docs. Conventional Commits. Locale keys in both `apps/web/public/locales/en/common.json` and `vi/common.json`.
+
+## Layering (direction B)
+
+| Layer | Owns | Must not own |
+| ----- | ---- | ------------ |
+| Adapter (web / api / cloudflare / vercel) | Mount paths, platform `waitUntil`, env binding | Retry, policy math, SQL |
+| Hono middleware | Credential extract, tenant bind, request-id, health | Upstream fetch |
+| Pure modules | Classify errors, cooldown math, model glob, timezone windows, path normalize | `fetch`, Supabase |
+| Supabase RPC | Atomic admit / reserve / settle / counters | HTTP |
+| Transport | Forward method, query, body, status, safe headers | Endpoint-specific state |
+| Refine UI | Query-derived forms, lists, alerts | New `useEffect` hydration |
 
 ## Runtime constraints (edge-first)
 
 All new core code must run on Node 20, Cloudflare Workers, and the Next.js Node route.
 
-| Allowed                                                                | Forbidden in `packages/core`                                                                                                                                  |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web `fetch`, `Request`, `AbortSignal`, `TransformStream`               | `node:fs`, `node:net`, `node:crypto` KeyObject APIs that Workers reject                                                                                       |
-| `AbortSignal.timeout` with a `setTimeout` + `AbortController` fallback | `@opentelemetry/sdk-node`, OpenTelemetry auto-instrumentation that patches Node                                                                               |
-| Hono `env(c)`, `c.executionCtx.waitUntil`                              | Process-global mutable caches that leak across tenants (the existing `BackgroundService.operations` Map is keyed by `requestId` and must stay request-scoped) |
-| Supabase JS client                                                     | Prisma, Drizzle, or a second ORM                                                                                                                              |
+| Allowed | Forbidden in `packages/core` |
+| ------- | ---------------------------- |
+| Web `fetch`, `Request`, `AbortSignal`, `TransformStream` | `node:fs`, `node:net`, `node:crypto` KeyObject APIs that Workers reject |
+| `AbortSignal.timeout` with a `setTimeout` + `AbortController` fallback | OpenTelemetry SDKs or auto-instrumentation |
+| Hono `env(c)`, `c.executionCtx.waitUntil` | Process-global mutable caches that leak across tenants |
+| Supabase JS client | Prisma, Drizzle, Redis, extra queue/microservice |
 
-`AbortSignal.timeout` exists on Node 20 and current `workerd`. Still wrap it:
+Client disconnect must abort the in-flight upstream attempt. Timeout waits only for response headers; do not cut a stream after the first byte.
 
-```ts
-export function createTimeoutSignal(timeoutMs: number): AbortSignal {
-  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
-    return AbortSignal.timeout(timeoutMs);
-  }
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(), timeoutMs);
-  return controller.signal;
-}
-```
+## Public API
 
-Combine with the incoming request signal when present (`AbortSignal.any` or a manual abort listener). Client disconnect must abort the in-flight upstream attempt.
-
-## Compatibility
-
-| Surface                                                                | Before                                                        | After this program                                                                             |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Proxy request path                                                     | `/api/gproxy/{gemini\|openai}/...`                            | Unchanged. Interactions live under the gemini prefix: `/api/gproxy/gemini/v1beta/interactions` |
-| Proxy credentials                                                      | `x-goog-api-key` (gemini) or `Authorization: Bearer` (openai) | Also accept Gemini `?key=` and Bearer on gemini paths. Strip `key` from the forwarded URL      |
-| `x-gproxy-*` request headers                                           | Parsed into `ProxyRequestOptions`                             | Ignored and stripped. Documented as removed                                                    |
-| Zero-completion retry                                                  | Optional via header                                           | Gone                                                                                           |
-| Global Gemini keys (`user_id` null)                                    | Queried in core despite NOT NULL schema                       | Gone                                                                                           |
-| Proxy/Gemini secret storage                                            | Plaintext, revealable                                         | Unchanged                                                                                      |
-| README Node version                                                    | Claims Node 18                                                | Node ≥20, matching root `engines`                                                              |
-| Claimed features (cache, alerting, exponential backoff, rate limiting) | README lists them                                             | Capability matrix: implemented / partial / not implemented                                     |
-
-Non-goals for compatibility: keep supporting clients that relied on raising `x-gproxy-retry-max` above the server cap. That was a foot-gun, not an API.
-
-## Dependency graph
+Canonical:
 
 ```text
-1 CI/contract tests
-        │
-        ▼
-2 Auth / tenant / redaction  ──►  3 Timeout / retry / cooldown
-                                      │
-                                      ▼
-                                 4 Proxy-key policy
-                                      │
-                                      ▼
-                                 5 Project pools + scheduler
-                                      │
-                                      ▼
-                                 6 Interactions + affinity
-                                      │
-                                      ▼
-                                 7 OTel + webhooks
+https://host/v1
 ```
 
-- Spec 1 can land first and must stay green while the others merge.
-- Spec 2 must land before spec 3 because retry/cooldown writes `disabled_reason` on **tenant-owned** keys and must not resurrect `user_id IS NULL`.
-- Spec 3 must land before spec 5 because the scheduler consumes `cooldown_until` / `consecutive_failures`.
-- Spec 4 can start after spec 2 (it admits on `proxy_api_keys` rows). It should merge before spec 7 (alerts fire on policy windows).
-- Spec 6 requires spec 5 (`provider_resources.project_pool_id`). Keys with no pool use the implicit singleton pool defined in spec 5.
-- Spec 7 is last. It reads attempt timing from spec 3 and quota remaining from specs 4–5.
+`coreApp` owns `/v1`, legacy `/gemini` and `/openai` (as used behind `/api/gproxy`), plus unauthenticated `GET /healthz` and `GET /readyz`.
 
-Do not combine these into one mega-PR. Each spec is one implementation plan / one PR unless a follow-up explicitly stacks two.
+Adapters must serve:
+
+- `/v1/*` (canonical)
+- `/api/gproxy/gemini/*` and `/api/gproxy/openai/*` (legacy)
+- Health URLs that reach the same `healthz` / `readyz` handlers
+
+Port useful helpers/tests from `feat/auto-detect-api-format` only. Do not merge that branch: it diverged, and a path-only detector mishandles ambiguous paths.
+
+## Managed vs generic passthrough
+
+**Managed** (model parse, usage/cost parse, retry, model policy, token/cost guardrail):
+
+- Gemini `generateContent`
+- Gemini `streamGenerateContent`
+- OpenAI-compatible endpoints
+
+**Best-effort passthrough** for everything else:
+
+- Forward method, raw query, body, status, and safe response headers.
+- No endpoint-specific state. No interaction/resource affinity table.
+- Continuity is not guaranteed if a later request selects a different Gemini key.
+- Apply auth, expiry, RPM, and request/day only.
+- Do not claim model/token/cost policy without a parser.
+- Do not retry a generic mutation when delivery state is unknown.
+
+## Retry and cooldown (invariants; details in spec 3)
+
+- Default: try every eligible provider key. At most one attempt per key per logical request. Safety cap 50 keys.
+- Do not wait for a key in hard cooldown to become eligible.
+- `PROXY_MAX_RETRIES=0` → first attempt only. `=N` → at most N retries after the first attempt. `-1` or unset → all eligible keys (still capped at 50).
+- Ineligible: inactive, deleted, hard-cooldown, or already used in this request.
+- Managed endpoints may retry clear `401/403/408/429/5xx`. Do not retry client `400`.
+- Fetch/network ambiguity must not retry a mutation.
+- **Hard cooldown** (`429` and clear credential/quota state): default scope is `API key + canonical model`. Model A rate-limited does not lock model B on the same key. Lock the whole key only when a **structured** error proves a credential or project/spend-wide problem. Prefer `google.rpc.RetryInfo.retryDelay`, then `Retry-After` (seconds or HTTP-date), then structured quota-reset metadata. If several signals exist, use the latest instant. Do not parse prose in error messages. Persist in the database so every runtime sees it. Success resets only that `key + model` scope. If every key is in hard cooldown, return `429` immediately with the shortest remaining wait.
+- **Soft penalty** (`500/502/503/504`): do not hard-lock. Immediately try the next eligible key. Deprioritize the failing key/model for at most 30 seconds (or RetryInfo/Retry-After duration if present, still not a hard lock). Still usable as fallback if nothing healthier remains. Success clears the penalty. If every key returns `5xx`, exhaust them then return the error.
+
+## Proxy-key policy (invariants; details in spec 4)
+
+Per proxy key, nullable means unlimited:
+
+- RPM (hard, atomic)
+- Request/day (hard, atomic)
+- Token/day (guardrail, not an absolute billing cap)
+- Estimated USD/month (guardrail)
+- Model allowlist
+- `expires_at`
+
+Guardrails count settled usage plus outstanding reservations. Bounded overage is allowed on the last request or under concurrency. Do not call Google `countTokens` before each request. Actual usage that exceeds the reservation is still recorded in full and blocks the next request.
+
+Daily/monthly windows use `user_settings.timezone` (IANA, e.g. `Asia/Bangkok`). Unset → UTC. Store boundaries in UTC. Changing timezone does not reset the active bucket; the new zone applies from the next period. Invalid timezone is rejected (no silent fallback).
+
+## Persistence (invariants; details in spec 5)
+
+- Admit/reserve atomically before upstream.
+- Settlement and logging are idempotent.
+- Request log, counters, and settlement update in the same transaction/RPC.
+- A persistence failure must not turn an upstream success into a client error.
+- Settlement retry is bounded. If it still fails, leave the reservation in place (fail-closed on the next admit).
+- Do not auto-release stale reservations.
+- Dashboard shows stale/reconciliation alerts. Users can retry/reconcile safely.
+
+## Web UI rules
+
+- Prefer query-derived state, pure selectors, and event handlers.
+- Minimize `useEffect`. Allowed only for subscription, timer, or external lifecycle, and it must clean up.
+- Do not add `useEffect` to copy Refine query data into `form.setFieldsValue`. Pass `initialValues` from the query or Refine `useForm`.
+- Event handlers start with `handle`. Named exports.
+- Every user-visible string goes through `translate('…')` with matching `en` and `vi` keys.
 
 ## Shared code patterns (required)
 
 Follow existing files. Do not invent a second style.
 
-- **Services:** static methods on classes (`ProxyService`, `ApiKeyService`, `ConfigService`, `BackgroundService`). New units follow the same shape: `RetryClassifier`, `CircuitBreakerStore`, `ProxyPolicyService`, `ProjectPoolScheduler`, `ResourceAffinityService`, `TelemetryService`.
+- **Services:** static methods on classes (`ProxyService`, `ApiKeyService`, `ConfigService`, `BackgroundService`). New units are focused files, not more private methods on those classes.
 - **RO-RO:** object params in, object out. No 8-argument functions.
 - **Types:** explicit parameter and return types. No `any` on new code. Prefer interfaces over enums; use const maps (`as const`) for closed string unions.
 - **One export per new file.** kebab-case filenames. PascalCase classes. camelCase functions.
-- **Errors:** extend `ProxyError` in `packages/core/src/types/error.type.ts`. Do not throw raw `Error` on the request path.
+- **Errors:** extend `ProxyError`. Do not throw raw `Error` on the request path.
 - **Tests:** Vitest `describe` / `it` / `expect` in `*.test.ts` next to the unit or under `packages/core/test/<area>/`. Arrange-Act-Assert. Names: `inputX`, `mockX`, `actualX`, `expectedX`.
 - **SQL:** `SECURITY DEFINER` RPCs used by the data plane are `GRANT EXECUTE … TO service_role` only. RLS on every new table.
-- **Web UI:** Refine `useForm` / `useList` / `useTable`. Do not add new `useEffect` to sync server data into Ant Design forms — pass `initialValues` from the query result or Refine `useForm`. Event handlers start with `handle`. Named exports.
-- **i18n:** every user-visible string goes through `translate('…')` with matching `en` and `vi` keys. `apps/web` lint already runs `scripts/check-locale-parity.mjs`.
+- **TDD:** RED → GREEN → REFACTOR. Plans name the failing tests.
 
 ## Split oversized files instead of growing them
 
-These files are already past the project guideline (~200 instructions / file):
+These files are already past the project guideline:
 
-- `packages/core/src/services/proxy.service.ts` (~1280 lines)
-- `packages/core/src/services/background.service.ts` (~880 lines)
-- `packages/core/src/services/api-key.service.ts` (~398 lines)
-- `apps/web/src/app/(protected)/api-keys/create/page.tsx` (~860 lines)
+- `packages/core/src/services/proxy.service.ts`
+- `packages/core/src/services/background.service.ts`
+- `packages/core/src/services/api-key.service.ts`
+- `apps/web/src/app/(protected)/api-keys/create/page.tsx`
 
-Plans must extract new behavior into new files rather than appending more private methods. Keep `ProxyService.makeApiRequest` as the orchestrator that calls extracted units.
+Plans must extract new behavior into new files. Keep `ProxyService.makeApiRequest` as the orchestrator.
 
 ## Config surface (server env only)
 
-| Variable                     | Default                                                    | Spec     |
-| ---------------------------- | ---------------------------------------------------------- | -------- |
-| `PROXY_MAX_RETRIES`          | `-1` (one attempt per available key, cap 50)               | 3        |
-| `PROXY_LOADBALANCE_STRATEGY` | `round_robin`                                              | 3, 5     |
-| `PROXY_UPSTREAM_TIMEOUT_MS`  | `120000`                                                   | 3        |
-| `PROXY_RETRY_BASE_DELAY_MS`  | `200`                                                      | 3        |
-| `PROXY_RETRY_MAX_DELAY_MS`   | `5000`                                                     | 3        |
-| `PROXY_REDACT_JSON_FIELDS`   | empty (built-in list always on)                            | 2        |
-| `PROXY_OTEL_OTLP_ENDPOINT`   | unset = disabled                                           | 7        |
-| `PROXY_OTEL_OTLP_HEADERS`    | empty                                                      | 7        |
-| `GOOGLE_GEMINI_API_BASE_URL` | `https://generativelanguage.googleapis.com/`               | existing |
+| Variable | Default | Spec |
+| -------- | ------- | ---- |
+| `PROXY_MAX_RETRIES` | `-1` (all eligible keys, cap 50) | 3 |
+| `PROXY_LOADBALANCE_STRATEGY` | `round_robin` | 3 |
+| `PROXY_UPSTREAM_TIMEOUT_MS` | `120000` (wait for response headers only) | 3 |
+| `PROXY_REDACT_JSON_FIELDS` | empty (built-in list always on) | 2 |
+| `GOOGLE_GEMINI_API_BASE_URL` | `https://generativelanguage.googleapis.com/` | existing |
 | `GOOGLE_OPENAI_API_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` | existing |
 
-No per-request override headers. Proxy-key policy (spec 4) is row data, not env.
+No per-request override headers. Proxy-key policy is row data, not env. Do not add OTLP env vars.
 
-## Health endpoints (all adapters)
+## Health endpoints
 
-Mounted on `coreApp` **before** `validateProxyApiKeyMiddleware`:
+Mounted on `coreApp` **before** proxy-key validation:
 
-- `GET /healthz` → `200 { "status": "ok" }` (process up).
-- `GET /readyz` → `200 { "status": "ready" }` after a `select id from proxy_api_keys limit 1` (or equivalent) succeeds; `503 { "status": "not_ready" }` on Supabase failure.
-
-Because adapters mount `coreApp` at `/api/gproxy`, public URLs are `/api/gproxy/healthz` and `/api/gproxy/readyz`.
+- `GET /healthz` → `200 { "status": "ok" }`
+- `GET /readyz` → `200 { "status": "ready" }` after a cheap Supabase probe; `503 { "status": "not_ready" }` on failure
 
 ## Testing strategy (program-wide)
 
-| Layer          | Where                                                                            | What                                                                            |
-| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Unit           | `packages/core/src/**/*.test.ts`                                                 | classifiers, sanitizer, policy math, path/model extractors, affinity extractors |
-| SQL contract   | `supabase/migrations` + comments; optional `pg_tap` later — **not** required now | RPCs specified with exact `GRANT` and conflict behavior                         |
-| Proxy contract | `packages/core/test/proxy-contract/`                                             | `coreApp.fetch` + mocked Supabase + mocked upstream `fetch`                     |
-| Adapter smoke  | Cloudflare / Vercel / `apps/api`                                                 | export surface + healthz (no full Workers pool required for Vercel)             |
-| SDK smoke      | `packages/core/test/sdk-smoke/`                                                  | `@google/genai`, `openai`, `ai` against `coreApp` with mock upstream            |
-| Web            | existing Vitest + locale parity                                                  | new forms/resources get unit tests for pure helpers; no Cypress in this program |
-| CI             | `.github/workflows/quality.yml`                                                  | `format:check` → `lint` → `test` → `build` on every PR                          |
+| Layer | Where | What |
+| ----- | ----- | ---- |
+| Unit | `packages/core/src/**/*.test.ts` | classifiers, sanitizer, policy math, path/model extractors, timezone |
+| Proxy contract | `packages/core/test/proxy-contract/` | `coreApp.fetch` + mocked Supabase + mocked upstream `fetch` |
+| Adapter smoke | Cloudflare / Vercel / `apps/api` | export surface + healthz |
+| SDK smoke | `packages/core/test/sdk-smoke/` | `@google/genai`, `openai`, `ai` against `coreApp` with mock upstream |
+| Web | existing Vitest + locale parity | pure helpers; no Cypress in this program |
+| CI | `.github/workflows/quality.yml` | `format:check` → `lint` → `test` → `build` on every PR |
 
-TDD is mandatory: failing test, then implementation, then commit. Plans spell out the test names.
+Contract tests must not egress. SDK smoke may bind a loopback server; stub `fetch` only for the mock origin.
+
+## Dependency graph
+
+```text
+1 CI / contract harness
+        │
+        ▼
+2 Tenant / CLI / auth / privacy
+        │
+        ▼
+3 /v1 routing + passthrough + retry/cooldown
+        │
+        ▼
+4 Proxy-key policy + timezone + admit/settle
+        │
+        ▼
+5 Persistence reliability + dashboard reconciliation
+```
+
+Spec 1 must stay green. Spec 2 must land before spec 3 (retry writes health on tenant-owned keys). Spec 4 admits on `proxy_api_keys` after spec 2. Spec 5 depends on spec 4 reservations.
 
 ## Rollout
 
-1. Spec 1: CI green, capability matrix in README, contract harness.
-2. Spec 2: tenant queries, CLI owner resolver, redaction, delete `x-gproxy-*` and synthetic retry.
-3. Spec 3: timeout + classified retry + cooldown columns.
-4. Spec 4: policy columns + admit/settle RPCs + proxy-key edit UI.
-5. Spec 5: `google_project_pools` + scheduler + dashboard cooldown.
-6. Spec 6: Interactions routing + `provider_resources`.
-7. Spec 7: OTLP exporter + generic webhook.
+1. Spec 1: CI green, capability matrix, contract harness.
+2. Spec 2: tenant queries, CLI owner resolver, redaction, delete `x-gproxy-*` and synthetic retry, no `?key=`.
+3. Spec 3: `/v1` detect-by-credential, legacy paths, classified retry, key+model hard cooldown, soft 5xx penalty.
+4. Spec 4: policy columns, timezone, admit/settle RPCs, proxy-key edit UI.
+5. Spec 5: idempotent settlement retry, fail-open client on persist failure, dashboard stale alerts.
 
-Each step is production-safe on its own: missing optional columns/env must fail open to current behavior except where the spec says fail closed (invalid proxy key, missing owner user, policy deny).
+Each step is production-safe on its own: missing optional columns/env fail open to current behavior except where the spec says fail closed (invalid proxy key, missing owner, policy deny, invalid timezone).
 
 ## Anti-patterns (reject in review)
 
-- Guessing Google quota from key count. Quota is per Google **project**, not per API key.
-- Letting the holder of a proxy key widen retries, models, or budget via headers.
+- Grouping Gemini keys into a Google project pool.
+- Guessing Google quota from key count.
+- Letting a proxy-key holder widen retries, models, or budget via headers.
 - Hashing or encrypting keys "while we are in there".
+- Accepting `x-api-key` or `?key=` as the proxy credential.
 - Semantic/response caching of Gemini outputs.
 - New `useEffect` to copy Refine query data into `form.setFieldsValue`.
 - `waitUntil(read entire stream)`.
 - Editing `packages/database/sql/migrations/` (retired path).
-- Adding Slack/Discord/email providers. Generic HTTPS webhook only.
-- Restoring `user_id IS NULL` "global key" filters.
+- Adding Slack/Discord/email/OTLP providers.
+- Restoring `user_id IS NULL` global-key filters.
+- Waiting in-request for a hard-cooled key to become eligible.
+- Parsing cooldown duration from English error text.
+- Retrying generic mutations after an ambiguous fetch failure.
+- Auto-releasing stale reservations.
+- Merging `feat/auto-detect-api-format` as a whole.

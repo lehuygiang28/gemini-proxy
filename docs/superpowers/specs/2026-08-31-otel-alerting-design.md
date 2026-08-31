@@ -1,5 +1,7 @@
 # P1 — OpenTelemetry, reliability signals, and generic webhooks
 
+> **SUPERSEDED.** Locked decisions drop OpenTelemetry / OTLP. Reliability signals in this program are dashboard stale/reconciliation alerts (spec 5), not OTLP. Do not implement this draft.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 3 (`retry_attempts[].duration_ms/waited_ms/class`), spec 4 (quota windows), spec 5 (pool names). Can implement against whatever of 4–6 has already landed; missing fields are omitted from spans.

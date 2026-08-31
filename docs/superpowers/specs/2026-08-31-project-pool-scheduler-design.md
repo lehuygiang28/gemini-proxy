@@ -1,5 +1,7 @@
 # P1 — Google project pools and quota-aware scheduler
 
+> **SUPERSEDED.** Locked decisions drop Google project pools, `google_project_pools` / `google_projects`, and a project-level scheduler. Each Gemini API key belongs to its own Google project. Do not implement this draft.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 3 (`cooldown_until` on keys). Spec 4 is independent but merge order prefers 4 then 5.

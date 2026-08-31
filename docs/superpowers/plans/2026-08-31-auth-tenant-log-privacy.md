@@ -1,5 +1,7 @@
 # Auth, tenant isolation, and log privacy Implementation Plan
 
+> **FROZEN.** Not implementation authorization. Rewrite after program spec 2 is approved. Query `?key=` is not a valid credential.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Path-independent proxy credential extraction, tenant-only Gemini keys, JSON-field redaction, CLI owner resolver, delete `x-gproxy-*` and zero-completion retry, add `/healthz` and `/readyz`.

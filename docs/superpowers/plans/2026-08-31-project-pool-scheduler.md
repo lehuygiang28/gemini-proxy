@@ -1,5 +1,7 @@
 # Google project pools and quota-aware scheduler Implementation Plan
 
+> **SUPERSEDED.** Project pools are out of this program. Do not implement.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Group Gemini keys by Google project. Schedule pool-first then key. Propagate 429/spend/permission cooldowns to the pool, not 401.

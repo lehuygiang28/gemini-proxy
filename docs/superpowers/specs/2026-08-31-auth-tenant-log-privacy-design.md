@@ -1,5 +1,7 @@
 # P0 — Authentication parsing, tenant isolation, and log privacy
 
+> **DRAFT FROZEN.** Not implementation authorization. The replacement is program spec 2 (tenant / CLI / auth / privacy), to be rewritten after that section is presented and approved. In particular, query `?key=` is **no longer** a valid proxy credential.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Approach:** Keep plaintext secrets. Fix how we _read_, _scope_, _forward_, and _log_ them. Delete client override headers.

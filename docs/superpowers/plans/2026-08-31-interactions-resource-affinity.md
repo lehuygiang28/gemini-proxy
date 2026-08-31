@@ -1,5 +1,7 @@
 # Interactions API and resource affinity Implementation Plan
 
+> **SUPERSEDED.** Interaction/resource affinity tables are out of this program. Do not implement.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Correct model extraction for `/interactions` and pin follow-up resource ids to the originating Google project pool (or singleton key).

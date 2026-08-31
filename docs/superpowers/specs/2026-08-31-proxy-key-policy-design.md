@@ -1,5 +1,7 @@
 # P1 — Proxy-key policy, atomic admission, and budget settlement
 
+> **DRAFT FROZEN.** Not implementation authorization. The replacement is program spec 4 (RPM, request/day, token/day, USD/month, model allowlist, `expires_at`, IANA timezone). TPM / max-concurrent / max-output / max-body from this draft are not locked.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 2 (tenant-owned proxy keys, no client headers).

@@ -1,5 +1,7 @@
 # Proxy-key policy and atomic admission Implementation Plan
 
+> **FROZEN.** Not implementation authorization. Rewrite after program spec 4 is approved (no TPM/concurrency as locked limits; add timezone).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Optional RPM/TPM/RPD/concurrency/budget/model/body/expiry limits on each proxy key, enforced by Postgres admit/settle RPCs.

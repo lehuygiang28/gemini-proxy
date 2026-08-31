@@ -1,5 +1,7 @@
 # P1 — Interactions API and stateful resource affinity
 
+> **SUPERSEDED.** Locked decisions drop Interactions-specific state and resource affinity tables. Generic passthrough may forward those APIs without continuity guarantees. Do not implement this draft.
+
 **Date:** 2026-08-31
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md)
 **Depends on:** spec 5 (project pools). Spec 2 path parsing changes land here if not already generalized.
