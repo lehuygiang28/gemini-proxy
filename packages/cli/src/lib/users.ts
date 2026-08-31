@@ -1,4 +1,5 @@
 import { supabase } from './database';
+import { resolveOwnerUserId } from './resolve-owner-user';
 
 export interface User {
     id: string;
@@ -79,16 +80,32 @@ export class UsersManager {
      * Get or create a default user for API key assignment
      * If no users exist, this will throw an error
      */
-    static async getDefaultUser(): Promise<string> {
-        const firstUser = await this.getFirstUser();
-
-        if (!firstUser) {
-            throw new Error(
-                'No users found in the database. Please create a user first before adding API keys.',
-            );
-        }
-
-        return firstUser.id;
+    static async getDefaultUser(userId?: string): Promise<string> {
+        await supabase.init();
+        return resolveOwnerUserId({
+            userId,
+            interactive: process.stdin.isTTY === true,
+            listUsers: async () => {
+                const { data, error } = await supabase.client.auth.admin.listUsers({
+                    perPage: 100,
+                    page: 1,
+                });
+                if (error || !data?.users) {
+                    return [];
+                }
+                return data.users.map((user) => ({
+                    id: user.id,
+                    email: user.email,
+                }));
+            },
+            getUserById: async (id) => {
+                const { data, error } = await supabase.client.auth.admin.getUserById(id);
+                if (error || !data?.user) {
+                    return null;
+                }
+                return { id: data.user.id };
+            },
+        });
     }
 
     /**

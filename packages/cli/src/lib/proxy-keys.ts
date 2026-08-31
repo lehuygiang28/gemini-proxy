@@ -61,21 +61,11 @@ export class ProxyKeysManager {
 
         // Auto-assign user_id if not provided
         let finalProxyKeyData = { ...proxyKeyData };
-
-        if (!finalProxyKeyData.user_id) {
-            try {
-                const defaultUserId = await UsersManager.getDefaultUser();
-                finalProxyKeyData.user_id = defaultUserId;
-
-                // Get user info for notification
-                const firstUser = await UsersManager.getFirstUser();
-                UsersManager.notifyAutoAssignment(defaultUserId, firstUser?.email);
-            } catch (error) {
-                throw new Error(
-                    `Failed to auto-assign user_id: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                );
-            }
+        const ownerId = await UsersManager.getDefaultUser(finalProxyKeyData.user_id ?? undefined);
+        if (finalProxyKeyData.user_id !== ownerId) {
+            UsersManager.notifyAutoAssignment(ownerId);
         }
+        finalProxyKeyData.user_id = ownerId;
 
         const { data, error } = await supabase.client
             .from('proxy_api_keys')
@@ -167,20 +157,8 @@ export class ProxyKeysManager {
         // Auto-assign user_id if not provided
         const finalProxyKeysData = await Promise.all(
             proxyKeysData.map(async (proxyKeyData) => {
-                let finalData = { ...proxyKeyData };
-
-                if (!finalData.user_id) {
-                    try {
-                        const defaultUserId = await UsersManager.getDefaultUser();
-                        finalData.user_id = defaultUserId;
-                    } catch (error) {
-                        throw new Error(
-                            `Failed to auto-assign user_id: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        );
-                    }
-                }
-
-                return finalData;
+                const ownerId = await UsersManager.getDefaultUser(proxyKeyData.user_id);
+                return { ...proxyKeyData, user_id: ownerId };
             }),
         );
 
@@ -274,10 +252,7 @@ export class ProxyKeysManager {
         const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
         // Get first user for proxy key assignment
-        const firstUser = await UsersManager.getFirstUser();
-        if (!firstUser) {
-            throw new Error('No users found in the database. Please create a user first.');
-        }
+        const ownerId = await UsersManager.getDefaultUser();
 
         // Prepare batch operations
         const keysToCreate: Array<Omit<ProxyApiKeyInsert, 'id' | 'created_at' | 'updated_at'>> = [];
@@ -322,7 +297,7 @@ export class ProxyKeysManager {
                             proxy_key_value: importKey.proxy_key_value,
                             is_active: importKey.is_active,
                             metadata: importKey.metadata,
-                            user_id: firstUser.id,
+                            user_id: ownerId,
                         });
                     }
                     results.created++;

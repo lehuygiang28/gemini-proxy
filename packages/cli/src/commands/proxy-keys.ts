@@ -63,7 +63,7 @@ export function proxyKeysCommands(program: Command) {
         .description('Create a new proxy API key')
         .option('-n, --name <name>', 'Proxy key name')
         .option('-k, --key-value <keyValue>', 'Custom key value (auto-generated if not provided)')
-        .option('-u, --user-id <userId>', 'User ID')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .option('-q, --quick', 'Quick mode with minimal prompts')
         .action(async (options) => {
             const name = await input({

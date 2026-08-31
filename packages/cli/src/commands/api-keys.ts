@@ -65,7 +65,7 @@ export function apiKeysCommands(program: Command) {
         .option('-n, --name <name>', 'API key name')
         .option('-k, --key <key>', 'API key value')
         .option('-p, --provider <provider>', 'Provider (default: googleaistudio)')
-        .option('-u, --user-id <userId>', 'User ID')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .option('-q, --quick', 'Quick mode with minimal prompts')
         .action(async (options) => {
             const name = await input({
