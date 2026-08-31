@@ -2,56 +2,75 @@ import { Context, Next } from 'hono';
 import { env } from 'hono/adapter';
 
 import type { ProxyRequestDataParsed } from '../types';
-import { resolveUrl } from '../utils/url';
 import { safelyExtractBodyText } from '../utils/body-handler';
+import { buildOriginUrl } from '../routing/build-origin-url';
+import { detectApiFormat } from '../routing/detect-api-format';
+import { normalizeV1Path } from '../routing/normalize-v1-path';
+
+function isKnownProxyPath(path: string): boolean {
+    return (
+        path === '/v1' ||
+        path.startsWith('/v1/') ||
+        path === '/v1beta' ||
+        path.startsWith('/v1beta/') ||
+        path === '/gemini' ||
+        path.startsWith('/gemini/') ||
+        path === '/openai' ||
+        path.startsWith('/openai/')
+    );
+}
 
 export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
-    const apiFormat = c.req.path.includes('/gemini/') ? 'gemini' : 'openai';
-
-    let model: string | undefined;
-    let stream = false;
-    const queryParams = c.req.query();
-    let urlToProxy = '';
-
-    const allPathParts = c.req.path.split('/');
-    const proxyIndex = allPathParts.findIndex(
-        (part) => part === (apiFormat === 'gemini' ? 'gemini' : 'openai'),
-    );
-    if (proxyIndex === -1) {
+    const detected = detectApiFormat({
+        path: c.req.path,
+        header: (name) => c.req.header(name),
+    });
+    if ('error' in detected) {
+        if (detected.error === 'conflicting_credentials') {
+            return c.json({ error: 'conflicting_credentials' }, 400);
+        }
+        return c.json(
+            {
+                error: 'authentication_error',
+                message: 'API key is required',
+            },
+            401,
+        );
+    }
+    if (!isKnownProxyPath(c.req.path)) {
         return c.json(
             {
                 error: 'Invalid Request Path',
                 message:
-                    'Seem your request path is not correct, please check it and try again. It should be like /api/gproxy/{format}/{actual-path}',
+                    'Seem your request path is not correct, please check it and try again. Use /v1/{actual-path}.',
             },
             400,
         );
     }
 
-    const envVariables = env(c);
+    const apiFormat = detected.apiFormat;
+    const envVariables = {
+        ...env(c),
+        ...(c.env as Record<string, string> | undefined),
+    };
+    const rawSearch = new URL(c.req.url).search;
+    let model: string | undefined;
+    let stream = false;
     let rawBodyText: string | null = null;
-    const forwardedQuery = new URLSearchParams(queryParams);
-    forwardedQuery.delete('key');
-    forwardedQuery.delete('api_key');
-    const forwardedQueryString = forwardedQuery.toString();
-    const forwardedQuerySuffix = forwardedQueryString ? `?${forwardedQueryString}` : '';
+    const normalizedPath = normalizeV1Path(c.req.path);
 
-    // For Gemini, we can often determine model and stream from the URL path
     if (apiFormat === 'gemini') {
-        const pathParts = c.req.path?.split('/');
-        const lastPart = pathParts?.pop();
+        const pathParts = normalizedPath.split('/');
+        const lastPart = pathParts.pop();
         model = lastPart?.split(':')?.[0];
         console.log(`Model extraction: path=${c.req.path}, lastPart=${lastPart}, model=${model}`);
-
         stream =
-            c.req.path.includes(':streamGenerateContent') ||
-            c.req.path.includes(':stream') ||
-            c.req.path.includes('?alt=sse');
+            normalizedPath.includes(':streamGenerateContent') ||
+            normalizedPath.includes(':stream') ||
+            rawSearch.includes('alt=sse');
 
-        // Only parse body if we couldn't determine model from URL and it's JSON
         if (!model && c.req.header('content-type')?.includes('application/json')) {
             try {
-                // Try to extract body text for metadata parsing (won't consume original)
                 rawBodyText = await safelyExtractBodyText(c);
                 if (rawBodyText) {
                     const parsedBody = JSON.parse(rawBodyText);
@@ -61,34 +80,30 @@ export const extractProxyDataMiddleware = async (c: Context, next: Next) => {
                 console.warn('Failed to parse JSON body for model extraction:', error);
             }
         }
-
-        urlToProxy = `${resolveUrl(
-            envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
-                'https://generativelanguage.googleapis.com/',
-            allPathParts.slice(proxyIndex + 1).join('/'),
-        )}${forwardedQuerySuffix}`;
-    } else {
-        // For OpenAI-compatible APIs, we need to parse the body to get model and stream
-        if (c.req.header('content-type')?.includes('application/json')) {
-            try {
-                // Try to extract body text for metadata parsing (won't consume original)
-                rawBodyText = await safelyExtractBodyText(c);
-                if (rawBodyText) {
-                    const parsedBody = JSON.parse(rawBodyText);
-                    model = parsedBody?.model;
-                    stream = Boolean(parsedBody?.stream);
-                }
-            } catch (error) {
-                console.warn('Failed to parse JSON body for OpenAI format:', error);
+    } else if (c.req.header('content-type')?.includes('application/json')) {
+        try {
+            rawBodyText = await safelyExtractBodyText(c);
+            if (rawBodyText) {
+                const parsedBody = JSON.parse(rawBodyText);
+                model = parsedBody?.model;
+                stream = Boolean(parsedBody?.stream);
             }
+        } catch (error) {
+            console.warn('Failed to parse JSON body for OpenAI format:', error);
         }
-
-        urlToProxy = `${resolveUrl(
-            envVariables?.GOOGLE_OPENAI_API_BASE_URL ??
-                'https://generativelanguage.googleapis.com/v1beta/openai/',
-            allPathParts.slice(proxyIndex + 1).join('/'),
-        )}${forwardedQuerySuffix}`;
     }
+
+    const urlToProxy = buildOriginUrl({
+        apiFormat,
+        path: c.req.path,
+        rawSearch,
+        geminiBaseUrl:
+            envVariables?.GOOGLE_GEMINI_API_BASE_URL ??
+            'https://generativelanguage.googleapis.com/',
+        openaiBaseUrl:
+            envVariables?.GOOGLE_OPENAI_API_BASE_URL ??
+            'https://generativelanguage.googleapis.com/v1beta/openai/',
+    });
 
     c.set('proxyRequestDataParsed', {
         model,

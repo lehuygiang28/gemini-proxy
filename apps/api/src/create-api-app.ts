@@ -12,5 +12,6 @@ export function createApiApp(): Hono {
                 credentials: true,
             }),
         )
-        .route('/api/gproxy/*', coreApp);
+        .route('/api/gproxy', coreApp)
+        .route('/', coreApp);
 }
