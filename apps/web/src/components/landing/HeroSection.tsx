@@ -12,8 +12,8 @@ const FACTS = ['pool', 'failover', 'logs', 'deploy'] as const;
  */
 export function HeroSection() {
     const { translate } = useTranslation();
-    const headline = translate('landing.hero.headline');
-    const [headlineBefore, headlineAfter] = headline.split('{path}');
+    const headline = translate('landing.hero.headline', { path: '/v1' });
+    const [headlineBefore, headlineAfter] = headline.split('/v1');
 
     return (
         <section className="gp-landing-hero">
