@@ -7,6 +7,10 @@ export { isSupportedIanaTimeZone } from './policy/iana-timezone';
 export { civilDayStartUtc, civilMonthStartUtc } from './policy/timezone-windows';
 export { effectiveComboStrategy } from './combo/effective-combo-strategy';
 export { resolveCombo } from './combo/resolve-combo';
+export { mergeModelList } from './combo/merge-model-list';
+export type { MergedModelEntry } from './combo/merge-model-list';
+export { syncGoogleModelCatalog } from './combo/sync-google-model-catalog';
+export { parseGoogleModelsList } from './combo/parse-google-models-list';
 export type {
     ComboAttempt,
     ComboStrategy,
