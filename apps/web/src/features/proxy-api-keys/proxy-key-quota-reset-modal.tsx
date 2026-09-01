@@ -111,7 +111,8 @@ export function ProxyKeyQuotaResetModal({
     >();
 
     const quota = result?.data;
-    const usageLoading = query.isFetching && quota === undefined;
+    // useCustom seeds result.data as {} before the query resolves.
+    const usageLoading = query.isLoading;
 
     const handleConfirm = (): void => {
         if (!proxyKeyId || selectedWindows.length === 0) {
