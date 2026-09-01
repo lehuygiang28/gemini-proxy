@@ -7,21 +7,22 @@ export async function rewriteUpstreamModel(input: {
     readonly fromModel: string;
     readonly toModel: string;
 }): Promise<{ request: Request; urlToProxy: string }> {
+    const source = input.request.clone();
     if (input.fromModel === input.toModel) {
-        return { request: input.request, urlToProxy: input.urlToProxy };
+        return { request: source, urlToProxy: input.urlToProxy };
     }
     if (input.apiFormat === 'gemini') {
         const urlToProxy = replaceModelInUrl(input.urlToProxy, input.fromModel, input.toModel);
-        const requestUrl = replaceModelInUrl(input.request.url, input.fromModel, input.toModel);
+        const requestUrl = replaceModelInUrl(source.url, input.fromModel, input.toModel);
         return {
             urlToProxy,
-            request: cloneRequest(input.request, requestUrl, input.request.body),
+            request: cloneRequest(source, requestUrl, source.body),
         };
     }
-    const rewrittenBody = await rewriteOpenAiBody(input.request, input.toModel);
+    const rewrittenBody = await rewriteOpenAiBody(source, input.toModel);
     return {
         urlToProxy: input.urlToProxy,
-        request: cloneRequest(input.request, input.request.url, rewrittenBody),
+        request: cloneRequest(source, source.url, rewrittenBody),
     };
 }
 

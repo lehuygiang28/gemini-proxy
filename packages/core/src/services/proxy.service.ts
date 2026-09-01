@@ -20,6 +20,17 @@ import {
 import { recordApiKeyFailure, recordApiKeySuccess } from '../retry/record-key-outcome';
 import { calculateRetryAttempts } from '../retry/calculate-retry-attempts';
 import { UPSTREAM_FAILURE_CLASS, type ClassifiedUpstreamFailure } from '../retry/types';
+import { effectiveComboStrategy } from '../combo/effective-combo-strategy';
+import { loadComboApiKeys } from '../combo/load-combo-api-keys';
+import { loadComboDefaults } from '../combo/load-combo-defaults';
+import { loadComboPairCooldowns } from '../combo/load-combo-pair-cooldowns';
+import { loadComboStickState } from '../combo/load-combo-stick-state';
+import { planComboAttempts } from '../combo/plan-combo-attempts';
+import { rewriteUpstreamModel } from '../combo/rewrite-upstream-model';
+import { selectStartKey } from '../combo/select-start-key';
+import { skipPlanMember } from '../combo/skip-plan-member';
+import { upsertComboStickState } from '../combo/upsert-combo-stick-state';
+import type { ComboAttempt, ResolvedCombo } from '../combo/combo-types';
 
 // ===== INTERFACES =====
 interface RetryAttemptData {
@@ -32,6 +43,7 @@ interface RetryAttemptData {
     waited_ms: number;
     class: ClassifiedUpstreamFailure['class'];
     timestamp: string;
+    canonical_model?: string;
     provider_error?: {
         status?: number;
         headers?: Record<string, string>;
@@ -85,6 +97,7 @@ interface RetryAttemptParams {
     providerError: ProviderErrorData;
     waitedMs: number;
     failureClass: ClassifiedUpstreamFailure['class'];
+    canonicalModel?: string;
 }
 
 interface ErrorResponseParams {
@@ -149,6 +162,15 @@ export class ProxyService {
             apiFormat: proxyRequestDataParsed.apiFormat,
             url: proxyRequestDataParsed.urlToProxy,
         });
+
+        const resolvedCombo = c.get('resolvedCombo');
+        if (resolvedCombo?.kind === 'combo' && proxyRequestDataParsed.managed) {
+            return this.makeComboApiRequest({
+                c,
+                context,
+                resolvedCombo,
+            });
+        }
 
         let availableKeysAtStart = 0;
         try {
@@ -239,6 +261,229 @@ export class ProxyService {
             proxyRequestDataParsed,
             usedApiKeyIds,
             retryBudget,
+        });
+    }
+
+    private static async makeComboApiRequest(params: {
+        c: Context<HonoApp>;
+        context: RequestContext;
+        resolvedCombo: Extract<ResolvedCombo, { kind: 'combo' }>;
+    }): Promise<Response> {
+        const { c, context, resolvedCombo } = params;
+        const { proxyRequestDataParsed, proxyApiKeyData, requestId, baseRequest, retryConfig } =
+            context;
+        const supabase = getSupabaseClient(c);
+        const defaults = await loadComboDefaults(supabase, proxyApiKeyData.user_id);
+        const effective = effectiveComboStrategy({
+            globalStrategy: defaults.strategy,
+            globalStickAfterSuccesses: defaults.stickAfterSuccesses,
+            comboStrategy: resolvedCombo.combo.strategy,
+            comboStickAfterSuccesses: resolvedCombo.combo.stickAfterSuccesses,
+        });
+        const stick = await loadComboStickState(
+            supabase,
+            proxyApiKeyData.id,
+            resolvedCombo.combo.id,
+        );
+        const keys = await loadComboApiKeys(supabase, proxyApiKeyData.user_id);
+        if (keys.length === 0) {
+            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members[0]);
+            throw new InvalidKeyError('No API key found');
+        }
+        const pairCooldowns = await loadComboPairCooldowns(
+            supabase,
+            keys.map((key) => key.id),
+        );
+        const nowMs = Date.now();
+        const ring = selectStartKey({
+            strategy: effective.strategy,
+            stickAfterSuccesses: effective.stickAfterSuccesses,
+            consecutiveSuccesses: stick.consecutiveSuccesses,
+            lastApiKeyId: stick.lastApiKeyId,
+            keys: keys.map((key) => ({ id: key.id, lastUsedAt: key.lastUsedAt })),
+        });
+        const keyById = new Map(keys.map((key) => [key.id, key]));
+        const cooledPairs = new Set(
+            pairCooldowns
+                .filter((row) => new Date(row.cooldownUntil).getTime() > nowMs)
+                .map((row) => `${row.apiKeyId}:${row.canonicalModel}`),
+        );
+        let plan = planComboAttempts({
+            keys: ring,
+            members: resolvedCombo.members,
+            isPairIneligible: (apiKeyId, canonicalModel) => {
+                const key = keyById.get(apiKeyId);
+                if (!key) {
+                    return true;
+                }
+                if (key.cooldownUntil && new Date(key.cooldownUntil).getTime() > nowMs) {
+                    return true;
+                }
+                return cooledPairs.has(`${apiKeyId}:${canonicalModel}`);
+            },
+        });
+        if (plan.length === 0) {
+            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members[0]);
+            throw new InvalidKeyError('No API key found');
+        }
+
+        const retryAttempts: RetryAttemptData[] = [];
+        let lastError: ProxyError | null = null;
+        let lastProviderError: ProviderErrorData | null = null;
+        const disabledKeyIds = new Set<string>();
+        const requestedModel = proxyRequestDataParsed.model ?? resolvedCombo.combo.name;
+
+        while (plan.length > 0) {
+            const attempt: ComboAttempt = plan[0]!;
+            plan = plan.slice(1);
+            if (disabledKeyIds.has(attempt.apiKeyId)) {
+                continue;
+            }
+            const selectedKey = keyById.get(attempt.apiKeyId);
+            if (!selectedKey) {
+                continue;
+            }
+            c.set('comboWinningMember', attempt.canonicalModel);
+            const rewritten = await rewriteUpstreamModel({
+                request: baseRequest,
+                urlToProxy: proxyRequestDataParsed.urlToProxy,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                fromModel: requestedModel,
+                toModel: attempt.canonicalModel,
+            });
+            const attemptStartedAt = Date.now();
+            try {
+                const { response, headers, durationMs } = await this.performAttempt({
+                    baseRequest: rewritten.request,
+                    apiKeyValue: selectedKey.apiKeyValue,
+                    apiFormat: proxyRequestDataParsed.apiFormat,
+                    url: rewritten.urlToProxy,
+                    timeoutMs: retryConfig.upstreamTimeoutMs,
+                });
+                if (response.ok) {
+                    await recordApiKeySuccess(c, selectedKey.id, attempt.canonicalModel);
+                    await upsertComboStickState(supabase, {
+                        proxyKeyId: proxyApiKeyData.id,
+                        comboId: resolvedCombo.combo.id,
+                        lastApiKeyId: selectedKey.id,
+                        consecutiveSuccesses:
+                            stick.lastApiKeyId === selectedKey.id
+                                ? stick.consecutiveSuccesses + 1
+                                : 1,
+                    });
+                    return ResponseHandlerService.handleSuccess({
+                        c,
+                        response,
+                        requestId,
+                        apiKeyId: selectedKey.id,
+                        proxyApiKeyData,
+                        proxyRequestDataParsed,
+                        baseRequest,
+                        headers,
+                        durationMs,
+                        retryAttempts,
+                    });
+                }
+                const providerError = await this.extractProviderErrorWithBody(response.clone());
+                const failure = classifyUpstreamError({
+                    status: providerError.status,
+                    headers: providerError.headers,
+                    bodyText: providerError.body,
+                });
+                const error = this.createClassifiedProxyError(failure);
+                lastError = error;
+                lastProviderError = providerError;
+                retryAttempts.push(
+                    this.createRetryAttempt({
+                        attemptNumber: retryAttempts.length + 1,
+                        apiKeyId: selectedKey.id,
+                        apiKeyName: selectedKey.name,
+                        error,
+                        durationMs,
+                        providerError,
+                        waitedMs: 0,
+                        failureClass: failure.class,
+                        canonicalModel: attempt.canonicalModel,
+                    }),
+                );
+                if (failure.class === UPSTREAM_FAILURE_CLASS.client_invalid) {
+                    plan = skipPlanMember({
+                        remaining: plan,
+                        skippedModel: attempt.canonicalModel,
+                    });
+                    continue;
+                }
+                await recordApiKeyFailure(c, {
+                    apiKeyId: selectedKey.id,
+                    failure,
+                    consecutiveFailures: selectedKey.consecutiveFailures,
+                    canonicalModel: attempt.canonicalModel,
+                });
+                if (failure.disableKey || failure.keyWide) {
+                    disabledKeyIds.add(selectedKey.id);
+                }
+            } catch (error) {
+                const isTimeout = error instanceof DOMException && error.name === 'TimeoutError';
+                const isClientAbort =
+                    baseRequest.signal.aborted ||
+                    (error instanceof DOMException && error.name === 'AbortError' && !isTimeout);
+                const failureBase = classifyUpstreamError({
+                    status: undefined,
+                    headers: {},
+                    bodyText: isClientAbort
+                        ? 'client_aborted'
+                        : isTimeout
+                          ? 'upstream_timeout'
+                          : 'network_error',
+                });
+                const failure: ClassifiedUpstreamFailure = isClientAbort
+                    ? { ...failureBase, retryable: false, message: 'client_aborted' }
+                    : failureBase;
+                const proxyError = this.createClassifiedProxyError(failure);
+                lastError = proxyError;
+                lastProviderError = null;
+                retryAttempts.push(
+                    this.createRetryAttempt({
+                        attemptNumber: retryAttempts.length + 1,
+                        apiKeyId: selectedKey.id,
+                        apiKeyName: selectedKey.name,
+                        error: proxyError,
+                        durationMs: Date.now() - attemptStartedAt,
+                        providerError: { status: 0, headers: {}, body: '' },
+                        waitedMs: 0,
+                        failureClass: failure.class,
+                        canonicalModel: attempt.canonicalModel,
+                    }),
+                );
+                if (isClientAbort) {
+                    break;
+                }
+                await recordApiKeyFailure(c, {
+                    apiKeyId: selectedKey.id,
+                    failure,
+                    consecutiveFailures: selectedKey.consecutiveFailures,
+                    canonicalModel: attempt.canonicalModel,
+                });
+            }
+        }
+
+        return this.createErrorResponse(c, {
+            requestId,
+            proxyApiKeyData,
+            proxyRequestDataParsed,
+            baseRequest,
+            lastError:
+                lastError ??
+                new ProxyError(
+                    'No eligible combo attempts remaining',
+                    'server_error',
+                    502,
+                    'combo_exhausted',
+                    undefined,
+                    false,
+                ),
+            lastProviderError,
+            retryAttempts,
         });
     }
 
@@ -769,6 +1014,7 @@ export class ProxyService {
             waited_ms: params.waitedMs,
             class: params.failureClass,
             timestamp: new Date().toISOString(),
+            canonical_model: params.canonicalModel,
             provider_error: {
                 status: params.providerError.status,
                 headers: params.providerError.headers,
