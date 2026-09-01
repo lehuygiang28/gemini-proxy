@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, Json } from '@gemini-proxy/database';
+import type { Database, Json, Tables } from '@gemini-proxy/database';
+
+type CatalogRow = Tables<'user_model_catalog'>;
 
 export async function persistCustomPickerModel(input: {
     readonly supabase: SupabaseClient<Database>;
@@ -10,14 +12,13 @@ export async function persistCustomPickerModel(input: {
 }): Promise<{ ok: true } | { ok: false }> {
     const { data: existing, error: existingError } = await input.supabase
         .from('user_model_catalog')
-        .select('model_id')
+        .select('user_id, model_id, source, display_name, supports_generate, refreshed_at')
         .eq('user_id', input.userId)
         .eq('model_id', input.modelId)
         .maybeSingle();
     if (existingError) {
         return { ok: false };
     }
-    const catalogWasNew = existing == null;
 
     const { error: catalogError } = await input.supabase.from('user_model_catalog').upsert({
         user_id: input.userId,
@@ -39,7 +40,7 @@ export async function persistCustomPickerModel(input: {
         .eq('id', input.userId)
         .maybeSingle();
     if (settingsReadError) {
-        await compensateNewCatalogRow(input, catalogWasNew);
+        await compensateCatalogMutation(input, existing);
         return { ok: false };
     }
 
@@ -66,27 +67,35 @@ export async function persistCustomPickerModel(input: {
               custom_model_pricing: pricing,
           });
     if (pricingError) {
-        await compensateNewCatalogRow(input, catalogWasNew);
+        await compensateCatalogMutation(input, existing);
         return { ok: false };
     }
     return { ok: true };
 }
 
-async function compensateNewCatalogRow(
+async function compensateCatalogMutation(
     input: {
         readonly supabase: SupabaseClient<Database>;
         readonly userId: string;
         readonly modelId: string;
     },
-    catalogWasNew: boolean,
+    previous: CatalogRow | null,
 ): Promise<void> {
-    if (!catalogWasNew) {
+    if (previous == null) {
+        await input.supabase
+            .from('user_model_catalog')
+            .delete()
+            .eq('user_id', input.userId)
+            .eq('model_id', input.modelId)
+            .eq('source', 'custom');
         return;
     }
-    await input.supabase
-        .from('user_model_catalog')
-        .delete()
-        .eq('user_id', input.userId)
-        .eq('model_id', input.modelId)
-        .eq('source', 'custom');
+    await input.supabase.from('user_model_catalog').upsert({
+        user_id: previous.user_id,
+        model_id: previous.model_id,
+        source: previous.source,
+        display_name: previous.display_name,
+        supports_generate: previous.supports_generate,
+        refreshed_at: previous.refreshed_at,
+    });
 }

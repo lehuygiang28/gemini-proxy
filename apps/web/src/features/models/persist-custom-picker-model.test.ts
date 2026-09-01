@@ -5,8 +5,17 @@ import { persistCustomPickerModel } from './persist-custom-picker-model';
 
 type DbError = { message: string } | null;
 
+type CatalogRow = {
+    user_id: string;
+    model_id: string;
+    source: string;
+    display_name: string | null;
+    supports_generate: boolean;
+    refreshed_at: string;
+};
+
 type MockState = {
-    existingCatalog: { model_id: string } | null;
+    existingCatalog: CatalogRow | null;
     existingError: DbError;
     catalogUpsertError: DbError;
     settings: { id: string; custom_model_pricing: Json } | null;
@@ -168,9 +177,17 @@ describe('persistCustomPickerModel', () => {
         ]);
     });
 
-    it('leaves an existing catalog row when pricing write fails', async () => {
+    it('restores an existing custom catalog row when pricing write fails', async () => {
+        const previous: CatalogRow = {
+            user_id: 'user-1',
+            model_id: 'my-finetune',
+            source: 'custom',
+            display_name: 'Mine',
+            supports_generate: true,
+            refreshed_at: '2026-01-01T00:00:00.000Z',
+        };
         const state = createState({
-            existingCatalog: { model_id: 'my-finetune' },
+            existingCatalog: previous,
             settings: { id: 'user-1', custom_model_pricing: {} },
             settingsWriteError: { message: 'rls' },
         });
@@ -183,7 +200,42 @@ describe('persistCustomPickerModel', () => {
         });
         expect(actual).toEqual({ ok: false });
         expect(state.catalogDeletes).toEqual([]);
+        expect(state.catalogUpserts).toEqual([
+            {
+                user_id: 'user-1',
+                model_id: 'my-finetune',
+                source: 'custom',
+                supports_generate: true,
+            },
+            previous,
+        ]);
         expect(state.settingsWrites).toHaveLength(1);
+    });
+
+    it('restores an existing google_live catalog row when pricing write fails', async () => {
+        const previous: CatalogRow = {
+            user_id: 'user-1',
+            model_id: 'gemini-3.7-flash',
+            source: 'google_live',
+            display_name: 'Gemini 3.7 Flash',
+            supports_generate: true,
+            refreshed_at: '2026-09-01T00:00:00.000Z',
+        };
+        const state = createState({
+            existingCatalog: previous,
+            settings: { id: 'user-1', custom_model_pricing: {} },
+            settingsWriteError: { message: 'rls' },
+        });
+        const actual = await persistCustomPickerModel({
+            supabase: createClient(state),
+            userId: 'user-1',
+            modelId: 'gemini-3.7-flash',
+            inputPerMillion: 1,
+            outputPerMillion: 2,
+        });
+        expect(actual).toEqual({ ok: false });
+        expect(state.catalogDeletes).toEqual([]);
+        expect(state.catalogUpserts.at(-1)).toEqual(previous);
     });
 
     it('deletes a newly inserted catalog row when settings cannot be read', async () => {
