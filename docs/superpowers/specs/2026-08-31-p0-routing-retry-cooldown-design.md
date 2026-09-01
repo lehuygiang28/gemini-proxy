@@ -20,10 +20,10 @@ https://host/v1/...
 
 Normalize before routing (pure function `normalizeV1Path`):
 
-| Input | Output |
-| ----- | ------ |
-| `/v1/models/...` | `/v1/models/...` |
-| `/v1/v1/models/...` | `/v1/models/...` |
+| Input                   | Output               |
+| ----------------------- | -------------------- |
+| `/v1/models/...`        | `/v1/models/...`     |
+| `/v1/v1/models/...`     | `/v1/models/...`     |
 | `/v1/v1beta/models/...` | `/v1beta/models/...` |
 
 Preserve the raw query string, including repeated parameters (`URLSearchParams` / raw `c.req.url` search). Do not drop duplicate keys.
@@ -45,12 +45,12 @@ Adapters:
 
 Reuse spec 2 `extractProxyCredential`:
 
-| Credential | `apiFormat` |
-| ---------- | ----------- |
-| `x-goog-api-key` only | `gemini` |
-| Strict `Authorization: Bearer` only | `openai` |
-| Both | `400` `{ error: 'conflicting_credentials' }` |
-| Neither / invalid | `401` |
+| Credential                          | `apiFormat`                                  |
+| ----------------------------------- | -------------------------------------------- |
+| `x-goog-api-key` only               | `gemini`                                     |
+| Strict `Authorization: Bearer` only | `openai`                                     |
+| Both                                | `400` `{ error: 'conflicting_credentials' }` |
+| Neither / invalid                   | `401`                                        |
 
 Path is not the sole format signal. `/v1/chat/completions` with `x-goog-api-key` is Gemini (unusual but allowed); `/v1/models/...:generateContent` with Bearer is OpenAI-compatible.
 
@@ -96,16 +96,16 @@ Delete in-loop sleep that waits for another key's cooldown. `PROXY_RETRY_BASE_DE
 
 Keep `packages/core/src/retry/classify-upstream-error.ts`. Inputs: `{ status, headers, bodyText }`. Parse JSON `error.status`, `error.details[]`. **Do not parse prose in `error.message` for cooldown duration.**
 
-| Class | Retry other keys? | This key |
-| ----- | ----------------- | -------- |
-| `client_invalid` (400, request 404) | No | Untouched |
-| `key_invalid` (401; 403 `API_KEY_INVALID`) | Yes | Disable key (`is_active=false`, `disabled_reason='invalid_key'`) |
-| `key_permission` (other 403) | Yes | **Key-wide** hard cooldown 15m if structured details say API disabled / billing; else key+model 15m |
-| `rate_limit` (429) | Yes | Hard cooldown `key + canonical model` unless structured details prove project/spend-wide → key-wide |
-| `spend_limit` (429 + structured billing/quota 0) | Yes | **Key-wide** hard cooldown 1h |
-| `transient` (408, 5xx, timeout) | Yes | Soft penalty only (below) |
-| Network/fetch failure on a **mutation** (POST/PATCH/PUT/DELETE) in passthrough | No | Soft penalty |
-| Network/fetch failure on managed generateContent / chat completions | Yes | Soft penalty |
+| Class                                                                          | Retry other keys? | This key                                                                                            |
+| ------------------------------------------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------- |
+| `client_invalid` (400, request 404)                                            | No                | Untouched                                                                                           |
+| `key_invalid` (401; 403 `API_KEY_INVALID`)                                     | Yes               | Disable key (`is_active=false`, `disabled_reason='invalid_key'`)                                    |
+| `key_permission` (other 403)                                                   | Yes               | **Key-wide** hard cooldown 15m if structured details say API disabled / billing; else key+model 15m |
+| `rate_limit` (429)                                                             | Yes               | Hard cooldown `key + canonical model` unless structured details prove project/spend-wide → key-wide |
+| `spend_limit` (429 + structured billing/quota 0)                               | Yes               | **Key-wide** hard cooldown 1h                                                                       |
+| `transient` (408, 5xx, timeout)                                                | Yes               | Soft penalty only (below)                                                                           |
+| Network/fetch failure on a **mutation** (POST/PATCH/PUT/DELETE) in passthrough | No                | Soft penalty                                                                                        |
+| Network/fetch failure on managed generateContent / chat completions            | Yes               | Soft penalty                                                                                        |
 
 ## Hard cooldown
 
@@ -155,35 +155,35 @@ Do not put `5xx` into `api_key_model_cooldowns`.
 
 ## Extracted units
 
-| File | Export |
-| ---- | ------ |
-| `packages/core/src/routing/normalize-v1-path.ts` | `normalizeV1Path` |
-| `packages/core/src/routing/detect-api-format.ts` | `detectApiFormat` (from credential source + legacy path) |
-| `packages/core/src/routing/build-origin-url.ts` | `buildOriginUrl` |
-| `packages/core/src/retry/classify-upstream-error.ts` | existing |
-| `packages/core/src/retry/compute-cooldown.ts` | duration + scope (`key` vs `key_model`) |
-| `packages/core/src/retry/create-timeout-signal.ts` | header-wait timeout + client abort |
+| File                                                 | Export                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| `packages/core/src/routing/normalize-v1-path.ts`     | `normalizeV1Path`                                        |
+| `packages/core/src/routing/detect-api-format.ts`     | `detectApiFormat` (from credential source + legacy path) |
+| `packages/core/src/routing/build-origin-url.ts`      | `buildOriginUrl`                                         |
+| `packages/core/src/retry/classify-upstream-error.ts` | existing                                                 |
+| `packages/core/src/retry/compute-cooldown.ts`        | duration + scope (`key` vs `key_model`)                  |
+| `packages/core/src/retry/create-timeout-signal.ts`   | header-wait timeout + client abort                       |
 
 Do not grow `proxy.service.ts` with path math.
 
 ## Tests
 
-| Case | Expected |
-| ---- | -------- |
-| `POST /v1/models/gemini-flash:generateContent` + goog header | origin Gemini, 200 |
-| `POST /v1/chat/completions` + Bearer | origin OpenAI |
-| `/v1/v1beta/models/...` | origin path `v1beta/models/...` |
-| `/v1/v1/models/...` | origin path `v1beta/models/...` or `v1/models/...` per normalize table |
-| both headers | 400 |
-| `?key=` only | 401 |
-| 429 on key A model M | key A model M skipped; key A model N still eligible; key B used for M |
-| 401 on key A | A disabled; B used |
-| 503 on key A | B used immediately; A still eligible as fallback; wall-clock < 100ms when B exists |
-| all keys in hard cooldown | 429, no origin wait |
-| `PROXY_MAX_RETRIES=0` | one origin call |
-| passthrough POST + network error | no retry |
-| client abort | upstream aborted |
-| legacy `/gemini/...` | still works |
+| Case                                                         | Expected                                                                           |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `POST /v1/models/gemini-flash:generateContent` + goog header | origin Gemini, 200                                                                 |
+| `POST /v1/chat/completions` + Bearer                         | origin OpenAI                                                                      |
+| `/v1/v1beta/models/...`                                      | origin path `v1beta/models/...`                                                    |
+| `/v1/v1/models/...`                                          | origin path `v1beta/models/...` or `v1/models/...` per normalize table             |
+| both headers                                                 | 400                                                                                |
+| `?key=` only                                                 | 401                                                                                |
+| 429 on key A model M                                         | key A model M skipped; key A model N still eligible; key B used for M              |
+| 401 on key A                                                 | A disabled; B used                                                                 |
+| 503 on key A                                                 | B used immediately; A still eligible as fallback; wall-clock < 100ms when B exists |
+| all keys in hard cooldown                                    | 429, no origin wait                                                                |
+| `PROXY_MAX_RETRIES=0`                                        | one origin call                                                                    |
+| passthrough POST + network error                             | no retry                                                                           |
+| client abort                                                 | upstream aborted                                                                   |
+| legacy `/gemini/...`                                         | still works                                                                        |
 
 ## Success criteria
 

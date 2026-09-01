@@ -35,12 +35,12 @@ File: `packages/core/src/auth/extract-proxy-credential.ts`.
 
 ```ts
 export type ProxyCredentialConflict = {
-  readonly error: 'conflicting_credentials';
+  readonly error: "conflicting_credentials";
 };
 
 export interface ExtractedProxyCredential {
   readonly value: string;
-  readonly source: 'x-goog-api-key' | 'authorization';
+  readonly source: "x-goog-api-key" | "authorization";
 }
 
 export function extractProxyCredential(input: {
@@ -82,13 +82,13 @@ No `.or('user_id.is.null, …')`. `countAvailableApiKeys(c, userId: string)`. Mi
 
 `packages/cli/src/lib/resolve-owner-user.ts`:
 
-| Situation | Behavior |
-| --------- | -------- |
-| `userId` provided | Validate UUID; `auth.admin.getUserById`; missing → throw |
-| 0 auth users | Throw before insert |
-| 1 auth user | Auto-assign that id |
-| 2+ and interactive | Select `email (id)` |
-| 2+ and not interactive | Throw: pass `--user-id` |
+| Situation              | Behavior                                                 |
+| ---------------------- | -------------------------------------------------------- |
+| `userId` provided      | Validate UUID; `auth.admin.getUserById`; missing → throw |
+| 0 auth users           | Throw before insert                                      |
+| 1 auth user            | Auto-assign that id                                      |
+| 2+ and interactive     | Select `email (id)`                                      |
+| 2+ and not interactive | Throw: pass `--user-id`                                  |
 
 Same helper for Gemini keys and proxy keys (create, import, sync). Quick mode (`-q`) is not interactive. Detect 0/1/many with `listUsers({ page: 1, perPage: 2 })`.
 
@@ -114,13 +114,13 @@ String patterns: `Bearer <token>`, `\bsk-[A-Za-z0-9]{20,}\b`, `\bAIza[A-Za-z0-9_
 
 ## Tests
 
-| File | Cases |
-| ---- | ----- |
-| `extract-proxy-credential.test.ts` | goog only; bearer only; both → conflict; `?key=` ignored; `x-api-key` ignored; invalid value → null |
-| sanitizer | nested JSON field, AIza in body, header name kept |
-| `resolve-owner-user` | 0 / 1 / 2 users, invalid uuid |
-| contract | missing/unknown/inactive 401; both headers 400; origin URL has no `key=`; `x-gproxy-retry-max` does not change attempts |
-| proxy.service | HTTP 200 + zero completion tokens is not retried |
+| File                               | Cases                                                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `extract-proxy-credential.test.ts` | goog only; bearer only; both → conflict; `?key=` ignored; `x-api-key` ignored; invalid value → null                     |
+| sanitizer                          | nested JSON field, AIza in body, header name kept                                                                       |
+| `resolve-owner-user`               | 0 / 1 / 2 users, invalid uuid                                                                                           |
+| contract                           | missing/unknown/inactive 401; both headers 400; origin URL has no `key=`; `x-gproxy-retry-max` does not change attempts |
+| proxy.service                      | HTTP 200 + zero completion tokens is not retried                                                                        |
 
 ## Success criteria
 

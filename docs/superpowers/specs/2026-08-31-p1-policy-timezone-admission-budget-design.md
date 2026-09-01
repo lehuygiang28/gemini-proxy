@@ -14,14 +14,14 @@ A proxy key can cap RPM, request/day, token/day, estimated USD/month, model allo
 
 On `proxy_api_keys` (keep existing columns that already match; do not add TPM / max_concurrent / max_output / max_body as locked requirements — if they already exist from a prior draft, leave them unused by admit unless already wired, and do not document them as supported):
 
-| Column | Type | Rule |
-| ------ | ---- | ---- |
-| `rpm_limit` | INTEGER NULL | null or > 0. Hard. |
-| `rpd_limit` | INTEGER NULL | request/day, null or > 0. Hard. |
-| `token_day_limit` | BIGINT NULL | token/day guardrail, null or > 0. |
-| `monthly_budget_usd` | NUMERIC(12,6) NULL | USD/month guardrail, null or > 0. |
-| `allowed_models` | TEXT[] NULL | null/empty = all models. Trailing `*` glob only. |
-| `expires_at` | TIMESTAMPTZ NULL | null = no expiry. |
+| Column               | Type               | Rule                                             |
+| -------------------- | ------------------ | ------------------------------------------------ |
+| `rpm_limit`          | INTEGER NULL       | null or > 0. Hard.                               |
+| `rpd_limit`          | INTEGER NULL       | request/day, null or > 0. Hard.                  |
+| `token_day_limit`    | BIGINT NULL        | token/day guardrail, null or > 0.                |
+| `monthly_budget_usd` | NUMERIC(12,6) NULL | USD/month guardrail, null or > 0.                |
+| `allowed_models`     | TEXT[] NULL        | null/empty = all models. Trailing `*` glob only. |
+| `expires_at`         | TIMESTAMPTZ NULL   | null = no expiry.                                |
 
 On `user_settings`:
 
@@ -53,17 +53,17 @@ Changing timezone does **not** reset the active day/month row. New zone applies 
 
 Fail closed:
 
-| Code | HTTP | When |
-| ---- | ---- | ---- |
-| `unknown_key` | 401 | missing / deleted |
-| `inactive_key` | 400 | `is_active=false` |
-| `expired_key` | 400 | `expires_at <= now()` |
-| `model_required` | 400 | managed endpoint, empty model, non-empty allowlist |
-| `model_denied` | 400 | model fails allowlist |
-| `rpm` | 429 | minute request_count would exceed `rpm_limit` |
-| `rpd` | 429 | day request_count would exceed `rpd_limit` |
-| `tokens` | 429 | day settled tokens + reserved + estimate would exceed `token_day_limit` |
-| `budget` | 429 | month settled USD + reserved + estimate would exceed `monthly_budget_usd` |
+| Code             | HTTP | When                                                                      |
+| ---------------- | ---- | ------------------------------------------------------------------------- |
+| `unknown_key`    | 401  | missing / deleted                                                         |
+| `inactive_key`   | 400  | `is_active=false`                                                         |
+| `expired_key`    | 400  | `expires_at <= now()`                                                     |
+| `model_required` | 400  | managed endpoint, empty model, non-empty allowlist                        |
+| `model_denied`   | 400  | model fails allowlist                                                     |
+| `rpm`            | 429  | minute request_count would exceed `rpm_limit`                             |
+| `rpd`            | 429  | day request_count would exceed `rpd_limit`                                |
+| `tokens`         | 429  | day settled tokens + reserved + estimate would exceed `token_day_limit`   |
+| `budget`         | 429  | month settled USD + reserved + estimate would exceed `monthly_budget_usd` |
 
 Passthrough (no model parser): skip model allowlist and token/USD estimates (estimate 0). Still enforce expiry, RPM, RPD.
 
