@@ -22,7 +22,7 @@ import { useModelCatalog } from '@/features/models/use-model-catalog';
 
 type ComboFormValues = {
     name: string;
-    members: string[];
+    models: string[];
     strategy: string | null;
     stick_after_successes: number | null;
     is_active: boolean;
@@ -32,7 +32,7 @@ type ComboFormValues = {
 export function ComboFormFields(props: { isCreate: boolean; globalStrategy: string }) {
     const { translate } = useTranslation();
     const form = Form.useFormInstance<ComboFormValues>();
-    const members = Form.useWatch('members', form) ?? [];
+    const models = Form.useWatch('models', form) ?? [];
     const overrideStrategy = Form.useWatch('override_strategy', form);
     const strategy = Form.useWatch('strategy', form);
     const name = Form.useWatch('name', form) ?? '';
@@ -40,34 +40,34 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategy: stri
     const availableIds = [...new Set([...catalogIds, ...googleIds, ...builtinIds])];
     const colliding = availableIds.includes(normalizeGeminiModelId(name));
 
-    const handleAddMember = (modelId: string | undefined) => {
-        if (!modelId || members.includes(modelId)) {
+    const handleAddModel = (modelId: string | undefined) => {
+        if (!modelId || models.includes(modelId)) {
             return;
         }
-        form.setFieldValue('members', [...members, modelId]);
+        form.setFieldValue('models', [...models, modelId]);
     };
 
-    const handleMoveMember = (index: number, delta: number) => {
-        const next = [...members];
+    const handleMoveModel = (index: number, delta: number) => {
+        const next = [...models];
         const target = index + delta;
         if (target < 0 || target >= next.length) {
             return;
         }
         const [row] = next.splice(index, 1);
         next.splice(target, 0, row!);
-        form.setFieldValue('members', next);
+        form.setFieldValue('models', next);
     };
 
-    const handleRemoveMember = (index: number) => {
+    const handleRemoveModel = (index: number) => {
         form.setFieldValue(
-            'members',
-            members.filter((_member, memberIndex) => memberIndex !== index),
+            'models',
+            models.filter((_modelId, modelIndex) => modelIndex !== index),
         );
     };
 
     const handleFillPreset = (kind: ComboPresetKind) => {
         const preset = fillComboPreset(kind, availableIds);
-        form.setFieldValue('members', preset.members);
+        form.setFieldValue('models', preset.models);
         if (!form.getFieldValue('name')) {
             form.setFieldValue('name', preset.name);
         }
@@ -98,8 +98,8 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategy: stri
                 />
             ) : null}
             <Form.Item
-                label={translate('combos.fields.members')}
-                extra={translate('combos.members.help')}
+                label={translate('combos.fields.models')}
+                extra={translate('combos.models.help')}
                 required
             >
                 {props.isCreate ? (
@@ -115,49 +115,52 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategy: stri
                         </Button>
                     </Space>
                 ) : null}
-                <ModelPicker mode="concrete" disabledIds={members} onChange={handleAddMember} />
+                <ModelPicker mode="concrete" disabledIds={models} onChange={handleAddModel} />
                 <Form.Item
-                    name="members"
+                    name="models"
                     rules={[
                         {
                             required: true,
                             type: 'array',
                             min: 1,
-                            message: translate('combos.errors.membersRequired'),
+                            message: translate('combos.errors.modelsRequired'),
                         },
                     ]}
                     hidden
                 >
                     <Select mode="multiple" />
                 </Form.Item>
-                {members.map((member, index) => {
-                    const entry = entries.find((item) => item.id === member);
+                {models.map((modelId, index) => {
+                    const entry = entries.find((item) => item.id === modelId);
                     return (
-                        <Space key={`${member}-${index}`} style={{ display: 'flex', marginTop: 8 }}>
+                        <Space
+                            key={`${modelId}-${index}`}
+                            style={{ display: 'flex', marginTop: 8 }}
+                        >
                             <Typography.Text>
-                                {index + 1} {member}
+                                {index + 1} {modelId}
                             </Typography.Text>
                             <SourceTag source={entry?.source ?? 'google'} overrides={false} />
                             <Button
                                 size="small"
                                 icon={<ArrowUpOutlined />}
-                                aria-label={translate('combos.members.moveUp')}
+                                aria-label={translate('combos.models.moveUp')}
                                 disabled={index === 0}
-                                onClick={() => handleMoveMember(index, -1)}
+                                onClick={() => handleMoveModel(index, -1)}
                             />
                             <Button
                                 size="small"
                                 icon={<ArrowDownOutlined />}
-                                aria-label={translate('combos.members.moveDown')}
-                                disabled={index === members.length - 1}
-                                onClick={() => handleMoveMember(index, 1)}
+                                aria-label={translate('combos.models.moveDown')}
+                                disabled={index === models.length - 1}
+                                onClick={() => handleMoveModel(index, 1)}
                             />
                             <Button
                                 size="small"
                                 danger
                                 icon={<DeleteOutlined />}
-                                aria-label={translate('combos.members.remove')}
-                                onClick={() => handleRemoveMember(index)}
+                                aria-label={translate('combos.models.remove')}
+                                onClick={() => handleRemoveModel(index)}
                             />
                         </Space>
                     );

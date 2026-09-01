@@ -762,24 +762,24 @@
         "empty": "No combos yet",
         "off": "Off",
         "saveFailed": "Could not save combo",
-        "deleteConfirm": "Members stop resolving. In-flight names 404 to Google.",
+        "deleteConfirm": "This combo name stops resolving. In-flight requests 404 to Google.",
         "overrideWarning": "Requests for {name} will use this combo, not the Google model",
         "defaultStrategy": "Uses the default ({strategy})",
         "fields": {
             "name": "Name",
             "nameHelp": "Sent as the request model",
-            "members": "Members",
+            "models": "Models",
             "strategy": "Strategy",
             "overrideStrategy": "Override default strategy",
             "stickAfter": "Stick after N successes",
             "active": "Active",
             "actions": "Actions"
         },
-        "members": {
+        "models": {
             "help": "Tried in this order. Each Gemini key is rotated before the next model",
             "moveUp": "Move up",
             "moveDown": "Move down",
-            "remove": "Remove member"
+            "remove": "Remove model"
         },
         "presets": {
             "flash": "Flash",
@@ -793,9 +793,9 @@
         },
         "errors": {
             "nameRequired": "Name is required",
-            "membersRequired": "Add at least one model",
-            "memberIsComboName": "A member cannot be this combo's name",
-            "duplicateMember": "Members must be unique",
+            "modelsRequired": "Add at least one model",
+            "modelIsComboName": "A model cannot be this combo's name",
+            "duplicateModel": "Models must be unique",
             "invalidName": "Use a lowercase id with letters, numbers, dots, underscores, or hyphens",
             "strategyRequired": "Choose a strategy"
         },

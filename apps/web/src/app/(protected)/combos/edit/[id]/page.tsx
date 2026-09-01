@@ -36,14 +36,14 @@ export default function ComboEditPage() {
         },
     });
     const record = query?.data?.data;
-    const members = [...(record?.model_combo_members ?? [])]
+    const models = [...(record?.model_combo_members ?? [])]
         .sort((left, right) => left.position - right.position)
-        .map((member) => member.canonical_model);
-    const formKey = `${record?.id ?? 'new'}:${record?.name ?? ''}:${members.join(',')}`;
+        .map((row) => row.canonical_model);
+    const formKey = `${record?.id ?? 'new'}:${record?.name ?? ''}:${models.join(',')}`;
 
     const handleFinish = async (values: {
         name: string;
-        members: string[];
+        models: string[];
         strategy: string | null;
         stick_after_successes: number | null;
         is_active: boolean;
@@ -58,7 +58,7 @@ export default function ComboEditPage() {
             p_strategy: values.override_strategy ? values.strategy : null,
             p_stick_after_successes: values.override_strategy ? values.stick_after_successes : null,
             p_is_active: values.is_active,
-            p_members: values.members,
+            p_members: values.models,
         });
         if (error) {
             const fieldError = comboSaveFieldError(error.message);
@@ -94,7 +94,7 @@ export default function ComboEditPage() {
                     layout="vertical"
                     initialValues={{
                         name: record?.name,
-                        members,
+                        models,
                         strategy: record?.strategy,
                         stick_after_successes: record?.stick_after_successes,
                         is_active: record?.is_active ?? true,

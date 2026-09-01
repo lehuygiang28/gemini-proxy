@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { comboLogModelLabels } from './combo-log-model-labels';
 
 describe('comboLogModelLabels', () => {
-    it('uses the member as primary and requested alias as secondary when they differ', () => {
+    it('uses the winning model as primary and requested combo name as secondary when they differ', () => {
         expect(
             comboLogModelLabels({
                 model: 'models/gemini-3.5-flash',
@@ -14,7 +14,7 @@ describe('comboLogModelLabels', () => {
         });
     });
 
-    it('hides requested when it matches the member', () => {
+    it('hides requested when it matches the winning model', () => {
         expect(
             comboLogModelLabels({
                 model: 'gemini-3.7-flash',

@@ -671,7 +671,7 @@ Pricing model field: `ModelPicker mode="concrete"`.
 
 List `useTable` resource `model_combos` `meta.select = '*, model_combo_members(*)'`. Form `useForm`; `onFinish` `supabase.rpc('save_model_combo', { p_id, p_name, p_strategy, p_stick_after_successes, p_is_active, p_members })` via browser client (`apps/web/src/utils/supabase/client.ts`). `initialValues` from query. `formKey` remount pattern from timezone form. Override `Alert` when name matches builtin/catalog id.
 
-Logs model cell: if `usage.requested_model` and differs from `usage.model`, primary member, secondary muted requested.
+Logs model cell: if `usage.requested_model` and differs from `usage.model`, primary winning model, secondary muted requested.
 
 - [ ] Run `pnpm -F web exec vitest run` for picker/preset/filter tests and `pnpm -F web lint` (locale parity).
 - [ ] Commit `feat(web): combos resource, routing defaults, and log combo labels`

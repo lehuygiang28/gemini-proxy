@@ -26,14 +26,14 @@ export default function ComboCreatePage() {
             strategy: null,
             stick_after_successes: null,
             is_active: true,
-            members: [],
+            models: [],
             override_strategy: false,
         },
     });
 
     const handleFinish = async (values: {
         name: string;
-        members: string[];
+        models: string[];
         strategy: string | null;
         stick_after_successes: number | null;
         is_active: boolean;
@@ -45,7 +45,7 @@ export default function ComboCreatePage() {
             p_strategy: values.override_strategy ? values.strategy : null,
             p_stick_after_successes: values.override_strategy ? values.stick_after_successes : null,
             p_is_active: values.is_active,
-            p_members: values.members,
+            p_members: values.models,
         });
         if (error) {
             const fieldError = comboSaveFieldError(error.message);

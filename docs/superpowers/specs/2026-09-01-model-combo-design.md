@@ -11,6 +11,8 @@ A user defines named combos (`flash-combo`, or a name that collides with a Googl
 
 Operators never type model ids in combo, allowlist, or pricing forms except once, in "Add model".
 
+**UI terminology:** Combo screens, logs, and locale strings call the ordered Google ids **models** (vi: **Model**), never "members" / "thành viên". That word collides with people/org features and with picker/allowlist/pricing, which already say model. Storage and RPC stay `model_combo_members` / `p_members`. Runtime docs still say member for `(api_key, member)` pairs.
+
 ## Locked decisions
 
 1. Combo = ordered list of **concrete Google model ids**. No nesting. Members are never resolved as combos.
@@ -323,18 +325,18 @@ Design bar: **one screen, one Save, query-derived state, no copy-into-form effec
 | Settings tab **Routing** (`?tab=routing`) | Global `combo_strategy` + `combo_stick_after_successes` only                          |
 | Proxy key allowlist                       | Same `ModelPicker` `mode="requestName"` + glob                                        |
 | Pricing                                   | Same picker `mode="concrete"` for override rows (replace free-typed ids)              |
-| Request logs Model column                 | If `requested_model` set and ≠ `model`, show `alias → member`                         |
+| Request logs Model column                 | If `requested_model` set and ≠ `model`, show winning model primary, combo name muted  |
 
 Sider icon: `ClusterOutlined`. `meta.label` via i18n (`combos.title`).
 
 ### Refine wiring
 
-- List: `useTable` + `CreateButton` / `EditButton` / `DeleteButton`. `meta.select = '*, model_combo_members(*)'`. `liveMode: 'auto'`. `syncWithLocation`. Soft-delete is **not** used (hard delete combo + cascade members). Confirm delete with existing `Popconfirm` pattern, one sentence: members stop resolving; in-flight names 404 to Google.
-- Create/Edit: Refine `Create` / `Edit` + `useForm`. `initialValues` from `queryResult` (edit) or `{ strategy: null, is_active: true, members: [] }` (create). `onFinish` → `supabase.rpc('save_model_combo')` then `redirect: 'list'`.
+- List: `useTable` + `CreateButton` / `EditButton` / `DeleteButton`. `meta.select = '*, model_combo_members(*)'`. `liveMode: 'auto'`. `syncWithLocation`. Soft-delete is **not** used (hard delete combo + cascade members). Confirm delete with existing `Popconfirm` pattern, one sentence: this combo name stops resolving; in-flight requests 404 to Google.
+- Create/Edit: Refine `Create` / `Edit` + `useForm`. `initialValues` from `queryResult` (edit) or `{ strategy: null, is_active: true, models: [] }` (create). `onFinish` → `supabase.rpc('save_model_combo')` then `redirect: 'list'`.
 - Routing tab: `useForm` against `user_settings` like timezone. Default values in `initialValues` when no row. **No `useEffect`.**
 - Catalog: `useList('user_model_catalog')` + builtin from `@gemini-proxy/pricing` in `useMemo`. Combos from `useList('model_combos')`. Merge in `useModelCatalog()` (pure function + hook). Sync: `useCustomMutation` → `POST /api/model-catalog/sync`. Button only.
 
-Handlers: `handleSave`, `handleAddMember`, `handleMoveMember`, `handleRemoveMember`, `handleFillPreset`, `handleSyncCatalog`, `handleAddCustomModel`.
+Handlers: `handleSave`, `handleAddModel`, `handleMoveModel`, `handleRemoveModel`, `handleFillPreset`, `handleSyncCatalog`, `handleAddCustomModel`.
 
 ### Combos list
 
@@ -343,7 +345,7 @@ Columns, left → right:
 | Column   | Content                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------- |
 | Name     | `name` primary. If name ∈ catalog/builtin, `Tag` "Overrides". Inactive: `Tag` default "Off" |
-| Members  | Ordered compact tags `1  gemini-3.7-flash` … wrap. Empty impossible if save RPC holds       |
+| Models   | Ordered compact tags `1  gemini-3.7-flash` … wrap. Empty impossible if save RPC holds       |
 | Strategy | If `strategy` null: muted `Default · {global}`. Else the strategy label                     |
 | Actions  | Edit, Delete                                                                                |
 
@@ -354,13 +356,13 @@ No description column, no owner, no timestamps as primary. Search: name contains
 Single card. Fields in this order:
 
 1. **Name** — `Input`, normalize on blur (`normalizeGeminiModelId`). Helper: "Clients send this as model". If name matches builtin/catalog: persistent `Alert` type `warning` (not a modal): "Requests for `{id}` will use this combo, not Google." Save is still one click.
-2. **Members** — not a multi Select (order is the product). Block:
+2. **Models** — not a multi Select (order is the product). Block:
    - `ModelPicker` `mode="concrete"` `multiple={false}`: choosing an option **appends** if not already in the list, then clears the search box. Keyboard: type, Enter adds.
    - List below: index, id, source tag (`Google` / `Custom`), up, down, remove. Up/down are icon buttons (`ArrowUpOutlined` / `ArrowDownOutlined`), no new DnD dependency. Disable up on row 0 / down on last.
 3. **Strategy** — `Switch` "Override default" off by default (`strategy === null`). Off: one line under the switch showing the Routing default (`fallback` / …). On: `Segmented` of three strategies. `stick_n` reveals `InputNumber` min 1, required in that state. No extra "advanced" collapse.
 4. **Active** — `Switch` default on. Label "Active". Inactive combos disappear from `GET /v1/models` and resolve miss.
 
-Create-only presets: three `Button` `type="link"` size small **on the members picker row**, not a wizard: `Flash`, `Pro`, `Gemma`. `handleFillPreset` replaces members with catalog/builtin ids that exist in that family (Flash: `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` — skip missing; Pro/Gemma analogous from builtin list). Does not change Name unless Name is empty: then `flash-combo` / `pro-combo` / `gemma-combo`. User can edit after. Zero extra screens.
+Create-only presets: three `Button` `type="link"` size small **on the models picker row**, not a wizard: `Flash`, `Pro`, `Gemma`. `handleFillPreset` replaces models with catalog/builtin ids that exist in that family (Flash: `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` — skip missing; Pro/Gemma analogous from builtin list). Does not change Name unless Name is empty: then `flash-combo` / `pro-combo` / `gemma-combo`. User can edit after. Zero extra screens.
 
 Footer: Refine Save / Cancel only. No Steps.
 
@@ -406,7 +408,7 @@ Save uses the same primary button pattern as timezone.
 
 Model cell (existing redesign column):
 
-- Combo request: primary `member`; secondary muted `requested_model`
+- Combo request: primary winning model; secondary muted `requested_model`
 - Non-combo: unchanged
 - Retry badge already exists when `retry_attempts.length > 0` — keep it. Attempt detail already lists errors; show `canonical_model` per attempt
 
@@ -422,7 +424,8 @@ Examples of required keys (en):
 - `combos.empty`: No combos yet
 - `combos.fields.name.help`: Sent as the request model
 - `combos.overrideWarning`: Requests for {name} will use this combo, not the Google model
-- `combos.members.help`: Tried in this order. Each Gemini key is rotated before the next model
+- `combos.fields.models`: Models
+- `combos.models.help`: Tried in this order. Each Gemini key is rotated before the next model
 - `picker.addModel`: Add model
 - `picker.syncGoogle`: Sync Google models
 

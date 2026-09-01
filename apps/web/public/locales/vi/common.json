@@ -762,24 +762,24 @@
         "empty": "Chưa có combo",
         "off": "Tắt",
         "saveFailed": "Không lưu được combo",
-        "deleteConfirm": "Thành viên ngừng resolve. Tên đang dùng sẽ 404 về Google.",
+        "deleteConfirm": "Tên combo ngừng resolve. Request đang chạy sẽ 404 về Google.",
         "overrideWarning": "Request tới {name} sẽ dùng combo này, không phải model Google",
         "defaultStrategy": "Dùng mặc định ({strategy})",
         "fields": {
             "name": "Tên",
             "nameHelp": "Gửi làm tên model trong request",
-            "members": "Thành viên",
+            "models": "Model",
             "strategy": "Chiến lược",
             "overrideStrategy": "Ghi đè chiến lược mặc định",
             "stickAfter": "Giữ khóa sau N lần thành công",
             "active": "Bật",
             "actions": "Thao tác"
         },
-        "members": {
+        "models": {
             "help": "Thử theo thứ tự này. Xoay khóa Gemini trước khi chuyển model tiếp theo",
             "moveUp": "Đưa lên",
             "moveDown": "Đưa xuống",
-            "remove": "Xóa thành viên"
+            "remove": "Xóa model"
         },
         "presets": {
             "flash": "Flash",
@@ -793,9 +793,9 @@
         },
         "errors": {
             "nameRequired": "Cần tên combo",
-            "membersRequired": "Thêm ít nhất một model",
-            "memberIsComboName": "Thành viên không được trùng tên combo",
-            "duplicateMember": "Thành viên phải khác nhau",
+            "modelsRequired": "Thêm ít nhất một model",
+            "modelIsComboName": "Model không được trùng tên combo",
+            "duplicateModel": "Các model phải khác nhau",
             "invalidName": "Dùng id chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang",
             "strategyRequired": "Chọn chiến lược"
         },

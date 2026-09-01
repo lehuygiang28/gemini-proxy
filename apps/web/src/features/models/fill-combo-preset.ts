@@ -13,18 +13,18 @@ export type ComboPresetKind = 'flash' | 'pro' | 'gemma';
 export function fillComboPreset(
     kind: ComboPresetKind,
     availableIds: readonly string[],
-): { name: string; members: string[] } {
+): { name: string; models: string[] } {
     const available = new Set(availableIds);
     if (kind === 'flash') {
         return {
             name: 'flash-combo',
-            members: FLASH_IDS.filter((id) => available.has(id)),
+            models: FLASH_IDS.filter((id) => available.has(id)),
         };
     }
     if (kind === 'pro') {
         return {
             name: 'pro-combo',
-            members: listBuiltinModelPricingRows()
+            models: listBuiltinModelPricingRows()
                 .filter(
                     (row) =>
                         row.modelId.startsWith('gemini-') &&
@@ -36,7 +36,7 @@ export function fillComboPreset(
     }
     return {
         name: 'gemma-combo',
-        members: listBuiltinModelPricingRows()
+        models: listBuiltinModelPricingRows()
             .filter((row) => row.family === 'gemma' && available.has(row.modelId))
             .map((row) => row.modelId),
     };

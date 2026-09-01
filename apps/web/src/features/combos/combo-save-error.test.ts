@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { comboSaveFieldError } from './combo-save-error';
 
 describe('comboSaveFieldError', () => {
-    it('maps member_is_combo_name onto the members field', () => {
+    it('maps member_is_combo_name onto the models field', () => {
         expect(comboSaveFieldError('member_is_combo_name')).toEqual({
-            field: 'members',
-            messageKey: 'combos.errors.memberIsComboName',
+            field: 'models',
+            messageKey: 'combos.errors.modelIsComboName',
+        });
+    });
+
+    it('maps duplicate_member and members_required onto the models field', () => {
+        expect(comboSaveFieldError('duplicate_member')).toEqual({
+            field: 'models',
+            messageKey: 'combos.errors.duplicateModel',
+        });
+        expect(comboSaveFieldError('members_required')).toEqual({
+            field: 'models',
+            messageKey: 'combos.errors.modelsRequired',
         });
     });
 

@@ -73,15 +73,15 @@ export default function CombosListPage() {
                     )}
                 />
                 <Table.Column
-                    title={translate('combos.fields.members')}
+                    title={translate('combos.fields.models')}
                     dataIndex="model_combo_members"
-                    render={(members: ComboRow['model_combo_members']) => (
+                    render={(rows: ComboRow['model_combo_members']) => (
                         <Space wrap>
-                            {[...(members ?? [])]
+                            {[...(rows ?? [])]
                                 .sort((left, right) => left.position - right.position)
-                                .map((member) => (
-                                    <Tag key={`${member.position}-${member.canonical_model}`}>
-                                        {member.position + 1} {member.canonical_model}
+                                .map((row) => (
+                                    <Tag key={`${row.position}-${row.canonical_model}`}>
+                                        {row.position + 1} {row.canonical_model}
                                     </Tag>
                                 ))}
                         </Space>
