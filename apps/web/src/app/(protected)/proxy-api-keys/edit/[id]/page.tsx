@@ -24,6 +24,8 @@ import { isValidProxyApiKeyValue } from '@gemini-proxy/core';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 import { ConfirmAlertModal } from '@/components/common';
 import { useCopyWithNotification } from '@/hooks';
+import { ProxyKeyLimitsFields } from '@/features/proxy-api-keys/proxy-key-limits-fields';
+import { normalizeProxyKeyLimits } from '@/features/proxy-api-keys/normalize-proxy-key-limits';
 
 const { Title, Paragraph } = Typography;
 const { useToken } = theme;
@@ -49,7 +51,7 @@ export default function ProxyApiKeysEditPage() {
                 ? values.proxy_key_value.trim()
                 : values.proxy_key_value;
         const submitValues: ProxyApiKeyUpdate = {
-            ...values,
+            ...normalizeProxyKeyLimits(values),
             proxy_key_value: proxyKeyValue,
         };
         const originalKeyValue: ProxyApiKeyUpdate['proxy_key_value'] =
@@ -136,7 +138,12 @@ export default function ProxyApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} onFinish={handleFinish} layout="vertical" autoComplete="off">
+                        <Form
+                            {...formProps}
+                            onFinish={handleFinish}
+                            layout="vertical"
+                            autoComplete="off"
+                        >
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('proxy_api_keys.edit.basicInfo')}
                             </Divider>
@@ -219,6 +226,7 @@ export default function ProxyApiKeysEditPage() {
                                     unCheckedChildren={translate('common.inactive')}
                                 />
                             </Form.Item>
+                            <ProxyKeyLimitsFields />
                         </Form>
                     </Card>
                 </Col>

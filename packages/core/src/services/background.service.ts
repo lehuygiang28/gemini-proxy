@@ -2,11 +2,15 @@ import { Context } from 'hono';
 
 import { getSupabaseClient } from './supabase.service';
 import { DataSanitizer } from '../utils/sanitizer';
-import { estimateCostFromParsedUsage, visibleCompletionTokensForKeys } from '../utils/cost-estimator';
+import {
+    estimateCostFromParsedUsage,
+    visibleCompletionTokensForKeys,
+} from '../utils/cost-estimator';
 import type { CustomModelPricingMap } from '../constants/gemini-pricing';
 import type { ParsedUsageMetadata } from '../utils/usage-metadata-parser';
 import { persistWithRetry } from '../utils/wait-until';
 import { ApiKeyService } from './api-key.service';
+import { ConfigService } from './config.service';
 import type { HonoApp, ProxyRequestDataParsed } from '../types';
 import type { Json } from '@gemini-proxy/database';
 import type { ProxyError } from '../types/error.type';
@@ -174,6 +178,7 @@ export class BackgroundService {
         };
         const fallbackModel = proxyRequestDataParsed.model || 'unknown';
         const settings = await this.loadUserSettings(c, userId);
+        const policyReservation = c.get('proxyPolicyReservation');
         const cost = estimateCostFromParsedUsage(
             { ...tokenUsage, model: tokenUsage.model || fallbackModel },
             fallbackModel,
@@ -230,6 +235,7 @@ export class BackgroundService {
             responseData,
             requestText,
             responseText,
+            extraFieldNames: ConfigService.getRedactJsonFields(c),
         });
 
         // Log request (with token usage and model)
@@ -247,6 +253,15 @@ export class BackgroundService {
                 duration_ms: durationMs,
                 total_response_time_ms: totalResponseTimeMs,
                 attempt_count: retryAttempts.length + 1,
+                ...(policyReservation
+                    ? {
+                          policy_reserved_tokens: policyReservation.reserved_tokens,
+                          policy_reserved_usd: policyReservation.reserved_usd,
+                          policy_minute_start: policyReservation.window_starts.minute,
+                          policy_day_start: policyReservation.window_starts.day,
+                          policy_month_start: policyReservation.window_starts.month,
+                      }
+                    : {}),
             },
             retryAttempts,
             totalResponseTimeMs,
@@ -266,7 +281,6 @@ export class BackgroundService {
             },
         });
 
-        // Add retry attempts (if any)
         if (retryAttempts && retryAttempts.length > 0) {
             this.addRetryAttempts(requestId, retryAttempts);
         }
@@ -320,6 +334,7 @@ export class BackgroundService {
         this.initializeRequest(requestId);
 
         const settings = await this.loadUserSettings(c, userId);
+        const policyReservation = c.get('proxyPolicyReservation');
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -357,6 +372,7 @@ export class BackgroundService {
             responseData,
             requestText,
             responseText: null,
+            extraFieldNames: ConfigService.getRedactJsonFields(c),
         });
 
         // Log failed request
@@ -374,6 +390,15 @@ export class BackgroundService {
                 duration_ms: 0,
                 total_response_time_ms: totalResponseTimeMs,
                 attempt_count: retryAttempts.length,
+                ...(policyReservation
+                    ? {
+                          policy_reserved_tokens: policyReservation.reserved_tokens,
+                          policy_reserved_usd: policyReservation.reserved_usd,
+                          policy_minute_start: policyReservation.window_starts.minute,
+                          policy_day_start: policyReservation.window_starts.day,
+                          policy_month_start: policyReservation.window_starts.month,
+                      }
+                    : {}),
             },
             errorDetails: {
                 message: error.message,
@@ -403,9 +428,20 @@ export class BackgroundService {
                 : null,
         });
 
-        // Add retry attempts (if any)
         if (retryAttempts && retryAttempts.length > 0) {
             this.addRetryAttempts(requestId, retryAttempts);
+        }
+    }
+
+    static async finalizeAfterHandlerError(c: Context<HonoApp>): Promise<void> {
+        if (!c.get('proxyPolicyReservation') && !c.get('proxyRequestId')) {
+            return;
+        }
+        const requestId = c.get('proxyRequestId');
+        try {
+            await persistWithRetry(() => this.finalizeProxyRequest(c, requestId, undefined));
+        } catch (error) {
+            await this.recordReconciliationNeeded(c, requestId, error);
         }
     }
 
@@ -423,23 +459,14 @@ export class BackgroundService {
 
         try {
             const promises: Promise<void>[] = [];
-            if (operations.requestLog) {
+            if (operations.requestLog || c.get('proxyPolicyReservation')) {
                 promises.push(
-                    persistWithRetry(() => this.insertRequestLog(c, operations.requestLog!)).catch(
-                        (error) => {
-                            console.error(
-                                `Failed to insert request log for request ${requestId}:`,
-                                error,
-                            );
-                        },
+                    persistWithRetry(() =>
+                        this.finalizeProxyRequest(c, requestId, operations.requestLog),
+                    ).catch((error) =>
+                        this.recordReconciliationNeeded(c, requestId, error, operations.requestLog),
                     ),
                 );
-            }
-            if (operations.apiKeyUsages.length > 0) {
-                promises.push(this.updateApiKeyUsages(c, operations.apiKeyUsages));
-            }
-            if (operations.proxyApiKeyUsages.length > 0) {
-                promises.push(this.updateProxyApiKeyUsages(c, operations.proxyApiKeyUsages));
             }
             if (operations.apiKeyTouches.length > 0) {
                 promises.push(this.touchApiKeys(c, operations.apiKeyTouches));
@@ -526,201 +553,137 @@ export class BackgroundService {
     private static addRetryAttempts(requestId: string, retryAttempts: any[]): void {
         retryAttempts.forEach((attempt) => {
             if (attempt.api_key_id) {
-                // Add API key usage for failed attempt
-                this.addApiKeyUsage(requestId, {
-                    apiKeyId: attempt.api_key_id,
-                    isSuccessful: false,
-                    promptTokens: 0, // Failed attempts don't consume tokens
-                    completionTokens: 0,
-                    totalTokens: 0,
-                    errorDetails: {
-                        message: attempt.error.message,
-                        type: attempt.error.type,
-                        status: attempt.error.status,
-                        code: attempt.error.code,
-                        provider_status: attempt.provider_error?.status,
-                        provider_headers: attempt.provider_error?.headers,
-                        provider_raw_body: attempt.provider_error?.raw_body,
-                    },
-                });
-
-                // Schedule API key touch
                 this.addApiKeyTouch(requestId, {
                     apiKeyId: attempt.api_key_id,
                     touchType: 'last_error',
                 });
             }
         });
-
-        // Note: We don't add proxy API key usage for retry attempts
-        // because the proxy key is already tracked once per request (success/failure)
-        // Adding it per retry would duplicate the usage count incorrectly
     }
 
     // ===== DATABASE OPERATIONS =====
 
-    private static async insertRequestLog(c: Context<HonoApp>, log: RequestLogData): Promise<void> {
-        const supabase = getSupabaseClient(c);
-
-        // Use the provided usageMetadata (no need to re-extract from response)
-        const usageMetadata = log.usageMetadata;
-
-        const processedLog = {
-            request_id: log.requestId,
-            api_key_id: log.apiKeyId,
-            proxy_key_id: log.proxyKeyId,
-            user_id: log.userId,
-            api_format: log.apiFormat,
-            request_data: log.requestData,
-            response_data: log.responseData || null,
-            is_successful: log.isSuccessful,
-            is_stream: Boolean(log.isStream),
-            error_details: log.errorDetails || null,
-            performance_metrics: log.performanceMetrics || {},
-            usage_metadata: (usageMetadata
-                ? {
-                      prompt_tokens: usageMetadata.promptTokens,
-                      completion_tokens: usageMetadata.completionTokens,
-                      thoughts_tokens: usageMetadata.thoughtsTokens,
-                      tool_use_prompt_tokens: usageMetadata.toolUsePromptTokens,
-                      total_tokens: usageMetadata.totalTokens,
-                      cache_tokens: usageMetadata.cacheTokens,
-                      model: usageMetadata.model,
-                      response_id: usageMetadata.responseId ?? null,
-                      estimated_cost_usd: usageMetadata.estimatedCostUsd,
-                      pricing_version: usageMetadata.pricingVersion,
-                      matched_model: usageMetadata.matchedModel,
-                      raw_metadata: usageMetadata.rawMetadata,
-                  }
-                : null) as Json | null,
-            retry_attempts: log.retryAttempts || [],
+    private static async finalizeProxyRequest(
+        c: Context<HonoApp>,
+        requestId: string,
+        requestLog: RequestLogData | undefined,
+    ): Promise<void> {
+        const reservation = c.get('proxyPolicyReservation');
+        const proxyKey = c.get('proxyApiKeyData');
+        if (!requestLog && !reservation) {
+            return;
+        }
+        const isSuccessful = requestLog?.isSuccessful === true;
+        const usage = requestLog?.usageMetadata;
+        const usageJson = {
+            api_format: requestLog?.apiFormat ?? 'gemini',
+            is_stream: Boolean(requestLog?.isStream),
+            error_details: requestLog?.errorDetails ?? null,
+            performance_metrics: requestLog?.performanceMetrics ?? {},
+            retry_attempts: requestLog?.retryAttempts ?? [],
+            prompt_tokens: usage?.promptTokens ?? 0,
+            completion_tokens: usage?.completionTokens ?? 0,
+            thoughts_tokens: usage?.thoughtsTokens ?? 0,
+            tool_use_prompt_tokens: usage?.toolUsePromptTokens ?? 0,
+            total_tokens: usage?.totalTokens ?? 0,
+            cache_tokens: usage?.cacheTokens ?? 0,
+            model: usage?.model ?? null,
+            response_id: usage?.responseId ?? null,
+            estimated_cost_usd: usage?.estimatedCostUsd ?? null,
+            pricing_version: usage?.pricingVersion ?? null,
+            matched_model: usage?.matchedModel ?? null,
+            raw_metadata: usage?.rawMetadata ?? null,
         };
-
-        const { error } = await supabase.from('request_logs').upsert(processedLog, {
-            onConflict: 'request_id',
-            ignoreDuplicates: false,
+        const supabase = getSupabaseClient(c);
+        const { error } = await supabase.rpc('finalize_proxy_request', {
+            p_request_id: requestId,
+            p_proxy_key_id: requestLog?.proxyKeyId ?? proxyKey.id,
+            p_api_key_id: requestLog?.apiKeyId ?? null,
+            p_user_id: requestLog?.userId ?? proxyKey.user_id,
+            p_is_successful: isSuccessful,
+            p_request_data: (requestLog?.requestData ?? {}) as Json,
+            p_response_data: (requestLog?.responseData ?? null) as Json | null,
+            p_usage: usageJson as Json,
+            p_reserved_tokens: reservation?.reserved_tokens ?? 0,
+            p_reserved_usd: reservation?.reserved_usd ?? 0,
+            p_actual_tokens: isSuccessful ? (usage?.totalTokens ?? 0) : 0,
+            p_actual_usd: isSuccessful ? (usage?.estimatedCostUsd ?? 0) : 0,
+            p_minute_start: reservation?.window_starts.minute ?? null,
+            p_day_start: reservation?.window_starts.day ?? null,
+            p_month_start: reservation?.window_starts.month ?? null,
         });
-
         if (error) {
-            console.error('Failed to insert request log:', error);
             throw error;
         }
     }
 
-    private static async updateApiKeyUsages(
+    private static async recordReconciliationNeeded(
         c: Context<HonoApp>,
-        usages: ApiKeyUsageData[],
+        requestId: string,
+        error: unknown,
+        requestLog?: RequestLogData,
     ): Promise<void> {
+        const proxyKey = c.get('proxyApiKeyData');
+        const reservation = c.get('proxyPolicyReservation');
+        const lastError = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to finalize proxy request ${requestId}:`, error);
         const supabase = getSupabaseClient(c);
-
-        // Group by API key ID
-        const groupedUsages = new Map<
-            string,
+        const usage = requestLog?.usageMetadata;
+        const performanceMetrics = {
+            ...(requestLog?.performanceMetrics ?? {}),
+            ...(reservation
+                ? {
+                      policy_reserved_tokens: reservation.reserved_tokens,
+                      policy_reserved_usd: reservation.reserved_usd,
+                      policy_minute_start: reservation.window_starts.minute,
+                      policy_day_start: reservation.window_starts.day,
+                      policy_month_start: reservation.window_starts.month,
+                  }
+                : {}),
+        };
+        const { error: logError } = await supabase.from('request_logs').upsert(
             {
-                successCount: number;
-                failureCount: number;
-                promptTokens: number;
-                completionTokens: number;
-                totalTokens: number;
-            }
-        >();
-
-        for (const usage of usages) {
-            const current = groupedUsages.get(usage.apiKeyId) || {
-                successCount: 0,
-                failureCount: 0,
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-            };
-            if (usage.isSuccessful) {
-                current.successCount++;
-            } else {
-                current.failureCount++;
-            }
-            current.promptTokens += usage.promptTokens;
-            current.completionTokens += usage.completionTokens;
-            current.totalTokens += usage.totalTokens;
-            groupedUsages.set(usage.apiKeyId, current);
-        }
-
-        // Update each API key (now also updating token usage fields)
-        const updatePromises = Array.from(groupedUsages.entries()).map(
-            async ([apiKeyId, counts]) => {
-                const { error } = await supabase.rpc('increment_api_key_usage', {
-                    p_id: apiKeyId,
-                    p_success: counts.successCount,
-                    p_failure: counts.failureCount,
-                    p_prompt: counts.promptTokens,
-                    p_completion: counts.completionTokens,
-                    p_total: counts.totalTokens,
-                });
-                if (error) {
-                    console.error(`Failed to update API key usage ${apiKeyId}:`, error);
-                }
+                request_id: requestId,
+                proxy_key_id: requestLog?.proxyKeyId ?? proxyKey.id,
+                api_key_id: requestLog?.apiKeyId ?? null,
+                user_id: requestLog?.userId ?? proxyKey.user_id,
+                api_format: requestLog?.apiFormat ?? 'gemini',
+                request_data: (requestLog?.requestData ?? {}) as Json,
+                response_data: (requestLog?.responseData ?? null) as Json | null,
+                is_successful: requestLog?.isSuccessful ?? false,
+                is_stream: Boolean(requestLog?.isStream),
+                error_details: (requestLog?.errorDetails ?? { message: lastError }) as Json,
+                performance_metrics: performanceMetrics as Json,
+                usage_metadata: {
+                    total_tokens: usage?.totalTokens ?? 0,
+                    estimated_cost_usd: usage?.estimatedCostUsd ?? 0,
+                    prompt_tokens: usage?.promptTokens ?? 0,
+                    completion_tokens: usage?.completionTokens ?? 0,
+                    model: usage?.model ?? null,
+                } as Json,
+                retry_attempts: (requestLog?.retryAttempts ?? []) as Json,
             },
+            { onConflict: 'request_id' },
         );
-
-        await Promise.allSettled(updatePromises);
-    }
-
-    private static async updateProxyApiKeyUsages(
-        c: Context<HonoApp>,
-        usages: ProxyApiKeyUsageData[],
-    ): Promise<void> {
-        const supabase = getSupabaseClient(c);
-
-        // Group by proxy API key ID
-        const groupedUsages = new Map<
-            string,
+        if (logError) {
+            console.error(`Failed to persist request_logs stub for retry ${requestId}:`, logError);
+        }
+        const { error: insertError } = await supabase.from('proxy_reconciliation_needed').upsert(
             {
-                successCount: number;
-                failureCount: number;
-                promptTokens: number;
-                completionTokens: number;
-                totalTokens: number;
-            }
-        >();
-
-        for (const usage of usages) {
-            const current = groupedUsages.get(usage.proxyApiKeyId) || {
-                successCount: 0,
-                failureCount: 0,
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-            };
-
-            if (usage.isSuccessful) {
-                current.successCount++;
-            } else {
-                current.failureCount++;
-            }
-
-            current.promptTokens += usage.promptTokens;
-            current.completionTokens += usage.completionTokens;
-            current.totalTokens += usage.totalTokens;
-            groupedUsages.set(usage.proxyApiKeyId, current);
-        }
-
-        // Update each proxy API key
-        const updatePromises = Array.from(groupedUsages.entries()).map(
-            async ([proxyApiKeyId, counts]) => {
-                const { error } = await supabase.rpc('increment_proxy_api_key_usage', {
-                    p_id: proxyApiKeyId,
-                    p_success: counts.successCount,
-                    p_failure: counts.failureCount,
-                    p_prompt: counts.promptTokens,
-                    p_completion: counts.completionTokens,
-                    p_total: counts.totalTokens,
-                });
-                if (error) {
-                    console.error(`Failed to update Proxy API key usage ${proxyApiKeyId}:`, error);
-                }
+                request_id: requestId,
+                proxy_key_id: proxyKey.id,
+                user_id: proxyKey.user_id,
+                last_error: lastError,
+                resolved_at: null,
             },
+            { onConflict: 'request_id' },
         );
-
-        await Promise.allSettled(updatePromises);
+        if (insertError) {
+            console.error(
+                `Failed to record reconciliation row for request ${requestId}:`,
+                insertError,
+            );
+        }
     }
 
     private static async touchApiKeys(
@@ -819,9 +782,7 @@ export class BackgroundService {
             parsed[modelId.trim().toLowerCase()] = {
                 inputPerMillion: input,
                 outputPerMillion: output,
-                ...(Number.isFinite(cache) && cache >= 0
-                    ? { cachedInputPerMillion: cache }
-                    : {}),
+                ...(Number.isFinite(cache) && cache >= 0 ? { cachedInputPerMillion: cache } : {}),
             };
         }
         return parsed;
@@ -863,16 +824,32 @@ export class BackgroundService {
         responseData?: Record<string, unknown>;
         requestText: string | null;
         responseText: string | null;
+        extraFieldNames?: string[];
     }): void {
-        const { settings, requestData, responseData, requestText, responseText } = params;
+        const { settings, requestData, responseData, requestText, responseText, extraFieldNames } =
+            params;
         if (!settings.detailed_observability) {
             return;
         }
         if (settings.save_request_body && requestText) {
-            Object.assign(requestData, DataSanitizer.sanitizePayloadBody(requestText));
+            Object.assign(
+                requestData,
+                DataSanitizer.sanitizePayloadBody(
+                    requestText,
+                    DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+                    { extraFieldNames },
+                ),
+            );
         }
         if (settings.save_response_body && responseText && responseData) {
-            Object.assign(responseData, DataSanitizer.sanitizePayloadBody(responseText));
+            Object.assign(
+                responseData,
+                DataSanitizer.sanitizePayloadBody(
+                    responseText,
+                    DataSanitizer.PAYLOAD_BODY_MAX_CHARS,
+                    { extraFieldNames },
+                ),
+            );
         }
     }
 

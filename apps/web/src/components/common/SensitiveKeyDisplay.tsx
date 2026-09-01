@@ -27,10 +27,7 @@ export const SensitiveKeyDisplay: React.FC<SensitiveKeyDisplayProps> = ({
     const { token } = useToken();
 
     const actions = [
-        <Tooltip
-            key="toggle"
-            title={translate(isRevealed ? 'common.hideKey' : 'common.revealKey')}
-        >
+        <Tooltip key="toggle" title={translate(isRevealed ? 'common.hideKey' : 'common.revealKey')}>
             <Button
                 type="text"
                 size="small"

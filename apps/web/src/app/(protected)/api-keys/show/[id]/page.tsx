@@ -17,6 +17,7 @@ import type { Tables } from '@gemini-proxy/database';
 import { SensitiveKeyDisplay, UsageStatistics, DateTimeDisplay } from '@/components/common';
 import { getProviderColor, getProviderText, formatTokenCount } from '@/utils/table-helpers';
 import { formatJsonDisplay } from '@/utils/table-helpers';
+import { isCooldownActive, isDisabledReason } from '@/features/observability/api-key-cooldown';
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
@@ -50,6 +51,10 @@ export default function ApiKeysShowPage() {
         return <Empty description={translate('api_keys.notFound')} />;
     }
 
+    const nowMs = Date.now();
+    const inCooldown = isCooldownActive(record.cooldown_until, nowMs);
+    const disabledReason = isDisabledReason(record.disabled_reason) ? record.disabled_reason : null;
+
     return (
         <Show title={<Title level={4}>{record.name}</Title>}>
             <Row gutter={12}>
@@ -75,12 +80,33 @@ export default function ApiKeysShowPage() {
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label={translate('api_keys.fields.status')}>
-                                <Tag color={record.is_active ? 'success' : 'error'}>
-                                    {record.is_active
-                                        ? translate('common.active')
-                                        : translate('common.inactive')}
-                                </Tag>
+                                <Space wrap>
+                                    <Tag color={record.is_active ? 'success' : 'error'}>
+                                        {record.is_active
+                                            ? translate('common.active')
+                                            : translate('common.inactive')}
+                                    </Tag>
+                                    {inCooldown && (
+                                        <Tag color="warning">
+                                            {translate('api_keys.cooldown.active')}{' '}
+                                            <DateTimeDisplay dateString={record.cooldown_until} />
+                                        </Tag>
+                                    )}
+                                    {disabledReason && (
+                                        <Tag color="error">
+                                            {translate('api_keys.fields.disabledReason')}:{' '}
+                                            {translate(`api_keys.disabledReason.${disabledReason}`)}
+                                        </Tag>
+                                    )}
+                                </Space>
                             </Descriptions.Item>
+                            {record.consecutive_failures > 0 && (
+                                <Descriptions.Item
+                                    label={translate('api_keys.fields.consecutiveFailures')}
+                                >
+                                    {record.consecutive_failures}
+                                </Descriptions.Item>
+                            )}
                         </Descriptions>
                     </Card>
                 </Col>
@@ -131,18 +157,12 @@ export default function ApiKeysShowPage() {
                         <Descriptions bordered column={1} size="middle">
                             <Descriptions.Item label={translate('api_keys.tokens.totalTokens')}>
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(
-                                        record.total_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.total_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item label={translate('api_keys.tokens.promptTokens')}>
                                 <Text>
-                                    {formatTokenCount(
-                                        record.prompt_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.prompt_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item

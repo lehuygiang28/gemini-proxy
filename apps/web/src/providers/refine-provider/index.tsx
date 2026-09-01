@@ -7,6 +7,7 @@ import {
     KeyOutlined,
     FileTextOutlined,
     SettingOutlined,
+    WarningOutlined,
 } from '@ant-design/icons';
 import { useNotificationProvider } from '@refinedev/antd';
 import { Refine, type I18nProvider } from '@refinedev/core';
@@ -92,6 +93,13 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         show: '/request-logs/show/:id',
                         meta: {
                             icon: <FileTextOutlined />,
+                        },
+                    },
+                    {
+                        name: 'proxy_reconciliation_needed',
+                        list: '/reconciliation',
+                        meta: {
+                            icon: <WarningOutlined />,
                         },
                     },
                     {

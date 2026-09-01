@@ -1,34 +1,37 @@
 import React from 'react';
 import { useTranslation } from '@refinedev/core';
+import { resolveKeyBadgeState } from '../api-key-cooldown';
 
 interface KeyHealthBadgeProps {
     isActive: boolean;
     successRate: number;
     failureCount: number;
-}
-
-function resolveHealthState(
-    isActive: boolean,
-    successRate: number,
-    failureCount: number,
-): 'active' | 'degraded' | 'disabled' {
-    if (!isActive) {
-        return 'disabled';
-    }
-    if (failureCount > 0 && successRate < 90) {
-        return 'degraded';
-    }
-    return 'active';
+    cooldownUntil?: string | null;
 }
 
 /**
  * Compact key health chip for lists and the health panel.
  */
-export function KeyHealthBadge({ isActive, successRate, failureCount }: KeyHealthBadgeProps) {
+export function KeyHealthBadge({
+    isActive,
+    successRate,
+    failureCount,
+    cooldownUntil,
+}: KeyHealthBadgeProps) {
     const { translate } = useTranslation();
-    const state = resolveHealthState(isActive, successRate, failureCount);
+    const state = resolveKeyBadgeState({
+        isActive,
+        successRate,
+        failureCount,
+        cooldownUntil,
+        nowMs: Date.now(),
+    });
     const label =
-        state === 'disabled' ? translate('observability.healthDisabled') : `${successRate}%`;
+        state === 'disabled'
+            ? translate('observability.healthDisabled')
+            : state === 'cooldown'
+              ? translate('observability.healthCooldown')
+              : `${successRate}%`;
     return (
         <span
             className="gp-chip"

@@ -170,6 +170,7 @@
             "list": "Nhật ký | Gemini Proxy",
             "show": "#{id} Nhật ký | Gemini Proxy"
         },
+        "proxy_reconciliation_needed": { "list": "Đối soát | Gemini Proxy" },
         "user_settings": { "list": "Cài đặt | Gemini Proxy" }
     },
     "header": {
@@ -206,7 +207,19 @@
             "created": "Ngày tạo",
             "updated": "Cập nhật lần cuối",
             "details": "Chi tiết khóa API",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "cooldown": "Thời gian chờ",
+            "disabledReason": "Lý do vô hiệu",
+            "consecutiveFailures": "Lỗi liên tiếp"
+        },
+        "cooldown": {
+            "active": "Đang chờ"
+        },
+        "disabledReason": {
+            "invalid_key": "Khóa không hợp lệ",
+            "permission": "Không có quyền",
+            "spend_limit": "Giới hạn chi tiêu",
+            "manual": "Thủ công"
         },
         "placeholders": {
             "searchName": "Tìm tên khóa API...",
@@ -378,13 +391,22 @@
             "created": "Ngày tạo",
             "updated": "Cập nhật lần cuối",
             "details": "Chi tiết khóa proxy",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "rpm_limit": "Số request mỗi phút",
+            "rpd_limit": "Số request mỗi ngày",
+            "token_day_limit": "Số token mỗi ngày",
+            "monthly_budget_usd": "Ngân sách mỗi tháng (USD)",
+            "allowed_models": "Model được phép",
+            "expires_at": "Hết hạn lúc"
         },
         "placeholders": {
             "searchName": "Tìm tên khóa proxy...",
             "allStatus": "Tất cả trạng thái",
             "nameExample": "vd. Khóa ứng dụng của tôi",
-            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới"
+            "enterOrGenerate": "Nhập khóa API hoặc tạo khóa bên dưới",
+            "unlimited": "Không giới hạn",
+            "modelPatterns": "Nhập tên model chính xác hoặc mẫu kết thúc bằng *",
+            "expiresAt": "Không hết hạn"
         },
         "tabs": {
             "keys": "Khóa",
@@ -434,7 +456,12 @@
         "errors": {
             "enterName": "Vui lòng nhập tên",
             "enterOrGenerate": "Vui lòng nhập hoặc tạo khóa proxy",
-            "invalidProxyKey": "Khóa proxy phải dài 10-128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới"
+            "invalidProxyKey": "Khóa proxy phải dài 10-128 ký tự: chữ, số, dấu chấm, gạch ngang, gạch dưới",
+            "invalidModelPattern": "Dấu đại diện (*) chỉ được phép ở ký tự cuối cùng"
+        },
+        "limits": {
+            "title": "Giới hạn",
+            "unlimitedHint": "Mọi giới hạn đều không bắt buộc. Để trống nghĩa là không giới hạn. Cửa sổ ngày/tháng theo múi giờ trong Cài đặt. Hạn mức theo từng khóa proxy, không theo Google project."
         },
         "edit": {
             "editing": "Đang sửa {name}",
@@ -675,6 +702,24 @@
             "attempt": "Lần thử #{number}"
         }
     },
+    "proxy_reconciliation_needed": {
+        "proxy_reconciliation_needed": "Đối soát",
+        "titles": { "list": "Đối soát" },
+        "heldTitle": "Reservation vẫn được giữ",
+        "heldCopy": "Giới hạn vẫn fail-closed cho đến khi bạn thử lại. Đối soát chạy lại cùng RPC finalize idempotent; hệ thống không tự nhả reservation cũ.",
+        "retrySuccess": "Đã gửi đối soát",
+        "retrySuccessDesc": "Finalize đã chạy lại cho request này. Nếu settlement đã tồn tại, bộ đếm không bị nhân đôi.",
+        "retryFailed": "Đối soát thất bại",
+        "retryFailedDesc": "Không chạy lại được finalize cho request này.",
+        "fields": {
+            "requestId": "Mã request",
+            "proxyKey": "Khóa proxy",
+            "lastError": "Lỗi gần nhất",
+            "created": "Thời gian"
+        },
+        "actions": { "retry": "Thử lại" },
+        "empty": "Không có reservation kẹt"
+    },
     "user_settings": {
         "user_settings": "Cài đặt",
         "titles": { "list": "Cài đặt" }
@@ -721,6 +766,7 @@
         "requestTitle": "Request {id}",
         "keyMeta": "{kind} · {count} token · {fails, plural, one {# lần thất bại} other {# lần thất bại}}",
         "healthDisabled": "tắt",
+        "healthCooldown": "chờ",
         "statsFailed": "Một số thống kê không tải được",
         "statsFailedDesc": "Luồng trực tiếp vẫn có thể hoạt động. Bấm Làm mới để thử lại các RPC thất bại.",
         "emptyHourly": "Không có dữ liệu theo giờ",
@@ -742,14 +788,28 @@
     },
     "settings": {
         "title": "Cài đặt",
-        "subtitle": "Kiểm soát ghi nhật ký request chi tiết và tùy chọn bảng điều khiển.",
-        "tabs": { "observability": "Giám sát", "pricing": "Giá token", "appearance": "Giao diện" },
+        "subtitle": "Kiểm soát ghi nhật ký, múi giờ hạn mức, giá token và tùy chọn bảng điều khiển.",
+        "tabs": {
+            "observability": "Giám sát",
+            "pricing": "Giá token",
+            "timezone": "Múi giờ",
+            "appearance": "Giao diện"
+        },
         "appearance": {
             "title": "Giao diện",
             "colorMode": "Chế độ màu",
             "dark": "Tối",
             "light": "Sáng",
             "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi nhật ký request."
+        },
+        "timezone": {
+            "label": "Múi giờ hạn mức",
+            "placeholder": "Tìm múi giờ IANA",
+            "extra": "Cửa sổ hạn mức ngày và tháng của khóa proxy theo múi giờ này. Đổi múi giờ không đặt lại bucket ngày/tháng đang chạy.",
+            "invalid": "Chọn múi giờ IANA hợp lệ. Không tự chuyển về UTC.",
+            "saved": "Đã lưu múi giờ",
+            "savedDesc": "Cửa sổ hạn mức ngày và tháng mới sẽ dùng múi giờ này.",
+            "saveFailed": "Lưu múi giờ thất bại"
         },
         "observability": {
             "saved": "Đã lưu cài đặt",

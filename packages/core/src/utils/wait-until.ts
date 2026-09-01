@@ -1,5 +1,6 @@
 import { Context } from 'hono';
 import { getRuntimeKey } from 'hono/adapter';
+import { computeRetryDelayMs } from '../retry/retry-delay';
 
 /**
  * Keep a background promise alive on Cloudflare / Vercel after the handler returns.
@@ -37,19 +38,36 @@ export async function executeWithWaitUntil(c: Context, operation: Promise<void>)
     }
 }
 
-const RETRY_DELAYS_MS = [200, 800] as const;
+const FINALIZE_ATTEMPTS = 3;
+const FINALIZE_RETRY_CAP_MS = 2_000;
+
+function finalizeRetryDelayMs(attempt: number): number {
+    if (process.env.VITEST) {
+        return 0;
+    }
+    return Math.floor(
+        computeRetryDelayMs({
+            attempt,
+            baseDelayMs: 200,
+            maxDelayMs: FINALIZE_RETRY_CAP_MS,
+            random: Math.random,
+        }),
+    );
+}
 
 export async function persistWithRetry(operation: () => Promise<void>): Promise<void> {
     let lastError: unknown;
-    for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
+    for (let attempt = 0; attempt < FINALIZE_ATTEMPTS; attempt++) {
         try {
             await operation();
             return;
         } catch (error) {
             lastError = error;
-            const delay = RETRY_DELAYS_MS[attempt];
-            if (delay != null) {
-                await new Promise((resolve) => setTimeout(resolve, delay));
+            if (attempt < FINALIZE_ATTEMPTS - 1) {
+                const delayMs = finalizeRetryDelayMs(attempt);
+                if (delayMs > 0) {
+                    await new Promise((resolve) => setTimeout(resolve, delayMs));
+                }
             }
         }
     }

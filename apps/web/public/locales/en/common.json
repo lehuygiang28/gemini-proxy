@@ -170,6 +170,7 @@
             "list": "Logs | Gemini Proxy",
             "show": "#{id} Log | Gemini Proxy"
         },
+        "proxy_reconciliation_needed": { "list": "Reconciliation | Gemini Proxy" },
         "user_settings": { "list": "Settings | Gemini Proxy" }
     },
     "header": {
@@ -206,7 +207,19 @@
             "created": "Created",
             "updated": "Last Updated",
             "details": "API Key Details",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "cooldown": "Cooldown",
+            "disabledReason": "Disabled reason",
+            "consecutiveFailures": "Consecutive failures"
+        },
+        "cooldown": {
+            "active": "In cooldown"
+        },
+        "disabledReason": {
+            "invalid_key": "Invalid key",
+            "permission": "Permission denied",
+            "spend_limit": "Spend limit",
+            "manual": "Manual"
         },
         "placeholders": {
             "searchName": "Search API key names...",
@@ -378,13 +391,22 @@
             "created": "Created",
             "updated": "Last Updated",
             "details": "Proxy API Key Details",
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "rpm_limit": "Requests per minute",
+            "rpd_limit": "Requests per day",
+            "token_day_limit": "Tokens per day",
+            "monthly_budget_usd": "Monthly budget (USD)",
+            "allowed_models": "Allowed models",
+            "expires_at": "Expires at"
         },
         "placeholders": {
             "searchName": "Search proxy API key names...",
             "allStatus": "All Status",
             "nameExample": "e.g., My App Key",
-            "enterOrGenerate": "Enter your API key or generate one below"
+            "enterOrGenerate": "Enter your API key or generate one below",
+            "unlimited": "Unlimited",
+            "modelPatterns": "Enter exact models or a trailing * pattern",
+            "expiresAt": "No expiration"
         },
         "tabs": {
             "keys": "Keys",
@@ -434,7 +456,12 @@
         "errors": {
             "enterName": "Please enter a name",
             "enterOrGenerate": "Please enter or generate a proxy API key",
-            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores"
+            "invalidProxyKey": "Proxy key must be 10-128 characters: letters, numbers, dots, hyphens, underscores",
+            "invalidModelPattern": "A wildcard (*) is only allowed as the final character"
+        },
+        "limits": {
+            "title": "Limits",
+            "unlimitedHint": "All limits are optional. Empty means unlimited. Daily and monthly windows follow your timezone in Settings. Quota is per proxy key, not per Google project."
         },
         "edit": {
             "editing": "Editing {name}",
@@ -675,6 +702,24 @@
             "attempt": "Attempt #{number}"
         }
     },
+    "proxy_reconciliation_needed": {
+        "proxy_reconciliation_needed": "Reconciliation",
+        "titles": { "list": "Reconciliation" },
+        "heldTitle": "Reservations stay held",
+        "heldCopy": "Limits stay fail-closed until you retry. Reconcile re-runs the same idempotent finalize RPC; it does not auto-release stale reservations.",
+        "retrySuccess": "Reconcile queued",
+        "retrySuccessDesc": "Finalize ran again for this request. If settlement already existed, counters were not doubled.",
+        "retryFailed": "Reconcile failed",
+        "retryFailedDesc": "Could not re-run finalize for this request.",
+        "fields": {
+            "requestId": "Request ID",
+            "proxyKey": "Proxy key",
+            "lastError": "Last error",
+            "created": "Created"
+        },
+        "actions": { "retry": "Retry" },
+        "empty": "No stale reservations"
+    },
     "user_settings": {
         "user_settings": "Settings",
         "titles": { "list": "Settings" }
@@ -721,6 +766,7 @@
         "requestTitle": "Request {id}",
         "keyMeta": "{kind} · {count} tokens · {fails, plural, one {# fail} other {# fails}}",
         "healthDisabled": "disabled",
+        "healthCooldown": "cooldown",
         "statsFailed": "Some statistics failed to load",
         "statsFailedDesc": "Live feed may still work. Use Refresh to retry failed RPCs.",
         "emptyHourly": "No hourly data",
@@ -742,10 +788,11 @@
     },
     "settings": {
         "title": "Settings",
-        "subtitle": "Control detailed request logging and console preferences.",
+        "subtitle": "Control logging, quota timezone, pricing, and console preferences.",
         "tabs": {
             "observability": "Observability",
             "pricing": "Pricing",
+            "timezone": "Timezone",
             "appearance": "Appearance"
         },
         "appearance": {
@@ -754,6 +801,15 @@
             "dark": "Dark",
             "light": "Light",
             "hint": "Stored in a browser cookie. Does not affect request logging."
+        },
+        "timezone": {
+            "label": "Quota timezone",
+            "placeholder": "Search IANA timezones",
+            "extra": "Daily and monthly proxy-key windows follow this timezone. Changing it does not reset the active day or month bucket.",
+            "invalid": "Choose a valid IANA timezone. UTC is not used as a silent fallback.",
+            "saved": "Timezone saved",
+            "savedDesc": "New day and month quota windows will use this timezone.",
+            "saveFailed": "Failed to save timezone"
         },
         "observability": {
             "saved": "Settings saved",

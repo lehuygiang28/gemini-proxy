@@ -180,9 +180,7 @@ function DateFilterDropdown({
                 noStyle
                 key={dateFieldKey}
                 initialValue={
-                    activeRange
-                        ? [dayjs(activeRange[0]), dayjs(activeRange[1])]
-                        : undefined
+                    activeRange ? [dayjs(activeRange[0]), dayjs(activeRange[1])] : undefined
                 }
             >
                 <RangePicker showTime style={{ width: '100%' }} format={dateLocaleFormat} />
@@ -373,8 +371,12 @@ export function useRequestLogTableColumns({
                                 ) : null}
                             </Space>
                             {retryCount > 0 ? (
-                                <div style={{ color: token.colorError, fontSize: 11, marginTop: 2 }}>
-                                    {translate('request_logs.metrics.retries', { count: retryCount })}
+                                <div
+                                    style={{ color: token.colorError, fontSize: 11, marginTop: 2 }}
+                                >
+                                    {translate('request_logs.metrics.retries', {
+                                        count: retryCount,
+                                    })}
                                 </div>
                             ) : null}
                         </div>

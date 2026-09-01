@@ -15,9 +15,7 @@
         "dev": "tsdown --watch",
         "start": "node dist/index.js",
         "clean": "rimraf dist",
-        "test": "pnpm run test:validation && pnpm run test:import-helpers",
-        "test:validation": "tsdown src/test-validation.ts --format esm && node dist/test-validation.js",
-        "test:import-helpers": "tsdown src/lib/api-key-import-helpers.test.ts --format esm --outDir dist/test && node --test dist/test/api-key-import-helpers.test.mjs",
+        "test": "vitest run",
         "test:batch": "tsdown src/test-batch-operations.ts --format esm && node dist/test-batch-operations.js"
     },
     "keywords": [
@@ -52,9 +50,10 @@
         "@types/uuid": "^10.0.0",
         "rimraf": "^6.0.1",
         "tsdown": "^0.17.0",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "vitest": "~3.2.0"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=20.0.0"
     }
 }

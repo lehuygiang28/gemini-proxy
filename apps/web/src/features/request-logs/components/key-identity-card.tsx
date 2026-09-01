@@ -7,16 +7,19 @@ import { resolveKeyLabel } from '../resolve-key-label';
 
 const { Text } = Typography;
 
-type KeyJoin = {
-    id: string;
-    name: string;
-    deleted_at: string | null;
-    is_active?: boolean;
-    provider?: string;
-    success_count?: number | null;
-    failure_count?: number | null;
-    total_tokens?: number | null;
-} | null | undefined;
+type KeyJoin =
+    | {
+          id: string;
+          name: string;
+          deleted_at: string | null;
+          is_active?: boolean;
+          provider?: string;
+          success_count?: number | null;
+          failure_count?: number | null;
+          total_tokens?: number | null;
+      }
+    | null
+    | undefined;
 
 export type KeyIdentityCardProps = {
     kind: 'api' | 'proxy';
@@ -103,7 +106,13 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                         </div>
                     ) : null}
                     {joined && !joined.deleted_at && kind === 'api' && joined.provider ? (
-                        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        <div
+                            style={{
+                                marginTop: 8,
+                                fontSize: 12,
+                                color: 'var(--gp-text-secondary)',
+                            }}
+                        >
                             {translate('request_logs.identity.provider')}{' '}
                             <Tag color="blue" style={{ borderRadius: 2 }}>
                                 {joined.provider}
@@ -111,7 +120,13 @@ export function KeyIdentityCard({ kind, keyId, joined, onCopy }: KeyIdentityCard
                         </div>
                     ) : null}
                     {joined && !joined.deleted_at && joined.total_tokens != null ? (
-                        <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gp-text-secondary)' }}>
+                        <div
+                            style={{
+                                marginTop: 4,
+                                fontSize: 12,
+                                color: 'var(--gp-text-secondary)',
+                            }}
+                        >
                             {translate('request_logs.identity.lifetimeTokens', {
                                 count: formatTokenCount(
                                     joined.total_tokens,

@@ -5,9 +5,7 @@ export type ActivityChartPoint = { label: string; count: number };
 const MAX_CHART_POINTS = 120;
 const TARGET_CHART_POINTS = 80;
 
-export function downsampleActivityChartPoints(
-    points: ActivityChartPoint[],
-): ActivityChartPoint[] {
+export function downsampleActivityChartPoints(points: ActivityChartPoint[]): ActivityChartPoint[] {
     if (points.length <= MAX_CHART_POINTS) {
         return points;
     }

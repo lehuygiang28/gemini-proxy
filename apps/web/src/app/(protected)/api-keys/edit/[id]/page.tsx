@@ -111,7 +111,12 @@ export default function ApiKeysEditPage() {
                 </Col>
                 <Col xs={24} lg={16}>
                     <Card variant="borderless">
-                        <Form {...formProps} layout="vertical" onFinish={handleFinish} autoComplete="off">
+                        <Form
+                            {...formProps}
+                            layout="vertical"
+                            onFinish={handleFinish}
+                            autoComplete="off"
+                        >
                             <Divider orientation="left">
                                 <InfoCircleOutlined /> {translate('api_keys.edit.basicInfo')}
                             </Divider>

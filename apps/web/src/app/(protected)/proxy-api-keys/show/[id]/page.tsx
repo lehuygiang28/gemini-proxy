@@ -128,20 +128,14 @@ export default function ProxyApiKeysShowPage() {
                                 label={translate('proxy_api_keys.tokens.totalTokens')}
                             >
                                 <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(
-                                        record.total_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.total_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item
                                 label={translate('proxy_api_keys.tokens.promptTokens')}
                             >
                                 <Text>
-                                    {formatTokenCount(
-                                        record.prompt_tokens,
-                                        translate('common.na'),
-                                    )}
+                                    {formatTokenCount(record.prompt_tokens, translate('common.na'))}
                                 </Text>
                             </Descriptions.Item>
                             <Descriptions.Item
@@ -161,7 +155,8 @@ export default function ProxyApiKeysShowPage() {
                     <Card
                         title={
                             <Space>
-                                <ClockCircleOutlined /> {translate('proxy_api_keys.show.timestamps')}
+                                <ClockCircleOutlined />{' '}
+                                {translate('proxy_api_keys.show.timestamps')}
                             </Space>
                         }
                         variant="borderless"

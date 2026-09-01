@@ -1,6 +1,5 @@
 import type { Variables as HonoVariables, Bindings as HonoBindings } from 'hono/types';
 import type { Tables } from '@gemini-proxy/database';
-import type { RetryConfig } from '../services/config.service';
 
 export type ProxyApiFormat = 'gemini' | 'openai';
 
@@ -9,30 +8,25 @@ export type ProxyRequestDataParsed = {
     apiFormat: ProxyApiFormat;
     stream: boolean;
     urlToProxy: string;
+    managed: boolean;
 };
 
 export type LoadBalanceStrategy = 'round_robin' | 'sticky_until_error';
-
-export interface ProxyRequestOptions {
-    retry?: Partial<RetryConfig> & {
-        onZeroCompletionTokens?: boolean;
-    };
-    apiKeySelection?: {
-        prioritizeNewer?: boolean;
-        prioritizeLeastErrors?: boolean;
-        prioritizeLeastRecentlyUsed?: boolean;
-    };
-    loadbalance?: {
-        strategy?: LoadBalanceStrategy;
-    };
-}
 
 // Hono-specific types
 export interface Variables extends HonoVariables {
     proxyRequestId: string;
     proxyRequestDataParsed: ProxyRequestDataParsed;
     proxyApiKeyData: Tables<'proxy_api_keys'>;
-    proxyRequestOptions?: ProxyRequestOptions;
+    proxyPolicyReservation?: {
+        reserved_tokens: number;
+        reserved_usd: number;
+        window_starts: {
+            minute: string | null;
+            day: string | null;
+            month: string | null;
+        };
+    };
     requestStartTime?: number;
 }
 

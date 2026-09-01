@@ -758,6 +758,10 @@ html:has(.gp-app-shell) body {
     background: var(--gp-warn);
 }
 
+.gp-chip[data-state='cooldown'] .gp-chip-dot {
+    background: var(--gp-warn);
+}
+
 .gp-chip[data-state='disabled'] .gp-chip-dot {
     background: var(--gp-error);
 }

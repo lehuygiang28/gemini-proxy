@@ -68,33 +68,21 @@ Gemini Proxy is a comprehensive solution that allows you to:
 
 ## ✨ Core Features
 
-### 🔑 **API Key Management**
-
-- Secure storage of multiple Google Gemini API keys.
-- Intelligent key rotation and load balancing.
-- Usage tracking and analytics per key.
-- Enable/disable keys without downtime.
-
-### ⚡ **Performance & Scalability**
-
-- Automatic request distribution across API keys.
-- Built-in retry mechanisms with exponential backoff.
-- Request caching and optimization.
-- Support for streaming responses.
-
-### 📊 **Monitoring & Analytics**
-
-- Real-time request logging and analytics.
-- Performance metrics and cost tracking.
-- Error monitoring and alerting.
-- Usage dashboards and reports.
-
-### 🛡️ **Security & Access Control**
-
-- Proxy API key management.
-- Request authentication and authorization.
-- Rate limiting and abuse prevention.
-- Secure environment variable handling.
+| Capability                                          | Status                             |
+| --------------------------------------------------- | ---------------------------------- |
+| Multi Gemini key rotation                           | Implemented                        |
+| Streaming                                           | Implemented                        |
+| Usage logs + Standard text/image cost estimate      | Implemented                        |
+| Canonical `/v1` + detect-by-credential              | Implemented                        |
+| Classified retry + key/model cooldown               | Spec 3                             |
+| Proxy-key RPM / request-day / token-day / USD-month | Spec 4                             |
+| User timezone windows                               | Spec 4                             |
+| Idempotent settlement + stale alerts                | Spec 5                             |
+| Response cache                                      | Not implemented                    |
+| Hash/encrypt at rest                                | Out of scope (plaintext by design) |
+| Google project pools                                | Out of scope                       |
+| OpenTelemetry / OTLP                                | Out of scope                       |
+| Interaction/resource affinity                       | Out of scope                       |
 
 ### 🌍 **Multi-Platform Support**
 
@@ -108,7 +96,7 @@ Gemini Proxy is a comprehensive solution that allows you to:
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js** (v18 or higher)
+- **Node.js** (v20 or higher)
 - **pnpm** (v10 or higher)
 - **Git**
 - A **Google AI Studio** account for Gemini API keys.
@@ -186,7 +174,7 @@ import { GoogleGenAI } from "@google/genai";
 const genAi = new GoogleGenAI({
   apiKey: "your_proxy_api_key",
   httpOptions: {
-    baseUrl: "https://your-proxy-endpoint/api/gproxy/gemini",
+    baseUrl: "https://your-proxy-endpoint/v1",
   },
 });
 ```
@@ -198,7 +186,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: "your_proxy_api_key",
-  baseURL: "https://your-proxy-endpoint/api/gproxy/openai",
+  baseURL: "https://your-proxy-endpoint/v1",
 });
 ```
 
@@ -210,7 +198,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 const google = createGoogleGenerativeAI({
   apiKey: "gproxy_test_12345",
-  baseURL: "https://your-proxy-endpoint/api/gproxy/gemini/v1beta",
+  baseURL: "https://your-proxy-endpoint/v1",
 });
 ```
 

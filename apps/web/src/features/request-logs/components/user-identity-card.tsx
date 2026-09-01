@@ -54,14 +54,19 @@ export function UserIdentityCard({ userId, onCopy }: UserIdentityCardProps) {
                         {primaryLabel}
                     </div>
                     <Space size={4} style={{ marginTop: 4 }}>
-                        <Text className="gp-live-mono" style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}>
+                        <Text
+                            className="gp-live-mono"
+                            style={{ fontSize: 12, color: 'var(--gp-text-muted)' }}
+                        >
                             {userId.slice(0, 8)}…{userId.slice(-4)}
                         </Text>
                         <Button
                             type="text"
                             size="small"
                             icon={<CopyOutlined />}
-                            onClick={() => onCopy(userId, translate('request_logs.identity.userId'))}
+                            onClick={() =>
+                                onCopy(userId, translate('request_logs.identity.userId'))
+                            }
                             aria-label={translate('request_logs.identity.copyUserId')}
                         />
                     </Space>

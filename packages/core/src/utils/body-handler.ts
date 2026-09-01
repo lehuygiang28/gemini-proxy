@@ -13,9 +13,10 @@ export async function safelyExtractBodyText(c: Context<HonoApp>): Promise<string
             return null;
         }
 
-        // Check if request has a body
+        // An explicit zero means there is no body. Missing content-length is valid for
+        // chunked requests, so clone the request and inspect it below.
         const contentLength = c.req.header('content-length');
-        if (!contentLength || contentLength === '0') {
+        if (contentLength === '0') {
             return null;
         }
 

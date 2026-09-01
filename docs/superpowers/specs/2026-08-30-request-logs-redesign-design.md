@@ -11,14 +11,14 @@ Redesign `/request-logs` so users can scan what matters: **model, usage, cost, s
 
 ## Problem (current UI)
 
-| Issue | Impact |
-| ----- | ------ |
-| Request ID column in main table | Low-value data consumes horizontal space |
-| Keys column is primary, two-line | Users care about model first, keys second |
-| No Model / Cost / Speed columns | Data exists in `usage_metadata` but is hidden |
-| Performance column is a text blob | API/total/attempts stacked — hard to compare rows |
-| No activity overview | OpenRouter shows volume chart; we only have a flat table |
-| Large blue retention Alert | Pushes useful content below the fold |
+| Issue                             | Impact                                                   |
+| --------------------------------- | -------------------------------------------------------- |
+| Request ID column in main table   | Low-value data consumes horizontal space                 |
+| Keys column is primary, two-line  | Users care about model first, keys second                |
+| No Model / Cost / Speed columns   | Data exists in `usage_metadata` but is hidden            |
+| Performance column is a text blob | API/total/attempts stacked — hard to compare rows        |
+| No activity overview              | OpenRouter shows volume chart; we only have a flat table |
+| Large blue retention Alert        | Pushes useful content below the fold                     |
 
 ## Design decisions (locked)
 
@@ -32,19 +32,19 @@ Redesign `/request-logs` so users can scan what matters: **model, usage, cost, s
 
 ### Table columns (left → right)
 
-| Column | Source | Display | Sortable |
-| ------ | ------ | ------- | -------- |
-| Date | `created_at` | `Aug 30, 4:03 AM` | Yes |
-| Model | `usage_metadata.model` | Primary: shortened model name. Secondary: format badge + stream indicator. Retry badge when `retry_attempts.length > 0`. | No |
-| Status | `is_successful` | Success / Failed tag | Yes |
-| Input | `usage_metadata.prompt_tokens` | `3,768 tok` right-aligned mono | No |
-| Output | `usage_metadata.completion_tokens` | `2,173 tok` right-aligned mono | No |
-| Cost | `usage_metadata.estimated_cost_usd` | `$0.0042` or `—` | No |
-| Speed | computed | `completion_tokens / (duration_ms / 1000)` → `47.0 tok/s` | No |
-| Duration | `performance_metrics.total_response_time_ms` | `2.7s` | Yes |
-| Overhead | computed | `(total_response_time_ms - duration_ms)` → `0.3s` muted | No |
-| Key | joined key names | `proxy-name · api-name` truncated, 12px muted | No |
-| Actions | — | Eye icon → detail modal | — |
+| Column   | Source                                       | Display                                                                                                                  | Sortable |
+| -------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| Date     | `created_at`                                 | `Aug 30, 4:03 AM`                                                                                                        | Yes      |
+| Model    | `usage_metadata.model`                       | Primary: shortened model name. Secondary: format badge + stream indicator. Retry badge when `retry_attempts.length > 0`. | No       |
+| Status   | `is_successful`                              | Success / Failed tag                                                                                                     | Yes      |
+| Input    | `usage_metadata.prompt_tokens`               | `3,768 tok` right-aligned mono                                                                                           | No       |
+| Output   | `usage_metadata.completion_tokens`           | `2,173 tok` right-aligned mono                                                                                           | No       |
+| Cost     | `usage_metadata.estimated_cost_usd`          | `$0.0042` or `—`                                                                                                         | No       |
+| Speed    | computed                                     | `completion_tokens / (duration_ms / 1000)` → `47.0 tok/s`                                                                | No       |
+| Duration | `performance_metrics.total_response_time_ms` | `2.7s`                                                                                                                   | Yes      |
+| Overhead | computed                                     | `(total_response_time_ms - duration_ms)` → `0.3s` muted                                                                  | No       |
+| Key      | joined key names                             | `proxy-name · api-name` truncated, 12px muted                                                                            | No       |
+| Actions  | —                                            | Eye icon → detail modal                                                                                                  | —        |
 
 **Removed from table:** Request ID, standalone Type, Stream, Performance blob, wide Keys column.
 
@@ -57,12 +57,12 @@ Redesign `/request-logs` so users can scan what matters: **model, usage, cost, s
 └──────────────────────────────────────────────────────────────┘
 ```
 
-| Range | Lookback | Bucket granularity | X-axis labels |
-| ----- | -------- | ------------------ | ------------- |
-| 24h | 1 day | 1 hour | `00:00` … `23:00` |
-| 7d | 7 days | 1 hour | `Mon 12:00`, … or day+hour |
-| 30d | 30 days | 1 day | `Aug 1`, `Aug 2`, … |
-| 90d | 90 days | 1 day | `Jun 1`, … |
+| Range | Lookback | Bucket granularity | X-axis labels              |
+| ----- | -------- | ------------------ | -------------------------- |
+| 24h   | 1 day    | 1 hour             | `00:00` … `23:00`          |
+| 7d    | 7 days   | 1 hour             | `Mon 12:00`, … or day+hour |
+| 30d   | 30 days  | 1 day              | `Aug 1`, `Aug 2`, …        |
+| 90d   | 90 days  | 1 day              | `Jun 1`, …                 |
 
 Chart uses `--gp-chart-1` bars, `--gp-chart-grid` grid, height ~120px inside `gp-panel`.
 
@@ -108,12 +108,12 @@ Returns:
 
 **Bucket rules:**
 
-| `p_range` | `bucket` field | SQL grouping |
-| --------- | -------------- | ------------ |
-| `24h` | `hour` | `date_trunc('hour', created_at)` last 24h |
-| `7d` | `hour` | `date_trunc('hour', created_at)` last 7d |
-| `30d` | `day` | `date_trunc('day', created_at)` last 30d |
-| `90d` | `day` | `date_trunc('day', created_at)` last 90d |
+| `p_range` | `bucket` field | SQL grouping                              |
+| --------- | -------------- | ----------------------------------------- |
+| `24h`     | `hour`         | `date_trunc('hour', created_at)` last 24h |
+| `7d`      | `hour`         | `date_trunc('hour', created_at)` last 7d  |
+| `30d`     | `day`          | `date_trunc('day', created_at)` last 30d  |
+| `90d`     | `day`          | `date_trunc('day', created_at)` last 90d  |
 
 Fill missing buckets with `0` in the RPC or client so the chart has continuous bars.
 

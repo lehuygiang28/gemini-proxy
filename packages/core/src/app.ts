@@ -5,13 +5,16 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import type { HonoApp } from './types';
-import { ProxyError } from './types/error.type';
+import { ProxyError, RateLimitError } from './types/error.type';
 import { requestIdMiddleware } from './middlewares/request-id.middleware';
 import { validateProxyApiKeyMiddleware } from './middlewares/proxy-api-key.middleware';
 import { httpLoggerMiddleware } from './middlewares/http-logger.middleware';
 import { extractProxyDataMiddleware } from './middlewares/extract-proxy-data.middleware';
-import { proxyOptionsMiddleware } from './middlewares/proxy-options.middleware';
+import { proxyPolicyMiddleware } from './middlewares/proxy-policy.middleware';
 import { ProxyService } from './services/proxy.service';
+import { getSupabaseClient } from './services/supabase.service';
+import { BackgroundService } from './services/background.service';
+import { executeWithWaitUntil } from './utils/wait-until';
 
 function toStatusCode(status: number | undefined): ContentfulStatusCode {
     if (typeof status === 'number' && status >= 400 && status <= 599) {
@@ -28,8 +31,14 @@ export const coreApp = new Hono<HonoApp>()
     .use(httpLoggerMiddleware)
     .onError((err, c) => {
         const requestId = c.get('proxyRequestId');
+        if (c.get('proxyPolicyReservation')) {
+            void executeWithWaitUntil(c, BackgroundService.finalizeAfterHandlerError(c));
+        }
 
         if (err instanceof ProxyError) {
+            if (err instanceof RateLimitError && err.retryAfter != null) {
+                c.header('Retry-After', String(err.retryAfter));
+            }
             return c.json(
                 {
                     error: err.type,
@@ -64,9 +73,22 @@ export const coreApp = new Hono<HonoApp>()
             404,
         ),
     )
+    .get('/healthz', (c) => c.json({ status: 'ok' }))
+    .get('/readyz', async (c) => {
+        try {
+            const supabase = getSupabaseClient(c);
+            const { error } = await supabase.from('proxy_api_keys').select('id').limit(1);
+            if (error) {
+                throw error;
+            }
+            return c.json({ status: 'ready' });
+        } catch {
+            return c.json({ status: 'not_ready' }, 503);
+        }
+    })
     .use('/*', validateProxyApiKeyMiddleware)
-    .use('/*', proxyOptionsMiddleware)
     .use('/*', extractProxyDataMiddleware)
+    .use('/*', proxyPolicyMiddleware)
     // Main handler route for all requests
     .use('/*', async (c) => {
         return ProxyService.makeApiRequest({ c });

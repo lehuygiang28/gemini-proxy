@@ -109,9 +109,7 @@ export function estimateGeminiCostUsd(input: EstimateGeminiCostInput): GeminiCos
     return {
         usd,
         pricingVersion:
-            resolved.source === 'custom'
-                ? `${GEMINI_PRICING.asOf}+custom`
-                : GEMINI_PRICING.asOf,
+            resolved.source === 'custom' ? `${GEMINI_PRICING.asOf}+custom` : GEMINI_PRICING.asOf,
         matchedModel: resolved.modelId,
         uncachedPromptTokens: partitioned.uncachedPromptTokens,
         cacheTokens: partitioned.cacheTokens,

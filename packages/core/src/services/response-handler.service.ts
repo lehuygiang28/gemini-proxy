@@ -63,10 +63,7 @@ export class ResponseHandlerService {
                     usage,
                     responseText,
                 });
-                void executeWithWaitUntil(
-                    c,
-                    BackgroundService.executeAllOperations(c, requestId),
-                );
+                void executeWithWaitUntil(c, BackgroundService.executeAllOperations(c, requestId));
             },
         });
     }
@@ -128,10 +125,7 @@ export class ResponseHandlerService {
                 });
             }
             const safeHeaders = this.filterResponseHeaders(providerHeaders);
-            safeHeaders.set('x-gproxy-error-type', lastError.type);
-            if (lastError.code) safeHeaders.set('x-gproxy-error-code', lastError.code);
-            safeHeaders.set('x-gproxy-error-message', lastError.message);
-            safeHeaders.set('x-gproxy-request-id', requestId);
+            safeHeaders.set('x-request-id', requestId);
             const statusToReturn = lastProviderError.status || lastError.status || 500;
             return new Response(lastProviderError.body || '', {
                 status: statusToReturn,
@@ -165,9 +159,13 @@ export class ResponseHandlerService {
             'vary',
         ]);
         headers.forEach((value, key) => {
-            if (!excludeHeaders.has(key.toLowerCase())) {
-                filtered.set(key, value);
+            if (
+                excludeHeaders.has(key.toLowerCase()) ||
+                key.toLowerCase().startsWith('x-gproxy-')
+            ) {
+                return;
             }
+            filtered.set(key, value);
         });
         return filtered;
     }

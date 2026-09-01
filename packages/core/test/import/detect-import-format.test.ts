@@ -17,7 +17,10 @@ describe('detectImportFormat', () => {
     });
     it('prefers 9router when both providerConnections and api_keys exist', () => {
         expect(
-            detectImportFormat({ providerConnections: [], api_keys: [{ name: 'x', api_key_value: 'y' }] }),
+            detectImportFormat({
+                providerConnections: [],
+                api_keys: [{ name: 'x', api_key_value: 'y' }],
+            }),
         ).toBe('9router');
     });
 });

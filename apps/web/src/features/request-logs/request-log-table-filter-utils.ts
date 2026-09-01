@@ -120,9 +120,9 @@ export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<Req
 }
 
 export function findFilter(filters: CrudFilter[], field: string): LogicalFilter | undefined {
-    return filters.find(
-        (filter) => isLogicalFilter(filter) && filter.field === field,
-    ) as LogicalFilter | undefined;
+    return filters.find((filter) => isLogicalFilter(filter) && filter.field === field) as
+        | LogicalFilter
+        | undefined;
 }
 
 export function getFilterScalar(filters: CrudFilter[], field: string): unknown {

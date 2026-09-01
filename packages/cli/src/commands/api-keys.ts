@@ -3,6 +3,8 @@ import { colors } from '../lib/colors';
 import { input, password, select, confirm } from '@inquirer/prompts';
 import ora from 'ora';
 import { ApiKeysManager } from '../lib/api-keys';
+import { UsersManager } from '../lib/users';
+import { keysOwnedBy } from '../lib/resolve-owner-user';
 import { EnvParser } from '../lib/env-parser';
 import { Validation } from '../lib/validation';
 import { ErrorHandler } from '../lib/error-handler';
@@ -65,7 +67,7 @@ export function apiKeysCommands(program: Command) {
         .option('-n, --name <name>', 'API key name')
         .option('-k, --key <key>', 'API key value')
         .option('-p, --provider <provider>', 'Provider (default: googleaistudio)')
-        .option('-u, --user-id <userId>', 'User ID')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .option('-q, --quick', 'Quick mode with minimal prompts')
         .action(async (options) => {
             const name = await input({
@@ -127,15 +129,18 @@ export function apiKeysCommands(program: Command) {
 
             const spinner = ora('Creating API key...').start();
             try {
-                const apiKey = await ApiKeysManager.create({
-                    name: name,
-                    api_key_value: apiKeyValue,
-                    provider: provider,
-                    user_id: userId || null,
-                    is_active: true,
-                    success_count: 0,
-                    failure_count: 0,
-                });
+                const apiKey = await ApiKeysManager.create(
+                    {
+                        name: name,
+                        api_key_value: apiKeyValue,
+                        provider: provider,
+                        user_id: userId || null,
+                        is_active: true,
+                        success_count: 0,
+                        failure_count: 0,
+                    },
+                    { quick: Boolean(options.quick) },
+                );
 
                 spinner.succeed('API key created successfully');
                 console.log('\n' + colors.green('Created API Key:'));
@@ -190,6 +195,7 @@ export function apiKeysCommands(program: Command) {
         .option('-o, --overwrite', 'Overwrite existing keys')
         .option('-s, --skip-duplicates', 'Skip duplicate keys')
         .option('-d, --dry-run', 'Show what would be imported without actually importing')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .action(async (file, options) => {
             try {
                 Validation.validateFilePath(file);
@@ -199,6 +205,7 @@ export function apiKeysCommands(program: Command) {
                     overwrite: options.overwrite,
                     skipDuplicates: options.skipDuplicates,
                     dryRun: options.dryRun,
+                    userId: options.userId,
                 });
 
                 spinner.succeed('Import completed');
@@ -298,6 +305,7 @@ export function apiKeysCommands(program: Command) {
         .description('Sync API keys from .env file to database')
         .option('-f, --force', 'Skip confirmation for deletions')
         .option('-d, --dry-run', 'Show what would be synced without actually syncing')
+        .option('-u, --user-id <userId>', 'User ID (required when multiple users exist)')
         .action(async (options) => {
             const spinner = ora('Syncing API keys from .env...').start();
 
@@ -311,7 +319,8 @@ export function apiKeysCommands(program: Command) {
 
                 spinner.text = `Found ${envKeys.length} API key(s) in .env file`;
 
-                const existingKeys = await ApiKeysManager.list();
+                const ownerId = await UsersManager.getDefaultUser(options.userId);
+                const existingKeys = keysOwnedBy(await ApiKeysManager.list(), ownerId);
                 const keysToCreate: typeof envKeys = [];
                 const keysToUpdate: Array<{ envKey: (typeof envKeys)[0]; dbKey: any }> = [];
                 const keysToDelete: typeof existingKeys = [];
@@ -381,16 +390,6 @@ export function apiKeysCommands(program: Command) {
                 const syncSpinner = ora('Performing sync operations...').start();
 
                 try {
-                    // Get first user for API key assignment
-                    const { UsersManager } = await import('../lib/users');
-                    const firstUser = await UsersManager.getFirstUser();
-                    if (!firstUser) {
-                        throw new Error(
-                            'No users found in the database. Please create a user first.',
-                        );
-                    }
-
-                    // Create new keys in batch
                     if (keysToCreate.length > 0) {
                         syncSpinner.text = `Creating ${keysToCreate.length} new API key(s)...`;
                         const createData = keysToCreate.map((envKey) => ({
@@ -400,7 +399,7 @@ export function apiKeysCommands(program: Command) {
                             is_active: true,
                             success_count: 0,
                             failure_count: 0,
-                            user_id: firstUser.id,
+                            user_id: ownerId,
                         }));
                         await ApiKeysManager.bulkCreate(createData);
                     }

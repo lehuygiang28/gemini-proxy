@@ -12,10 +12,7 @@ export async function updateSession(request: NextRequest) {
         // Keep the landing path (e.g. /update-password) as `next`, not always /dashboard.
         if (!callbackUrl.searchParams.get('next')) {
             const fromPath = safeNextPath(request.nextUrl.pathname, '/dashboard');
-            callbackUrl.searchParams.set(
-                'next',
-                fromPath === '/' ? '/dashboard' : fromPath,
-            );
+            callbackUrl.searchParams.set('next', fromPath === '/' ? '/dashboard' : fromPath);
         }
         return NextResponse.redirect(callbackUrl);
     }

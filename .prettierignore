@@ -14,3 +14,5 @@ coverage
 .open-next
 pnpm-lock.yaml
 **/CHANGELOG.md
+.superdesign
+.superpowers

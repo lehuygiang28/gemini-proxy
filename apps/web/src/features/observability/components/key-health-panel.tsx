@@ -9,7 +9,13 @@ const { Text } = Typography;
 
 type ApiKeyRow = Pick<
     Tables<'api_keys'>,
-    'id' | 'name' | 'is_active' | 'success_count' | 'failure_count' | 'total_tokens'
+    | 'id'
+    | 'name'
+    | 'is_active'
+    | 'success_count'
+    | 'failure_count'
+    | 'total_tokens'
+    | 'cooldown_until'
 >;
 
 type ProxyKeyRow = Pick<
@@ -33,6 +39,7 @@ type HealthItem = {
     successRate: number;
     failureCount: number;
     totalTokens: number;
+    cooldownUntil: string | null;
 };
 
 /**
@@ -48,24 +55,30 @@ export function KeyHealthPanel({
     const { translate } = useTranslation();
     const items = useMemo(() => {
         const mapped: HealthItem[] = [
-            ...apiKeys.map((key) => ({
-                id: key.id,
-                name: key.name,
-                kind: 'api' as const,
-                isActive: key.is_active,
-                successRate: calculateSuccessRate(key.success_count, key.failure_count),
-                failureCount: key.failure_count,
-                totalTokens: key.total_tokens,
-            })),
-            ...proxyKeys.map((key) => ({
-                id: key.id,
-                name: key.name,
-                kind: 'proxy' as const,
-                isActive: key.is_active,
-                successRate: calculateSuccessRate(key.success_count, key.failure_count),
-                failureCount: key.failure_count,
-                totalTokens: key.total_tokens,
-            })),
+            ...apiKeys.map(
+                (key): HealthItem => ({
+                    id: key.id,
+                    name: key.name,
+                    kind: 'api',
+                    isActive: key.is_active,
+                    successRate: calculateSuccessRate(key.success_count, key.failure_count),
+                    failureCount: key.failure_count,
+                    totalTokens: key.total_tokens,
+                    cooldownUntil: key.cooldown_until,
+                }),
+            ),
+            ...proxyKeys.map(
+                (key): HealthItem => ({
+                    id: key.id,
+                    name: key.name,
+                    kind: 'proxy',
+                    isActive: key.is_active,
+                    successRate: calculateSuccessRate(key.success_count, key.failure_count),
+                    failureCount: key.failure_count,
+                    totalTokens: key.total_tokens,
+                    cooldownUntil: null,
+                }),
+            ),
         ];
         return mapped
             .sort((left, right) => {
@@ -144,6 +157,7 @@ export function KeyHealthPanel({
                             isActive={item.isActive}
                             successRate={item.successRate}
                             failureCount={item.failureCount}
+                            cooldownUntil={item.cooldownUntil}
                         />
                     </div>
                 ))

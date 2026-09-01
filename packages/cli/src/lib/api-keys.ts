@@ -1,11 +1,8 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import {
-    parseApiKeyImport,
-    planApiKeyImport,
-    type ImportParseResult,
-} from '@gemini-proxy/core';
+import { parseApiKeyImport, planApiKeyImport, type ImportParseResult } from '@gemini-proxy/core';
 import { supabase, type ApiKey, type ApiKeyInsert, type ApiKeyUpdate } from './database';
 import { UsersManager } from './users';
+import { keysOwnedBy } from './resolve-owner-user';
 import { colors } from './colors';
 
 export type ApiKeyImportResult = {
@@ -66,28 +63,19 @@ export class ApiKeysManager {
 
     static async create(
         apiKeyData: Omit<ApiKeyInsert, 'id' | 'created_at' | 'updated_at'>,
+        ownerOptions?: { readonly quick?: boolean },
     ): Promise<ApiKey> {
         await supabase.init();
 
-        // Auto-assign user_id if not provided
         let finalApiKeyData = { ...apiKeyData };
-        let autoAssigned = false;
-
-        if (!finalApiKeyData.user_id) {
-            try {
-                const defaultUserId = await UsersManager.getDefaultUser();
-                finalApiKeyData.user_id = defaultUserId;
-                autoAssigned = true;
-
-                // Get user info for notification
-                const firstUser = await UsersManager.getFirstUser();
-                UsersManager.notifyAutoAssignment(defaultUserId, firstUser?.email);
-            } catch (error) {
-                throw new Error(
-                    `Failed to auto-assign user_id: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                );
-            }
+        const ownerId = await UsersManager.getDefaultUser(
+            finalApiKeyData.user_id ?? undefined,
+            ownerOptions,
+        );
+        if (finalApiKeyData.user_id !== ownerId) {
+            UsersManager.notifyAutoAssignment(ownerId);
         }
+        finalApiKeyData.user_id = ownerId;
 
         const { data, error } = await supabase.client
             .from('api_keys')
@@ -187,20 +175,8 @@ export class ApiKeysManager {
         // Auto-assign user_id if not provided
         const finalApiKeysData = await Promise.all(
             apiKeysData.map(async (apiKeyData) => {
-                let finalData = { ...apiKeyData };
-
-                if (!finalData.user_id) {
-                    try {
-                        const defaultUserId = await UsersManager.getDefaultUser();
-                        finalData.user_id = defaultUserId;
-                    } catch (error) {
-                        throw new Error(
-                            `Failed to auto-assign user_id: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        );
-                    }
-                }
-
-                return finalData;
+                const ownerId = await UsersManager.getDefaultUser(apiKeyData.user_id);
+                return { ...apiKeyData, user_id: ownerId };
             }),
         );
 
@@ -278,6 +254,7 @@ export class ApiKeysManager {
             overwrite?: boolean;
             skipDuplicates?: boolean;
             dryRun?: boolean;
+            userId?: string;
         } = {},
     ): Promise<ApiKeyImportResult> {
         if (!existsSync(filePath)) {
@@ -287,12 +264,8 @@ export class ApiKeysManager {
         const fileContent = readFileSync(filePath, 'utf-8');
         const parsed = parseApiKeyImport(fileContent);
 
-        const firstUser = await UsersManager.getFirstUser();
-        if (!firstUser) {
-            throw new Error('No users found in the database. Please create a user first.');
-        }
-
-        const existingKeys = (await this.list()).filter((key) => key.user_id === firstUser.id);
+        const ownerId = await UsersManager.getDefaultUser(options.userId);
+        const existingKeys = keysOwnedBy(await this.list(), ownerId);
         const plan = planApiKeyImport(
             existingKeys.map((key) => ({
                 id: key.id,
@@ -325,14 +298,13 @@ export class ApiKeysManager {
                 provider: importKey.provider,
                 is_active: importKey.is_active,
                 metadata: importKey.metadata,
-                user_id: firstUser.id,
+                user_id: ownerId,
             }));
-        const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> = plan.updates.map(
-            (entry) => ({
+        const keysToUpdate: Array<{ id: string; updates: Partial<ApiKeyUpdate> }> =
+            plan.updates.map((entry) => ({
                 id: entry.id,
                 updates: entry.updates,
-            }),
-        );
+            }));
 
         if (!options.dryRun) {
             try {

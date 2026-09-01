@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsdown",
         "dev": "tsdown --watch",
-        "prepublishOnly": "pnpm build"
+        "prepublishOnly": "pnpm build",
+        "test": "vitest run"
     },
     "license": "MIT",
     "main": "dist/index.js",
@@ -28,7 +29,8 @@
     "devDependencies": {
         "@types/node": "^20.11.16",
         "tsdown": "^0.17.0",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "vitest": "~3.2.0"
     },
     "publishConfig": {
         "access": "public"

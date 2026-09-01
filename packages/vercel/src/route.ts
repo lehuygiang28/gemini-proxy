@@ -17,10 +17,20 @@ if (!process.env.SUPABASE_URL) {
 
 export const honoCoreApp = coreApp;
 export const honoVercelApp = new Hono<HonoApp>().basePath('/api/gproxy').route('/*', honoCoreApp);
+export const honoV1App = honoCoreApp;
 
 export const GET = handle(honoVercelApp);
 export const POST = handle(honoVercelApp);
+export const PUT = handle(honoVercelApp);
 export const DELETE = handle(honoVercelApp);
 export const PATCH = handle(honoVercelApp);
 export const OPTIONS = handle(honoVercelApp);
 export const HEAD = handle(honoVercelApp);
+
+export const v1GET = handle(honoV1App);
+export const v1POST = handle(honoV1App);
+export const v1PUT = handle(honoV1App);
+export const v1DELETE = handle(honoV1App);
+export const v1PATCH = handle(honoV1App);
+export const v1OPTIONS = handle(honoV1App);
+export const v1HEAD = handle(honoV1App);

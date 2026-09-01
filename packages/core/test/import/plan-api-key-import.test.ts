@@ -66,9 +66,7 @@ describe('planApiKeyImport', () => {
 
         expect(plan.updated).toBe(1);
         expect(plan.created).toBe(0);
-        expect(plan.updates[0]?.updates.api_key_value).toBe(
-            'AIzaSyTESTKEY000000000000000000001',
-        );
+        expect(plan.updates[0]?.updates.api_key_value).toBe('AIzaSyTESTKEY000000000000000000001');
     });
 
     it('skips duplicate values within the same import batch', () => {
@@ -110,9 +108,7 @@ describe('planApiKeyImport', () => {
         );
 
         expect(plan.updated).toBe(1);
-        expect(plan.updates[0]?.updates.api_key_value).toBe(
-            'AIzaSyROTATED000000000000000000000',
-        );
+        expect(plan.updates[0]?.updates.api_key_value).toBe('AIzaSyROTATED000000000000000000000');
         expect(plan.warnings.some((warning) => warning.includes('not rotated'))).toBe(true);
     });
 });
