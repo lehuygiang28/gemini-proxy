@@ -24,9 +24,9 @@
       "route": "/",
       "projectId": "9cee4ed1-dd65-40b7-ac98-6433838ff88d",
       "baselineDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
-      "activeDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+      "activeDraftId": "a8dbc61d-e6f4-4692-a543-75837048a9f1",
       "designSystemPath": ".superdesign/design-system.md",
-      "designDirection": "Condensed scan-first Signal Deck landing; three model branches pending pick",
+      "designDirection": "Ops-dense C: headline + highlighted /v1 snippet + four facts",
       "contextFiles": [
         ".superdesign/design-system.md",
         ".superdesign/init/theme.md",
@@ -77,12 +77,13 @@
         },
         "a8dbc61d-e6f4-4692-a543-75837048a9f1": {
           "title": "Ops-dense",
-          "visualDirection": "Console-adjacent first viewport: headline + snippet + four facts",
+          "visualDirection": "Headline + highlighted /v1 snippet + four facts",
           "parentDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
-          "model": "gpt-5.6-luna"
+          "model": "gpt-5.6-luna then cursor-grok-4.6 import",
+          "currentVersion": 2
         }
       },
-      "updatedAt": "2026-09-01T20:50:00Z"
+      "updatedAt": "2026-09-01T21:00:00Z"
     }
   }
 }

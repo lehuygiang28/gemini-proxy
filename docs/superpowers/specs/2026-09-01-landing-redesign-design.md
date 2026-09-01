@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-01
 **Approach:** B - condensed scan-first landing (taste-skill overhaul, Signal Deck preserved)
-**Status:** Design on Superdesign canvas; implementation waits for direction pick
+**Status:** Direction C selected (ops-dense + /v1 in hero). Implementation waits for visual sign-off on C v2.
 **Route:** `/` (`apps/web/src/app/page.tsx` -> `LandingPage`)
 
 ## Goal
@@ -95,13 +95,9 @@ Canvas (live): [Gemini Proxy Landing](https://superdesign.dev/teams/b0873d97-51c
 | B Diagram-first | `deepseek-v4-pro` | minimalist-skill          | [preview](https://p.superdesign.dev/draft/65963d64-7fcc-43fe-8ec5-fea4dd5e90e1) |
 | C Ops-dense     | `gpt-5.6-luna`    | gpt-tasteskill            | [preview](https://p.superdesign.dev/draft/a8dbc61d-e6f4-4692-a543-75837048a9f1) |
 
-All three redesigns keep IBM Plex + teal, drop `/api/gproxy/...` examples, and use `https://your-proxy-endpoint/v1`. Pick one before implementation. Do not treat any branch as the winner yet.
+**Selected:** C. Keep the first viewport (headline + `/v1` snippet + four facts). Fold in A's "code is the product visual" by highlighting the `baseUrl` line.
 
-Known tells to strip on the chosen branch:
-
-- A still has the filler word "Seamlessly" in one capability line.
-- C numbers facts `01`..`04` (taste-skill section-number ban).
-- B's OpenAI / AI SDK tabs exist in the chrome; confirm all three snippets use `/v1` after pick.
+C v2 ([preview](https://p.superdesign.dev/draft/a8dbc61d-e6f4-4692-a543-75837048a9f1)): numbered facts removed, `/v1` line highlighted, three SDK snippets all use `/v1`, Connect heading stacked. `gpt-5.6-sol` generation was blocked (Superdesign team out of credits; Sol is a pro/expensive model). v2 is a credit-free import on the selected draft. Re-run Sol after billing if a second model pass is still wanted.
 
 ## Error handling and empty states
 
