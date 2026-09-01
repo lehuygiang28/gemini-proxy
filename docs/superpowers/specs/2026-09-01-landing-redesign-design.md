@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-01
 **Approach:** B - condensed scan-first landing (taste-skill overhaul, Signal Deck preserved)
-**Status:** Direction C selected (ops-dense + /v1 in hero). Implementation waits for visual sign-off on C v2.
+**Status:** Direction C implemented in `apps/web` with GPT snippet IA (client + language tabs). Superdesign drafts remain visual reference only.
 **Route:** `/` (`apps/web/src/app/page.tsx` -> `LandingPage`)
 
 ## Goal
@@ -81,6 +81,18 @@ const google = createGoogleGenerativeAI({
   baseURL: "https://your-proxy-endpoint/v1",
 });
 ```
+
+## Snippet IA (locked)
+
+GPT-5.6 Sol brief, implemented in-app (Superdesign is reference only):
+
+- Hero keeps the ops-dense split: headline + CTAs on the left, **one** code panel on the right.
+- Two tab rows on that panel: **client** (`Google GenAI`, `OpenAI SDK`, `Vercel AI SDK`) then **language** (`TypeScript / JS`, `Python`, `curl`).
+- Default: Google GenAI + TypeScript / JS.
+- Vercel AI SDK is TypeScript-only; Python/curl hide instead of showing an empty panel.
+- Every snippet includes the import (or the full curl command) and `https://your-proxy-endpoint/v1`.
+- Models in demos: `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemma-4-31b-it`. No `gemini-2.x`.
+- Highlighting: Prism `typescript` / `python` / `bash` with Signal Deck token colors, not oneDark purple. The `/v1` line is accent-tinted.
 
 ## Superdesign exploration
 
