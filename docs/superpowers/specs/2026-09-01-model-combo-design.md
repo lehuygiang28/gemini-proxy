@@ -366,7 +366,7 @@ Create-only presets: three `Button` `type="link"` size small **on the models pic
 
 Footer: Refine Save / Cancel only. No Steps.
 
-Validation: name regex, ≥1 member, unique members (picker won't add dupes). Show form error if RPC rejects member=combo name.
+Validation: name regex, ≥1 model, unique models (picker won't add dupes). Show form error if RPC rejects a model equal to the combo name.
 
 ### ModelPicker (shared)
 
