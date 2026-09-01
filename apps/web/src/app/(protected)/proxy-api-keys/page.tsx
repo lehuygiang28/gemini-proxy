@@ -31,6 +31,7 @@ import {
     SearchOutlined,
     FilterOutlined,
     SyncOutlined,
+    UndoOutlined,
 } from '@ant-design/icons';
 import type { Tables } from '@gemini-proxy/database';
 import {
@@ -41,6 +42,7 @@ import {
 } from '@/components/common';
 import { KeyHealthBadge } from '@/features/observability';
 import { ProxyQuickStart } from '@/features/proxy-quickstart';
+import { ProxyKeyQuotaResetModal } from '@/features/proxy-api-keys/proxy-key-quota-reset-modal';
 import { formatTokenCount } from '@/utils/table-helpers';
 import { generateProxyApiKeyValue } from '@/utils/generate-proxy-api-key';
 import { useCopyWithNotification } from '@/hooks';
@@ -50,7 +52,7 @@ const { useToken } = theme;
 const { Text } = Typography;
 
 const PROXY_API_KEYS_RESOURCE = 'proxy_api_keys';
-const PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH = 200;
+const PROXY_API_KEYS_ACTIONS_COLUMN_WIDTH = 240;
 
 type ProxyApiKey = Tables<'proxy_api_keys'>;
 interface IProxyApiKeySearch {
@@ -70,6 +72,7 @@ export default function ProxyApiKeysListPage() {
     const [rotatedSecret, setRotatedSecret] = useState<{ name: string; value: string } | null>(
         null,
     );
+    const [resetKeyId, setResetKeyId] = useState<string | null>(null);
 
     const { tableProps, searchFormProps } = useTable<ProxyApiKey>({
         syncWithLocation: true,
@@ -472,6 +475,18 @@ export default function ProxyApiKeysListPage() {
                                                 />
                                             </Tooltip>
                                             <Tooltip
+                                                title={translate(
+                                                    'proxy_api_keys.actions.resetQuota',
+                                                )}
+                                            >
+                                                <Button
+                                                    size="small"
+                                                    type="text"
+                                                    icon={<UndoOutlined />}
+                                                    onClick={() => setResetKeyId(record.id)}
+                                                />
+                                            </Tooltip>
+                                            <Tooltip
                                                 title={translate('proxy_api_keys.actions.rotate')}
                                             >
                                                 <Popconfirm
@@ -575,6 +590,11 @@ export default function ProxyApiKeysListPage() {
                 />
                 <Input.Password value={rotatedSecret?.value} readOnly />
             </Modal>
+            <ProxyKeyQuotaResetModal
+                open={Boolean(resetKeyId)}
+                proxyKeyId={resetKeyId}
+                onClose={() => setResetKeyId(null)}
+            />
         </List>
     );
 }
