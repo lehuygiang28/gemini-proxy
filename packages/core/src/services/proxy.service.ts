@@ -30,6 +30,10 @@ import { rewriteUpstreamModel } from '../combo/rewrite-upstream-model';
 import { selectStartKey } from '../combo/select-start-key';
 import { skipPlanMember } from '../combo/skip-plan-member';
 import { upsertComboStickState } from '../combo/upsert-combo-stick-state';
+import { injectModelsListResponse } from '../combo/inject-models-list-response';
+import { isModelsListRequest } from '../combo/is-models-list-request';
+import { loadUserCatalogIds } from '../combo/load-user-catalog-ids';
+import { listBuiltinModelPricingRows } from '../constants/gemini-pricing';
 import type { ComboAttempt, ResolvedCombo } from '../combo/combo-types';
 
 // ===== INTERFACES =====
@@ -623,9 +627,16 @@ export class ProxyService {
         } = params;
 
         await recordApiKeySuccess(c, firstApiKey.id, proxyRequestDataParsed.model);
-        return ResponseHandlerService.handleSuccess({
+        const response = await this.injectComboModelsIfList({
             c,
             response: firstResponse,
+            proxyRequestDataParsed,
+            proxyApiKeyData,
+            baseRequest,
+        });
+        return ResponseHandlerService.handleSuccess({
+            c,
+            response,
             requestId,
             apiKeyId: firstApiKey.id,
             proxyApiKeyData,
@@ -924,9 +935,16 @@ export class ProxyService {
                 }
 
                 await recordApiKeySuccess(c, selectedApiKey.id, proxyRequestDataParsed.model);
+                const successResponse = await this.injectComboModelsIfList({
+                    c,
+                    response,
+                    proxyRequestDataParsed,
+                    proxyApiKeyData,
+                    baseRequest,
+                });
                 return ResponseHandlerService.handleSuccess({
                     c,
-                    response: response,
+                    response: successResponse,
                     requestId,
                     apiKeyId: selectedApiKey.id,
                     proxyApiKeyData,
@@ -1021,6 +1039,42 @@ export class ProxyService {
                 raw_body: params.providerError.body,
             },
         };
+    }
+
+    private static async injectComboModelsIfList(params: {
+        c: Context<HonoApp>;
+        response: Response;
+        proxyRequestDataParsed: ProxyRequestDataParsed;
+        proxyApiKeyData: Tables<'proxy_api_keys'>;
+        baseRequest: Request;
+    }): Promise<Response> {
+        const { c, response, proxyRequestDataParsed, proxyApiKeyData, baseRequest } = params;
+        if (
+            !isModelsListRequest({
+                method: baseRequest.method,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                urlToProxy: proxyRequestDataParsed.urlToProxy,
+            })
+        ) {
+            return response;
+        }
+        const originBodyText = await response.text();
+        const catalogIds = await loadUserCatalogIds(getSupabaseClient(c), proxyApiKeyData.user_id);
+        const injected = injectModelsListResponse({
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            originBodyText,
+            combos: c.get('userCombos') ?? [],
+            catalogIds,
+            builtinIds: listBuiltinModelPricingRows().map((row) => row.modelId),
+            allowedModels: proxyApiKeyData.allowed_models,
+        });
+        const headers = new Headers(response.headers);
+        headers.delete('content-length');
+        return new Response(injected, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+        });
     }
 
     private static async extractProviderErrorWithBody(

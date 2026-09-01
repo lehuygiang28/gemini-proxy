@@ -1,6 +1,6 @@
 import type { Variables as HonoVariables, Bindings as HonoBindings } from 'hono/types';
 import type { Tables } from '@gemini-proxy/database';
-import type { ResolvedCombo } from '../combo/combo-types';
+import type { ResolvedCombo, StoredCombo } from '../combo/combo-types';
 
 export type ProxyApiFormat = 'gemini' | 'openai';
 
@@ -30,6 +30,7 @@ export interface Variables extends HonoVariables {
     };
     requestStartTime?: number;
     resolvedCombo?: ResolvedCombo;
+    userCombos?: StoredCombo[];
     comboWinningMember?: string;
 }
 

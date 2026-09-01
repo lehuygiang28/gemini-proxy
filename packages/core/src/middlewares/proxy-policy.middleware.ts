@@ -91,6 +91,7 @@ export async function proxyPolicyMiddleware(
         combos,
         requestedModel: requestData.model ?? '',
     });
+    c.set('userCombos', combos);
     c.set('resolvedCombo', resolvedCombo);
     const managed = requestData.managed;
     let estimatedTokens = 0;

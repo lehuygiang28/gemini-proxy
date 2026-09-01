@@ -179,4 +179,26 @@ describe('proxy contract: model combo', () => {
             }),
         });
     });
+
+    it('injects combos into GET /v1/models after the origin list', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/models',
+            {
+                method: 'GET',
+                headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+            },
+            {
+                seedCombos: [FLASH_COMBO],
+                originBody: { models: [{ name: 'models/gemini-3.7-flash' }] },
+            },
+        );
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(new URL(originRequests[0]!.url).pathname).toBe('/v1beta/models');
+        const body = (await actualResponse.json()) as {
+            models: Array<{ name: string; description?: string }>;
+        };
+        expect(body.models.some((row) => row.name === 'models/flash-combo')).toBe(true);
+        expect(body.models.some((row) => row.name === 'models/gemini-3.7-flash')).toBe(true);
+    });
 });
