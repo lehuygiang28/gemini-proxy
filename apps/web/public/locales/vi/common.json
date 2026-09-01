@@ -171,7 +171,12 @@
             "show": "#{id} Nhật ký | Gemini Proxy"
         },
         "proxy_reconciliation_needed": { "list": "Đối soát | Gemini Proxy" },
-        "user_settings": { "list": "Cài đặt | Gemini Proxy" }
+        "user_settings": { "list": "Cài đặt | Gemini Proxy" },
+        "model_combos": {
+            "list": "Combo | Gemini Proxy",
+            "create": "Tạo combo | Gemini Proxy",
+            "edit": "#{id} Sửa combo | Gemini Proxy"
+        }
     },
     "header": {
         "account": "Tài khoản",
@@ -741,6 +746,79 @@
         "user_settings": "Cài đặt",
         "titles": { "list": "Cài đặt" }
     },
+    "model_combos": {
+        "model_combos": "Combo",
+        "titles": {
+            "list": "Combo",
+            "create": "Tạo combo",
+            "edit": "Sửa combo"
+        }
+    },
+    "combos": {
+        "title": "Combo",
+        "create": "Tạo combo",
+        "search": "Tìm tên combo",
+        "empty": "Chưa có combo",
+        "off": "Tắt",
+        "saveFailed": "Không lưu được combo",
+        "overrideWarning": "Request tới {name} sẽ dùng combo này, không phải model Google",
+        "defaultStrategy": "Dùng mặc định ({strategy})",
+        "fields": {
+            "name": "Tên",
+            "nameHelp": "Gửi làm tên model trong request",
+            "members": "Thành viên",
+            "strategy": "Chiến lược",
+            "overrideStrategy": "Ghi đè chiến lược mặc định",
+            "stickAfter": "Giữ khóa sau N lần thành công",
+            "active": "Bật",
+            "actions": "Thao tác"
+        },
+        "members": {
+            "help": "Thử theo thứ tự này. Xoay khóa Gemini trước khi chuyển model tiếp theo",
+            "moveUp": "Đưa lên",
+            "moveDown": "Đưa xuống",
+            "remove": "Xóa thành viên"
+        },
+        "presets": {
+            "flash": "Điền Flash",
+            "pro": "Điền Pro",
+            "gemma": "Điền Gemma"
+        },
+        "strategy": {
+            "fallback": "Dự phòng",
+            "sticky_until_error": "Giữ khóa đến khi lỗi",
+            "stick_n": "Giữ khóa sau N lần"
+        },
+        "errors": {
+            "nameRequired": "Cần tên combo",
+            "membersRequired": "Thêm ít nhất một model"
+        },
+        "titles": {
+            "create": "Tạo combo",
+            "edit": "Sửa combo"
+        }
+    },
+    "picker": {
+        "placeholder": "Chọn model",
+        "addModel": "Thêm model",
+        "addModelHelp": "Nhập id model Google một lần. Combo và allowlist chọn từ danh sách này.",
+        "modelIdPlaceholder": "gemini-…",
+        "syncGoogle": "Đồng bộ model Google",
+        "syncOk": "Đã đồng bộ {count} model Google",
+        "syncFailed": "Không đồng bộ được model Google",
+        "groups": {
+            "combos": "Combo",
+            "gemini": "Gemini",
+            "gemma": "Gemma",
+            "custom": "Tùy chỉnh"
+        },
+        "tag": {
+            "overrides": "Ghi đè",
+            "combo": "Combo",
+            "custom": "Tùy chỉnh",
+            "google": "Google"
+        }
+    },
     "observability": {
         "title": "Bảng điều khiển",
         "subtitle": "Tổng quan vận hành, luồng request trực tiếp và sức khỏe khóa",
@@ -809,6 +887,7 @@
         "tabs": {
             "observability": "Giám sát",
             "pricing": "Giá token",
+            "routing": "Định tuyến",
             "timezone": "Múi giờ",
             "appearance": "Giao diện"
         },
@@ -873,6 +952,13 @@
             "customized": "Đã thêm",
             "duplicateModel": "Mỗi model chỉ được thêm một lần. Xóa dòng trùng trước khi lưu.",
             "modelRequired": "Hãy chọn model"
+        },
+        "routing": {
+            "strategy": "Chiến lược combo mặc định",
+            "stickAfter": "Giữ khóa sau N lần thành công",
+            "help": "Mặc định cho combo không tự đặt. Model mạnh hơn vẫn đi trước; phần này chỉ chọn khóa Gemini bắt đầu.",
+            "saved": "Đã lưu định tuyến",
+            "saveFailed": "Lưu định tuyến thất bại"
         }
     },
     "account": {

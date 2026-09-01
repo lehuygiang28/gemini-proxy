@@ -3,9 +3,10 @@
 import React from 'react';
 import { ControlOutlined } from '@ant-design/icons';
 import { useTranslation } from '@refinedev/core';
-import { Col, DatePicker, Divider, Form, InputNumber, Row, Select, Typography } from 'antd';
+import { Col, DatePicker, Divider, Form, InputNumber, Row, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { hasValidModelPatterns } from './has-valid-model-patterns';
+import { ModelTagsPicker } from '@/features/models/model-picker';
 
 const INTEGER_LIMIT_FIELDS = ['rpm_limit', 'rpd_limit', 'token_day_limit'] as const;
 
@@ -65,10 +66,7 @@ export function ProxyKeyLimitsFields() {
                         name="allowed_models"
                         rules={modelPatternRules}
                     >
-                        <Select
-                            mode="tags"
-                            placeholder={translate('proxy_api_keys.placeholders.modelPatterns')}
-                        />
+                        <ModelTagsPicker />
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>

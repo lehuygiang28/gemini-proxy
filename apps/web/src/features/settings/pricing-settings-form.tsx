@@ -24,6 +24,7 @@ import {
     useUpdate,
 } from '@refinedev/core';
 import { listBuiltinModelPricingRows, type BuiltinModelPricingRow } from '@gemini-proxy/pricing';
+import { ModelPicker } from '@/features/models/model-picker';
 import {
     DEFAULT_USER_SETTINGS,
     type ModelPricingRow,
@@ -79,6 +80,27 @@ function pricingJsonFromRows(rows: ModelPricingRow[]): Record<string, Record<str
 
 type Identity = { id?: string };
 type FamilyFilter = 'all' | 'gemini' | 'gemma';
+
+function PricingModelPicker({
+    value,
+    onChange,
+    onPicked,
+}: {
+    value?: string;
+    onChange?: (id: string | undefined) => void;
+    onPicked: (id: string | undefined) => void;
+}) {
+    return (
+        <ModelPicker
+            mode="concrete"
+            value={value}
+            onChange={(id) => {
+                onChange?.(id);
+                onPicked(id);
+            }}
+        />
+    );
+}
 
 /**
  * Per-model USD/1M token overrides (user_settings.custom_model_pricing).
@@ -300,16 +322,15 @@ export function PricingSettingsForm() {
                                                     },
                                                 ]}
                                             >
-                                                <Select
-                                                    showSearch
-                                                    optionFilterProp="label"
-                                                    options={modelOptions}
-                                                    placeholder={translate(
-                                                        'settings.pricing.modelPlaceholder',
-                                                    )}
-                                                    onChange={(modelId) =>
-                                                        fillOverrideFromBuiltin(field.name, modelId)
-                                                    }
+                                                <PricingModelPicker
+                                                    onPicked={(modelId) => {
+                                                        if (modelId) {
+                                                            fillOverrideFromBuiltin(
+                                                                field.name,
+                                                                modelId,
+                                                            );
+                                                        }
+                                                    }}
                                                 />
                                             </Form.Item>
                                             <Form.Item

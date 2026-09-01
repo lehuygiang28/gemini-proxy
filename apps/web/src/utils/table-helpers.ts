@@ -236,6 +236,9 @@ export const extractUsageMetadata = (metadata: unknown): UsageMetadata => {
             tool_use_prompt_tokens: 0,
             estimated_cost_usd: null,
             model: null,
+            requested_model: null,
+            combo_id: null,
+            combo_name: null,
         };
     }
 
@@ -254,6 +257,9 @@ export const extractUsageMetadata = (metadata: unknown): UsageMetadata => {
         pricing_version: (metadataObj?.pricing_version as string) || null,
         matched_model: (metadataObj?.matched_model as string) || null,
         model: (metadataObj?.model as string) || null,
+        requested_model: (metadataObj?.requested_model as string) || null,
+        combo_id: (metadataObj?.combo_id as string) || null,
+        combo_name: (metadataObj?.combo_name as string) || null,
         response_id: (metadataObj?.response_id as string) || undefined,
         created: (metadataObj?.created as number) || undefined,
         id: (metadataObj?.id as string) || undefined,

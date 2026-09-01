@@ -9,12 +9,13 @@ import {
     AppearanceSettings,
     ObservabilitySettingsForm,
     PricingSettingsForm,
+    RoutingSettingsForm,
     TimezoneSettingsForm,
 } from '@/features/settings';
 
 const { Title, Paragraph } = Typography;
 
-const TAB_KEYS = ['observability', 'pricing', 'timezone', 'appearance'] as const;
+const TAB_KEYS = ['observability', 'pricing', 'routing', 'timezone', 'appearance'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 function resolveTab(raw: string | null): TabKey {
@@ -46,6 +47,11 @@ export default function SettingsPage() {
                 key: 'pricing',
                 label: translate('settings.tabs.pricing'),
                 children: <PricingSettingsForm />,
+            },
+            {
+                key: 'routing',
+                label: translate('settings.tabs.routing'),
+                children: <RoutingSettingsForm />,
             },
             {
                 key: 'timezone',

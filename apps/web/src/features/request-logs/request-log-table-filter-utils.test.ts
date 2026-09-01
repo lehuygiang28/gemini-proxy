@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { describe, expect, it } from 'vitest';
 import {
     REQUEST_LOG_MODEL_FIELD,
+    REQUEST_LOG_REQUESTED_MODEL_FIELD,
     buildRequestLogDeepLinkInitialFilters,
     buildRequestLogSearchFilters,
     countActiveLogFilters,
@@ -24,7 +25,17 @@ describe('request-log-table-filter-utils', () => {
 
         expect(filters).toEqual([
             { field: 'request_id', operator: 'contains', value: 'req-1' },
-            { field: REQUEST_LOG_MODEL_FIELD, operator: 'contains', value: 'gemini-pro' },
+            {
+                operator: 'or',
+                value: [
+                    { field: REQUEST_LOG_MODEL_FIELD, operator: 'contains', value: 'gemini-pro' },
+                    {
+                        field: REQUEST_LOG_REQUESTED_MODEL_FIELD,
+                        operator: 'contains',
+                        value: 'gemini-pro',
+                    },
+                ],
+            },
             { field: 'api_format', operator: 'eq', value: 'gemini' },
             { field: 'is_successful', operator: 'eq', value: true },
             { field: 'is_stream', operator: 'eq', value: false },
@@ -75,5 +86,11 @@ describe('request-log-table-filter-utils', () => {
         });
 
         expect(countActiveLogFilters(filters)).toBe(3);
+    });
+
+    it('counts a model or-filter once and maps it back onto the search form', () => {
+        const filters = buildRequestLogSearchFilters({ model: 'flash-combo' });
+        expect(countActiveLogFilters(filters)).toBe(1);
+        expect(mapFiltersToSearchFormValues(filters).model).toBe('flash-combo');
     });
 });
