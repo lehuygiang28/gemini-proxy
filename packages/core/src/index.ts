@@ -5,7 +5,15 @@ export * from './import';
 export * from './keys';
 export { isSupportedIanaTimeZone } from './policy/iana-timezone';
 export { civilDayStartUtc, civilMonthStartUtc } from './policy/timezone-windows';
-export { globModel, matchModelPolicy } from './policy/match-model-policy';
+export { effectiveComboStrategy } from './combo/effective-combo-strategy';
+export { resolveCombo } from './combo/resolve-combo';
+export type {
+    ComboAttempt,
+    ComboStrategy,
+    EffectiveComboStrategy,
+    ResolvedCombo,
+    StoredCombo,
+} from './combo/combo-types';
 export { estimateAdmitTokens } from './policy/estimate-admit';
 export {
     isProxyQuotaWindowType,
