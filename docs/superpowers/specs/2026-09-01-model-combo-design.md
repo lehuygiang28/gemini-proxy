@@ -1,7 +1,7 @@
 # Model combo — alias, fallback, and catalog
 
 **Date:** 2026-09-01
-**Status:** Draft (awaiting spec file review)
+**Status:** Approved
 **Parent:** [master architecture](./2026-08-31-p0-p1-master-architecture-design.md) (do not reopen P0/P1 locks)
 **Approach:** Dedicated tables. Combo is a tenant-owned ordered alias. Runtime is model-major key round-robin. Dashboard is Refine resources + one shared picker.
 
