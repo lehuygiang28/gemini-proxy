@@ -6,7 +6,7 @@ describe('rewriteUpstreamModel', () => {
         const inputUrl =
             'https://origin.test/v1beta/models/flash-combo:generateContent?alt=sse';
         const inputRequest = new Request(inputUrl, { method: 'POST', body: '{}' });
-        const actual = rewriteUpstreamModel({
+        const actual = await rewriteUpstreamModel({
             request: inputRequest,
             urlToProxy: inputUrl,
             apiFormat: 'gemini',
@@ -24,10 +24,10 @@ describe('rewriteUpstreamModel', () => {
         await expect(actual.request.text()).resolves.toBe('{}');
     });
 
-    it('returns the same URLs when fromModel equals toModel', () => {
+    it('returns the same URLs when fromModel equals toModel', async () => {
         const inputUrl = 'https://origin.test/v1beta/models/gemini-3.7-flash:generateContent';
         const inputRequest = new Request(inputUrl, { method: 'POST' });
-        const actual = rewriteUpstreamModel({
+        const actual = await rewriteUpstreamModel({
             request: inputRequest,
             urlToProxy: inputUrl,
             apiFormat: 'gemini',
@@ -49,7 +49,7 @@ describe('rewriteUpstreamModel', () => {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(inputBody),
         });
-        const actual = rewriteUpstreamModel({
+        const actual = await rewriteUpstreamModel({
             request: inputRequest,
             urlToProxy: 'https://origin.test/openai/chat/completions',
             apiFormat: 'openai',
