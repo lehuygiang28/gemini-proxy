@@ -8,6 +8,7 @@ import {
     FileTextOutlined,
     SettingOutlined,
     WarningOutlined,
+    ClusterOutlined,
 } from '@ant-design/icons';
 import { useNotificationProvider } from '@refinedev/antd';
 import { Refine, type I18nProvider } from '@refinedev/core';
@@ -85,6 +86,15 @@ export function RefineProvider({ children }: PropsWithChildren) {
                         show: '/proxy-api-keys/show/:id',
                         meta: {
                             icon: <SafetyCertificateOutlined />,
+                        },
+                    },
+                    {
+                        name: 'model_combos',
+                        list: '/combos',
+                        create: '/combos/create',
+                        edit: '/combos/edit/:id',
+                        meta: {
+                            icon: <ClusterOutlined />,
                         },
                     },
                     {

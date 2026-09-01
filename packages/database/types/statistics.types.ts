@@ -95,6 +95,9 @@ export interface UsageMetadata {
     matched_model?: string | null;
     raw_metadata?: Record<string, unknown> | null;
     model: string | null;
+    requested_model?: string | null;
+    combo_id?: string | null;
+    combo_name?: string | null;
     response_id?: string;
     created?: number;
     id?: string;

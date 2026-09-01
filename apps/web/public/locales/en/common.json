@@ -171,7 +171,12 @@
             "show": "#{id} Log | Gemini Proxy"
         },
         "proxy_reconciliation_needed": { "list": "Reconciliation | Gemini Proxy" },
-        "user_settings": { "list": "Settings | Gemini Proxy" }
+        "user_settings": { "list": "Settings | Gemini Proxy" },
+        "model_combos": {
+            "list": "Combos | Gemini Proxy",
+            "create": "Create combo | Gemini Proxy",
+            "edit": "#{id} Edit combo | Gemini Proxy"
+        }
     },
     "header": {
         "account": "Account",
@@ -716,7 +721,8 @@
             "summary": "{count, plural, one {# retry} other {# retries}} · {ms}ms",
             "hint": "All entries below are failed attempts. Final outcome is the request status above.",
             "loadingKeys": "Loading API key names…",
-            "attempt": "Attempt #{number}"
+            "attempt": "Attempt #{number}",
+            "model": "Model {model}"
         }
     },
     "proxy_reconciliation_needed": {
@@ -740,6 +746,88 @@
     "user_settings": {
         "user_settings": "Settings",
         "titles": { "list": "Settings" }
+    },
+    "model_combos": {
+        "model_combos": "Combos",
+        "titles": {
+            "list": "Combos",
+            "create": "Create combo",
+            "edit": "Edit combo"
+        }
+    },
+    "combos": {
+        "title": "Combos",
+        "create": "Create combo",
+        "search": "Search combo names",
+        "empty": "No combos yet",
+        "off": "Off",
+        "saveFailed": "Could not save combo",
+        "deleteConfirm": "This combo name stops resolving. In-flight requests 404 to Google.",
+        "overrideWarning": "Requests for {name} will use this combo, not the Google model",
+        "defaultStrategy": "Uses the default ({strategy})",
+        "fields": {
+            "name": "Name",
+            "nameHelp": "Sent as the request model",
+            "models": "Models",
+            "strategy": "Strategy",
+            "overrideStrategy": "Override default strategy",
+            "stickAfter": "Stick after N successes",
+            "active": "Active",
+            "actions": "Actions"
+        },
+        "models": {
+            "help": "Tried in this order. Each Gemini key is rotated before the next model",
+            "moveUp": "Move up",
+            "moveDown": "Move down",
+            "remove": "Remove model"
+        },
+        "presets": {
+            "flash": "Flash",
+            "pro": "Pro",
+            "gemma": "Gemma"
+        },
+        "strategy": {
+            "fallback": "Fallback",
+            "sticky_until_error": "Sticky until error",
+            "stick_n": "Stick after N"
+        },
+        "errors": {
+            "nameRequired": "Name is required",
+            "modelsRequired": "Add at least one model",
+            "modelIsComboName": "A model cannot be this combo's name",
+            "duplicateModel": "Models must be unique",
+            "invalidName": "Use a lowercase id with letters, numbers, dots, underscores, or hyphens",
+            "strategyRequired": "Choose a strategy"
+        },
+        "titles": {
+            "create": "Create combo",
+            "edit": "Edit combo"
+        }
+    },
+    "picker": {
+        "placeholder": "Choose a model",
+        "addModel": "Add model",
+        "addModelHelp": "Type a Google model id once. Combos and allowlists pick from this list.",
+        "addFailed": "Could not add model",
+        "modelIdPlaceholder": "gemini-…",
+        "inputUsd": "USD / 1M input",
+        "outputUsd": "USD / 1M output",
+        "syncGoogle": "Sync Google models",
+        "syncOk": "Synced {count} Google models",
+        "syncFailed": "Could not sync Google models",
+        "lastSync": "Last Google sync {time}",
+        "groups": {
+            "combos": "Combos",
+            "gemini": "Gemini",
+            "gemma": "Gemma",
+            "custom": "Custom"
+        },
+        "tag": {
+            "overrides": "Overrides",
+            "combo": "Combo",
+            "custom": "Custom",
+            "google": "Google"
+        }
     },
     "observability": {
         "title": "Console",
@@ -809,6 +897,7 @@
         "tabs": {
             "observability": "Observability",
             "pricing": "Pricing",
+            "routing": "Routing",
             "timezone": "Timezone",
             "appearance": "Appearance"
         },
@@ -873,6 +962,13 @@
             "customized": "Added",
             "duplicateModel": "Each model can only appear once. Remove duplicate rows before saving.",
             "modelRequired": "Choose a model"
+        },
+        "routing": {
+            "strategy": "Default combo strategy",
+            "stickAfter": "Stick after N successes",
+            "help": "Default for combos that do not override. Stronger models stay first; this only picks which Gemini key starts.",
+            "saved": "Routing saved",
+            "saveFailed": "Failed to save routing"
         }
     },
     "account": {

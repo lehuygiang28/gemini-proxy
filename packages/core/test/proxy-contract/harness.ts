@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@gemini-proxy/database';
 import { coreApp } from '../../src/app';
+import { matchModelPolicy } from '../../src/policy/match-model-policy';
 import {
     resetSupabaseClient,
     setSupabaseFactoryForTests,
@@ -40,6 +41,26 @@ type ModelCooldownRow = {
     cooldown_until: string;
 };
 
+export type SeedCombo = {
+    id: string;
+    name: string;
+    is_active?: boolean;
+    strategy?: string | null;
+    stick_after_successes?: number | null;
+    members: string[];
+};
+
+export type SeedStickState = {
+    combo_id: string;
+    last_api_key_id: string | null;
+    consecutive_successes: number;
+};
+
+export type SeedUserSettings = {
+    combo_strategy?: string | null;
+    combo_stick_after_successes?: number | null;
+};
+
 export type InvokeCoreOptions = {
     proxyKey?: Record<string, unknown> | null;
     proxyKeyActive?: boolean;
@@ -61,6 +82,9 @@ export type InvokeCoreOptions = {
         is_active: boolean;
     }>;
     seedModelCooldowns?: ModelCooldownRow[];
+    seedCombos?: SeedCombo[];
+    seedStickState?: SeedStickState[];
+    seedUserSettings?: SeedUserSettings | null;
     originBody?: unknown;
     originResponses?: Array<Response | 'abort' | ((request: Request) => Promise<Response>)>;
     originHeaders?: HeadersInit;
@@ -94,6 +118,7 @@ type PersistedKeyPatch = {
 
 const persistedKeyPatches = new Map<string, PersistedKeyPatch>();
 const persistedModelCooldowns: ModelCooldownRow[] = [];
+const persistedStickState: SeedStickState[] = [];
 
 function createQuery(getResult: (filters: QueryFilters) => QueryResult): {
     select: (...args: unknown[]) => unknown;
@@ -325,7 +350,112 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                 return query;
             }
             if (table === 'user_settings') {
-                return createQuery(() => ({ data: null, error: null }));
+                return createQuery(() => ({
+                    data: options.seedUserSettings ?? null,
+                    error: null,
+                }));
+            }
+            if (table === 'model_combos') {
+                return createQuery((filters) => {
+                    const rows = (options.seedCombos ?? [])
+                        .filter((combo) => {
+                            if (
+                                filters.eqValues.user_id != null &&
+                                filters.eqValues.user_id !== CONTRACT_USER_ID
+                            ) {
+                                return false;
+                            }
+                            if (filters.eqValues.id != null && combo.id !== filters.eqValues.id) {
+                                return false;
+                            }
+                            return true;
+                        })
+                        .map((combo) => ({
+                            id: combo.id,
+                            name: combo.name,
+                            is_active: combo.is_active !== false,
+                            strategy: combo.strategy ?? null,
+                            stick_after_successes: combo.stick_after_successes ?? null,
+                            user_id: CONTRACT_USER_ID,
+                            model_combo_members: combo.members.map((canonical_model, position) => ({
+                                position,
+                                canonical_model,
+                            })),
+                        }));
+                    return { data: rows, error: null, count: rows.length };
+                });
+            }
+            if (table === 'model_combo_stick_state') {
+                const proxyKeyId =
+                    proxyRow && typeof proxyRow === 'object' && 'id' in proxyRow
+                        ? String((proxyRow as { id: string }).id)
+                        : CONTRACT_PROXY_KEY_ID;
+                const query = createQuery((filters) => {
+                    const rows = persistedStickState.filter((row) => {
+                        if (
+                            filters.eqValues.proxy_key_id != null &&
+                            filters.eqValues.proxy_key_id !== proxyKeyId
+                        ) {
+                            return false;
+                        }
+                        if (
+                            filters.eqValues.combo_id != null &&
+                            row.combo_id !== filters.eqValues.combo_id
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (
+                        filters.eqValues.combo_id != null ||
+                        filters.eqValues.proxy_key_id != null
+                    ) {
+                        const match = rows[0];
+                        return {
+                            data: match
+                                ? {
+                                      last_api_key_id: match.last_api_key_id,
+                                      consecutive_successes: match.consecutive_successes,
+                                  }
+                                : null,
+                            error: null,
+                        };
+                    }
+                    return { data: rows, error: null, count: rows.length };
+                });
+                const recordWrite = (payload: unknown) => {
+                    const rows = Array.isArray(payload) ? payload : [payload];
+                    for (const row of rows) {
+                        if (!row || typeof row !== 'object') {
+                            continue;
+                        }
+                        const next = row as {
+                            combo_id?: string;
+                            last_api_key_id?: string | null;
+                            consecutive_successes?: number;
+                        };
+                        if (!next.combo_id) {
+                            continue;
+                        }
+                        const existing = persistedStickState.findIndex(
+                            (item) => item.combo_id === next.combo_id,
+                        );
+                        const saved: SeedStickState = {
+                            combo_id: next.combo_id,
+                            last_api_key_id: next.last_api_key_id ?? null,
+                            consecutive_successes: next.consecutive_successes ?? 0,
+                        };
+                        if (existing >= 0) {
+                            persistedStickState[existing] = saved;
+                        } else {
+                            persistedStickState.push(saved);
+                        }
+                    }
+                    return query;
+                };
+                query.upsert = recordWrite;
+                query.insert = recordWrite;
+                return query;
             }
             if (table === 'api_key_model_cooldowns') {
                 return createQuery((filters) => {
@@ -389,16 +519,34 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
         async rpc(name: string, args: unknown) {
             rpcCalls.push({ name, args });
             if (name === 'admit_proxy_request') {
+                if (options.admitResults && options.admitResults.length > 0) {
+                    return { data: options.admitResults.shift() ?? null, error: null };
+                }
+                if (!isActive) {
+                    return { data: { ok: false, code: 'inactive_key' }, error: null };
+                }
+                const allowedModels =
+                    proxyRow && typeof proxyRow === 'object' && 'allowed_models' in proxyRow
+                        ? ((proxyRow as { allowed_models?: string[] | null }).allowed_models ??
+                          null)
+                        : null;
+                const requestedModel =
+                    args && typeof args === 'object' && 'p_model' in args
+                        ? String((args as { p_model?: string }).p_model ?? '')
+                        : '';
+                const policy = matchModelPolicy({
+                    model: requestedModel === '' ? undefined : requestedModel,
+                    allowed: allowedModels,
+                });
+                if (policy !== 'ok') {
+                    return { data: { ok: false, code: policy }, error: null };
+                }
                 return {
-                    data:
-                        options.admitResults?.shift() ??
-                        (isActive
-                            ? {
-                                  ok: true,
-                                  reserved_tokens: 8192,
-                                  reserved_usd: 0,
-                              }
-                            : { ok: false, code: 'inactive_key' }),
+                    data: {
+                        ok: true,
+                        reserved_tokens: 8192,
+                        reserved_usd: 0,
+                    },
                     error: null,
                 };
             }
@@ -514,6 +662,16 @@ export async function invokeCore(
             }
         }
     }
+    if (options.seedStickState) {
+        for (const row of options.seedStickState) {
+            const exists = persistedStickState.some(
+                (existing) => existing.combo_id === row.combo_id,
+            );
+            if (!exists) {
+                persistedStickState.push({ ...row });
+            }
+        }
+    }
     for (const [name, value] of Object.entries(options.environment ?? {})) {
         vi.stubEnv(name, value);
     }
@@ -565,6 +723,10 @@ export async function flushWaitUntil(): Promise<void> {
     }
 }
 
+export function getPersistedStickState(): SeedStickState[] {
+    return persistedStickState;
+}
+
 export function resetContractHarness(): void {
     originRequests.length = 0;
     rpcCalls.length = 0;
@@ -573,6 +735,7 @@ export function resetContractHarness(): void {
     waitUntilPromises.length = 0;
     persistedKeyPatches.clear();
     persistedModelCooldowns.length = 0;
+    persistedStickState.length = 0;
     setSupabaseFactoryForTests(null);
     resetSupabaseClient();
     vi.unstubAllGlobals();

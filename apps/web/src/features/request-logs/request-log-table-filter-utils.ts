@@ -1,8 +1,9 @@
-import type { CrudFilter, LogicalFilter } from '@refinedev/core';
+import type { ConditionalFilter, CrudFilter, LogicalFilter } from '@refinedev/core';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 export const REQUEST_LOG_MODEL_FIELD = 'usage_metadata->>model';
+export const REQUEST_LOG_REQUESTED_MODEL_FIELD = 'usage_metadata->>requested_model';
 export const REQUEST_LOG_DATE_GTE_FIELD = 'created_at';
 export const REQUEST_LOG_DATE_LTE_FIELD = 'created_at';
 
@@ -38,7 +39,13 @@ export function buildRequestLogSearchFilters(values: RequestLogSearch): CrudFilt
 
     const model = values.model?.trim();
     if (model) {
-        filters.push({ field: REQUEST_LOG_MODEL_FIELD, operator: 'contains', value: model });
+        filters.push({
+            operator: 'or',
+            value: [
+                { field: REQUEST_LOG_MODEL_FIELD, operator: 'contains', value: model },
+                { field: REQUEST_LOG_REQUESTED_MODEL_FIELD, operator: 'contains', value: model },
+            ],
+        });
     }
 
     if (values.api_format) {
@@ -109,7 +116,7 @@ export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<Req
 
     return {
         request_id: getFilterScalar(filters, 'request_id') as string | undefined,
-        model: getFilterScalar(filters, REQUEST_LOG_MODEL_FIELD) as string | undefined,
+        model: getModelSearchValue(filters),
         api_format: getFilterScalar(filters, 'api_format') as string | undefined,
         is_successful: getFilterScalar(filters, 'is_successful') as boolean | undefined,
         is_stream: getFilterScalar(filters, 'is_stream') as boolean | undefined,
@@ -119,10 +126,34 @@ export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<Req
     };
 }
 
+function isOrFilter(filter: CrudFilter): filter is ConditionalFilter & { operator: 'or' } {
+    return !isLogicalFilter(filter) && filter.operator === 'or';
+}
+
 export function findFilter(filters: CrudFilter[], field: string): LogicalFilter | undefined {
     return filters.find((filter) => isLogicalFilter(filter) && filter.field === field) as
         | LogicalFilter
         | undefined;
+}
+
+export function getModelSearchValue(filters: CrudFilter[]): string | undefined {
+    const direct = getFilterScalar(filters, REQUEST_LOG_MODEL_FIELD);
+    if (typeof direct === 'string' && direct.length > 0) {
+        return direct;
+    }
+    const orFilter = filters.find(isOrFilter);
+    if (!orFilter || !Array.isArray(orFilter.value)) {
+        return undefined;
+    }
+    const modelClause = orFilter.value.find(
+        (clause) => isLogicalFilter(clause) && clause.field === REQUEST_LOG_MODEL_FIELD,
+    );
+    return typeof modelClause?.value === 'string' ? modelClause.value : undefined;
+}
+
+export function hasModelFilter(filters: CrudFilter[]): boolean {
+    const value = getModelSearchValue(filters);
+    return value !== undefined && value !== '';
 }
 
 export function getFilterScalar(filters: CrudFilter[], field: string): unknown {
@@ -168,6 +199,12 @@ export function countActiveLogFilters(filters: CrudFilter[]): number {
     let count = 0;
     let hasDateRange = false;
     for (const filter of filters) {
+        if (isOrFilter(filter)) {
+            if (getModelSearchValue([filter])) {
+                count += 1;
+            }
+            continue;
+        }
         if (!isLogicalFilter(filter)) {
             continue;
         }

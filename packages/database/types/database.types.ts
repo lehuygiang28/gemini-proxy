@@ -109,6 +109,131 @@ export type Database = {
                     },
                 ];
             };
+            model_combos: {
+                Row: {
+                    created_at: string;
+                    id: string;
+                    is_active: boolean;
+                    name: string;
+                    stick_after_successes: number | null;
+                    strategy: string | null;
+                    updated_at: string;
+                    user_id: string;
+                };
+                Insert: {
+                    created_at?: string;
+                    id?: string;
+                    is_active?: boolean;
+                    name: string;
+                    stick_after_successes?: number | null;
+                    strategy?: string | null;
+                    updated_at?: string;
+                    user_id: string;
+                };
+                Update: {
+                    created_at?: string;
+                    id?: string;
+                    is_active?: boolean;
+                    name?: string;
+                    stick_after_successes?: number | null;
+                    strategy?: string | null;
+                    updated_at?: string;
+                    user_id?: string;
+                };
+                Relationships: [];
+            };
+            model_combo_members: {
+                Row: {
+                    canonical_model: string;
+                    combo_id: string;
+                    position: number;
+                };
+                Insert: {
+                    canonical_model: string;
+                    combo_id: string;
+                    position: number;
+                };
+                Update: {
+                    canonical_model?: string;
+                    combo_id?: string;
+                    position?: number;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'model_combo_members_combo_id_fkey';
+                        columns: ['combo_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'model_combos';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
+            user_model_catalog: {
+                Row: {
+                    display_name: string | null;
+                    model_id: string;
+                    refreshed_at: string;
+                    source: string;
+                    supports_generate: boolean;
+                    user_id: string;
+                };
+                Insert: {
+                    display_name?: string | null;
+                    model_id: string;
+                    refreshed_at?: string;
+                    source: string;
+                    supports_generate?: boolean;
+                    user_id: string;
+                };
+                Update: {
+                    display_name?: string | null;
+                    model_id?: string;
+                    refreshed_at?: string;
+                    source?: string;
+                    supports_generate?: boolean;
+                    user_id?: string;
+                };
+                Relationships: [];
+            };
+            model_combo_stick_state: {
+                Row: {
+                    combo_id: string;
+                    consecutive_successes: number;
+                    last_api_key_id: string | null;
+                    proxy_key_id: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    combo_id: string;
+                    consecutive_successes?: number;
+                    last_api_key_id?: string | null;
+                    proxy_key_id: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    combo_id?: string;
+                    consecutive_successes?: number;
+                    last_api_key_id?: string | null;
+                    proxy_key_id?: string;
+                    updated_at?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: 'model_combo_stick_state_combo_id_fkey';
+                        columns: ['combo_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'model_combos';
+                        referencedColumns: ['id'];
+                    },
+                    {
+                        foreignKeyName: 'model_combo_stick_state_proxy_key_id_fkey';
+                        columns: ['proxy_key_id'];
+                        isOneToOne: false;
+                        referencedRelation: 'proxy_api_keys';
+                        referencedColumns: ['id'];
+                    },
+                ];
+            };
             proxy_api_keys: {
                 Row: {
                     allowed_models: string[] | null;
@@ -309,6 +434,8 @@ export type Database = {
             };
             user_settings: {
                 Row: {
+                    combo_stick_after_successes: number | null;
+                    combo_strategy: string;
                     custom_model_pricing: Json;
                     detailed_observability: boolean;
                     id: string;
@@ -318,6 +445,8 @@ export type Database = {
                     updated_at: string;
                 };
                 Insert: {
+                    combo_stick_after_successes?: number | null;
+                    combo_strategy?: string;
                     custom_model_pricing?: Json;
                     detailed_observability?: boolean;
                     id: string;
@@ -327,6 +456,8 @@ export type Database = {
                     updated_at?: string;
                 };
                 Update: {
+                    combo_stick_after_successes?: number | null;
+                    combo_strategy?: string;
                     custom_model_pricing?: Json;
                     detailed_observability?: boolean;
                     id?: string;
@@ -486,6 +617,25 @@ export type Database = {
             record_api_key_success: {
                 Args: { p_id: string; p_canonical_model?: string | null };
                 Returns: undefined;
+            };
+            save_model_combo: {
+                Args: {
+                    p_id: string | null;
+                    p_is_active: boolean;
+                    p_members: string[];
+                    p_name: string;
+                    p_stick_after_successes: number | null;
+                    p_strategy: string | null;
+                };
+                Returns: string;
+            };
+            replace_user_google_live_catalog: {
+                Args: { p_models: Json };
+                Returns: number;
+            };
+            normalize_combo_model_id: {
+                Args: { p_id: string };
+                Returns: string;
             };
             settle_proxy_request: {
                 Args: {

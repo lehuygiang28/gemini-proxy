@@ -20,15 +20,15 @@ import {
     formatUsd,
     getRequestType,
     getRequestTypeColor,
-    shortModel,
 } from '@/utils/table-helpers';
 import {
-    REQUEST_LOG_MODEL_FIELD,
     getDateRangeFromFilters,
-    getFilterScalar,
+    getModelSearchValue,
     hasActiveFilter,
+    hasModelFilter,
     type RequestLogSearch,
 } from '../request-log-table-filter-utils';
+import { comboLogModelLabels } from '../combo-log-model-labels';
 import { KeyCombobox } from './key-combobox';
 
 const { RangePicker } = DatePicker;
@@ -107,7 +107,7 @@ function ModelFilterDropdown({
     searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const activeModel = getFilterScalar(crudFilters, REQUEST_LOG_MODEL_FIELD);
+    const activeModel = getModelSearchValue(crudFilters);
     const modelFieldKey = String(activeModel ?? '');
 
     return (
@@ -336,15 +336,13 @@ export function useRequestLogTableColumns({
                 filterIcon: () => (
                     <SearchOutlined
                         style={{
-                            color: hasActiveFilter(filters, REQUEST_LOG_MODEL_FIELD)
-                                ? token.colorPrimary
-                                : undefined,
+                            color: hasModelFilter(filters) ? token.colorPrimary : undefined,
                         }}
                     />
                 ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
-                    const model = shortModel(usage.model);
+                    const labels = comboLogModelLabels(usage);
                     const formatLabel = getRequestType(record.api_format);
                     const retryCount = Array.isArray(record.retry_attempts)
                         ? record.retry_attempts.length
@@ -352,8 +350,19 @@ export function useRequestLogTableColumns({
                     return (
                         <div>
                             <div style={{ fontSize: 13, color: 'var(--gp-text)', fontWeight: 500 }}>
-                                {model}
+                                {labels.primary}
                             </div>
+                            {labels.requested ? (
+                                <div
+                                    style={{
+                                        color: 'var(--gp-text-muted)',
+                                        fontSize: 11,
+                                        marginTop: 2,
+                                    }}
+                                >
+                                    {labels.requested}
+                                </div>
+                            ) : null}
                             <Space size={4} wrap style={{ marginTop: 2 }}>
                                 <Tag
                                     color={getRequestTypeColor(record.api_format)}

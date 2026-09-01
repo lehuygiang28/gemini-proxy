@@ -6,6 +6,10 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src'),
             '@gemini-proxy/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
+            '@gemini-proxy/pricing': path.resolve(
+                __dirname,
+                '../../packages/core/src/constants/gemini-pricing.ts',
+            ),
         },
     },
     test: {

@@ -6,6 +6,9 @@ import { estimateAdmitTokens } from '../policy/estimate-admit';
 import { getSupabaseClient } from '../services/supabase.service';
 import { safelyExtractBodyText } from '../utils/body-handler';
 import { estimateGeminiCostUsd } from '../utils/cost-estimator';
+import { loadUserCombos } from '../combo/load-user-combos';
+import { resolveCombo } from '../combo/resolve-combo';
+import { firstPricedComboMember } from '../combo/first-priced-combo-member';
 
 type AdmitResult = {
     ok: boolean;
@@ -82,6 +85,14 @@ export async function proxyPolicyMiddleware(
 ): Promise<Response | void> {
     const proxyKey = c.get('proxyApiKeyData');
     const requestData = c.get('proxyRequestDataParsed');
+    const supabase = getSupabaseClient(c);
+    const combos = await loadUserCombos(supabase, proxyKey.user_id);
+    const resolvedCombo = resolveCombo({
+        combos,
+        requestedModel: requestData.model ?? '',
+    });
+    c.set('userCombos', combos);
+    c.set('resolvedCombo', resolvedCombo);
     const managed = requestData.managed;
     let estimatedTokens = 0;
     let estimatedUsd = 0;
@@ -89,9 +100,13 @@ export async function proxyPolicyMiddleware(
         const bodyText = await safelyExtractBodyText(c);
         const peekedMaxOutput = peekMaxOutput(parseBody(bodyText));
         estimatedTokens = estimateAdmitTokens({ peekedMaxOutput });
+        const costModel =
+            resolvedCombo.kind === 'combo'
+                ? (firstPricedComboMember(resolvedCombo.members) ?? requestData.model ?? 'unknown')
+                : (requestData.model ?? 'unknown');
         estimatedUsd =
             estimateGeminiCostUsd({
-                model: requestData.model ?? 'unknown',
+                model: costModel,
                 promptTokens: 0,
                 cacheTokens: 0,
                 completionTokens: estimatedTokens,
@@ -100,7 +115,6 @@ export async function proxyPolicyMiddleware(
                 totalTokens: estimatedTokens,
             })?.usd ?? 0;
     }
-    const supabase = getSupabaseClient(c);
     const { data, error } = await supabase.rpc('admit_proxy_request', {
         p_proxy_key_id: proxyKey.id,
         p_model: requestData.model ?? '',

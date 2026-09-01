@@ -41,6 +41,9 @@ export interface RequestLogData {
         estimatedCostUsd: number | null;
         pricingVersion: string | null;
         matchedModel: string | null;
+        requestedModel?: string | null;
+        comboId?: string | null;
+        comboName?: string | null;
         rawMetadata: Json;
     } | null;
     retryAttempts?: any;
@@ -176,7 +179,13 @@ export class BackgroundService {
             parseError: true,
             raw: { parse_error: true },
         };
-        const fallbackModel = proxyRequestDataParsed.model || 'unknown';
+        const resolvedCombo = c.get('resolvedCombo');
+        const winningMember = c.get('comboWinningMember');
+        const requestedModel = proxyRequestDataParsed.model || 'unknown';
+        const fallbackModel =
+            resolvedCombo?.kind === 'combo'
+                ? winningMember || tokenUsage.model || requestedModel
+                : requestedModel;
         const settings = await this.loadUserSettings(c, userId);
         const policyReservation = c.get('proxyPolicyReservation');
         const cost = estimateCostFromParsedUsage(
@@ -272,11 +281,18 @@ export class BackgroundService {
                 toolUsePromptTokens: tokenUsage.toolUsePromptTokens,
                 totalTokens: tokenUsage.totalTokens,
                 cacheTokens: tokenUsage.cacheTokens,
-                model: tokenUsage.model || fallbackModel,
+                model:
+                    resolvedCombo?.kind === 'combo'
+                        ? winningMember || tokenUsage.model || fallbackModel
+                        : tokenUsage.model || fallbackModel,
                 responseId: tokenUsage.responseId,
                 estimatedCostUsd: cost?.usd ?? null,
                 pricingVersion: cost?.pricingVersion ?? null,
                 matchedModel: cost?.matchedModel ?? null,
+                requestedModel:
+                    resolvedCombo?.kind === 'combo' ? (proxyRequestDataParsed.model ?? null) : null,
+                comboId: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.id : null,
+                comboName: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.name : null,
                 rawMetadata: (tokenUsage.raw as Json) ?? { parse_error: true },
             },
         });
@@ -335,6 +351,9 @@ export class BackgroundService {
 
         const settings = await this.loadUserSettings(c, userId);
         const policyReservation = c.get('proxyPolicyReservation');
+        const resolvedCombo = c.get('resolvedCombo');
+        const winningMember = c.get('comboWinningMember');
+        const usageModel = resolvedCombo?.kind === 'combo' ? winningMember || model : model;
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -411,7 +430,7 @@ export class BackgroundService {
             },
             retryAttempts,
             totalResponseTimeMs,
-            usageMetadata: model
+            usageMetadata: usageModel
                 ? {
                       promptTokens: 0,
                       completionTokens: 0,
@@ -419,11 +438,14 @@ export class BackgroundService {
                       toolUsePromptTokens: 0,
                       totalTokens: 0,
                       cacheTokens: 0,
-                      model: model,
+                      model: usageModel,
                       estimatedCostUsd: null,
                       pricingVersion: null,
                       matchedModel: null,
-                      rawMetadata: { model: model },
+                      requestedModel: resolvedCombo?.kind === 'combo' ? (model ?? null) : null,
+                      comboId: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.id : null,
+                      comboName: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.name : null,
+                      rawMetadata: { model: usageModel },
                   }
                 : null,
         });
@@ -592,6 +614,9 @@ export class BackgroundService {
             estimated_cost_usd: usage?.estimatedCostUsd ?? null,
             pricing_version: usage?.pricingVersion ?? null,
             matched_model: usage?.matchedModel ?? null,
+            requested_model: usage?.requestedModel ?? null,
+            combo_id: usage?.comboId ?? null,
+            combo_name: usage?.comboName ?? null,
             raw_metadata: usage?.rawMetadata ?? null,
         };
         const supabase = getSupabaseClient(c);
@@ -660,6 +685,9 @@ export class BackgroundService {
                     prompt_tokens: usage?.promptTokens ?? 0,
                     completion_tokens: usage?.completionTokens ?? 0,
                     model: usage?.model ?? null,
+                    requested_model: usage?.requestedModel ?? null,
+                    combo_id: usage?.comboId ?? null,
+                    combo_name: usage?.comboName ?? null,
                 } as Json,
                 retry_attempts: (requestLog?.retryAttempts ?? []) as Json,
             },
