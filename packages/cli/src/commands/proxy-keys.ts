@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { colors } from '../lib/colors';
 import { input, confirm, select } from '@inquirer/prompts';
 import ora from 'ora';
+import { selectedQuotaWindowTypes } from '@gemini-proxy/core';
 import { ProxyKeysManager } from '../lib/proxy-keys';
 import { UsersManager } from '../lib/users';
 import { keysOwnedBy } from '../lib/resolve-owner-user';
@@ -504,6 +505,58 @@ export function proxyKeysCommands(program: Command) {
                 throw error;
             }
         });
+
+    proxyKeys
+        .command('reset-quota <id>')
+        .description('Reset current quota windows for a proxy API key')
+        .option('--minute', 'Reset the current minute (RPM) window')
+        .option('--day', 'Reset the current day (RPD + token/day) window')
+        .option('--month', 'Reset the current month (USD) window')
+        .option('-f, --force', 'Skip confirmation')
+        .action(
+            async (
+                id: string,
+                options: {
+                    minute?: boolean;
+                    day?: boolean;
+                    month?: boolean;
+                    force?: boolean;
+                },
+            ) => {
+                const windowTypes = selectedQuotaWindowTypes({
+                    minute: Boolean(options.minute),
+                    day: Boolean(options.day),
+                    month: Boolean(options.month),
+                });
+                if (windowTypes.length === 0) {
+                    throw new Error('Select at least one window: --minute, --day, and/or --month');
+                }
+                const proxyKey = await ProxyKeysManager.getById(id);
+                if (!proxyKey) {
+                    throw new Error('Proxy API key not found');
+                }
+                if (!options.force) {
+                    const confirmed = await confirm({
+                        message: `Reset current ${windowTypes.join(', ')} quota for "${proxyKey.name}"?`,
+                        default: false,
+                    });
+                    if (!confirmed) {
+                        console.log(colors.yellow('Operation cancelled'));
+                        return;
+                    }
+                }
+                const spinner = ora('Resetting proxy key quota...').start();
+                try {
+                    const result = await ProxyKeysManager.resetQuota(id, windowTypes);
+                    spinner.succeed(
+                        `Reset: ${result.reset.join(', ') || 'none'}; skipped: ${result.skipped.join(', ') || 'none'}`,
+                    );
+                } catch (error) {
+                    spinner.fail('Failed to reset proxy key quota');
+                    throw error;
+                }
+            },
+        );
 
     proxyKeys
         .command('toggle <id>')
