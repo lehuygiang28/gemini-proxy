@@ -1,4 +1,4 @@
-import type { CrudFilter, LogicalFilter } from '@refinedev/core';
+import type { ConditionalFilter, CrudFilter, LogicalFilter } from '@refinedev/core';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
@@ -126,7 +126,7 @@ export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<Req
     };
 }
 
-function isOrFilter(filter: CrudFilter): filter is Extract<CrudFilter, { operator: 'or' }> {
+function isOrFilter(filter: CrudFilter): filter is ConditionalFilter & { operator: 'or' } {
     return !isLogicalFilter(filter) && filter.operator === 'or';
 }
 

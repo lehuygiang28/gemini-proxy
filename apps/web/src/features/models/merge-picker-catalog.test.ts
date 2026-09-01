@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import type { StoredCombo } from '@gemini-proxy/core';
 import { mergePickerCatalog } from './merge-picker-catalog';
 
-const flashCombo = {
+const flashCombo: StoredCombo = {
     id: 'c1',
     name: 'flash-combo',
     isActive: true,
-    strategy: null as const,
+    strategy: null,
     stickAfterSuccesses: null,
     members: ['gemini-3.7-flash', 'gemini-3.5-flash'],
 };

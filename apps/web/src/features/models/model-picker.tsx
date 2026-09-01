@@ -5,6 +5,7 @@ import { useInvalidate, useNotification, useTranslation } from '@refinedev/core'
 import { Button, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { normalizeGeminiModelId } from '@gemini-proxy/core';
+import type { Json } from '@gemini-proxy/database';
 import { supabaseBrowserClient } from '@/utils/supabase/client';
 import { useModelCatalog } from './use-model-catalog';
 import type { PickerModelEntry, PickerModelMode } from './merge-picker-catalog';
@@ -216,9 +217,9 @@ function PickerFooter(props: {
                     settings?.custom_model_pricing &&
                     typeof settings.custom_model_pricing === 'object' &&
                     !Array.isArray(settings.custom_model_pricing)
-                        ? (settings.custom_model_pricing as Record<string, unknown>)
+                        ? settings.custom_model_pricing
                         : {};
-                const pricing = {
+                const pricing: Json = {
                     ...current,
                     [modelId]: {
                         inputPerMillion: inputPerMillion ?? 0,
