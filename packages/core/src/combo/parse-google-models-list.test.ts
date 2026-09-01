@@ -71,6 +71,19 @@ describe('parseGoogleModelsList', () => {
         ]);
     });
 
+    it('skips non-string names so sync does not store [object Object]', () => {
+        const actual = parseGoogleModelsList({
+            models: [{ name: {} }, { name: 12 }, { name: 'models/gemini-3.7-flash' }],
+        });
+        expect(actual).toEqual([
+            {
+                modelId: 'gemini-3.7-flash',
+                displayName: null,
+                supportsGenerate: true,
+            },
+        ]);
+    });
+
     it('skips non-object rows and empty names', () => {
         expect(
             parseGoogleModelsList({

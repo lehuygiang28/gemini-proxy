@@ -90,6 +90,7 @@ describe('syncGoogleModelCatalog', () => {
         const request = fetchImpl.mock.calls[0]![0] as Request;
         expect(new URL(request.url).pathname).toBe('/v1beta/models');
         expect(request.headers.get('x-goog-api-key')).toBe('AIzaSyTEST');
+        expect(request.redirect).toBe('error');
     });
 
     it('passes parsed google_live rows to the replace RPC', async () => {

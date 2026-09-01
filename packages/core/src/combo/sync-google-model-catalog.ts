@@ -40,6 +40,7 @@ export async function syncGoogleModelCatalog(input: {
         response = await fetchImpl(
             new Request(`${base}v1beta/models`, {
                 headers: { 'x-goog-api-key': apiKey.api_key_value },
+                redirect: 'error',
             }),
         );
     } catch {

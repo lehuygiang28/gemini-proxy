@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useList } from '@refinedev/core';
 import { listBuiltinModelPricingRows } from '@gemini-proxy/pricing';
 import type { StoredCombo } from '@gemini-proxy/core';
+import type { Tables } from '@gemini-proxy/database';
 import {
     mergePickerCatalog,
     type PickerModelEntry,
@@ -19,12 +20,10 @@ type ComboRow = {
     model_combo_members?: Array<{ position: number; canonical_model: string }>;
 };
 
-type CatalogRow = {
-    model_id: string;
-    source: string;
-    display_name: string | null;
-    refreshed_at?: string | null;
-};
+type CatalogRow = Pick<
+    Tables<'user_model_catalog'>,
+    'model_id' | 'source' | 'display_name' | 'refreshed_at'
+>;
 
 export function useModelCatalog(mode: PickerModelMode): {
     entries: PickerModelEntry[];

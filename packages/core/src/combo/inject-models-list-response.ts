@@ -30,9 +30,7 @@ export function injectModelsListResponse(input: {
         allowedModels: input.allowedModels,
     });
     if (input.apiFormat === 'openai') {
-        const original = Array.isArray(root.data)
-            ? (root.data as Array<Record<string, unknown>>)
-            : [];
+        const original = objectRows(root.data);
         const byId = new Map(
             original.map((row) => [normalizeGeminiModelId(String(row.id ?? '')), row]),
         );
@@ -57,9 +55,7 @@ export function injectModelsListResponse(input: {
             }),
         });
     }
-    const original = Array.isArray(root.models)
-        ? (root.models as Array<Record<string, unknown>>)
-        : [];
+    const original = objectRows(root.models);
     const byId = new Map(
         original.map((row) => [normalizeGeminiModelId(String(row.name ?? '')), row]),
     );
@@ -80,26 +76,17 @@ export function injectModelsListResponse(input: {
 }
 
 function extractGoogleIds(apiFormat: ProxyApiFormat, root: Record<string, unknown>): string[] {
-    if (apiFormat === 'openai') {
-        if (!Array.isArray(root.data)) {
-            return [];
-        }
-        return root.data
-            .map((row) =>
-                row !== null && typeof row === 'object' && 'id' in row
-                    ? String((row as { id: unknown }).id)
-                    : '',
-            )
-            .filter((id) => id !== '');
-    }
-    if (!Array.isArray(root.models)) {
+    const rows = objectRows(apiFormat === 'openai' ? root.data : root.models);
+    const key = apiFormat === 'openai' ? 'id' : 'name';
+    return rows.map((row) => (key in row ? String(row[key] ?? '') : '')).filter((id) => id !== '');
+}
+
+function objectRows(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) {
         return [];
     }
-    return root.models
-        .map((row) =>
-            row !== null && typeof row === 'object' && 'name' in row
-                ? String((row as { name: unknown }).name)
-                : '',
-        )
-        .filter((name) => name !== '');
+    return value.filter(
+        (row): row is Record<string, unknown> =>
+            row !== null && typeof row === 'object' && !Array.isArray(row),
+    );
 }

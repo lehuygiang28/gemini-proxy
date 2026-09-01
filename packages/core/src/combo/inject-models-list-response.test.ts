@@ -94,6 +94,35 @@ describe('injectModelsListResponse', () => {
         ).toBe(originBodyText);
     });
 
+    it('keeps injecting when the origin list contains a null row', () => {
+        const actual = injectModelsListResponse({
+            apiFormat: 'openai',
+            originBodyText: JSON.stringify({ data: [null, { id: 'gemini-3.7-flash' }] }),
+            combos: [flashCombo],
+            catalogIds: [],
+            builtinIds: ['gemini-3.7-flash'],
+            allowedModels: null,
+        });
+        const parsed = JSON.parse(actual) as { data: Array<{ id: string }> };
+        expect(parsed.data.some((row) => row.id === 'flash-combo')).toBe(true);
+        expect(parsed.data.some((row) => row.id === 'gemini-3.7-flash')).toBe(true);
+    });
+
+    it('keeps injecting Gemini combos when models contains a null row', () => {
+        const actual = injectModelsListResponse({
+            apiFormat: 'gemini',
+            originBodyText: JSON.stringify({
+                models: [null, { name: 'models/gemini-3.7-flash' }],
+            }),
+            combos: [flashCombo],
+            catalogIds: [],
+            builtinIds: ['gemini-3.7-flash'],
+            allowedModels: null,
+        });
+        const parsed = JSON.parse(actual) as { models: Array<{ name: string }> };
+        expect(parsed.models.some((row) => row.name === 'models/flash-combo')).toBe(true);
+    });
+
     it('allowlists injected OpenAI combos without leaking members', () => {
         const actual = injectModelsListResponse({
             apiFormat: 'openai',

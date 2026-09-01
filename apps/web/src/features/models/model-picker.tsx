@@ -5,8 +5,8 @@ import { useInvalidate, useNotification, useTranslation } from '@refinedev/core'
 import { Button, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { normalizeGeminiModelId } from '@gemini-proxy/core';
-import type { Json } from '@gemini-proxy/database';
 import { supabaseBrowserClient } from '@/utils/supabase/client';
+import { persistCustomPickerModel } from './persist-custom-picker-model';
 import { useModelCatalog } from './use-model-catalog';
 import type { PickerModelEntry, PickerModelMode } from './merge-picker-catalog';
 
@@ -187,61 +187,19 @@ function PickerFooter(props: {
             if (!user) {
                 return;
             }
-            const { error } = await supabaseBrowserClient.from('user_model_catalog').upsert({
-                user_id: user.id,
-                model_id: modelId,
-                source: 'custom',
-                supports_generate: true,
+            const persisted = await persistCustomPickerModel({
+                supabase: supabaseBrowserClient,
+                userId: user.id,
+                modelId,
+                inputPerMillion,
+                outputPerMillion,
             });
-            if (error) {
+            if (!persisted.ok) {
                 notification.open({
                     type: 'error',
                     message: translate('picker.addFailed'),
                 });
                 return;
-            }
-            if (inputPerMillion != null || outputPerMillion != null) {
-                const { data: settings, error: settingsReadError } = await supabaseBrowserClient
-                    .from('user_settings')
-                    .select('id, custom_model_pricing')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                if (settingsReadError) {
-                    notification.open({
-                        type: 'error',
-                        message: translate('picker.addFailed'),
-                    });
-                    return;
-                }
-                const current =
-                    settings?.custom_model_pricing &&
-                    typeof settings.custom_model_pricing === 'object' &&
-                    !Array.isArray(settings.custom_model_pricing)
-                        ? settings.custom_model_pricing
-                        : {};
-                const pricing: Json = {
-                    ...current,
-                    [modelId]: {
-                        inputPerMillion: inputPerMillion ?? 0,
-                        outputPerMillion: outputPerMillion ?? 0,
-                    },
-                };
-                const { error: pricingError } = settings?.id
-                    ? await supabaseBrowserClient
-                          .from('user_settings')
-                          .update({ custom_model_pricing: pricing })
-                          .eq('id', settings.id)
-                    : await supabaseBrowserClient.from('user_settings').insert({
-                          id: user.id,
-                          custom_model_pricing: pricing,
-                      });
-                if (pricingError) {
-                    notification.open({
-                        type: 'error',
-                        message: translate('picker.addFailed'),
-                    });
-                    return;
-                }
             }
             await handleInvalidateCatalog();
             setAddOpen(false);

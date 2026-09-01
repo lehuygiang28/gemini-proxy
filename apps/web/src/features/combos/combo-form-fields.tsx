@@ -140,7 +140,10 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategy: stri
                             <Typography.Text>
                                 {index + 1} {modelId}
                             </Typography.Text>
-                            <SourceTag source={entry?.source ?? 'google'} overrides={false} />
+                            <SourceTag
+                                source={entry?.source ?? 'google'}
+                                overrides={entry?.overrides ?? false}
+                            />
                             <Button
                                 size="small"
                                 icon={<ArrowUpOutlined />}

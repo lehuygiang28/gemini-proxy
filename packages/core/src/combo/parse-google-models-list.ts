@@ -20,7 +20,10 @@ export function parseGoogleModelsList(body: unknown): ParsedGoogleModel[] | null
         if (row === null || typeof row !== 'object' || Array.isArray(row)) {
             continue;
         }
-        const name = 'name' in row ? String((row as { name: unknown }).name ?? '') : '';
+        const name = 'name' in row ? (row as { name: unknown }).name : undefined;
+        if (typeof name !== 'string' || name.length === 0) {
+            continue;
+        }
         const modelId = normalizeGeminiModelId(name);
         if (!modelId || seen.has(modelId)) {
             continue;
