@@ -9,14 +9,14 @@ This document is the source of truth when a feature spec conflicts with it. Feat
 
 ## Specs in this program
 
-| ID  | Priority | Spec | Plan | Status |
-| --- | -------- | ---- | ---- | ------ |
-| 0   | —        | This master architecture | — | Approved |
-| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-p0-ci-test-runtime-design.md) | [plan](../plans/2026-08-31-p0-ci-test-runtime.md) | Approved |
-| 2   | P0       | [Tenant, CLI, auth, privacy](./2026-08-31-p0-tenant-cli-auth-privacy-design.md) | [plan](../plans/2026-08-31-p0-tenant-cli-auth-privacy.md) | Approved |
-| 3   | P0       | [`/v1` routing, passthrough, retry, cooldown](./2026-08-31-p0-routing-retry-cooldown-design.md) | [plan](../plans/2026-08-31-p0-routing-retry-cooldown.md) | Approved |
-| 4   | P1       | [Proxy-key policy, timezone, admission](./2026-08-31-p1-policy-timezone-admission-budget-design.md) | [plan](../plans/2026-08-31-p1-policy-timezone-admission-budget.md) | Approved |
-| 5   | P1       | [Persistence, alerts, reconciliation](./2026-08-31-p1-persistence-alerts-reconciliation-design.md) | [plan](../plans/2026-08-31-p1-persistence-alerts-reconciliation.md) | Approved |
+| ID  | Priority | Spec                                                                                                | Plan                                                                | Status   |
+| --- | -------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------- |
+| 0   | —        | This master architecture                                                                            | —                                                                   | Approved |
+| 1   | P0       | [CI, test baseline, and runtime contract](./2026-08-31-p0-ci-test-runtime-design.md)                | [plan](../plans/2026-08-31-p0-ci-test-runtime.md)                   | Approved |
+| 2   | P0       | [Tenant, CLI, auth, privacy](./2026-08-31-p0-tenant-cli-auth-privacy-design.md)                     | [plan](../plans/2026-08-31-p0-tenant-cli-auth-privacy.md)           | Approved |
+| 3   | P0       | [`/v1` routing, passthrough, retry, cooldown](./2026-08-31-p0-routing-retry-cooldown-design.md)     | [plan](../plans/2026-08-31-p0-routing-retry-cooldown.md)            | Approved |
+| 4   | P1       | [Proxy-key policy, timezone, admission](./2026-08-31-p1-policy-timezone-admission-budget-design.md) | [plan](../plans/2026-08-31-p1-policy-timezone-admission-budget.md)  | Approved |
+| 5   | P1       | [Persistence, alerts, reconciliation](./2026-08-31-p1-persistence-alerts-reconciliation-design.md)  | [plan](../plans/2026-08-31-p1-persistence-alerts-reconciliation.md) | Approved |
 
 Each spec is one implementation plan and one PR (stacked).
 
@@ -49,13 +49,13 @@ Locked local filenames (do not rename again):
 
 Treat these as the live stack. Realign code; do not continue dropped work.
 
-| Spec | Branch / PR | vs lock |
-| ---- | ----------- | ------- |
-| 1 | `cursor/ci-contract-tests-a451` | Keep. Finish README matrix (`/v1`, pools/OTel out of scope) and the two stream contract cases. |
-| 2 | `cursor/auth-tenant-log-privacy-a451` | Keep. Finish CLI 0/1/2+ owner (including sync/`-q`), delete leftover `ProxyRequestOptions` / synthetic helpers. |
-| 3 | `cursor/timeout-retry-circuit-breaker-a451` | **Rewrite.** Old whole-key cooldown, in-request wait, and 5xx hard lock contradict spec 3. Add `/v1`, `api_key_model_cooldowns`, skip cooled keys, soft 5xx. |
-| 4 | `cursor/proxy-key-policy-a451` | **Rewrite.** Unwire TPM / max_concurrent / max_output / max_body / denied_models / daily USD. Add `token_day_limit` and IANA timezone windows. |
-| — | `cursor/project-pool-scheduler-a451` | **Drop.** Out of scope. Do not merge. |
+| Spec | Branch / PR                                 | vs lock                                                                                                                                                      |
+| ---- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | `cursor/ci-contract-tests-a451`             | Keep. Finish README matrix (`/v1`, pools/OTel out of scope) and the two stream contract cases.                                                               |
+| 2    | `cursor/auth-tenant-log-privacy-a451`       | Keep. Finish CLI 0/1/2+ owner (including sync/`-q`), delete leftover `ProxyRequestOptions` / synthetic helpers.                                              |
+| 3    | `cursor/timeout-retry-circuit-breaker-a451` | **Rewrite.** Old whole-key cooldown, in-request wait, and 5xx hard lock contradict spec 3. Add `/v1`, `api_key_model_cooldowns`, skip cooled keys, soft 5xx. |
+| 4    | `cursor/proxy-key-policy-a451`              | **Rewrite.** Unwire TPM / max_concurrent / max_output / max_body / denied_models / daily USD. Add `token_day_limit` and IANA timezone windows.               |
+| —    | `cursor/project-pool-scheduler-a451`        | **Drop.** Out of scope. Do not merge.                                                                                                                        |
 
 ## Locked product decisions
 
@@ -107,25 +107,25 @@ Client SDK
 
 ## Layering (direction B)
 
-| Layer | Owns | Must not own |
-| ----- | ---- | ------------ |
-| Adapter (web / api / cloudflare / vercel) | Mount paths, platform `waitUntil`, env binding | Retry, policy math, SQL |
-| Hono middleware | Credential extract, tenant bind, request-id, health | Upstream fetch |
-| Pure modules | Classify errors, cooldown math, model glob, timezone windows, path normalize | `fetch`, Supabase |
-| Supabase RPC | Atomic admit / reserve / settle / counters | HTTP |
-| Transport | Forward method, query, body, status, safe headers | Endpoint-specific state |
-| Refine UI | Query-derived forms, lists, alerts | New `useEffect` hydration |
+| Layer                                     | Owns                                                                         | Must not own              |
+| ----------------------------------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| Adapter (web / api / cloudflare / vercel) | Mount paths, platform `waitUntil`, env binding                               | Retry, policy math, SQL   |
+| Hono middleware                           | Credential extract, tenant bind, request-id, health                          | Upstream fetch            |
+| Pure modules                              | Classify errors, cooldown math, model glob, timezone windows, path normalize | `fetch`, Supabase         |
+| Supabase RPC                              | Atomic admit / reserve / settle / counters                                   | HTTP                      |
+| Transport                                 | Forward method, query, body, status, safe headers                            | Endpoint-specific state   |
+| Refine UI                                 | Query-derived forms, lists, alerts                                           | New `useEffect` hydration |
 
 ## Runtime constraints (edge-first)
 
 All new core code must run on Node 20, Cloudflare Workers, and the Next.js Node route.
 
-| Allowed | Forbidden in `packages/core` |
-| ------- | ---------------------------- |
-| Web `fetch`, `Request`, `AbortSignal`, `TransformStream` | `node:fs`, `node:net`, `node:crypto` KeyObject APIs that Workers reject |
-| `AbortSignal.timeout` with a `setTimeout` + `AbortController` fallback | OpenTelemetry SDKs or auto-instrumentation |
-| Hono `env(c)`, `c.executionCtx.waitUntil` | Process-global mutable caches that leak across tenants |
-| Supabase JS client | Prisma, Drizzle, Redis, extra queue/microservice |
+| Allowed                                                                | Forbidden in `packages/core`                                            |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Web `fetch`, `Request`, `AbortSignal`, `TransformStream`               | `node:fs`, `node:net`, `node:crypto` KeyObject APIs that Workers reject |
+| `AbortSignal.timeout` with a `setTimeout` + `AbortController` fallback | OpenTelemetry SDKs or auto-instrumentation                              |
+| Hono `env(c)`, `c.executionCtx.waitUntil`                              | Process-global mutable caches that leak across tenants                  |
+| Supabase JS client                                                     | Prisma, Drizzle, Redis, extra queue/microservice                        |
 
 Client disconnect must abort the in-flight upstream attempt. Timeout waits only for response headers; do not cut a stream after the first byte.
 
@@ -234,13 +234,13 @@ Plans must extract new behavior into new files. Keep `ProxyService.makeApiReques
 
 ## Config surface (server env only)
 
-| Variable | Default | Spec |
-| -------- | ------- | ---- |
-| `PROXY_MAX_RETRIES` | `-1` (all eligible keys, cap 50) | 3 |
-| `PROXY_LOADBALANCE_STRATEGY` | `round_robin` | 3 |
-| `PROXY_UPSTREAM_TIMEOUT_MS` | `120000` (wait for response headers only) | 3 |
-| `PROXY_REDACT_JSON_FIELDS` | empty (built-in list always on) | 2 |
-| `GOOGLE_GEMINI_API_BASE_URL` | `https://generativelanguage.googleapis.com/` | existing |
+| Variable                     | Default                                                    | Spec     |
+| ---------------------------- | ---------------------------------------------------------- | -------- |
+| `PROXY_MAX_RETRIES`          | `-1` (all eligible keys, cap 50)                           | 3        |
+| `PROXY_LOADBALANCE_STRATEGY` | `round_robin`                                              | 3        |
+| `PROXY_UPSTREAM_TIMEOUT_MS`  | `120000` (wait for response headers only)                  | 3        |
+| `PROXY_REDACT_JSON_FIELDS`   | empty (built-in list always on)                            | 2        |
+| `GOOGLE_GEMINI_API_BASE_URL` | `https://generativelanguage.googleapis.com/`               | existing |
 | `GOOGLE_OPENAI_API_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` | existing |
 
 No per-request override headers. Proxy-key policy is row data, not env. Do not add OTLP env vars.
@@ -254,14 +254,14 @@ Mounted on `coreApp` **before** proxy-key validation:
 
 ## Testing strategy (program-wide)
 
-| Layer | Where | What |
-| ----- | ----- | ---- |
-| Unit | `packages/core/src/**/*.test.ts` | classifiers, sanitizer, policy math, path/model extractors, timezone |
-| Proxy contract | `packages/core/test/proxy-contract/` | `coreApp.fetch` + mocked Supabase + mocked upstream `fetch` |
-| Adapter smoke | Cloudflare / Vercel / `apps/api` | export surface + healthz |
-| SDK smoke | `packages/core/test/sdk-smoke/` | `@google/genai`, `openai`, `ai` against `coreApp` with mock upstream |
-| Web | existing Vitest + locale parity | pure helpers; no Cypress in this program |
-| CI | `.github/workflows/quality.yml` | `format:check` → `lint` → `test` → `build` on every PR |
+| Layer          | Where                                | What                                                                 |
+| -------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| Unit           | `packages/core/src/**/*.test.ts`     | classifiers, sanitizer, policy math, path/model extractors, timezone |
+| Proxy contract | `packages/core/test/proxy-contract/` | `coreApp.fetch` + mocked Supabase + mocked upstream `fetch`          |
+| Adapter smoke  | Cloudflare / Vercel / `apps/api`     | export surface + healthz                                             |
+| SDK smoke      | `packages/core/test/sdk-smoke/`      | `@google/genai`, `openai`, `ai` against `coreApp` with mock upstream |
+| Web            | existing Vitest + locale parity      | pure helpers; no Cypress in this program                             |
+| CI             | `.github/workflows/quality.yml`      | `format:check` → `lint` → `test` → `build` on every PR               |
 
 Contract tests must not egress. SDK smoke may bind a loopback server; stub `fetch` only for the mock origin.
 

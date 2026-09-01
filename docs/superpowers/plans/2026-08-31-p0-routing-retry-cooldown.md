@@ -23,18 +23,18 @@
 
 ## File map
 
-| File | Responsibility |
-| ---- | -------------- |
-| `packages/core/src/routing/normalize-v1-path.ts` | path rewrite table |
-| `packages/core/src/routing/detect-api-format.ts` | credential + legacy path |
-| `packages/core/src/routing/build-origin-url.ts` | Gemini/OpenAI origin URL + raw query |
-| `packages/core/src/middlewares/extract-proxy-data.middleware.ts` | use routing units; allow `/v1` |
-| `packages/vercel/src/route.ts` + `apps/web/src/app/v1/[[...slug]]/route.ts` | mount `/v1` |
-| `apps/api/src/create-api-app.ts` / cloudflare worker | dual mount |
-| `packages/core/src/retry/compute-cooldown.ts` | scope key vs key_model |
-| `supabase/migrations/20260831040000_api_key_model_cooldowns.sql` | table |
-| `packages/core/test/proxy-contract/v1-routing.test.ts` | contract |
-| `README.md` | advertise `/v1` |
+| File                                                                        | Responsibility                       |
+| --------------------------------------------------------------------------- | ------------------------------------ |
+| `packages/core/src/routing/normalize-v1-path.ts`                            | path rewrite table                   |
+| `packages/core/src/routing/detect-api-format.ts`                            | credential + legacy path             |
+| `packages/core/src/routing/build-origin-url.ts`                             | Gemini/OpenAI origin URL + raw query |
+| `packages/core/src/middlewares/extract-proxy-data.middleware.ts`            | use routing units; allow `/v1`       |
+| `packages/vercel/src/route.ts` + `apps/web/src/app/v1/[[...slug]]/route.ts` | mount `/v1`                          |
+| `apps/api/src/create-api-app.ts` / cloudflare worker                        | dual mount                           |
+| `packages/core/src/retry/compute-cooldown.ts`                               | scope key vs key_model               |
+| `supabase/migrations/20260831040000_api_key_model_cooldowns.sql`            | table                                |
+| `packages/core/test/proxy-contract/v1-routing.test.ts`                      | contract                             |
+| `README.md`                                                                 | advertise `/v1`                      |
 
 ---
 

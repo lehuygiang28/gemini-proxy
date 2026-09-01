@@ -18,13 +18,13 @@
 
 ## File map
 
-| File | Responsibility |
-| ---- | -------------- |
-| `supabase/migrations/20260831050000_finalize_proxy_request.sql` | RPC + reconciliation table |
-| `packages/core/src/services/background.service.ts` | call finalize, retry, insert stale row |
-| `apps/web/src/app/(protected)/reconciliation/**` | list + retry |
-| `apps/web/src/providers/refine-provider/index.tsx` | resource |
-| `packages/core/test/proxy-contract/finalize-reliability.test.ts` | client 200 on RPC fail |
+| File                                                             | Responsibility                         |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| `supabase/migrations/20260831050000_finalize_proxy_request.sql`  | RPC + reconciliation table             |
+| `packages/core/src/services/background.service.ts`               | call finalize, retry, insert stale row |
+| `apps/web/src/app/(protected)/reconciliation/**`                 | list + retry                           |
+| `apps/web/src/providers/refine-provider/index.tsx`               | resource                               |
+| `packages/core/test/proxy-contract/finalize-reliability.test.ts` | client 200 on RPC fail                 |
 
 ---
 

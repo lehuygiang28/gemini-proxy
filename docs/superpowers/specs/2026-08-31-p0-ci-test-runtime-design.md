@@ -86,17 +86,17 @@ This spec does not require `/v1` to succeed. It requires the harness helper to e
 
 #### Required cases (this spec)
 
-| Test name | Behavior |
-| --------- | -------- |
-| `rejects missing proxy key with 401` | No `x-goog-api-key` and no `Authorization: Bearer` → 401 JSON. Query `?key=` and `x-api-key` are **not** credentials. |
-| `rejects unknown proxy key with 401` | Lookup returns null |
-| `rejects inactive proxy key with 401` | `is_active = false` |
-| `strips hop-by-hop and cookie headers to origin` | Upstream sees no `cookie`, `x-forwarded-*` |
-| `strips x-gproxy-* request headers to origin` | Origin must not receive them |
-| `forwards gemini key as x-goog-api-key` | Origin header equals reserved Gemini key |
-| `forwards openai key as Authorization Bearer` | OpenAI path |
-| `does not buffer stream before first byte` | Mock origin SSE; first chunk received before `onComplete` |
-| `persists usage when client cancels the stream` | Reader `cancel()`; waitUntil/onComplete still runs |
+| Test name                                        | Behavior                                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `rejects missing proxy key with 401`             | No `x-goog-api-key` and no `Authorization: Bearer` → 401 JSON. Query `?key=` and `x-api-key` are **not** credentials. |
+| `rejects unknown proxy key with 401`             | Lookup returns null                                                                                                   |
+| `rejects inactive proxy key with 401`            | `is_active = false`                                                                                                   |
+| `strips hop-by-hop and cookie headers to origin` | Upstream sees no `cookie`, `x-forwarded-*`                                                                            |
+| `strips x-gproxy-* request headers to origin`    | Origin must not receive them                                                                                          |
+| `forwards gemini key as x-goog-api-key`          | Origin header equals reserved Gemini key                                                                              |
+| `forwards openai key as Authorization Bearer`    | OpenAI path                                                                                                           |
+| `does not buffer stream before first byte`       | Mock origin SSE; first chunk received before `onComplete`                                                             |
+| `persists usage when client cancels the stream`  | Reader `cancel()`; waitUntil/onComplete still runs                                                                    |
 
 Timeout, Retry-After, `/v1` detect-by-credential, and policy tests live in later specs and reuse this harness.
 
@@ -112,21 +112,21 @@ Mock origin returns a minimal valid Gemini/OpenAI JSON body. No network egress.
 
 Replace false "Core Features" bullets with a table. Prerequisites: **Node.js ≥ 20**. Advertise **`/v1`** as the public base URL; mention legacy `/api/gproxy/{gemini\|openai}` as compatibility only.
 
-| Capability | Status |
-| ---------- | ------ |
-| Multi Gemini key rotation | Implemented |
-| Streaming | Implemented |
-| Usage logs + Standard text/image cost estimate | Implemented |
-| Canonical `/v1` + detect-by-credential | Spec 3 |
-| Classified retry + key/model cooldown | Spec 3 |
-| Proxy-key RPM / request-day / token-day / USD-month | Spec 4 |
-| User timezone windows | Spec 4 |
-| Idempotent settlement + stale alerts | Spec 5 |
-| Response cache | Not implemented |
-| Hash/encrypt at rest | Out of scope (plaintext by design) |
-| Google project pools | Out of scope |
-| OpenTelemetry / OTLP | Out of scope |
-| Interaction/resource affinity | Out of scope |
+| Capability                                          | Status                             |
+| --------------------------------------------------- | ---------------------------------- |
+| Multi Gemini key rotation                           | Implemented                        |
+| Streaming                                           | Implemented                        |
+| Usage logs + Standard text/image cost estimate      | Implemented                        |
+| Canonical `/v1` + detect-by-credential              | Spec 3                             |
+| Classified retry + key/model cooldown               | Spec 3                             |
+| Proxy-key RPM / request-day / token-day / USD-month | Spec 4                             |
+| User timezone windows                               | Spec 4                             |
+| Idempotent settlement + stale alerts                | Spec 5                             |
+| Response cache                                      | Not implemented                    |
+| Hash/encrypt at rest                                | Out of scope (plaintext by design) |
+| Google project pools                                | Out of scope                       |
+| OpenTelemetry / OTLP                                | Out of scope                       |
+| Interaction/resource affinity                       | Out of scope                       |
 
 ### 5. Health routes
 
@@ -134,21 +134,21 @@ Replace false "Core Features" bullets with a table. Prerequisites: **Node.js ≥
 
 ## Files
 
-| Action | Path |
-| ------ | ---- |
-| Create | `.github/workflows/quality.yml` |
-| Create | `packages/core/test/proxy-contract/harness.ts` |
-| Create | `packages/core/test/proxy-contract/auth-and-headers.test.ts` |
-| Create | `packages/core/test/sdk-smoke/sdk-clients.test.ts` |
-| Create | `packages/cloudflare/src/index.test.ts` |
-| Create | `packages/vercel/src/route.test.ts` |
-| Create | `apps/api/src/create-api-app.ts` (extract) |
+| Action | Path                                                            |
+| ------ | --------------------------------------------------------------- |
+| Create | `.github/workflows/quality.yml`                                 |
+| Create | `packages/core/test/proxy-contract/harness.ts`                  |
+| Create | `packages/core/test/proxy-contract/auth-and-headers.test.ts`    |
+| Create | `packages/core/test/sdk-smoke/sdk-clients.test.ts`              |
+| Create | `packages/cloudflare/src/index.test.ts`                         |
+| Create | `packages/vercel/src/route.test.ts`                             |
+| Create | `apps/api/src/create-api-app.ts` (extract)                      |
 | Modify | `packages/core/src/services/supabase.service.ts` (test factory) |
-| Modify | `packages/cli/package.json`, add `vitest.config.ts` |
-| Modify | `apps/api/src/index.ts`, `apps/api/package.json` |
-| Modify | `packages/vercel/package.json` |
-| Modify | `README.md` |
-| Modify | `packages/cli/src/lib/api-key-import-helpers.test.ts` (Vitest) |
+| Modify | `packages/cli/package.json`, add `vitest.config.ts`             |
+| Modify | `apps/api/src/index.ts`, `apps/api/package.json`                |
+| Modify | `packages/vercel/package.json`                                  |
+| Modify | `README.md`                                                     |
+| Modify | `packages/cli/src/lib/api-key-import-helpers.test.ts` (Vitest)  |
 
 ## Success criteria
 
