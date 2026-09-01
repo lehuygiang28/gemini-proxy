@@ -52,5 +52,35 @@ describe('validateComboSave', () => {
             ok: false,
             error: 'invalid_name',
         });
+        expect(validateComboSave({ name: '-leading', members: ['gemini-3.7-flash'] })).toEqual({
+            ok: false,
+            error: 'invalid_name',
+        });
+        expect(validateComboSave({ name: 'has/slash', members: ['gemini-3.7-flash'] })).toEqual({
+            ok: false,
+            error: 'invalid_name',
+        });
+        expect(
+            validateComboSave({
+                name: 'a'.repeat(65),
+                members: ['gemini-3.7-flash'],
+            }),
+        ).toEqual({ ok: false, error: 'invalid_name' });
+    });
+
+    it('accepts a 64-character name with dots and underscores', () => {
+        const name = `g${'x'.repeat(61)}_1`;
+        expect(name).toHaveLength(64);
+        const actual = validateComboSave({
+            name,
+            members: ['gemini-3.7-flash'],
+        });
+        expect(actual).toEqual({ ok: true, name, members: ['gemini-3.7-flash'] });
+    });
+
+    it('rejects a member that is empty after normalize', () => {
+        expect(
+            validateComboSave({ name: 'flash-combo', members: ['models/', 'gemini-3.7-flash'] }),
+        ).toEqual({ ok: false, error: 'members_required' });
     });
 });

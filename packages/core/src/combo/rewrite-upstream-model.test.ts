@@ -3,8 +3,7 @@ import { rewriteUpstreamModel } from './rewrite-upstream-model';
 
 describe('rewriteUpstreamModel', () => {
     it('rewrites the Gemini model path segment and keeps the query string', async () => {
-        const inputUrl =
-            'https://origin.test/v1beta/models/flash-combo:generateContent?alt=sse';
+        const inputUrl = 'https://origin.test/v1beta/models/flash-combo:generateContent?alt=sse';
         const inputRequest = new Request(inputUrl, { method: 'POST', body: '{}' });
         const actual = await rewriteUpstreamModel({
             request: inputRequest,
@@ -90,5 +89,53 @@ describe('rewriteUpstreamModel', () => {
             ...inputBody,
             model: 'gemini-3.7-flash',
         });
+    });
+
+    it('leaves a non-JSON OpenAI body unchanged instead of throwing', async () => {
+        const inputRequest = new Request('https://origin.test/openai/chat/completions', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: 'not-json',
+        });
+        const actual = await rewriteUpstreamModel({
+            request: inputRequest,
+            urlToProxy: 'https://origin.test/openai/chat/completions',
+            apiFormat: 'openai',
+            fromModel: 'flash-combo',
+            toModel: 'gemini-3.7-flash',
+        });
+        expect(actual.urlToProxy).toBe('https://origin.test/openai/chat/completions');
+        await expect(actual.request.text()).resolves.toBe('not-json');
+    });
+
+    it('leaves an OpenAI array body unchanged', async () => {
+        const inputRequest = new Request('https://origin.test/openai/chat/completions', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '[]',
+        });
+        const actual = await rewriteUpstreamModel({
+            request: inputRequest,
+            urlToProxy: 'https://origin.test/openai/chat/completions',
+            apiFormat: 'openai',
+            fromModel: 'flash-combo',
+            toModel: 'gemini-3.7-flash',
+        });
+        await expect(actual.request.text()).resolves.toBe('[]');
+    });
+
+    it('rewrites Gemini paths when fromModel still has a models/ prefix', async () => {
+        const inputUrl = 'https://origin.test/v1beta/models/flash-combo:streamGenerateContent';
+        const inputRequest = new Request(inputUrl, { method: 'POST', body: '{}' });
+        const actual = await rewriteUpstreamModel({
+            request: inputRequest,
+            urlToProxy: inputUrl,
+            apiFormat: 'gemini',
+            fromModel: 'models/flash-combo',
+            toModel: 'models/gemini-3.7-flash',
+        });
+        expect(new URL(actual.urlToProxy).pathname).toBe(
+            '/v1beta/models/gemini-3.7-flash:streamGenerateContent',
+        );
     });
 });

@@ -11,4 +11,8 @@ describe('firstPricedComboMember', () => {
     it('falls back to the first member when none have pricing', () => {
         expect(firstPricedComboMember(['custom-a', 'custom-b'])).toBe('custom-a');
     });
+
+    it('returns undefined for an empty member list', () => {
+        expect(firstPricedComboMember([])).toBeUndefined();
+    });
 });

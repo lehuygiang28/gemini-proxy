@@ -41,4 +41,34 @@ describe('effectiveComboStrategy', () => {
         });
         expect(actual).toEqual({ strategy: 'stick_n', stickAfterSuccesses: 4 });
     });
+
+    it('inherits global N when combo stick_n omits N', () => {
+        const actual = effectiveComboStrategy({
+            globalStrategy: 'fallback',
+            globalStickAfterSuccesses: 3,
+            comboStrategy: 'stick_n',
+            comboStickAfterSuccesses: null,
+        });
+        expect(actual).toEqual({ strategy: 'stick_n', stickAfterSuccesses: 3 });
+    });
+
+    it('drops unused N when the effective strategy is not stick_n', () => {
+        const actual = effectiveComboStrategy({
+            globalStrategy: 'stick_n',
+            globalStickAfterSuccesses: 5,
+            comboStrategy: 'fallback',
+            comboStickAfterSuccesses: 9,
+        });
+        expect(actual).toEqual({ strategy: 'fallback', stickAfterSuccesses: null });
+    });
+
+    it('inherits global stick_n N when combo strategy is null', () => {
+        const actual = effectiveComboStrategy({
+            globalStrategy: 'stick_n',
+            globalStickAfterSuccesses: 2,
+            comboStrategy: null,
+            comboStickAfterSuccesses: null,
+        });
+        expect(actual).toEqual({ strategy: 'stick_n', stickAfterSuccesses: 2 });
+    });
 });

@@ -41,4 +41,31 @@ describe('isModelsListRequest', () => {
             }),
         ).toBe(false);
     });
+
+    it('rejects an invalid URL and a Gemini model-detail GET', () => {
+        expect(
+            isModelsListRequest({
+                method: 'GET',
+                apiFormat: 'gemini',
+                urlToProxy: 'not a url',
+            }),
+        ).toBe(false);
+        expect(
+            isModelsListRequest({
+                method: 'GET',
+                apiFormat: 'gemini',
+                urlToProxy: 'https://origin.test/v1beta/models/gemini-3.7-flash',
+            }),
+        ).toBe(false);
+    });
+
+    it('treats a trailing slash as a list request', () => {
+        expect(
+            isModelsListRequest({
+                method: 'GET',
+                apiFormat: 'openai',
+                urlToProxy: 'https://origin.test/openai/models/',
+            }),
+        ).toBe(true);
+    });
 });

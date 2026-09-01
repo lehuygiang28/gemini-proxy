@@ -1,4 +1,4 @@
-import type { ComboStrategy, StoredCombo } from './combo-types';
+import { COMBO_STRATEGIES, type ComboStrategy, type StoredCombo } from './combo-types';
 
 export type ComboRowInput = {
     readonly id: string;
@@ -17,10 +17,14 @@ export function mapComboRows(rows: readonly ComboRowInput[]): StoredCombo[] {
         id: row.id,
         name: row.name,
         isActive: row.is_active,
-        strategy: (row.strategy as ComboStrategy | null) ?? null,
+        strategy: toComboStrategy(row.strategy),
         stickAfterSuccesses: row.stick_after_successes,
         members: [...(row.model_combo_members ?? [])]
             .sort((left, right) => left.position - right.position)
             .map((member) => member.canonical_model),
     }));
+}
+
+function toComboStrategy(value: string | null): ComboStrategy | null {
+    return COMBO_STRATEGIES.includes(value as ComboStrategy) ? (value as ComboStrategy) : null;
 }

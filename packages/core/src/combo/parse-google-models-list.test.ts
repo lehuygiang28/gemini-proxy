@@ -47,5 +47,15 @@ describe('parseGoogleModelsList', () => {
     it('returns an empty list for invalid payloads', () => {
         expect(parseGoogleModelsList(null)).toEqual([]);
         expect(parseGoogleModelsList({})).toEqual([]);
+        expect(parseGoogleModelsList([])).toEqual([]);
+        expect(parseGoogleModelsList({ models: 'nope' })).toEqual([]);
+    });
+
+    it('skips non-object rows and empty names', () => {
+        expect(
+            parseGoogleModelsList({
+                models: [null, 'x', { name: '' }, { name: 'models/' }, { displayName: 'Only' }],
+            }),
+        ).toEqual([]);
     });
 });

@@ -55,4 +55,28 @@ describe('selectStartKey', () => {
         });
         expect(actual).toEqual(['C', 'B', 'A']);
     });
+
+    it('keeps the last key first on stick_n before N successes', () => {
+        const actual = selectStartKey({
+            strategy: 'stick_n',
+            stickAfterSuccesses: 3,
+            consecutiveSuccesses: 2,
+            lastApiKeyId: 'A',
+            keys,
+        });
+        expect(actual[0]).toBe('A');
+        expect(actual).toEqual(['A', 'C', 'B']);
+    });
+
+    it('returns an empty ring when there are no keys', () => {
+        expect(
+            selectStartKey({
+                strategy: 'sticky_until_error',
+                stickAfterSuccesses: null,
+                consecutiveSuccesses: 1,
+                lastApiKeyId: 'A',
+                keys: [],
+            }),
+        ).toEqual([]);
+    });
 });

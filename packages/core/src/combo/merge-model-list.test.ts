@@ -81,4 +81,45 @@ describe('mergeModelList', () => {
         });
         expect(actual.map((row) => row.id)).toEqual(['flash-combo']);
     });
+
+    it('omits inactive combos', () => {
+        const actual = mergeModelList({
+            googleIds: ['gemini-3.7-flash'],
+            catalogIds: [],
+            builtinIds: [],
+            combos: [{ ...flashCombo, isActive: false }],
+            allowedModels: null,
+        });
+        expect(actual.map((row) => row.id)).toEqual(['gemini-3.7-flash']);
+    });
+
+    it('lets catalog beat builtin for the same id', () => {
+        const actual = mergeModelList({
+            googleIds: [],
+            catalogIds: ['gemini-3.7-flash'],
+            builtinIds: ['gemini-3.7-flash'],
+            combos: [],
+            allowedModels: null,
+        });
+        expect(actual).toEqual([
+            {
+                id: 'gemini-3.7-flash',
+                source: 'catalog',
+                overrides: false,
+                description: null,
+                members: null,
+            },
+        ]);
+    });
+
+    it('normalizes models/ prefixes on google ids', () => {
+        const actual = mergeModelList({
+            googleIds: ['models/gemini-3.7-flash'],
+            catalogIds: [],
+            builtinIds: [],
+            combos: [],
+            allowedModels: null,
+        });
+        expect(actual.map((row) => row.id)).toEqual(['gemini-3.7-flash']);
+    });
 });

@@ -201,4 +201,160 @@ describe('proxy contract: model combo', () => {
         expect(body.models.some((row) => row.name === 'models/flash-combo')).toBe(true);
         expect(body.models.some((row) => row.name === 'models/gemini-3.7-flash')).toBe(true);
     });
+
+    it('rewrites OpenAI body.model to the combo member', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/chat/completions',
+            {
+                method: 'POST',
+                headers: {
+                    authorization: `Bearer ${CONTRACT_PROXY_KEY}`,
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: 'flash-combo',
+                    messages: [{ role: 'user', content: 'ping' }],
+                }),
+            },
+            {
+                extraApiKeys: true,
+                seedCombos: [FLASH_COMBO],
+                originResponses: [quotaExhausted(), originOk()],
+            },
+        );
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+        const firstBody = (await originRequests[0]!.json()) as { model: string };
+        const secondBody = (await originRequests[1]!.json()) as { model: string };
+        expect(firstBody.model).toBe(MEMBER_0);
+        expect(secondBody.model).toBe(MEMBER_0);
+        expect(originRequests[1]!.headers.get('authorization')?.startsWith('Bearer ')).toBe(true);
+    });
+
+    it('on 404 for member[0] skips remaining keys for that member', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            seedCombos: [FLASH_COMBO],
+            originResponses: [
+                new Response(JSON.stringify({ error: { message: 'not found' } }), {
+                    status: 404,
+                    headers: { 'content-type': 'application/json' },
+                }),
+                originOk(),
+            ],
+        });
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(2);
+        expect(new URL(originRequests[0]!.url).pathname).toContain(`/models/${MEMBER_0}`);
+        expect(new URL(originRequests[1]!.url).pathname).toContain(`/models/${MEMBER_1}`);
+    });
+
+    it('returns the last 400 when every combo member is invalid', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            seedCombos: [FLASH_COMBO],
+            originResponses: [
+                new Response(JSON.stringify({ error: { message: 'bad m0' } }), {
+                    status: 400,
+                    headers: { 'content-type': 'application/json' },
+                }),
+                new Response(JSON.stringify({ error: { message: 'bad m1' } }), {
+                    status: 400,
+                    headers: { 'content-type': 'application/json' },
+                }),
+            ],
+        });
+        expect(actualResponse.status).toBe(400);
+        expect(originRequests).toHaveLength(2);
+        expect(new URL(originRequests[0]!.url).pathname).toContain(`/models/${MEMBER_0}`);
+        expect(new URL(originRequests[1]!.url).pathname).toContain(`/models/${MEMBER_1}`);
+    });
+
+    it('allowlist flash-combo still admits the combo request', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            seedCombos: [FLASH_COMBO],
+            originResponses: [originOk()],
+            proxyKey: {
+                id: CONTRACT_PROXY_KEY_ID,
+                user_id: CONTRACT_USER_ID,
+                name: 'allowlist-combo',
+                is_active: true,
+                deleted_at: null,
+                max_output_tokens: null,
+                max_request_body_bytes: null,
+                allowed_models: ['flash-combo'],
+            },
+        });
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(new URL(originRequests[0]!.url).pathname).toContain(`/models/${MEMBER_0}`);
+    });
+
+    it('does not expand an inactive combo', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            seedCombos: [{ ...FLASH_COMBO, is_active: false }],
+            originResponses: [originOk()],
+        });
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(1);
+        expect(new URL(originRequests[0]!.url).pathname).toContain('/models/flash-combo');
+        expect(new URL(originRequests[0]!.url).pathname).not.toContain(`/models/${MEMBER_0}`);
+    });
+
+    it('sends a member that looks like another combo as a literal id', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            seedCombos: [
+                { ...FLASH_COMBO, members: ['inner-combo', MEMBER_1] },
+                {
+                    id: '66666666-6666-6666-6666-666666666666',
+                    name: 'inner-combo',
+                    members: [MEMBER_0],
+                },
+            ],
+            originResponses: [originOk()],
+        });
+        expect(actualResponse.status).toBe(200);
+        expect(new URL(originRequests[0]!.url).pathname).toContain('/models/inner-combo');
+    });
+
+    it('replaces a colliding Google id on GET /v1/models', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/models',
+            {
+                method: 'GET',
+                headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+            },
+            {
+                seedCombos: [{ ...FLASH_COMBO, name: MEMBER_0, members: [MEMBER_1] }],
+                originBody: { models: [{ name: `models/${MEMBER_0}`, displayName: 'Flash' }] },
+            },
+        );
+        const body = (await actualResponse.json()) as {
+            models: Array<{ name: string; description?: string }>;
+        };
+        const matches = body.models.filter((row) => row.name === `models/${MEMBER_0}`);
+        expect(matches).toHaveLength(1);
+        expect(matches[0]?.description).toBe(`Combo: ${MEMBER_1}`);
+    });
+
+    it('injects combos into OpenAI GET /v1/models', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/models',
+            {
+                method: 'GET',
+                headers: { authorization: `Bearer ${CONTRACT_PROXY_KEY}` },
+            },
+            {
+                seedCombos: [FLASH_COMBO],
+                originBody: { data: [{ id: MEMBER_0, object: 'model' }] },
+            },
+        );
+        expect(actualResponse.status).toBe(200);
+        const body = (await actualResponse.json()) as {
+            data: Array<{ id: string; owned_by?: string }>;
+        };
+        expect(
+            body.data.some((row) => row.id === 'flash-combo' && row.owned_by === 'gproxy-combo'),
+        ).toBe(true);
+        expect(body.data.some((row) => row.id === MEMBER_0)).toBe(true);
+    });
 });

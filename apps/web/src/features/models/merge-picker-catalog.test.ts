@@ -39,4 +39,18 @@ describe('mergePickerCatalog', () => {
         expect(matches).toHaveLength(1);
         expect(matches[0]).toMatchObject({ source: 'combo', overrides: true });
     });
+
+    it('groups gemma, custom catalog, and gemini ids', () => {
+        const actual = mergePickerCatalog({
+            mode: 'concrete',
+            googleIds: ['gemini-3.7-flash'],
+            catalogIds: ['my-finetune'],
+            builtinIds: ['gemma-3-27b-it'],
+            combos: [flashCombo],
+        });
+        expect(actual.find((row) => row.id === 'flash-combo')).toBeUndefined();
+        expect(actual.find((row) => row.id === 'gemma-3-27b-it')?.group).toBe('gemma');
+        expect(actual.find((row) => row.id === 'my-finetune')?.group).toBe('custom');
+        expect(actual.find((row) => row.id === 'gemini-3.7-flash')?.group).toBe('gemini');
+    });
 });

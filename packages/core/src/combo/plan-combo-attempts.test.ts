@@ -79,4 +79,48 @@ describe('planComboAttempts', () => {
             'A+m1',
         ]);
     });
+
+    it('starts the ring at keys[0] when the caller already rotated startKey', () => {
+        const actual = planComboAttempts({
+            keys: ['B', 'C', 'A'],
+            members: ['m0', 'm1'],
+            isPairIneligible: () => false,
+        });
+        expect(actual.map((pair) => `${pair.apiKeyId}+${pair.canonicalModel}`)).toEqual([
+            'B+m0',
+            'C+m0',
+            'A+m0',
+            'B+m1',
+            'C+m1',
+            'A+m1',
+        ]);
+    });
+
+    it('returns no attempts when keys or members are empty', () => {
+        expect(
+            planComboAttempts({
+                keys: [],
+                members: ['m0'],
+                isPairIneligible: () => false,
+            }),
+        ).toEqual([]);
+        expect(
+            planComboAttempts({
+                keys: ['A'],
+                members: [],
+                isPairIneligible: () => false,
+            }),
+        ).toEqual([]);
+    });
+
+    it('never repeats a pair in one plan', () => {
+        const actual = planComboAttempts({
+            keys: ['A', 'B', 'C', 'D'],
+            members: ['m0', 'm1', 'm2'],
+            isPairIneligible: () => false,
+        });
+        const ids = actual.map((pair) => `${pair.apiKeyId}+${pair.canonicalModel}`);
+        expect(ids).toHaveLength(12);
+        expect(new Set(ids).size).toBe(12);
+    });
 });

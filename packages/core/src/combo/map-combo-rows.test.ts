@@ -27,4 +27,27 @@ describe('mapComboRows', () => {
             },
         ]);
     });
+
+    it('treats an unknown strategy as inherit-null and missing members as empty', () => {
+        const actual = mapComboRows([
+            {
+                id: 'c2',
+                name: 'odd-combo',
+                is_active: false,
+                strategy: 'round_robin',
+                stick_after_successes: 2,
+                model_combo_members: null,
+            },
+        ]);
+        expect(actual).toEqual([
+            {
+                id: 'c2',
+                name: 'odd-combo',
+                isActive: false,
+                strategy: null,
+                stickAfterSuccesses: 2,
+                members: [],
+            },
+        ]);
+    });
 });

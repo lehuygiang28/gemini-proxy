@@ -3,10 +3,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@gemini-proxy/database';
 import { loadComboDefaults } from './load-combo-defaults';
 
-function createSettingsClient(row: {
-    combo_strategy: string | null;
-    combo_stick_after_successes: number | null;
-} | null): SupabaseClient<Database> {
+function createSettingsClient(
+    row: {
+        combo_strategy: string | null;
+        combo_stick_after_successes: number | null;
+    } | null,
+): SupabaseClient<Database> {
     return {
         from(table: string) {
             expect(table).toBe('user_settings');
@@ -35,6 +37,17 @@ describe('loadComboDefaults', () => {
 
     it('falls back to fallback when settings are missing', async () => {
         const actual = await loadComboDefaults(createSettingsClient(null), 'user-1');
+        expect(actual).toEqual({ strategy: 'fallback', stickAfterSuccesses: null });
+    });
+
+    it('falls back to fallback when the stored strategy is unknown', async () => {
+        const actual = await loadComboDefaults(
+            createSettingsClient({
+                combo_strategy: 'round_robin',
+                combo_stick_after_successes: 3,
+            }),
+            'user-1',
+        );
         expect(actual).toEqual({ strategy: 'fallback', stickAfterSuccesses: null });
     });
 });

@@ -49,13 +49,15 @@ describe('injectModelsListResponse', () => {
             builtinIds: ['gemini-3.7-flash'],
             allowedModels: null,
         });
-        const parsed = JSON.parse(actual) as { models: Array<{ name: string; description?: string }> };
+        const parsed = JSON.parse(actual) as {
+            models: Array<{ name: string; description?: string }>;
+        };
         const matches = parsed.models.filter((row) => row.name === 'models/gemini-3.7-flash');
         expect(matches).toHaveLength(1);
         expect(matches[0]?.description).toBe('Combo: gemini-3.5-flash-lite');
     });
 
-    it('returns the origin body when JSON is invalid', () => {
+    it('returns origin body when JSON is invalid', () => {
         const originBodyText = 'not-json';
         const actual = injectModelsListResponse({
             apiFormat: 'openai',
@@ -66,5 +68,34 @@ describe('injectModelsListResponse', () => {
             allowedModels: null,
         });
         expect(actual).toBe(originBodyText);
+    });
+
+    it('returns origin body when the payload is a JSON array', () => {
+        const originBodyText = '[]';
+        expect(
+            injectModelsListResponse({
+                apiFormat: 'gemini',
+                originBodyText,
+                combos: [flashCombo],
+                catalogIds: [],
+                builtinIds: [],
+                allowedModels: null,
+            }),
+        ).toBe(originBodyText);
+    });
+
+    it('allowlists injected OpenAI combos without leaking members', () => {
+        const actual = injectModelsListResponse({
+            apiFormat: 'openai',
+            originBodyText: JSON.stringify({
+                data: [{ id: 'gemini-3.7-flash', object: 'model' }],
+            }),
+            combos: [flashCombo],
+            catalogIds: [],
+            builtinIds: ['gemini-3.7-flash'],
+            allowedModels: ['flash-combo'],
+        });
+        const parsed = JSON.parse(actual) as { data: Array<{ id: string }> };
+        expect(parsed.data.map((row) => row.id)).toEqual(['flash-combo']);
     });
 });

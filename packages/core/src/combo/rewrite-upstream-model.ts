@@ -1,4 +1,5 @@
 import type { ProxyApiFormat } from '../types';
+import { normalizeGeminiModelId } from '../constants/gemini-pricing';
 
 export async function rewriteUpstreamModel(input: {
     readonly request: Request;
@@ -8,18 +9,20 @@ export async function rewriteUpstreamModel(input: {
     readonly toModel: string;
 }): Promise<{ request: Request; urlToProxy: string }> {
     const source = input.request.clone();
-    if (input.fromModel === input.toModel) {
+    const fromModel = normalizeGeminiModelId(input.fromModel);
+    const toModel = normalizeGeminiModelId(input.toModel);
+    if (fromModel === toModel) {
         return { request: source, urlToProxy: input.urlToProxy };
     }
     if (input.apiFormat === 'gemini') {
-        const urlToProxy = replaceModelInUrl(input.urlToProxy, input.fromModel, input.toModel);
-        const requestUrl = replaceModelInUrl(source.url, input.fromModel, input.toModel);
+        const urlToProxy = replaceModelInUrl(input.urlToProxy, fromModel, toModel);
+        const requestUrl = replaceModelInUrl(source.url, fromModel, toModel);
         return {
             urlToProxy,
             request: cloneRequest(source, requestUrl, source.body),
         };
     }
-    const rewrittenBody = await rewriteOpenAiBody(source, input.toModel);
+    const rewrittenBody = await rewriteOpenAiBody(source, toModel);
     return {
         urlToProxy: input.urlToProxy,
         request: cloneRequest(source, source.url, rewrittenBody),
@@ -38,7 +41,15 @@ function replaceModelInUrl(url: string, fromModel: string, toModel: string): str
 
 async function rewriteOpenAiBody(request: Request, toModel: string): Promise<string> {
     const raw = await request.clone().text();
-    const parsed: unknown = raw === '' ? {} : JSON.parse(raw);
+    if (raw === '') {
+        return JSON.stringify({ model: toModel });
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        return raw;
+    }
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
         return raw;
     }

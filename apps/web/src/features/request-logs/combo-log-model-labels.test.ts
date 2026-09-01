@@ -32,4 +32,23 @@ describe('comboLogModelLabels', () => {
             requested: null,
         });
     });
+
+    it('shows a dash when both ids are missing', () => {
+        expect(comboLogModelLabels({ model: null, requested_model: null })).toEqual({
+            primary: '—',
+            requested: null,
+        });
+    });
+
+    it('hides requested when both ids normalize to the same value', () => {
+        expect(
+            comboLogModelLabels({
+                model: 'models/flash-combo',
+                requested_model: 'flash-combo',
+            }),
+        ).toEqual({
+            primary: 'flash-combo',
+            requested: null,
+        });
+    });
 });

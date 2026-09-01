@@ -25,4 +25,16 @@ describe('fillComboPreset', () => {
         expect(actual.name).toBe('gemma-combo');
         expect(actual.members).toEqual(['gemma-3-27b-it']);
     });
+
+    it('returns the preset name with no members when nothing is available', () => {
+        expect(fillComboPreset('flash', [])).toEqual({ name: 'flash-combo', members: [] });
+        expect(fillComboPreset('pro', ['gemini-3.7-flash'])).toEqual({
+            name: 'pro-combo',
+            members: [],
+        });
+        expect(fillComboPreset('gemma', ['gemini-3.7-flash'])).toEqual({
+            name: 'gemma-combo',
+            members: [],
+        });
+    });
 });

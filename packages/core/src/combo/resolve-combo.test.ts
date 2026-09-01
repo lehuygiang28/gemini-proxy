@@ -53,4 +53,47 @@ describe('resolveCombo', () => {
         });
         expect(actual.kind).toBe('combo');
     });
+
+    it('misses when the catalog is empty', () => {
+        expect(resolveCombo({ combos: [], requestedModel: 'flash-combo' })).toEqual({
+            kind: 'single',
+            members: ['flash-combo'],
+        });
+    });
+
+    it('does not nest-resolve a member that matches another combo name', () => {
+        const nested: StoredCombo = {
+            id: 'c2',
+            name: 'inner-combo',
+            isActive: true,
+            strategy: null,
+            stickAfterSuccesses: null,
+            members: ['gemini-3.7-flash'],
+        };
+        const outer: StoredCombo = {
+            ...flash,
+            members: ['inner-combo', 'gemini-3.5-flash'],
+        };
+        const actual = resolveCombo({
+            combos: [outer, nested],
+            requestedModel: 'flash-combo',
+        });
+        expect(actual).toEqual({
+            kind: 'combo',
+            combo: outer,
+            members: ['inner-combo', 'gemini-3.5-flash'],
+        });
+    });
+
+    it('prefers the first active combo when names collide', () => {
+        const second: StoredCombo = { ...flash, id: 'c9', members: ['gemini-3.5-flash-lite'] };
+        const actual = resolveCombo({
+            combos: [flash, second],
+            requestedModel: 'flash-combo',
+        });
+        expect(actual.kind).toBe('combo');
+        if (actual.kind === 'combo') {
+            expect(actual.combo.id).toBe('c1');
+        }
+    });
 });
