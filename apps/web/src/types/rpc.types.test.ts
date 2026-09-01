@@ -30,6 +30,21 @@ describe('validateRpcParams', () => {
         ).toBe(false);
     });
 
+    it('rejects reset_proxy_key_quota with unknown or duplicate windows', () => {
+        expect(
+            validateRpcParams(
+                { p_proxy_key_id: 'key-1', p_window_types: ['week'] },
+                'reset_proxy_key_quota',
+            ),
+        ).toBe(false);
+        expect(
+            validateRpcParams(
+                { p_proxy_key_id: 'key-1', p_window_types: ['minute', 'minute'] },
+                'reset_proxy_key_quota',
+            ),
+        ).toBe(false);
+    });
+
     it('accepts current_proxy_key_quota with a key id', () => {
         expect(validateRpcParams({ p_proxy_key_id: 'key-1' }, 'current_proxy_key_quota')).toBe(
             true,

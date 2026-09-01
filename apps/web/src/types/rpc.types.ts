@@ -1,6 +1,7 @@
 'use client';
 
 import type { Database } from '@gemini-proxy/database';
+import { isValidProxyQuotaWindowTypes } from '@gemini-proxy/core';
 
 // Extract RPC function names from database types
 type DatabaseFunctions = Database['public']['Functions'];
@@ -63,8 +64,7 @@ export const validateRpcParams = <T extends RpcFunctionName>(
             return (
                 typeof paramObj.p_proxy_key_id === 'string' &&
                 paramObj.p_proxy_key_id.length > 0 &&
-                Array.isArray(paramObj.p_window_types) &&
-                paramObj.p_window_types.length > 0
+                isValidProxyQuotaWindowTypes(paramObj.p_window_types)
             );
 
         case 'current_proxy_key_quota':

@@ -9,6 +9,7 @@ export { globModel, matchModelPolicy } from './policy/match-model-policy';
 export { estimateAdmitTokens } from './policy/estimate-admit';
 export {
     isProxyQuotaWindowType,
+    isValidProxyQuotaWindowTypes,
     PROXY_QUOTA_WINDOW_TYPES,
     selectedQuotaWindowTypes,
     type ProxyQuotaWindowType,

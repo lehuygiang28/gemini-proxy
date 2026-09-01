@@ -6,6 +6,20 @@ export function isProxyQuotaWindowType(value: string): value is ProxyQuotaWindow
     return (PROXY_QUOTA_WINDOW_TYPES as readonly string[]).includes(value);
 }
 
+export function isValidProxyQuotaWindowTypes(value: unknown): value is ProxyQuotaWindowType[] {
+    if (!Array.isArray(value) || value.length === 0) {
+        return false;
+    }
+    const seen = new Set<string>();
+    for (const item of value) {
+        if (typeof item !== 'string' || !isProxyQuotaWindowType(item) || seen.has(item)) {
+            return false;
+        }
+        seen.add(item);
+    }
+    return true;
+}
+
 export function selectedQuotaWindowTypes(selected: {
     readonly minute: boolean;
     readonly day: boolean;
