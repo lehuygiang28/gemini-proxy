@@ -252,7 +252,7 @@ BEGIN
             USING ERRCODE = 'P0002';
     END IF;
     IF auth.role() <> 'service_role'
-       AND proxy_key.user_id <> (SELECT auth.uid()) THEN
+       AND (auth.uid() IS NULL OR proxy_key.user_id IS DISTINCT FROM auth.uid()) THEN
         RAISE EXCEPTION 'forbidden'
             USING ERRCODE = '42501';
     END IF;
@@ -365,7 +365,7 @@ BEGIN
             USING ERRCODE = 'P0002';
     END IF;
     IF auth.role() <> 'service_role'
-       AND proxy_key.user_id <> (SELECT auth.uid()) THEN
+       AND (auth.uid() IS NULL OR proxy_key.user_id IS DISTINCT FROM auth.uid()) THEN
         RAISE EXCEPTION 'forbidden'
             USING ERRCODE = '42501';
     END IF;

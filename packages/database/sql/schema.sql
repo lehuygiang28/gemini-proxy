@@ -1275,6 +1275,9 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION proxy_quota_window_starts(UUID, TEXT) IS
+    'Current minute/day/month window_start values. Reuses an unexpired day/month bucket when timezone changes mid-period.';
+
 REVOKE ALL ON FUNCTION proxy_quota_window_starts(UUID, TEXT) FROM PUBLIC;
 
 DROP FUNCTION IF EXISTS admit_proxy_request(UUID, TEXT, BIGINT, NUMERIC, INTEGER);
@@ -1479,7 +1482,7 @@ BEGIN
             USING ERRCODE = 'P0002';
     END IF;
     IF auth.role() <> 'service_role'
-       AND proxy_key.user_id <> (SELECT auth.uid()) THEN
+       AND (auth.uid() IS NULL OR proxy_key.user_id IS DISTINCT FROM auth.uid()) THEN
         RAISE EXCEPTION 'forbidden'
             USING ERRCODE = '42501';
     END IF;
@@ -1562,6 +1565,9 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION reset_proxy_key_quota(UUID, TEXT[]) IS
+    'Zeros selected current quota-window counters. Does not delete rows, rewrite request_logs, or change lifetime counters.';
+
 CREATE OR REPLACE FUNCTION current_proxy_key_quota(p_proxy_key_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -1589,7 +1595,7 @@ BEGIN
             USING ERRCODE = 'P0002';
     END IF;
     IF auth.role() <> 'service_role'
-       AND proxy_key.user_id <> (SELECT auth.uid()) THEN
+       AND (auth.uid() IS NULL OR proxy_key.user_id IS DISTINCT FROM auth.uid()) THEN
         RAISE EXCEPTION 'forbidden'
             USING ERRCODE = '42501';
     END IF;
@@ -1666,6 +1672,9 @@ BEGIN
     );
 END;
 $$;
+
+COMMENT ON FUNCTION current_proxy_key_quota(UUID) IS
+    'Current minute/day/month quota counters for a proxy key the caller owns.';
 
 CREATE OR REPLACE FUNCTION settle_proxy_request(
     p_proxy_key_id UUID,
