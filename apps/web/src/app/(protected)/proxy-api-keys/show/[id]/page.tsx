@@ -243,11 +243,13 @@ export default function ProxyApiKeysShowPage() {
                     )}
                 </Row>
             </Show>
-            <ProxyKeyQuotaResetModal
-                open={isResetOpen}
-                proxyKeyId={record.id}
-                onClose={() => setIsResetOpen(false)}
-            />
+            {isResetOpen ? (
+                <ProxyKeyQuotaResetModal
+                    open
+                    proxyKeyId={record.id}
+                    onClose={() => setIsResetOpen(false)}
+                />
+            ) : null}
         </>
     );
 }

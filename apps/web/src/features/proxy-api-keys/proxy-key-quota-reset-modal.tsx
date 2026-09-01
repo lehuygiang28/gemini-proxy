@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Checkbox, Form, Space, Typography } from 'antd';
+import { Checkbox, Form, Space, Spin, Typography } from 'antd';
 import {
     useCustom,
     useCustomMutation,
@@ -89,7 +89,7 @@ export function ProxyKeyQuotaResetModal({
         month: monthChecked ?? true,
     });
 
-    const { result } = useCustom<CurrentProxyKeyQuota>({
+    const { result, query } = useCustom<CurrentProxyKeyQuota>({
         url: 'rpc/current_proxy_key_quota',
         method: 'post',
         config: {
@@ -111,6 +111,7 @@ export function ProxyKeyQuotaResetModal({
     >();
 
     const quota = result?.data;
+    const usageLoading = query.isFetching && quota === undefined;
 
     const handleConfirm = (): void => {
         if (!proxyKeyId || selectedWindows.length === 0) {
@@ -193,7 +194,16 @@ export function ProxyKeyQuotaResetModal({
                                         {translate(`proxy_api_keys.quotaReset.${windowType}`)}
                                     </Typography.Text>
                                     <Typography.Text type="secondary">
-                                        {windowUsageLabel(quota?.[windowType], translate)}
+                                        {usageLoading ? (
+                                            <Space size={8}>
+                                                <Spin size="small" />
+                                                {translate(
+                                                    'proxy_api_keys.quotaReset.usageLoading',
+                                                )}
+                                            </Space>
+                                        ) : (
+                                            windowUsageLabel(quota?.[windowType], translate)
+                                        )}
                                     </Typography.Text>
                                 </Space>
                             </Checkbox>

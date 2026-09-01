@@ -442,6 +442,7 @@
             "day": "Ngày hiện tại (RPD + token)",
             "month": "Tháng hiện tại (USD)",
             "usage": "{requests} request · {tokens} token · ${usd}",
+            "usageLoading": "Đang tải usage hiện tại…",
             "success": "Đã reset hạn mức",
             "successDesc": "Đã reset: {reset}",
             "successSkipped": "Đã reset: {reset}. Đã ở 0: {skipped}",

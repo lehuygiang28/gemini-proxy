@@ -590,11 +590,13 @@ export default function ProxyApiKeysListPage() {
                 />
                 <Input.Password value={rotatedSecret?.value} readOnly />
             </Modal>
-            <ProxyKeyQuotaResetModal
-                open={Boolean(resetKeyId)}
-                proxyKeyId={resetKeyId}
-                onClose={() => setResetKeyId(null)}
-            />
+            {resetKeyId ? (
+                <ProxyKeyQuotaResetModal
+                    open
+                    proxyKeyId={resetKeyId}
+                    onClose={() => setResetKeyId(null)}
+                />
+            ) : null}
         </List>
     );
 }

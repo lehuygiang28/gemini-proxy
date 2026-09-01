@@ -442,6 +442,7 @@
             "day": "Current day (RPD + tokens)",
             "month": "Current month (USD)",
             "usage": "{requests} requests · {tokens} tokens · ${usd}",
+            "usageLoading": "Loading current usage…",
             "success": "Quota reset",
             "successDesc": "Reset: {reset}",
             "successSkipped": "Reset: {reset}. Already zero: {skipped}",
