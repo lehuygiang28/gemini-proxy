@@ -5,6 +5,7 @@ import { CreateButton, DeleteButton, EditButton, List, useTable } from '@refined
 import { useList, useTranslation } from '@refinedev/core';
 import { Empty, Input, Space, Table, Tag, Typography } from 'antd';
 import type { UserSettings } from '@/features/settings/types';
+import { useModelCatalog } from '@/features/models/use-model-catalog';
 
 type ComboRow = {
     id: string;
@@ -31,6 +32,8 @@ export default function CombosListPage() {
         pagination: { currentPage: 1, pageSize: 1 },
     });
     const globalStrategy = result?.data?.[0]?.combo_strategy ?? 'fallback';
+    const { catalogIds, googleIds, builtinIds } = useModelCatalog('requestName');
+    const overrideIds = new Set([...catalogIds, ...googleIds, ...builtinIds]);
 
     return (
         <List
@@ -62,6 +65,9 @@ export default function CombosListPage() {
                     render={(name: string, record: ComboRow) => (
                         <Space>
                             <Typography.Text>{name}</Typography.Text>
+                            {overrideIds.has(name) ? (
+                                <Tag>{translate('picker.tag.overrides')}</Tag>
+                            ) : null}
                             {record.is_active ? null : <Tag>{translate('combos.off')}</Tag>}
                         </Space>
                     )}
@@ -88,7 +94,7 @@ export default function CombosListPage() {
                         strategy == null ? (
                             <Typography.Text type="secondary">
                                 {translate('combos.defaultStrategy', {
-                                    strategy: String(globalStrategy),
+                                    strategy: translate(`combos.strategy.${globalStrategy}`),
                                 })}
                             </Typography.Text>
                         ) : (
@@ -101,7 +107,12 @@ export default function CombosListPage() {
                     render={(_: unknown, record: ComboRow) => (
                         <Space>
                             <EditButton hideText size="small" recordItemId={record.id} />
-                            <DeleteButton hideText size="small" recordItemId={record.id} />
+                            <DeleteButton
+                                hideText
+                                size="small"
+                                recordItemId={record.id}
+                                confirmTitle={translate('combos.deleteConfirm')}
+                            />
                         </Space>
                     )}
                 />

@@ -7,6 +7,7 @@ import {
     CONTRACT_PROXY_KEY_ID,
     CONTRACT_USER_ID,
     flushWaitUntil,
+    getPersistedStickState,
     invokeCore,
     originRequests,
     resetContractHarness,
@@ -180,7 +181,7 @@ describe('proxy contract: model combo', () => {
         });
     });
 
-    it('injects combos into GET /v1/models after the origin list', async () => {
+    it('injects combos into GET /v1/models alongside the origin list', async () => {
         const actualResponse = await invokeCore(
             '/v1/models',
             {
@@ -329,11 +330,20 @@ describe('proxy contract: model combo', () => {
             },
         );
         const body = (await actualResponse.json()) as {
-            models: Array<{ name: string; description?: string }>;
+            models: Array<{
+                name: string;
+                displayName?: string;
+                description?: string;
+                supportedGenerationMethods?: string[];
+            }>;
         };
         const matches = body.models.filter((row) => row.name === `models/${MEMBER_0}`);
         expect(matches).toHaveLength(1);
-        expect(matches[0]?.description).toBe(`Combo: ${MEMBER_1}`);
+        expect(matches[0]).toMatchObject({
+            description: `Combo: ${MEMBER_1}`,
+            displayName: MEMBER_0,
+            supportedGenerationMethods: ['generateContent'],
+        });
     });
 
     it('injects combos into OpenAI GET /v1/models', async () => {
@@ -356,5 +366,73 @@ describe('proxy contract: model combo', () => {
             body.data.some((row) => row.id === 'flash-combo' && row.owned_by === 'gproxy-combo'),
         ).toBe(true);
         expect(body.data.some((row) => row.id === MEMBER_0)).toBe(true);
+    });
+
+    it('serves combos from catalog when no Gemini keys are available', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/models',
+            {
+                method: 'GET',
+                headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+            },
+            {
+                seedCombos: [FLASH_COMBO],
+                noApiKeys: true,
+            },
+        );
+        expect(actualResponse.status).toBe(200);
+        expect(originRequests).toHaveLength(0);
+        const body = (await actualResponse.json()) as {
+            models: Array<{ name: string; supportedGenerationMethods?: string[] }>;
+        };
+        const comboRow = body.models.find((row) => row.name === 'models/flash-combo');
+        expect(comboRow?.supportedGenerationMethods).toEqual(['generateContent']);
+    });
+
+    it('serves combos from catalog when the origin models list fails', async () => {
+        const actualResponse = await invokeCore(
+            '/v1/models',
+            {
+                method: 'GET',
+                headers: { 'x-goog-api-key': CONTRACT_PROXY_KEY },
+            },
+            {
+                seedCombos: [FLASH_COMBO],
+                environment: { PROXY_MAX_RETRIES: '0' },
+                originResponses: [new Response('upstream down', { status: 503 })],
+            },
+        );
+        expect(actualResponse.status).toBe(200);
+        const body = (await actualResponse.json()) as { models: Array<{ name: string }> };
+        expect(body.models.some((row) => row.name === 'models/flash-combo')).toBe(true);
+    });
+
+    it('clears sticky_until_error state after an exhausted failed request', async () => {
+        const actualResponse = await invokeCore(COMBO_PATH, createProxyRequestInit(), {
+            extraApiKeys: true,
+            seedCombos: [{ ...FLASH_COMBO, strategy: 'sticky_until_error' }],
+            seedStickState: [
+                {
+                    combo_id: FLASH_COMBO_ID,
+                    last_api_key_id: CONTRACT_API_KEY_ID,
+                    consecutive_successes: 4,
+                },
+            ],
+            originResponses: [
+                quotaExhausted(),
+                quotaExhausted(),
+                quotaExhausted(),
+                quotaExhausted(),
+            ],
+        });
+        expect(actualResponse.status).toBe(429);
+        await flushWaitUntil();
+        expect(getPersistedStickState()).toEqual([
+            {
+                combo_id: FLASH_COMBO_ID,
+                last_api_key_id: null,
+                consecutive_successes: 0,
+            },
+        ]);
     });
 });

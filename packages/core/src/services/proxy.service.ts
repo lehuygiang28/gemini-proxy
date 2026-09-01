@@ -198,6 +198,15 @@ export class ProxyService {
                 excludeIds: usedApiKeyIds,
             });
         } catch (error) {
+            const catalogList = await this.catalogModelsListResponse({
+                c,
+                proxyRequestDataParsed,
+                proxyApiKeyData,
+                baseRequest,
+            });
+            if (catalogList) {
+                return catalogList;
+            }
             if (error instanceof InvalidKeyError && error.message === 'No API key found') {
                 await this.throwIfAllKeysCooled(
                     c,
@@ -291,7 +300,7 @@ export class ProxyService {
         );
         const keys = await loadComboApiKeys(supabase, proxyApiKeyData.user_id);
         if (keys.length === 0) {
-            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members[0]);
+            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members);
             throw new InvalidKeyError('No API key found');
         }
         const pairCooldowns = await loadComboPairCooldowns(
@@ -327,7 +336,7 @@ export class ProxyService {
             },
         });
         if (plan.length === 0) {
-            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members[0]);
+            await this.throwIfAllKeysCooled(c, proxyApiKeyData.user_id, resolvedCombo.members);
             throw new InvalidKeyError('No API key found');
         }
 
@@ -469,6 +478,18 @@ export class ProxyService {
                     canonicalModel: attempt.canonicalModel,
                 });
             }
+        }
+
+        if (
+            effective.strategy === 'sticky_until_error' &&
+            lastError?.message !== 'client_aborted'
+        ) {
+            await upsertComboStickState(supabase, {
+                proxyKeyId: proxyApiKeyData.id,
+                comboId: resolvedCombo.combo.id,
+                lastApiKeyId: null,
+                consecutiveSuccesses: 0,
+            });
         }
 
         return this.createErrorResponse(c, {
@@ -1107,6 +1128,16 @@ export class ProxyService {
             retryAttempts,
         } = params;
 
+        const catalogList = await this.catalogModelsListResponse({
+            c,
+            proxyRequestDataParsed,
+            proxyApiKeyData,
+            baseRequest,
+        });
+        if (catalogList) {
+            return catalogList;
+        }
+
         return ResponseHandlerService.handleError({
             c,
             requestId,
@@ -1154,21 +1185,72 @@ export class ProxyService {
         return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
     }
 
+    private static async catalogModelsListResponse(params: {
+        c: Context<HonoApp>;
+        proxyRequestDataParsed: ProxyRequestDataParsed;
+        proxyApiKeyData: Tables<'proxy_api_keys'>;
+        baseRequest: Request;
+    }): Promise<Response | null> {
+        const { c, proxyRequestDataParsed, proxyApiKeyData, baseRequest } = params;
+        if (
+            !isModelsListRequest({
+                method: baseRequest.method,
+                apiFormat: proxyRequestDataParsed.apiFormat,
+                urlToProxy: proxyRequestDataParsed.urlToProxy,
+            })
+        ) {
+            return null;
+        }
+        const originBodyText =
+            proxyRequestDataParsed.apiFormat === 'openai'
+                ? JSON.stringify({ object: 'list', data: [] })
+                : JSON.stringify({ models: [] });
+        const catalogIds = await loadUserCatalogIds(getSupabaseClient(c), proxyApiKeyData.user_id);
+        const injected = injectModelsListResponse({
+            apiFormat: proxyRequestDataParsed.apiFormat,
+            originBodyText,
+            combos: c.get('userCombos') ?? [],
+            catalogIds,
+            builtinIds: listBuiltinModelPricingRows().map((row) => row.modelId),
+            allowedModels: proxyApiKeyData.allowed_models,
+        });
+        return new Response(injected, {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+        });
+    }
+
     private static async throwIfAllKeysCooled(
         c: Context<HonoApp>,
         userId: string,
-        canonicalModel?: string,
+        canonicalModel?: string | readonly string[],
     ): Promise<void> {
-        let remainingMs: number | null;
-        try {
-            remainingMs = await ApiKeyService.getSoonestRemainingCooldownMs(
-                c,
-                userId,
-                [],
-                canonicalModel,
-            );
-        } catch {
-            return;
+        const models =
+            canonicalModel == null
+                ? [undefined]
+                : typeof canonicalModel === 'string'
+                  ? [canonicalModel]
+                  : canonicalModel.length > 0
+                    ? canonicalModel
+                    : [undefined];
+        let remainingMs: number | null = null;
+        for (const model of models) {
+            let modelRemaining: number | null;
+            try {
+                modelRemaining = await ApiKeyService.getSoonestRemainingCooldownMs(
+                    c,
+                    userId,
+                    [],
+                    model,
+                );
+            } catch {
+                continue;
+            }
+            if (modelRemaining == null || modelRemaining <= 0) {
+                continue;
+            }
+            remainingMs =
+                remainingMs == null ? modelRemaining : Math.min(remainingMs, modelRemaining);
         }
         if (remainingMs == null || remainingMs <= 0) {
             return;

@@ -32,4 +32,22 @@ describe('upsertComboStickState', () => {
             },
         ]);
     });
+
+    it('resolves when the upsert reports an error so the upstream success is kept', async () => {
+        const supabase = {
+            from() {
+                return {
+                    upsert: async () => ({ error: { message: 'rls' } }),
+                };
+            },
+        } as unknown as SupabaseClient<Database>;
+        await expect(
+            upsertComboStickState(supabase, {
+                proxyKeyId: 'proxy-1',
+                comboId: 'combo-1',
+                lastApiKeyId: 'key-a',
+                consecutiveSuccesses: 1,
+            }),
+        ).resolves.toBeUndefined();
+    });
 });

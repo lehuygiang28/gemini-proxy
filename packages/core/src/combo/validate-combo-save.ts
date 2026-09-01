@@ -4,7 +4,14 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
 type ComboSaveValidation =
     | { readonly ok: true; readonly name: string; readonly members: readonly string[] }
-    | { readonly ok: false; readonly error: 'invalid_name' | 'members_required' | 'duplicate_member' | 'member_is_combo_name' };
+    | {
+          readonly ok: false;
+          readonly error:
+              | 'invalid_name'
+              | 'members_required'
+              | 'duplicate_member'
+              | 'member_is_combo_name';
+      };
 
 export function validateComboSave(input: {
     readonly name: string;

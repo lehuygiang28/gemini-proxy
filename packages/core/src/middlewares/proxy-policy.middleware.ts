@@ -102,9 +102,7 @@ export async function proxyPolicyMiddleware(
         estimatedTokens = estimateAdmitTokens({ peekedMaxOutput });
         const costModel =
             resolvedCombo.kind === 'combo'
-                ? (firstPricedComboMember(resolvedCombo.members) ??
-                  requestData.model ??
-                  'unknown')
+                ? (firstPricedComboMember(resolvedCombo.members) ?? requestData.model ?? 'unknown')
                 : (requestData.model ?? 'unknown');
         estimatedUsd =
             estimateGeminiCostUsd({

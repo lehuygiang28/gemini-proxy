@@ -25,5 +25,6 @@ export interface RetryAttempt {
     api_key_name?: string | null;
     duration_ms: number;
     attempt_number: number;
+    canonical_model?: string;
     provider_error?: RetryAttemptProviderError;
 }

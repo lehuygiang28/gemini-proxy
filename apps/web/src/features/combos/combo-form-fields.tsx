@@ -16,7 +16,7 @@ import {
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from '@refinedev/core';
 import { normalizeGeminiModelId } from '@gemini-proxy/core';
-import { ModelPicker } from '@/features/models/model-picker';
+import { ModelPicker, SourceTag } from '@/features/models/model-picker';
 import { fillComboPreset, type ComboPresetKind } from '@/features/models/fill-combo-preset';
 import { useModelCatalog } from '@/features/models/use-model-catalog';
 
@@ -29,16 +29,16 @@ type ComboFormValues = {
     override_strategy?: boolean;
 };
 
-export function ComboFormFields(props: { isCreate: boolean; globalStrategyLabel: string }) {
+export function ComboFormFields(props: { isCreate: boolean; globalStrategy: string }) {
     const { translate } = useTranslation();
     const form = Form.useFormInstance<ComboFormValues>();
     const members = Form.useWatch('members', form) ?? [];
     const overrideStrategy = Form.useWatch('override_strategy', form);
     const strategy = Form.useWatch('strategy', form);
     const name = Form.useWatch('name', form) ?? '';
-    const { catalogIds, builtinIds } = useModelCatalog('concrete');
-    const availableIds = [...new Set([...catalogIds, ...builtinIds])];
-    const colliding = [...catalogIds, ...builtinIds].includes(normalizeGeminiModelId(name));
+    const { catalogIds, googleIds, builtinIds, entries } = useModelCatalog('concrete');
+    const availableIds = [...new Set([...catalogIds, ...googleIds, ...builtinIds])];
+    const colliding = availableIds.includes(normalizeGeminiModelId(name));
 
     const handleAddMember = (modelId: string | undefined) => {
         if (!modelId || members.includes(modelId)) {
@@ -130,45 +130,68 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategyLabel:
                 >
                     <Select mode="multiple" />
                 </Form.Item>
-                {members.map((member, index) => (
-                    <Space key={`${member}-${index}`} style={{ display: 'flex', marginTop: 8 }}>
-                        <Typography.Text>
-                            {index + 1} {member}
-                        </Typography.Text>
-                        <Button
-                            size="small"
-                            icon={<ArrowUpOutlined />}
-                            aria-label={translate('combos.members.moveUp')}
-                            disabled={index === 0}
-                            onClick={() => handleMoveMember(index, -1)}
-                        />
-                        <Button
-                            size="small"
-                            icon={<ArrowDownOutlined />}
-                            aria-label={translate('combos.members.moveDown')}
-                            disabled={index === members.length - 1}
-                            onClick={() => handleMoveMember(index, 1)}
-                        />
-                        <Button
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            aria-label={translate('combos.members.remove')}
-                            onClick={() => handleRemoveMember(index)}
-                        />
-                    </Space>
-                ))}
+                {members.map((member, index) => {
+                    const entry = entries.find((item) => item.id === member);
+                    return (
+                        <Space key={`${member}-${index}`} style={{ display: 'flex', marginTop: 8 }}>
+                            <Typography.Text>
+                                {index + 1} {member}
+                            </Typography.Text>
+                            <SourceTag source={entry?.source ?? 'google'} overrides={false} />
+                            <Button
+                                size="small"
+                                icon={<ArrowUpOutlined />}
+                                aria-label={translate('combos.members.moveUp')}
+                                disabled={index === 0}
+                                onClick={() => handleMoveMember(index, -1)}
+                            />
+                            <Button
+                                size="small"
+                                icon={<ArrowDownOutlined />}
+                                aria-label={translate('combos.members.moveDown')}
+                                disabled={index === members.length - 1}
+                                onClick={() => handleMoveMember(index, 1)}
+                            />
+                            <Button
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                aria-label={translate('combos.members.remove')}
+                                onClick={() => handleRemoveMember(index)}
+                            />
+                        </Space>
+                    );
+                })}
             </Form.Item>
             <Form.Item
                 label={translate('combos.fields.overrideStrategy')}
                 name="override_strategy"
                 valuePropName="checked"
             >
-                <Switch />
+                <Switch
+                    onChange={(checked) => {
+                        if (checked && !form.getFieldValue('strategy')) {
+                            form.setFieldValue('strategy', props.globalStrategy);
+                        }
+                        if (!checked) {
+                            form.setFieldValue('strategy', null);
+                            form.setFieldValue('stick_after_successes', null);
+                        }
+                    }}
+                />
             </Form.Item>
             {overrideStrategy ? (
                 <>
-                    <Form.Item label={translate('combos.fields.strategy')} name="strategy">
+                    <Form.Item
+                        label={translate('combos.fields.strategy')}
+                        name="strategy"
+                        rules={[
+                            {
+                                required: true,
+                                message: translate('combos.errors.strategyRequired'),
+                            },
+                        ]}
+                    >
                         <Segmented
                             options={[
                                 { label: translate('combos.strategy.fallback'), value: 'fallback' },
@@ -192,7 +215,9 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategyLabel:
                 </>
             ) : (
                 <Typography.Paragraph type="secondary">
-                    {translate('combos.defaultStrategy', { strategy: props.globalStrategyLabel })}
+                    {translate('combos.defaultStrategy', {
+                        strategy: translate(`combos.strategy.${props.globalStrategy}`),
+                    })}
                 </Typography.Paragraph>
             )}
             <Form.Item

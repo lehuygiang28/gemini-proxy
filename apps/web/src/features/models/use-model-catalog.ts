@@ -23,12 +23,15 @@ type CatalogRow = {
     model_id: string;
     source: string;
     display_name: string | null;
+    refreshed_at?: string | null;
 };
 
 export function useModelCatalog(mode: PickerModelMode): {
     entries: PickerModelEntry[];
     catalogIds: string[];
+    googleIds: string[];
     builtinIds: string[];
+    lastGoogleSyncAt: string | null;
 } {
     const builtinIds = useMemo(() => listBuiltinModelPricingRows().map((row) => row.modelId), []);
     const { result: comboResult } = useList<ComboRow>({
@@ -56,24 +59,39 @@ export function useModelCatalog(mode: PickerModelMode): {
             })),
         [comboResult?.data],
     );
-    const catalogIds = useMemo(
-        () => (catalogResult?.data ?? []).map((row) => row.model_id),
+    const googleIds = useMemo(
+        () =>
+            (catalogResult?.data ?? [])
+                .filter((row) => row.source === 'google_live')
+                .map((row) => row.model_id),
         [catalogResult?.data],
     );
+    const catalogIds = useMemo(
+        () =>
+            (catalogResult?.data ?? [])
+                .filter((row) => row.source === 'custom')
+                .map((row) => row.model_id),
+        [catalogResult?.data],
+    );
+    const lastGoogleSyncAt = useMemo(() => {
+        const times = (catalogResult?.data ?? [])
+            .filter((row) => row.source === 'google_live' && row.refreshed_at)
+            .map((row) => row.refreshed_at as string);
+        if (times.length === 0) {
+            return null;
+        }
+        return times.reduce((latest, stamp) => (stamp > latest ? stamp : latest));
+    }, [catalogResult?.data]);
     const entries = useMemo(
         () =>
             mergePickerCatalog({
                 mode,
-                googleIds: catalogIds.filter((id) =>
-                    (catalogResult?.data ?? []).some(
-                        (row) => row.model_id === id && row.source === 'google_live',
-                    ),
-                ),
+                googleIds,
                 catalogIds,
                 builtinIds,
                 combos,
             }),
-        [mode, catalogIds, builtinIds, combos, catalogResult?.data],
+        [mode, googleIds, catalogIds, builtinIds, combos],
     );
-    return { entries, catalogIds, builtinIds };
+    return { entries, catalogIds, googleIds, builtinIds, lastGoogleSyncAt };
 }

@@ -10,10 +10,13 @@ export async function upsertComboStickState(
         readonly consecutiveSuccesses: number;
     },
 ): Promise<void> {
-    await supabase.from('model_combo_stick_state').upsert({
+    const { error } = await supabase.from('model_combo_stick_state').upsert({
         proxy_key_id: input.proxyKeyId,
         combo_id: input.comboId,
         last_api_key_id: input.lastApiKeyId,
         consecutive_successes: input.consecutiveSuccesses,
     });
+    if (error) {
+        console.error('Failed to persist combo stick state:', error);
+    }
 }

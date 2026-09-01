@@ -44,11 +44,31 @@ describe('parseGoogleModelsList', () => {
         ]);
     });
 
-    it('returns an empty list for invalid payloads', () => {
-        expect(parseGoogleModelsList(null)).toEqual([]);
-        expect(parseGoogleModelsList({})).toEqual([]);
-        expect(parseGoogleModelsList([])).toEqual([]);
-        expect(parseGoogleModelsList({ models: 'nope' })).toEqual([]);
+    it('returns null for invalid payloads so sync does not wipe the catalog', () => {
+        expect(parseGoogleModelsList(null)).toBeNull();
+        expect(parseGoogleModelsList({})).toBeNull();
+        expect(parseGoogleModelsList([])).toBeNull();
+        expect(parseGoogleModelsList({ models: 'nope' })).toBeNull();
+    });
+
+    it('returns an empty list for a valid empty models array', () => {
+        expect(parseGoogleModelsList({ models: [] })).toEqual([]);
+    });
+
+    it('dedupes normalized ids', () => {
+        const actual = parseGoogleModelsList({
+            models: [
+                { name: 'models/gemini-3.7-flash', displayName: 'First' },
+                { name: 'gemini-3.7-flash', displayName: 'Second' },
+            ],
+        });
+        expect(actual).toEqual([
+            {
+                modelId: 'gemini-3.7-flash',
+                displayName: 'First',
+                supportsGenerate: true,
+            },
+        ]);
     });
 
     it('skips non-object rows and empty names', () => {

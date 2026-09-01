@@ -7,8 +7,7 @@ export function effectiveComboStrategy(input: {
     readonly comboStickAfterSuccesses: number | null;
 }): EffectiveComboStrategy {
     const strategy = input.comboStrategy ?? input.globalStrategy;
-    const stickAfterSuccesses =
-        input.comboStickAfterSuccesses ?? input.globalStickAfterSuccesses;
+    const stickAfterSuccesses = input.comboStickAfterSuccesses ?? input.globalStickAfterSuccesses;
     if (strategy !== 'stick_n') {
         return { strategy, stickAfterSuccesses: null };
     }

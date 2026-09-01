@@ -18,7 +18,11 @@ export async function loadComboPairCooldowns(
         .from('api_key_model_cooldowns')
         .select('api_key_id, canonical_model, cooldown_until')
         .in('api_key_id', [...keyIds]);
-    if (error || !data) {
+    if (error) {
+        console.error('Failed to load combo pair cooldowns:', error);
+        return [];
+    }
+    if (!data) {
         return [];
     }
     return data.map((row) => ({

@@ -30,7 +30,9 @@ export function injectModelsListResponse(input: {
         allowedModels: input.allowedModels,
     });
     if (input.apiFormat === 'openai') {
-        const original = Array.isArray(root.data) ? (root.data as Array<Record<string, unknown>>) : [];
+        const original = Array.isArray(root.data)
+            ? (root.data as Array<Record<string, unknown>>)
+            : [];
         const byId = new Map(
             original.map((row) => [normalizeGeminiModelId(String(row.id ?? '')), row]),
         );
@@ -67,7 +69,9 @@ export function injectModelsListResponse(input: {
             if (entry.source === 'combo') {
                 return {
                     name: `models/${entry.id}`,
+                    displayName: entry.id,
                     description: entry.description,
+                    supportedGenerationMethods: ['generateContent'],
                 };
             }
             return byId.get(entry.id) ?? { name: `models/${entry.id}` };

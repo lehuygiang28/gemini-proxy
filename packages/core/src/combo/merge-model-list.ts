@@ -64,10 +64,7 @@ export function mergeModelList(input: {
     );
 }
 
-function plainEntry(
-    rawId: string,
-    source: 'catalog' | 'builtin' | 'google',
-): MergedModelEntry {
+function plainEntry(rawId: string, source: 'catalog' | 'builtin' | 'google'): MergedModelEntry {
     return {
         id: normalizeGeminiModelId(rawId),
         source,

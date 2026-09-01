@@ -629,6 +629,10 @@ export type Database = {
                 };
                 Returns: string;
             };
+            replace_user_google_live_catalog: {
+                Args: { p_models: Json };
+                Returns: number;
+            };
             normalize_combo_model_id: {
                 Args: { p_id: string };
                 Returns: string;

@@ -721,7 +721,8 @@
             "summary": "{count, plural, one {# retry} other {# retries}} · {ms}ms",
             "hint": "All entries below are failed attempts. Final outcome is the request status above.",
             "loadingKeys": "Loading API key names…",
-            "attempt": "Attempt #{number}"
+            "attempt": "Attempt #{number}",
+            "model": "Model {model}"
         }
     },
     "proxy_reconciliation_needed": {
@@ -761,6 +762,7 @@
         "empty": "No combos yet",
         "off": "Off",
         "saveFailed": "Could not save combo",
+        "deleteConfirm": "Members stop resolving. In-flight names 404 to Google.",
         "overrideWarning": "Requests for {name} will use this combo, not the Google model",
         "defaultStrategy": "Uses the default ({strategy})",
         "fields": {
@@ -780,9 +782,9 @@
             "remove": "Remove member"
         },
         "presets": {
-            "flash": "Fill Flash",
-            "pro": "Fill Pro",
-            "gemma": "Fill Gemma"
+            "flash": "Flash",
+            "pro": "Pro",
+            "gemma": "Gemma"
         },
         "strategy": {
             "fallback": "Fallback",
@@ -791,7 +793,11 @@
         },
         "errors": {
             "nameRequired": "Name is required",
-            "membersRequired": "Add at least one model"
+            "membersRequired": "Add at least one model",
+            "memberIsComboName": "A member cannot be this combo's name",
+            "duplicateMember": "Members must be unique",
+            "invalidName": "Use a lowercase id with letters, numbers, dots, underscores, or hyphens",
+            "strategyRequired": "Choose a strategy"
         },
         "titles": {
             "create": "Create combo",
@@ -802,10 +808,14 @@
         "placeholder": "Choose a model",
         "addModel": "Add model",
         "addModelHelp": "Type a Google model id once. Combos and allowlists pick from this list.",
+        "addFailed": "Could not add model",
         "modelIdPlaceholder": "gemini-…",
+        "inputUsd": "USD / 1M input",
+        "outputUsd": "USD / 1M output",
         "syncGoogle": "Sync Google models",
         "syncOk": "Synced {count} Google models",
         "syncFailed": "Could not sync Google models",
+        "lastSync": "Last Google sync {time}",
         "groups": {
             "combos": "Combos",
             "gemini": "Gemini",

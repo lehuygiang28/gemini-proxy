@@ -721,7 +721,8 @@
             "summary": "{count, plural, one {# lần thử lại} other {# lần thử lại}} · {ms}ms",
             "hint": "Tất cả mục bên dưới là các lần thử thất bại. Kết quả cuối là trạng thái request ở trên.",
             "loadingKeys": "Đang tải tên khóa API…",
-            "attempt": "Lần thử #{number}"
+            "attempt": "Lần thử #{number}",
+            "model": "Model {model}"
         }
     },
     "proxy_reconciliation_needed": {
@@ -761,6 +762,7 @@
         "empty": "Chưa có combo",
         "off": "Tắt",
         "saveFailed": "Không lưu được combo",
+        "deleteConfirm": "Thành viên ngừng resolve. Tên đang dùng sẽ 404 về Google.",
         "overrideWarning": "Request tới {name} sẽ dùng combo này, không phải model Google",
         "defaultStrategy": "Dùng mặc định ({strategy})",
         "fields": {
@@ -780,9 +782,9 @@
             "remove": "Xóa thành viên"
         },
         "presets": {
-            "flash": "Điền Flash",
-            "pro": "Điền Pro",
-            "gemma": "Điền Gemma"
+            "flash": "Flash",
+            "pro": "Pro",
+            "gemma": "Gemma"
         },
         "strategy": {
             "fallback": "Dự phòng",
@@ -791,7 +793,11 @@
         },
         "errors": {
             "nameRequired": "Cần tên combo",
-            "membersRequired": "Thêm ít nhất một model"
+            "membersRequired": "Thêm ít nhất một model",
+            "memberIsComboName": "Thành viên không được trùng tên combo",
+            "duplicateMember": "Thành viên phải khác nhau",
+            "invalidName": "Dùng id chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang",
+            "strategyRequired": "Chọn chiến lược"
         },
         "titles": {
             "create": "Tạo combo",
@@ -802,10 +808,14 @@
         "placeholder": "Chọn model",
         "addModel": "Thêm model",
         "addModelHelp": "Nhập id model Google một lần. Combo và allowlist chọn từ danh sách này.",
+        "addFailed": "Không thêm được model",
         "modelIdPlaceholder": "gemini-…",
+        "inputUsd": "USD / 1M input",
+        "outputUsd": "USD / 1M output",
         "syncGoogle": "Đồng bộ model Google",
         "syncOk": "Đã đồng bộ {count} model Google",
         "syncFailed": "Không đồng bộ được model Google",
+        "lastSync": "Lần đồng bộ Google {time}",
         "groups": {
             "combos": "Combo",
             "gemini": "Gemini",

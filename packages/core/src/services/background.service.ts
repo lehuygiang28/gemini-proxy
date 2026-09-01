@@ -184,7 +184,7 @@ export class BackgroundService {
         const requestedModel = proxyRequestDataParsed.model || 'unknown';
         const fallbackModel =
             resolvedCombo?.kind === 'combo'
-                ? (winningMember || tokenUsage.model || requestedModel)
+                ? winningMember || tokenUsage.model || requestedModel
                 : requestedModel;
         const settings = await this.loadUserSettings(c, userId);
         const policyReservation = c.get('proxyPolicyReservation');
@@ -283,7 +283,7 @@ export class BackgroundService {
                 cacheTokens: tokenUsage.cacheTokens,
                 model:
                     resolvedCombo?.kind === 'combo'
-                        ? (winningMember || tokenUsage.model || fallbackModel)
+                        ? winningMember || tokenUsage.model || fallbackModel
                         : tokenUsage.model || fallbackModel,
                 responseId: tokenUsage.responseId,
                 estimatedCostUsd: cost?.usd ?? null,
@@ -353,8 +353,7 @@ export class BackgroundService {
         const policyReservation = c.get('proxyPolicyReservation');
         const resolvedCombo = c.get('resolvedCombo');
         const winningMember = c.get('comboWinningMember');
-        const usageModel =
-            resolvedCombo?.kind === 'combo' ? (winningMember || model) : model;
+        const usageModel = resolvedCombo?.kind === 'combo' ? winningMember || model : model;
         const requestText =
             settings.detailed_observability && settings.save_request_body
                 ? await this.readRequestText(baseRequest)
@@ -443,8 +442,7 @@ export class BackgroundService {
                       estimatedCostUsd: null,
                       pricingVersion: null,
                       matchedModel: null,
-                      requestedModel:
-                          resolvedCombo?.kind === 'combo' ? (model ?? null) : null,
+                      requestedModel: resolvedCombo?.kind === 'combo' ? (model ?? null) : null,
                       comboId: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.id : null,
                       comboName: resolvedCombo?.kind === 'combo' ? resolvedCombo.combo.name : null,
                       rawMetadata: { model: usageModel },
@@ -687,6 +685,9 @@ export class BackgroundService {
                     prompt_tokens: usage?.promptTokens ?? 0,
                     completion_tokens: usage?.completionTokens ?? 0,
                     model: usage?.model ?? null,
+                    requested_model: usage?.requestedModel ?? null,
+                    combo_id: usage?.comboId ?? null,
+                    combo_name: usage?.comboName ?? null,
                 } as Json,
                 retry_attempts: (requestLog?.retryAttempts ?? []) as Json,
             },

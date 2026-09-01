@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import { useInvalidate, useNotification, useTranslation } from '@refinedev/core';
-import { Button, Input, Modal, Select, Space, Tag, Typography } from 'antd';
+import { Button, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd';
+import dayjs from 'dayjs';
+import { normalizeGeminiModelId } from '@gemini-proxy/core';
 import { supabaseBrowserClient } from '@/utils/supabase/client';
 import { useModelCatalog } from './use-model-catalog';
-import type { PickerModelMode } from './merge-picker-catalog';
+import type { PickerModelEntry, PickerModelMode } from './merge-picker-catalog';
 
 type ModelPickerProps = {
     mode: PickerModelMode;
@@ -23,7 +25,7 @@ const GROUP_LABEL: Record<string, string> = {
 
 export function ModelPicker(props: ModelPickerProps) {
     const { translate } = useTranslation();
-    const { entries } = useModelCatalog(props.mode);
+    const catalog = useModelCatalog(props.mode);
     const disabledIds = props.disabledIds;
     const options = useMemo(() => {
         const disabled = new Set(disabledIds ?? []);
@@ -31,7 +33,7 @@ export function ModelPicker(props: ModelPickerProps) {
             string,
             Array<{ label: string; value: string; disabled: boolean }>
         >();
-        for (const entry of entries) {
+        for (const entry of catalog.entries) {
             if (disabled.has(entry.id)) {
                 continue;
             }
@@ -47,22 +49,36 @@ export function ModelPicker(props: ModelPickerProps) {
             label: translate(GROUP_LABEL[group] ?? group),
             options: children,
         }));
-    }, [disabledIds, entries, translate]);
+    }, [disabledIds, catalog.entries, translate]);
 
     return (
         <Select
             showSearch
             allowClear
-            value={props.value}
+            value={props.value ?? null}
             onChange={(value) => props.onChange(typeof value === 'string' ? value : undefined)}
             options={options}
             optionFilterProp="label"
+            optionRender={(option) => {
+                const entry = catalog.entries.find((item) => item.id === option.value);
+                return (
+                    <Space size={4}>
+                        <span>{String(option.label)}</span>
+                        {entry ? (
+                            <SourceTag source={entry.source} overrides={entry.overrides} />
+                        ) : null}
+                    </Space>
+                );
+            }}
             placeholder={translate('picker.placeholder')}
             style={{ width: '100%' }}
             dropdownRender={(menu) => (
                 <>
                     {menu}
-                    <PickerFooter />
+                    <PickerFooter
+                        lastGoogleSyncAt={catalog.lastGoogleSyncAt}
+                        onAdded={(modelId) => props.onChange(modelId)}
+                    />
                 </>
             )}
         />
@@ -76,8 +92,8 @@ type ModelTagsPickerProps = {
 
 export function ModelTagsPicker(props: ModelTagsPickerProps) {
     const { translate } = useTranslation();
-    const { entries } = useModelCatalog('requestName');
-    const options = entries.map((entry) => ({
+    const catalog = useModelCatalog('requestName');
+    const options = catalog.entries.map((entry) => ({
         label: entry.id,
         value: entry.id,
     }));
@@ -88,28 +104,46 @@ export function ModelTagsPicker(props: ModelTagsPickerProps) {
             value={props.value}
             onChange={(value) => props.onChange?.(value)}
             options={options}
+            optionRender={(option) => {
+                const entry = catalog.entries.find((item) => item.id === option.value);
+                return (
+                    <Space size={4}>
+                        <span>{String(option.label)}</span>
+                        {entry ? (
+                            <SourceTag source={entry.source} overrides={entry.overrides} />
+                        ) : null}
+                    </Space>
+                );
+            }}
             placeholder={translate('picker.placeholder')}
             style={{ width: '100%' }}
             dropdownRender={(menu) => (
                 <>
                     {menu}
-                    <PickerFooter />
+                    <PickerFooter lastGoogleSyncAt={catalog.lastGoogleSyncAt} />
                 </>
             )}
         />
     );
 }
 
-function PickerFooter() {
+function PickerFooter(props: {
+    lastGoogleSyncAt: string | null;
+    onAdded?: (modelId: string) => void;
+}) {
     const { translate } = useTranslation();
     const notification = useNotification();
     const invalidate = useInvalidate();
     const [syncing, setSyncing] = useState(false);
     const [addOpen, setAddOpen] = useState(false);
     const [customId, setCustomId] = useState('');
+    const [inputPerMillion, setInputPerMillion] = useState<number | null>(null);
+    const [outputPerMillion, setOutputPerMillion] = useState<number | null>(null);
+    const [saving, setSaving] = useState(false);
 
     const handleInvalidateCatalog = async () => {
         await invalidate({ resource: 'user_model_catalog', invalidates: ['list'] });
+        await invalidate({ resource: 'user_settings', invalidates: ['list'] });
     };
 
     const handleSyncCatalog = async () => {
@@ -140,25 +174,83 @@ function PickerFooter() {
     };
 
     const handleAddCustomModel = async () => {
-        const modelId = customId.trim().toLowerCase();
+        const modelId = normalizeGeminiModelId(customId);
         if (!modelId) {
             return;
         }
-        const {
-            data: { user },
-        } = await supabaseBrowserClient.auth.getUser();
-        if (!user) {
-            return;
+        setSaving(true);
+        try {
+            const {
+                data: { user },
+            } = await supabaseBrowserClient.auth.getUser();
+            if (!user) {
+                return;
+            }
+            const { error } = await supabaseBrowserClient.from('user_model_catalog').upsert({
+                user_id: user.id,
+                model_id: modelId,
+                source: 'custom',
+                supports_generate: true,
+            });
+            if (error) {
+                notification.open({
+                    type: 'error',
+                    message: translate('picker.addFailed'),
+                });
+                return;
+            }
+            if (inputPerMillion != null || outputPerMillion != null) {
+                const { data: settings, error: settingsReadError } = await supabaseBrowserClient
+                    .from('user_settings')
+                    .select('id, custom_model_pricing')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                if (settingsReadError) {
+                    notification.open({
+                        type: 'error',
+                        message: translate('picker.addFailed'),
+                    });
+                    return;
+                }
+                const current =
+                    settings?.custom_model_pricing &&
+                    typeof settings.custom_model_pricing === 'object' &&
+                    !Array.isArray(settings.custom_model_pricing)
+                        ? (settings.custom_model_pricing as Record<string, unknown>)
+                        : {};
+                const pricing = {
+                    ...current,
+                    [modelId]: {
+                        inputPerMillion: inputPerMillion ?? 0,
+                        outputPerMillion: outputPerMillion ?? 0,
+                    },
+                };
+                const { error: pricingError } = settings?.id
+                    ? await supabaseBrowserClient
+                          .from('user_settings')
+                          .update({ custom_model_pricing: pricing })
+                          .eq('id', settings.id)
+                    : await supabaseBrowserClient.from('user_settings').insert({
+                          id: user.id,
+                          custom_model_pricing: pricing,
+                      });
+                if (pricingError) {
+                    notification.open({
+                        type: 'error',
+                        message: translate('picker.addFailed'),
+                    });
+                    return;
+                }
+            }
+            await handleInvalidateCatalog();
+            setAddOpen(false);
+            setCustomId('');
+            setInputPerMillion(null);
+            setOutputPerMillion(null);
+            props.onAdded?.(modelId);
+        } finally {
+            setSaving(false);
         }
-        await supabaseBrowserClient.from('user_model_catalog').upsert({
-            user_id: user.id,
-            model_id: modelId,
-            source: 'custom',
-            supports_generate: true,
-        });
-        await handleInvalidateCatalog();
-        setAddOpen(false);
-        setCustomId('');
     };
 
     return (
@@ -176,9 +268,17 @@ function PickerFooter() {
                     {translate('picker.syncGoogle')}
                 </Button>
             </Space>
+            {props.lastGoogleSyncAt ? (
+                <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                    {translate('picker.lastSync', {
+                        time: dayjs(props.lastGoogleSyncAt).format('YYYY-MM-DD HH:mm'),
+                    })}
+                </Typography.Text>
+            ) : null}
             <Modal
                 title={translate('picker.addModel')}
                 open={addOpen}
+                confirmLoading={saving}
                 onCancel={() => setAddOpen(false)}
                 onOk={() => void handleAddCustomModel()}
             >
@@ -190,21 +290,49 @@ function PickerFooter() {
                     onChange={(event) => setCustomId(event.target.value)}
                     placeholder={translate('picker.modelIdPlaceholder')}
                 />
+                <Space style={{ marginTop: 12, width: '100%' }} size={12}>
+                    <InputNumber
+                        min={0}
+                        style={{ width: '100%' }}
+                        placeholder={translate('picker.inputUsd')}
+                        value={inputPerMillion}
+                        onChange={(value) =>
+                            setInputPerMillion(typeof value === 'number' ? value : null)
+                        }
+                    />
+                    <InputNumber
+                        min={0}
+                        style={{ width: '100%' }}
+                        placeholder={translate('picker.outputUsd')}
+                        value={outputPerMillion}
+                        onChange={(value) =>
+                            setOutputPerMillion(typeof value === 'number' ? value : null)
+                        }
+                    />
+                </Space>
             </Modal>
         </div>
     );
 }
 
-export function SourceTag({ source, overrides }: { source: string; overrides: boolean }) {
+export function SourceTag({
+    source,
+    overrides,
+}: {
+    source: PickerModelEntry['source'] | string;
+    overrides: boolean;
+}) {
     const { translate } = useTranslation();
-    if (overrides) {
-        return <Tag>{translate('picker.tag.overrides')}</Tag>;
-    }
-    if (source === 'combo') {
-        return <Tag color="purple">{translate('picker.tag.combo')}</Tag>;
-    }
-    if (source === 'catalog') {
-        return <Tag>{translate('picker.tag.custom')}</Tag>;
-    }
-    return <Tag>{translate('picker.tag.google')}</Tag>;
+    return (
+        <>
+            {source === 'combo' ? (
+                <Tag color="purple">{translate('picker.tag.combo')}</Tag>
+            ) : source === 'catalog' ? (
+                <Tag>{translate('picker.tag.custom')}</Tag>
+            ) : (
+                <Tag>{translate('picker.tag.google')}</Tag>
+            )}
+            {overrides ? <Tag>{translate('picker.tag.overrides')}</Tag> : null}
+        </>
+    );
 }

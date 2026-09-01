@@ -9,7 +9,9 @@ export async function loadUserCombos(
 ): Promise<StoredCombo[]> {
     const { data, error } = await supabase
         .from('model_combos')
-        .select('id, name, is_active, strategy, stick_after_successes, model_combo_members(position, canonical_model)')
+        .select(
+            'id, name, is_active, strategy, stick_after_successes, model_combo_members(position, canonical_model)',
+        )
         .eq('user_id', userId);
     if (error || !data) {
         return [];

@@ -50,11 +50,21 @@ describe('injectModelsListResponse', () => {
             allowedModels: null,
         });
         const parsed = JSON.parse(actual) as {
-            models: Array<{ name: string; description?: string }>;
+            models: Array<{
+                name: string;
+                displayName?: string;
+                description?: string;
+                supportedGenerationMethods?: string[];
+            }>;
         };
         const matches = parsed.models.filter((row) => row.name === 'models/gemini-3.7-flash');
         expect(matches).toHaveLength(1);
-        expect(matches[0]?.description).toBe('Combo: gemini-3.5-flash-lite');
+        expect(matches[0]).toEqual({
+            name: 'models/gemini-3.7-flash',
+            displayName: 'gemini-3.7-flash',
+            description: 'Combo: gemini-3.5-flash-lite',
+            supportedGenerationMethods: ['generateContent'],
+        });
     });
 
     it('returns origin body when JSON is invalid', () => {

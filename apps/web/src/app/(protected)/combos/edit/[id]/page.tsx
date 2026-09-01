@@ -6,6 +6,7 @@ import { useGo, useList, useNotification, useTranslation } from '@refinedev/core
 import { Card, Form, Spin } from 'antd';
 import { supabaseBrowserClient } from '@/utils/supabase/client';
 import { ComboFormFields } from '@/features/combos/combo-form-fields';
+import { comboSaveFieldError } from '@/features/combos/combo-save-error';
 import type { UserSettings } from '@/features/settings/types';
 
 type ComboQuery = {
@@ -60,10 +61,20 @@ export default function ComboEditPage() {
             p_members: values.members,
         });
         if (error) {
-            notification.open({
-                type: 'error',
-                message: translate('combos.saveFailed'),
-            });
+            const fieldError = comboSaveFieldError(error.message);
+            if (fieldError) {
+                form.setFields([
+                    {
+                        name: fieldError.field,
+                        errors: [translate(fieldError.messageKey)],
+                    },
+                ]);
+            } else {
+                notification.open({
+                    type: 'error',
+                    message: translate('combos.saveFailed'),
+                });
+            }
             throw error;
         }
         go({ to: '/combos' });
@@ -91,10 +102,7 @@ export default function ComboEditPage() {
                     }}
                     onFinish={(values) => void handleFinish(values as never)}
                 >
-                    <ComboFormFields
-                        isCreate={false}
-                        globalStrategyLabel={String(globalStrategy)}
-                    />
+                    <ComboFormFields isCreate={false} globalStrategy={String(globalStrategy)} />
                 </Form>
             </Card>
         </Edit>

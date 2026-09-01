@@ -2,6 +2,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@gemini-proxy/database';
 import { parseGoogleModelsList } from './parse-google-models-list';
 
+function isHttpsBaseUrl(raw: string): boolean {
+    try {
+        return new URL(raw).protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
 export async function syncGoogleModelCatalog(input: {
     readonly supabase: SupabaseClient<Database>;
     readonly userId: string;
@@ -13,6 +21,9 @@ export async function syncGoogleModelCatalog(input: {
         /\/?$/,
         '/',
     );
+    if (!isHttpsBaseUrl(base)) {
+        return { ok: false };
+    }
     const { data: apiKey, error: keyError } = await input.supabase
         .from('api_keys')
         .select('id, api_key_value')
@@ -44,27 +55,31 @@ export async function syncGoogleModelCatalog(input: {
         return { ok: false };
     }
     const models = parseGoogleModelsList(body);
-    const { error: deleteError } = await input.supabase
-        .from('user_model_catalog')
-        .delete()
-        .eq('user_id', input.userId)
-        .eq('source', 'google_live');
-    if (deleteError) {
+    if (models === null) {
         return { ok: false };
     }
-    if (models.length > 0) {
-        const { error: insertError } = await input.supabase.from('user_model_catalog').insert(
-            models.map((model) => ({
-                user_id: input.userId,
-                model_id: model.modelId,
-                display_name: model.displayName,
-                source: 'google_live',
-                supports_generate: model.supportsGenerate,
-            })),
-        );
-        if (insertError) {
-            return { ok: false };
-        }
+    const { data: customRows, error: customError } = await input.supabase
+        .from('user_model_catalog')
+        .select('model_id')
+        .eq('user_id', input.userId)
+        .eq('source', 'custom');
+    if (customError) {
+        return { ok: false };
     }
-    return { ok: true, count: models.length };
+    const customIds = new Set((customRows ?? []).map((row) => row.model_id));
+    const payload = models
+        .filter((model) => !customIds.has(model.modelId))
+        .map((model) => ({
+            model_id: model.modelId,
+            display_name: model.displayName,
+            supports_generate: model.supportsGenerate,
+        }));
+    const { data: count, error: replaceError } = await input.supabase.rpc(
+        'replace_user_google_live_catalog',
+        { p_models: payload },
+    );
+    if (replaceError) {
+        return { ok: false };
+    }
+    return { ok: true, count: typeof count === 'number' ? count : payload.length };
 }

@@ -406,7 +406,10 @@ export function createMockSupabase(options: InvokeCoreOptions = {}): SupabaseCli
                         }
                         return true;
                     });
-                    if (filters.eqValues.combo_id != null || filters.eqValues.proxy_key_id != null) {
+                    if (
+                        filters.eqValues.combo_id != null ||
+                        filters.eqValues.proxy_key_id != null
+                    ) {
                         const match = rows[0];
                         return {
                             data: match
@@ -718,6 +721,10 @@ export async function flushWaitUntil(): Promise<void> {
         const pending = waitUntilPromises.splice(0);
         await Promise.allSettled(pending);
     }
+}
+
+export function getPersistedStickState(): SeedStickState[] {
+    return persistedStickState;
 }
 
 export function resetContractHarness(): void {

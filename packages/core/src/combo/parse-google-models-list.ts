@@ -6,24 +6,26 @@ export type ParsedGoogleModel = {
     readonly supportsGenerate: boolean;
 };
 
-export function parseGoogleModelsList(body: unknown): ParsedGoogleModel[] {
+export function parseGoogleModelsList(body: unknown): ParsedGoogleModel[] | null {
     if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-        return [];
+        return null;
     }
     const models = (body as { models?: unknown }).models;
     if (!Array.isArray(models)) {
-        return [];
+        return null;
     }
     const parsed: ParsedGoogleModel[] = [];
+    const seen = new Set<string>();
     for (const row of models) {
         if (row === null || typeof row !== 'object' || Array.isArray(row)) {
             continue;
         }
         const name = 'name' in row ? String((row as { name: unknown }).name ?? '') : '';
         const modelId = normalizeGeminiModelId(name);
-        if (!modelId) {
+        if (!modelId || seen.has(modelId)) {
             continue;
         }
+        seen.add(modelId);
         const displayName =
             'displayName' in row &&
             typeof (row as { displayName?: unknown }).displayName === 'string'

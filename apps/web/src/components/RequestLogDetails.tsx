@@ -710,6 +710,13 @@ function RetryTimeline({ retryAttempts }: { retryAttempts: RetryAttempt[] }) {
                                         <Text type="secondary" style={{ fontSize: 12 }}>
                                             {attempt.duration_ms}ms
                                         </Text>
+                                        {attempt.canonical_model ? (
+                                            <Tag style={{ borderRadius: 2 }}>
+                                                {translate('request_logs.retries.model', {
+                                                    model: attempt.canonical_model,
+                                                })}
+                                            </Tag>
+                                        ) : null}
                                         {attempt.error?.type ? (
                                             <Tag color="error" style={{ borderRadius: 2 }}>
                                                 {attempt.error.type}
