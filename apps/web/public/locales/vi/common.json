@@ -430,7 +430,24 @@
             "viewDetails": "Xem chi tiết",
             "edit": "Sửa khóa proxy",
             "rotate": "Xoay khóa proxy",
+            "resetQuota": "Reset hạn mức",
             "delete": "Xóa khóa proxy"
+        },
+        "quotaReset": {
+            "action": "Reset hạn mức",
+            "title": "Reset hạn mức hiện tại?",
+            "description": "Chỉ xóa usage cửa sổ hiện tại. Limit và nhật ký request giữ nguyên.",
+            "confirm": "Reset hạn mức",
+            "minute": "Phút hiện tại (RPM)",
+            "day": "Ngày hiện tại (RPD + token)",
+            "month": "Tháng hiện tại (USD)",
+            "usage": "{requests} request · {tokens} token · ${usd}",
+            "usageLoading": "Đang tải usage hiện tại…",
+            "success": "Đã reset hạn mức",
+            "successDesc": "Đã reset: {reset}",
+            "successSkipped": "Đã reset: {reset}. Đã ở 0: {skipped}",
+            "failed": "Reset hạn mức thất bại",
+            "failedDesc": "Không reset được cửa sổ hạn mức đã chọn"
         },
         "delete": {
             "title": "Xóa khóa proxy",

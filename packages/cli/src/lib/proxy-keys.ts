@@ -1,3 +1,4 @@
+import type { ProxyQuotaWindowType } from '@gemini-proxy/core';
 import {
     supabase,
     type ProxyApiKey,
@@ -117,6 +118,31 @@ export class ProxyKeysManager {
         if (error) {
             throw new Error(`Failed to delete proxy API key: ${error.message}`);
         }
+    }
+
+    static async resetQuota(
+        id: string,
+        windowTypes: ProxyQuotaWindowType[],
+    ): Promise<{ reset: string[]; skipped: string[] }> {
+        await supabase.init();
+        const quotaClient = supabase.client as unknown as {
+            rpc: (
+                fn: 'reset_proxy_key_quota',
+                args: { p_proxy_key_id: string; p_window_types: string[] },
+            ) => Promise<{ data: unknown; error: { message: string } | null }>;
+        };
+        const { data, error } = await quotaClient.rpc('reset_proxy_key_quota', {
+            p_proxy_key_id: id,
+            p_window_types: windowTypes,
+        });
+        if (error) {
+            throw new Error(`Failed to reset proxy key quota: ${error.message}`);
+        }
+        const payload = data as { reset?: string[]; skipped?: string[] } | null;
+        return {
+            reset: payload?.reset ?? [],
+            skipped: payload?.skipped ?? [],
+        };
     }
 
     static async toggleActive(id: string): Promise<ProxyApiKey> {

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Database } from '@gemini-proxy/database';
+import { isValidProxyQuotaWindowTypes } from '@gemini-proxy/core';
 
 // Extract RPC function names from database types
 type DatabaseFunctions = Database['public']['Functions'];
@@ -59,6 +60,18 @@ export const validateRpcParams = <T extends RpcFunctionName>(
         case 'reconcile_proxy_request':
             return typeof paramObj.p_request_id === 'string' && paramObj.p_request_id.length > 0;
 
+        case 'reset_proxy_key_quota':
+            return (
+                typeof paramObj.p_proxy_key_id === 'string' &&
+                paramObj.p_proxy_key_id.length > 0 &&
+                isValidProxyQuotaWindowTypes(paramObj.p_window_types)
+            );
+
+        case 'current_proxy_key_quota':
+            return (
+                typeof paramObj.p_proxy_key_id === 'string' && paramObj.p_proxy_key_id.length > 0
+            );
+
         default:
             return false;
     }
@@ -100,6 +113,17 @@ export const validateRpcResponse = <T extends RpcFunctionName>(
 
         case 'cleanup_old_request_logs':
             return typeof response === 'number';
+
+        case 'reset_proxy_key_quota':
+            return (
+                'reset' in response &&
+                'skipped' in response &&
+                Array.isArray((response as { reset: unknown }).reset) &&
+                Array.isArray((response as { skipped: unknown }).skipped)
+            );
+
+        case 'current_proxy_key_quota':
+            return 'minute' in response && 'day' in response && 'month' in response;
 
         default:
             return false;

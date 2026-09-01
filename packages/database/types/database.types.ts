@@ -426,6 +426,10 @@ export type Database = {
                 Args: { p_days_to_keep?: number };
                 Returns: number;
             };
+            current_proxy_key_quota: {
+                Args: { p_proxy_key_id: string };
+                Returns: Json;
+            };
             get_api_key_statistics: {
                 Args: { p_user_id?: string };
                 Returns: Json;
@@ -520,6 +524,10 @@ export type Database = {
             reconcile_proxy_request: {
                 Args: { p_request_id: string };
                 Returns: undefined;
+            };
+            reset_proxy_key_quota: {
+                Args: { p_proxy_key_id: string; p_window_types: string[] };
+                Returns: Json;
             };
             get_retry_statistics: {
                 Args: { p_days_back?: number; p_user_id?: string };

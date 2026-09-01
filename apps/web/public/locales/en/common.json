@@ -430,7 +430,24 @@
             "viewDetails": "View Details",
             "edit": "Edit Proxy API Key",
             "rotate": "Rotate proxy key",
+            "resetQuota": "Reset quota",
             "delete": "Delete Proxy API Key"
+        },
+        "quotaReset": {
+            "action": "Reset quota",
+            "title": "Reset current quota?",
+            "description": "This zeros current window usage only. Limits and request logs stay the same.",
+            "confirm": "Reset quota",
+            "minute": "Current minute (RPM)",
+            "day": "Current day (RPD + tokens)",
+            "month": "Current month (USD)",
+            "usage": "{requests} requests · {tokens} tokens · ${usd}",
+            "usageLoading": "Loading current usage…",
+            "success": "Quota reset",
+            "successDesc": "Reset: {reset}",
+            "successSkipped": "Reset: {reset}. Already zero: {skipped}",
+            "failed": "Quota reset failed",
+            "failedDesc": "Could not reset the selected quota windows"
         },
         "delete": {
             "title": "Delete Proxy API Key",

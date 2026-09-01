@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Descriptions, Tag, Card, Row, Col, Typography, Space, Spin, Empty, theme } from 'antd';
+import {
+    Descriptions,
+    Tag,
+    Card,
+    Row,
+    Col,
+    Typography,
+    Space,
+    Spin,
+    Empty,
+    theme,
+    Button,
+} from 'antd';
 import { Show } from '@refinedev/antd';
 import { useShow, useTranslation } from '@refinedev/core';
 import {
@@ -11,11 +23,13 @@ import {
     ClockCircleOutlined,
     CodeOutlined,
     ThunderboltOutlined,
+    UndoOutlined,
 } from '@ant-design/icons';
 
 import type { Tables } from '@gemini-proxy/database';
 import { SensitiveKeyDisplay, UsageStatistics, DateTimeDisplay } from '@/components/common';
 import { formatJsonDisplay, formatTokenCount } from '@/utils/table-helpers';
+import { ProxyKeyQuotaResetModal } from '@/features/proxy-api-keys/proxy-key-quota-reset-modal';
 
 const { Title, Text } = Typography;
 const { useToken } = theme;
@@ -27,6 +41,7 @@ export default function ProxyApiKeysShowPage() {
     const { data, isLoading } = query;
     const record = data?.data;
     const [isRevealed, setIsRevealed] = useState(false);
+    const [isResetOpen, setIsResetOpen] = useState(false);
     const { token } = useToken();
     const { translate } = useTranslation();
 
@@ -50,150 +65,191 @@ export default function ProxyApiKeysShowPage() {
     }
 
     return (
-        <Show title={<Title level={4}>{record.name}</Title>} breadcrumb={false}>
-            <Row gutter={12}>
-                <Col xs={24} md={12}>
-                    <Card
-                        title={
-                            <Space>
-                                <InfoCircleOutlined /> {translate('proxy_api_keys.fields.details')}
-                            </Space>
-                        }
-                        variant="borderless"
-                    >
-                        <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.id')}>
-                                <Text copyable>{record.id}</Text>
-                            </Descriptions.Item>
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.name')}>
-                                {record.name}
-                            </Descriptions.Item>
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.status')}>
-                                <Tag color={record.is_active ? 'success' : 'error'}>
-                                    {record.is_active
-                                        ? translate('common.active')
-                                        : translate('common.inactive')}
-                                </Tag>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                    <Card
-                        title={
-                            <Space>
-                                <SafetyCertificateOutlined />{' '}
-                                {translate('proxy_api_keys.show.security')}
-                            </Space>
-                        }
-                        variant="borderless"
-                    >
-                        <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.proxyKey')}>
-                                <SensitiveKeyDisplay
-                                    value={record.proxy_key_value}
-                                    isRevealed={isRevealed}
-                                    onToggleVisibility={() => setIsRevealed(!isRevealed)}
-                                />
-                            </Descriptions.Item>
-                        </Descriptions>
-                    </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                    <Card
-                        title={
-                            <Space>
-                                <BarChartOutlined /> {translate('proxy_api_keys.fields.usage')}
-                            </Space>
-                        }
-                        variant="borderless"
-                    >
-                        <UsageStatistics
-                            successCount={record.success_count}
-                            failureCount={record.failure_count}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                    <Card
-                        title={
-                            <Space>
-                                <ThunderboltOutlined /> {translate('proxy_api_keys.fields.tokens')}
-                            </Space>
-                        }
-                        variant="borderless"
-                    >
-                        <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item
-                                label={translate('proxy_api_keys.tokens.totalTokens')}
-                            >
-                                <Text strong style={{ color: token.colorInfo }}>
-                                    {formatTokenCount(record.total_tokens, translate('common.na'))}
-                                </Text>
-                            </Descriptions.Item>
-                            <Descriptions.Item
-                                label={translate('proxy_api_keys.tokens.promptTokens')}
-                            >
-                                <Text>
-                                    {formatTokenCount(record.prompt_tokens, translate('common.na'))}
-                                </Text>
-                            </Descriptions.Item>
-                            <Descriptions.Item
-                                label={translate('proxy_api_keys.tokens.completionTokens')}
-                            >
-                                <Text>
-                                    {formatTokenCount(
-                                        record.completion_tokens,
-                                        translate('common.na'),
-                                    )}
-                                </Text>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    </Card>
-                </Col>
-                <Col xs={24} md={12}>
-                    <Card
-                        title={
-                            <Space>
-                                <ClockCircleOutlined />{' '}
-                                {translate('proxy_api_keys.show.timestamps')}
-                            </Space>
-                        }
-                        variant="borderless"
-                    >
-                        <Descriptions bordered column={1} size="middle">
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.lastUsed')}>
-                                <DateTimeDisplay dateString={record.last_used_at} />
-                            </Descriptions.Item>
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.lastError')}>
-                                <DateTimeDisplay dateString={record.last_error_at} />
-                            </Descriptions.Item>
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.created')}>
-                                <DateTimeDisplay dateString={record.created_at} />
-                            </Descriptions.Item>
-                            <Descriptions.Item label={translate('proxy_api_keys.fields.updated')}>
-                                <DateTimeDisplay dateString={record.updated_at} />
-                            </Descriptions.Item>
-                        </Descriptions>
-                    </Card>
-                </Col>
-                {record.metadata && (
-                    <Col xs={24}>
+        <>
+            <Show
+                title={<Title level={4}>{record.name}</Title>}
+                breadcrumb={false}
+                headerButtons={({ defaultButtons }) => (
+                    <>
+                        <Button icon={<UndoOutlined />} onClick={() => setIsResetOpen(true)}>
+                            {translate('proxy_api_keys.quotaReset.action')}
+                        </Button>
+                        {defaultButtons}
+                    </>
+                )}
+            >
+                <Row gutter={12}>
+                    <Col xs={24} md={12}>
                         <Card
                             title={
                                 <Space>
-                                    <CodeOutlined /> {translate('proxy_api_keys.fields.metadata')}
+                                    <InfoCircleOutlined />{' '}
+                                    {translate('proxy_api_keys.fields.details')}
                                 </Space>
                             }
                             variant="borderless"
                         >
-                            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                                {formatJsonDisplay(record.metadata)}
-                            </pre>
+                            <Descriptions bordered column={1} size="middle">
+                                <Descriptions.Item label={translate('proxy_api_keys.fields.id')}>
+                                    <Text copyable>{record.id}</Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item label={translate('proxy_api_keys.fields.name')}>
+                                    {record.name}
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.status')}
+                                >
+                                    <Tag color={record.is_active ? 'success' : 'error'}>
+                                        {record.is_active
+                                            ? translate('common.active')
+                                            : translate('common.inactive')}
+                                    </Tag>
+                                </Descriptions.Item>
+                            </Descriptions>
                         </Card>
                     </Col>
-                )}
-            </Row>
-        </Show>
+                    <Col xs={24} md={12}>
+                        <Card
+                            title={
+                                <Space>
+                                    <SafetyCertificateOutlined />{' '}
+                                    {translate('proxy_api_keys.show.security')}
+                                </Space>
+                            }
+                            variant="borderless"
+                        >
+                            <Descriptions bordered column={1} size="middle">
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.proxyKey')}
+                                >
+                                    <SensitiveKeyDisplay
+                                        value={record.proxy_key_value}
+                                        isRevealed={isRevealed}
+                                        onToggleVisibility={() => setIsRevealed(!isRevealed)}
+                                    />
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Card
+                            title={
+                                <Space>
+                                    <BarChartOutlined /> {translate('proxy_api_keys.fields.usage')}
+                                </Space>
+                            }
+                            variant="borderless"
+                        >
+                            <UsageStatistics
+                                successCount={record.success_count}
+                                failureCount={record.failure_count}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Card
+                            title={
+                                <Space>
+                                    <ThunderboltOutlined />{' '}
+                                    {translate('proxy_api_keys.fields.tokens')}
+                                </Space>
+                            }
+                            variant="borderless"
+                        >
+                            <Descriptions bordered column={1} size="middle">
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.tokens.totalTokens')}
+                                >
+                                    <Text strong style={{ color: token.colorInfo }}>
+                                        {formatTokenCount(
+                                            record.total_tokens,
+                                            translate('common.na'),
+                                        )}
+                                    </Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.tokens.promptTokens')}
+                                >
+                                    <Text>
+                                        {formatTokenCount(
+                                            record.prompt_tokens,
+                                            translate('common.na'),
+                                        )}
+                                    </Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.tokens.completionTokens')}
+                                >
+                                    <Text>
+                                        {formatTokenCount(
+                                            record.completion_tokens,
+                                            translate('common.na'),
+                                        )}
+                                    </Text>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Card
+                            title={
+                                <Space>
+                                    <ClockCircleOutlined />{' '}
+                                    {translate('proxy_api_keys.show.timestamps')}
+                                </Space>
+                            }
+                            variant="borderless"
+                        >
+                            <Descriptions bordered column={1} size="middle">
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.lastUsed')}
+                                >
+                                    <DateTimeDisplay dateString={record.last_used_at} />
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.lastError')}
+                                >
+                                    <DateTimeDisplay dateString={record.last_error_at} />
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.created')}
+                                >
+                                    <DateTimeDisplay dateString={record.created_at} />
+                                </Descriptions.Item>
+                                <Descriptions.Item
+                                    label={translate('proxy_api_keys.fields.updated')}
+                                >
+                                    <DateTimeDisplay dateString={record.updated_at} />
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+                    </Col>
+                    {record.metadata && (
+                        <Col xs={24}>
+                            <Card
+                                title={
+                                    <Space>
+                                        <CodeOutlined />{' '}
+                                        {translate('proxy_api_keys.fields.metadata')}
+                                    </Space>
+                                }
+                                variant="borderless"
+                            >
+                                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                                    {formatJsonDisplay(record.metadata)}
+                                </pre>
+                            </Card>
+                        </Col>
+                    )}
+                </Row>
+            </Show>
+            {isResetOpen ? (
+                <ProxyKeyQuotaResetModal
+                    open
+                    proxyKeyId={record.id}
+                    onClose={() => setIsResetOpen(false)}
+                />
+            ) : null}
+        </>
     );
 }
