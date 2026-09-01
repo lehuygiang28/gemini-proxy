@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "version": 1,
   "targets": {
     "request-logs": {
@@ -17,6 +18,71 @@
         "fea53ea1-dcd5-4ed4-a4eb-76236db21133"
       ],
       "updatedAt": "2026-08-30T10:40:00Z"
+    },
+    "/": {
+      "targetKind": "existing-ui",
+      "route": "/",
+      "projectId": "9cee4ed1-dd65-40b7-ac98-6433838ff88d",
+      "baselineDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+      "activeDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+      "designSystemPath": ".superdesign/design-system.md",
+      "designDirection": "Condensed scan-first Signal Deck landing; three model branches pending pick",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md",
+        "apps/web/src/app/globals.css:1:56",
+        "apps/web/src/app/page.tsx",
+        "apps/web/src/components/headerless-page-chrome/index.tsx",
+        "apps/web/src/components/landing/index.tsx",
+        "apps/web/src/components/landing/HeroSection.tsx",
+        "apps/web/src/components/landing/FeaturesSection.tsx",
+        "apps/web/src/components/landing/CodeExamplesSection.tsx",
+        "apps/web/src/components/landing/TechStackSection.tsx",
+        "apps/web/src/components/landing/DeploymentSection.tsx",
+        "apps/web/src/components/landing/ArchitectureSection.tsx",
+        "apps/web/src/components/landing/FooterSection.tsx"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "fc6543cf94b5ab50c15713b9cb113acb1f357e684fe745ffb2fea06e35ecac4f",
+        ".superdesign/init/theme.md": "e43f016a3b1e04943ebb304b80bde520ec6cb62308cfe8136e9385e494adbc46",
+        "apps/web/src/app/globals.css": "f2974fc2d8e831628f2ae5b3e1a8fc658451d10473c9d13945b71f944ac1fdb9",
+        "apps/web/src/app/page.tsx": "ec437bf9afcfacebe1631226b1df5fd0e774a62a71f2f559c58c204094cfef3e",
+        "apps/web/src/components/headerless-page-chrome/index.tsx": "325677cfe68644520806372043d50070abf5da4ef44d6f8d21b7d16e18ced7ea",
+        "apps/web/src/components/landing/index.tsx": "0ff8b9e5564d238203731304efe01e7dda90b3a4e143926964418fcff124ccb5",
+        "apps/web/src/components/landing/HeroSection.tsx": "80833edd5f819b6feb414d538d19f9d2b764cde44ff83375a7ec921093896c59",
+        "apps/web/src/components/landing/FeaturesSection.tsx": "47c27a734c2f6781ffbdf3e91beef6a68bf2d5662f26c77b9ab71fcb78473db5",
+        "apps/web/src/components/landing/CodeExamplesSection.tsx": "dc8eec455e25dc8f467cc29463aa3a80f372d087bf3d6d3c7105b62e1a7a8169",
+        "apps/web/src/components/landing/TechStackSection.tsx": "e4155f57856dc00b4ea80ebc86fff3c67e3d4a7b41a1a0574a09d88630b18fa0",
+        "apps/web/src/components/landing/DeploymentSection.tsx": "ca9baf5cc5748d3a88d011da275c3c512c29dc53e664438ce8b7d3651021149d",
+        "apps/web/src/components/landing/ArchitectureSection.tsx": "1427f4d03f3f1ab6b116a4c0666644f83c09ea345fa5f29b0b91984c9575967f",
+        "apps/web/src/components/landing/FooterSection.tsx": "a8580d3c622e657bb04dc096f91235f5e73f8e951164831d7457b35ab23af140"
+      },
+      "drafts": {
+        "9d7474a5-53b4-474a-8c61-ac8708f56b4f": {
+          "title": "Current landing reproduction",
+          "visualDirection": "Existing seven-section Ant marketing page",
+          "currentVersion": 1
+        },
+        "405397c1-fbb9-4ae4-83a3-cc4eb15e9049": {
+          "title": "Scan-first",
+          "visualDirection": "Asymmetric hero with /v1 code as the product visual",
+          "parentDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+          "model": "grok-4.5"
+        },
+        "65963d64-7fcc-43fe-8ec5-fea4dd5e90e1": {
+          "title": "Diagram-first",
+          "visualDirection": "3-node App -> Proxy /v1 -> Gemini flow in hero",
+          "parentDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+          "model": "deepseek-v4-pro"
+        },
+        "a8dbc61d-e6f4-4692-a543-75837048a9f1": {
+          "title": "Ops-dense",
+          "visualDirection": "Console-adjacent first viewport: headline + snippet + four facts",
+          "parentDraftId": "9d7474a5-53b4-474a-8c61-ac8708f56b4f",
+          "model": "gpt-5.6-luna"
+        }
+      },
+      "updatedAt": "2026-09-01T20:50:00Z"
     }
   }
 }
