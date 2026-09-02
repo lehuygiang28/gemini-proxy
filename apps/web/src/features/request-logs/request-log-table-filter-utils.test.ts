@@ -157,9 +157,9 @@ describe('hasModelColumnFilter', () => {
         expect(hasModelColumnFilter([{ field: 'is_stream', operator: 'eq', value: false }])).toBe(
             true,
         );
-        expect(hasModelColumnFilter([{ field: 'is_successful', operator: 'eq', value: true }])).toBe(
-            false,
-        );
+        expect(
+            hasModelColumnFilter([{ field: 'is_successful', operator: 'eq', value: true }]),
+        ).toBe(false);
     });
 
     it('is active when the model contains OR filter is set', () => {

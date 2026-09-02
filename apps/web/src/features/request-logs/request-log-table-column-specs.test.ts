@@ -93,5 +93,4 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
         expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('->>')).toBe(false);
         expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('->')).toBe(true);
     });
-
 });
