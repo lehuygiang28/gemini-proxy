@@ -19,13 +19,11 @@ describe('REQUEST_LOG_LIST_SELECT', () => {
 });
 
 describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
-    it('orders columns per spec and drops overhead', () => {
+    it('orders eleven columns and hosts Format/Stream on Model, not as headers', () => {
         expect(REQUEST_LOG_TABLE_COLUMN_SPECS.map((column) => column.key)).toEqual([
             'created_at',
             'model',
             'is_successful',
-            'api_format',
-            'is_stream',
             'prompt_tokens',
             'completion_tokens',
             'cache_tokens',
@@ -35,9 +33,25 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
             'key',
             'actions',
         ]);
+        expect(REQUEST_LOG_TABLE_COLUMN_SPECS.some((column) => column.key === 'api_format')).toBe(
+            false,
+        );
+        expect(REQUEST_LOG_TABLE_COLUMN_SPECS.some((column) => column.key === 'is_stream')).toBe(
+            false,
+        );
         expect(REQUEST_LOG_TABLE_COLUMN_SPECS.some((column) => column.key === 'overhead')).toBe(
             false,
         );
+
+        const byKey = Object.fromEntries(
+            REQUEST_LOG_TABLE_COLUMN_SPECS.map((column) => [column.key, column]),
+        );
+        expect(byKey.model).toMatchObject({ sorter: false, filter: 'model' });
+        expect(byKey.is_successful).toMatchObject({
+            dataIndex: 'is_successful',
+            sorter: true,
+            filter: 'enum',
+        });
     });
 
     it('uses JSONB -> numeric paths and the generated speed field for sort/filter', () => {
@@ -80,19 +94,4 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
         expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('->')).toBe(true);
     });
 
-    it('puts Format and Stream on sortable enum columns', () => {
-        const byKey = Object.fromEntries(
-            REQUEST_LOG_TABLE_COLUMN_SPECS.map((column) => [column.key, column]),
-        );
-        expect(byKey.api_format).toMatchObject({
-            dataIndex: 'api_format',
-            sorter: true,
-            filter: 'enum',
-        });
-        expect(byKey.is_stream).toMatchObject({
-            dataIndex: 'is_stream',
-            sorter: true,
-            filter: 'enum',
-        });
-    });
 });
