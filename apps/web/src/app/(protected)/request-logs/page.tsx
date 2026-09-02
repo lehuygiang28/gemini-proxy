@@ -4,7 +4,19 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
-import { Table, Space, Badge, Typography, Button, Input, Popover, Empty, Form, theme } from 'antd';
+import {
+    Table,
+    Space,
+    Badge,
+    Typography,
+    Button,
+    Input,
+    Popover,
+    Empty,
+    Form,
+    theme,
+    Spin,
+} from 'antd';
 import {
     FilterOutlined,
     ReloadOutlined,
@@ -285,41 +297,46 @@ export default function RequestLogsListPage() {
             <Form {...boundSearchFormProps} initialValues={formInitialValues}>
                 {toolbarFilters}
 
-                <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
-                    <Table<ListRequestLog>
-                        {...tableProps}
-                        loading={requestLogTableSpinning({
-                            isLoading: Boolean(tableQuery.isLoading),
-                            isFetching: Boolean(tableQuery.isFetching),
-                            userInitiated: userInitiatedTableQuery,
-                        })}
-                        onChange={(pagination, _antdFilters, sorter, extra) => {
-                            beginUserTableQuery();
-                            tableProps.onChange?.(pagination, {}, sorter, extra);
-                        }}
-                        rowKey="id"
-                        size="small"
-                        columns={tableColumns}
-                        scroll={{ x: 1600 }}
-                        sticky
-                        showSorterTooltip={{ target: 'sorter-icon' }}
-                        tableLayout="fixed"
-                        onRow={(record) => ({
-                            onClick: () => handleViewDetails(record),
-                            style: { cursor: 'pointer' },
-                        })}
-                        locale={{
-                            emptyText: (
-                                <Empty
-                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    description={translate('request_logs.empty')}
-                                />
-                            ),
-                            filterConfirm: translate('request_logs.filters.apply'),
-                            filterReset: translate('request_logs.filters.reset'),
-                        }}
-                    />
-                </div>
+                <Spin
+                    spinning={requestLogTableSpinning({
+                        isLoading: Boolean(tableQuery.isLoading),
+                        isFetching: Boolean(tableQuery.isFetching),
+                        userInitiated: userInitiatedTableQuery,
+                    })}
+                    tip={translate('common.loading')}
+                >
+                    <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
+                        <Table<ListRequestLog>
+                            {...tableProps}
+                            loading={false}
+                            onChange={(pagination, _antdFilters, sorter, extra) => {
+                                beginUserTableQuery();
+                                tableProps.onChange?.(pagination, {}, sorter, extra);
+                            }}
+                            rowKey="id"
+                            size="small"
+                            columns={tableColumns}
+                            scroll={{ x: 1600 }}
+                            sticky
+                            showSorterTooltip={{ target: 'sorter-icon' }}
+                            tableLayout="fixed"
+                            onRow={(record) => ({
+                                onClick: () => handleViewDetails(record),
+                                style: { cursor: 'pointer' },
+                            })}
+                            locale={{
+                                emptyText: (
+                                    <Empty
+                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                        description={translate('request_logs.empty')}
+                                    />
+                                ),
+                                filterConfirm: translate('request_logs.filters.apply'),
+                                filterReset: translate('request_logs.filters.reset'),
+                            }}
+                        />
+                    </div>
+                </Spin>
             </Form>
         </List>
     );
