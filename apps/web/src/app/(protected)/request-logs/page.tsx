@@ -1,22 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
-import {
-    Table,
-    Space,
-    Badge,
-    Typography,
-    Button,
-    Input,
-    Popover,
-    Empty,
-    Form,
-    theme,
-    Spin,
-} from 'antd';
+import { Table, Space, Badge, Typography, Button, Input, Popover, Empty, Form, theme } from 'antd';
 import {
     FilterOutlined,
     ReloadOutlined,
@@ -34,10 +22,6 @@ import {
     useRequestLogTableColumns,
     type ListRequestLog,
 } from '@/features/request-logs';
-import {
-    requestLogTableBusyClearDelayMs,
-    requestLogTableSpinning,
-} from '@/features/request-logs/request-log-table-query-ui';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
     blankRequestLogSearchValues,
@@ -98,40 +82,6 @@ export default function RequestLogsListPage() {
         onSearch: (values) => buildRequestLogSearchFilters(values),
     });
 
-    const [userInitiatedTableQuery, setUserInitiatedTableQuery] = useState(false);
-    const userTableQueryStartedAt = useRef(0);
-
-    useEffect(() => {
-        const delayMs = requestLogTableBusyClearDelayMs({
-            isFetching: Boolean(tableQuery.isFetching),
-            userInitiated: userInitiatedTableQuery,
-            elapsedMs: Date.now() - userTableQueryStartedAt.current,
-        });
-        if (delayMs === null) {
-            return;
-        }
-        const timeoutId = window.setTimeout(() => {
-            setUserInitiatedTableQuery(false);
-        }, delayMs);
-        return () => window.clearTimeout(timeoutId);
-    }, [tableQuery.isFetching, userInitiatedTableQuery]);
-
-    const beginUserTableQuery = useCallback(() => {
-        userTableQueryStartedAt.current = Date.now();
-        setUserInitiatedTableQuery(true);
-    }, []);
-
-    const boundSearchFormProps = useMemo(
-        () => ({
-            ...searchFormProps,
-            onFinish: async (values: RequestLogSearch) => {
-                beginUserTableQuery();
-                await searchFormProps.onFinish?.(values);
-            },
-        }),
-        [beginUserTableQuery, searchFormProps],
-    );
-
     const formInitialValues = useMemo(
         () => ({
             ...mapFiltersToSearchFormValues(filters),
@@ -143,11 +93,6 @@ export default function RequestLogsListPage() {
     const volumeQuery = useRequestLogsVolume({ p_range: chartRange });
     const volumeData = volumeQuery.query.data?.data as RequestLogsVolume | undefined;
     const activeFilterCount = countActiveLogFilters(filters);
-    const tableBusy = requestLogTableSpinning({
-        isLoading: Boolean(tableQuery.isLoading),
-        isFetching: Boolean(tableQuery.isFetching),
-        userInitiated: userInitiatedTableQuery,
-    });
 
     const handleViewDetails = useCallback(
         (record: ListRequestLog) => {
@@ -179,27 +124,25 @@ export default function RequestLogsListPage() {
     const tableColumns = useRequestLogTableColumns({
         translate,
         filters,
-        searchFormProps: boundSearchFormProps,
+        searchFormProps,
         onViewDetails: handleViewDetails,
         formatRemovedKeyLabel,
         dateLocaleFormat,
     });
 
     const handleClearFilters = useCallback(() => {
-        beginUserTableQuery();
-        boundSearchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
+        searchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
         setFilters([], 'replace');
-    }, [beginUserTableQuery, boundSearchFormProps.form, setFilters]);
+    }, [searchFormProps.form, setFilters]);
 
     const handleRefreshAll = useCallback(() => {
-        beginUserTableQuery();
         void tableQuery.refetch();
         void volumeQuery.query.refetch();
-    }, [beginUserTableQuery, tableQuery, volumeQuery.query]);
+    }, [tableQuery, volumeQuery.query]);
 
     const submitSearch = useCallback(() => {
-        void boundSearchFormProps.form?.submit();
-    }, [boundSearchFormProps.form]);
+        void searchFormProps.form?.submit();
+    }, [searchFormProps.form]);
 
     const toolbarFilters = (
         <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
@@ -299,51 +242,43 @@ export default function RequestLogsListPage() {
                 onRangeChange={setChartRange}
             />
 
-            <Form {...boundSearchFormProps} initialValues={formInitialValues}>
+            <Form {...searchFormProps} initialValues={formInitialValues}>
                 {toolbarFilters}
 
-                {tableBusy ? (
-                    <Space size={8} style={{ marginBottom: 8 }}>
-                        <Spin size="small" />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                            {translate('loading')}
-                        </Text>
-                    </Space>
-                ) : null}
-
-                <Spin spinning={tableBusy} tip={translate('loading')}>
-                    <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
-                        <Table<ListRequestLog>
-                            {...tableProps}
-                            loading={false}
-                            onChange={(pagination, _antdFilters, sorter, extra) => {
-                                beginUserTableQuery();
-                                tableProps.onChange?.(pagination, {}, sorter, extra);
-                            }}
-                            rowKey="id"
-                            size="small"
-                            columns={tableColumns}
-                            scroll={{ x: 1600 }}
-                            sticky
-                            showSorterTooltip={{ target: 'sorter-icon' }}
-                            tableLayout="fixed"
-                            onRow={(record) => ({
-                                onClick: () => handleViewDetails(record),
-                                style: { cursor: 'pointer' },
-                            })}
-                            locale={{
-                                emptyText: (
-                                    <Empty
-                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                        description={translate('request_logs.empty')}
-                                    />
-                                ),
-                                filterConfirm: translate('request_logs.filters.apply'),
-                                filterReset: translate('request_logs.filters.reset'),
-                            }}
-                        />
-                    </div>
-                </Spin>
+                <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
+                    <Table<ListRequestLog>
+                        {...tableProps}
+                        // tableProps.loading is isLoading when live=auto, so refetch is silent.
+                        loading={{
+                            spinning: Boolean(tableQuery.isFetching),
+                            delay: isLive ? 200 : 0,
+                        }}
+                        onChange={(pagination, _antdFilters, sorter, extra) => {
+                            tableProps.onChange?.(pagination, {}, sorter, extra);
+                        }}
+                        rowKey="id"
+                        size="small"
+                        columns={tableColumns}
+                        scroll={{ x: 1600 }}
+                        sticky
+                        showSorterTooltip={{ target: 'sorter-icon' }}
+                        tableLayout="fixed"
+                        onRow={(record) => ({
+                            onClick: () => handleViewDetails(record),
+                            style: { cursor: 'pointer' },
+                        })}
+                        locale={{
+                            emptyText: (
+                                <Empty
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    description={translate('request_logs.empty')}
+                                />
+                            ),
+                            filterConfirm: translate('request_logs.filters.apply'),
+                            filterReset: translate('request_logs.filters.reset'),
+                        }}
+                    />
+                </div>
             </Form>
         </List>
     );
