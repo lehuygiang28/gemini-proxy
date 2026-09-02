@@ -556,17 +556,18 @@
             "keys": "Khóa",
             "status": "Trạng thái",
             "type": "Loại",
-            "format": "Định dạng",
+            "format": "Format",
             "stream": "Stream",
             "performance": "Hiệu năng",
             "tokens": "Token",
             "created": "Thời gian",
             "model": "Model",
-            "input": "Đầu vào",
-            "output": "Đầu ra",
+            "input": "Token đầu vào",
+            "output": "Token đầu ra",
+            "cache": "Token cache",
             "cost": "Chi phí",
-            "speed": "Tốc độ",
-            "duration": "Thời lượng",
+            "speed": "Est. Speed",
+            "duration": "Thời gian xử lý",
             "overhead": "Overhead",
             "key": "Khóa",
             "requestId": "Mã request",
@@ -584,7 +585,9 @@
             "selectStatus": "Chọn trạng thái",
             "selectStream": "Chọn kiểu stream",
             "searchApiKey": "Tìm khóa API theo tên…",
-            "searchProxyKey": "Tìm khóa proxy theo tên…"
+            "searchProxyKey": "Tìm khóa proxy theo tên…",
+            "min": "Min",
+            "max": "Max"
         },
         "identity": {
             "apiKey": "Khóa API",
@@ -688,7 +691,8 @@
             "estimatedCost": "Chi phí ước tính",
             "estimatedCostUnavailable": "—",
             "model": "Model",
-            "routingOverhead": "Overhead routing proxy (tổng − thời gian API)"
+            "routingOverhead": "Overhead routing proxy (tổng − thời gian API)",
+            "estimatedSpeedTooltip": "Ước lượng của chúng ta: completion tokens ÷ (API duration, giây). Không phải throughput Google báo cáo."
         },
         "severity": {
             "success": "Thành công",
@@ -906,7 +910,14 @@
             "colorMode": "Chế độ màu",
             "dark": "Tối",
             "light": "Sáng",
-            "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi nhật ký request."
+            "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi log request.",
+            "datetimeFormat": "Ngày giờ",
+            "datetimeHint": "Tự động dùng thời gian tương đối trong cùng ngày theo múi giờ hạn mức. Hover giá trị tương đối để xem timestamp chính xác.",
+            "datetime": {
+                "relative": "Tương đối",
+                "exact": "Chính xác",
+                "auto": "Tự động"
+            }
         },
         "timezone": {
             "label": "Múi giờ hạn mức",

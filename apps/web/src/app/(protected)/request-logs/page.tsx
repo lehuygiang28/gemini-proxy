@@ -10,7 +10,6 @@ import {
     Badge,
     Typography,
     Button,
-    Select,
     Input,
     Popover,
     Empty,
@@ -157,38 +156,6 @@ export default function RequestLogsListPage() {
 
     const toolbarFilters = (
         <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
-            <Form.Item name="api_format" noStyle>
-                <Select
-                    allowClear
-                    placeholder={translate('request_logs.placeholders.selectFormat')}
-                    style={{ minWidth: 120 }}
-                    size="small"
-                    options={[
-                        { value: 'gemini', label: 'Gemini' },
-                        { value: 'openai', label: 'OpenAI' },
-                    ]}
-                    onChange={submitSearch}
-                />
-            </Form.Item>
-            <Form.Item name="is_stream" noStyle>
-                <Select
-                    allowClear
-                    placeholder={translate('request_logs.placeholders.selectStream')}
-                    style={{ minWidth: 130 }}
-                    size="small"
-                    options={[
-                        {
-                            value: true,
-                            label: translate('request_logs.stream.streaming'),
-                        },
-                        {
-                            value: false,
-                            label: translate('request_logs.stream.nonStreaming'),
-                        },
-                    ]}
-                    onChange={submitSearch}
-                />
-            </Form.Item>
             <Popover
                 trigger="click"
                 title={translate('request_logs.filters.advanced')}
@@ -294,7 +261,7 @@ export default function RequestLogsListPage() {
                         rowKey="id"
                         size="small"
                         columns={tableColumns}
-                        scroll={{ x: 1200 }}
+                        scroll={{ x: 1600 }}
                         sticky
                         showSorterTooltip={{ target: 'sorter-icon' }}
                         tableLayout="fixed"
