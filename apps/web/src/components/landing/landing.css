@@ -20,9 +20,10 @@
 
 .gp-landing-header-inner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px 16px;
     min-height: 56px;
 }
 
@@ -36,8 +37,14 @@
 
 .gp-landing-nav {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 12px;
+}
+
+.gp-landing-header .ant-btn {
+    min-width: 0 !important;
 }
 
 .gp-landing-nav-link {
@@ -57,7 +64,7 @@
     height: 36px;
     padding: 0 16px;
     background: var(--gp-accent);
-    color: var(--gp-bg-base);
+    color: #0b0e11;
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
@@ -66,7 +73,7 @@
 
 .gp-landing-cta:hover {
     background: var(--gp-accent-hover);
-    color: var(--gp-bg-base);
+    color: #0b0e11;
 }
 
 .gp-landing-cta-ghost {
@@ -413,6 +420,12 @@
     color: var(--gp-accent);
 }
 
+@media (max-width: 639px) {
+    .gp-landing-nav-link {
+        display: none;
+    }
+}
+
 @media (min-width: 640px) {
     .gp-landing-facts {
         grid-template-columns: 1fr 1fr;
@@ -471,6 +484,10 @@
     }
 
     .gp-landing-fact {
+        border-right: 1px solid var(--gp-border);
+    }
+
+    .gp-landing-fact:nth-child(2n) {
         border-right: 1px solid var(--gp-border);
     }
 

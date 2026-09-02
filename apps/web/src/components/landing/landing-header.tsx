@@ -19,7 +19,12 @@ export function LandingHeader() {
                     Gemini Proxy
                 </Link>
                 <nav className="gp-landing-nav">
-                    <Link href={GITHUB_REPO} target="_blank" className="gp-landing-nav-link">
+                    <Link
+                        href={GITHUB_REPO}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="gp-landing-nav-link"
+                    >
                         {translate('landing.nav.github')}
                     </Link>
                     <Link href="/dashboard" className="gp-landing-cta">

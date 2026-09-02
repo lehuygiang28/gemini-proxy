@@ -26,10 +26,14 @@ export function FooterSection() {
                     </div>
                     <div className="gp-landing-footer-links">
                         <Link href="/dashboard">{translate('landing.footer.dashboard')}</Link>
-                        <Link href={GITHUB_REPO} target="_blank">
+                        <Link href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">
                             {translate('landing.footer.github')}
                         </Link>
-                        <Link href={`${GITHUB_REPO}/issues`} target="_blank">
+                        <Link
+                            href={`${GITHUB_REPO}/issues`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             {translate('landing.footer.issues')}
                         </Link>
                     </div>
@@ -38,7 +42,11 @@ export function FooterSection() {
                     <span>{translate('landing.footer.stack')}</span>
                     <span>
                         {translate('landing.footer.copyright', { year })}{' '}
-                        <Link href="https://github.com/lehuygiang28" target="_blank">
+                        <Link
+                            href="https://github.com/lehuygiang28"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             lehuygiang28
                         </Link>
                     </span>

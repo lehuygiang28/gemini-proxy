@@ -59,7 +59,12 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({
   apiKey: "YOUR_PROXY_API_KEY",
-  httpOptions: { baseUrl: "https://your-proxy-endpoint/v1" },
+  httpOptions: { baseUrl: "{origin}/v1" },
+});
+
+const response = await ai.models.generateContent({
+  model: "gemini-3.7-flash",
+  contents: "Hello",
 });
 ```
 
@@ -68,7 +73,12 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: "YOUR_PROXY_API_KEY",
-  baseURL: "https://your-proxy-endpoint/v1",
+  baseURL: "{origin}/v1",
+});
+
+const completion = await openai.chat.completions.create({
+  model: "gemini-3.7-flash",
+  messages: [{ role: "user", content: "Hello" }],
 });
 ```
 
@@ -78,7 +88,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 const google = createGoogleGenerativeAI({
   apiKey: "YOUR_PROXY_API_KEY",
-  baseURL: "https://your-proxy-endpoint/v1",
+  baseURL: "{origin}/v1",
+});
+
+const { text } = await generateText({
+  model: google("gemini-3.7-flash"),
+  prompt: "Hello",
 });
 ```
 

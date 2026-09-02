@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useTranslation } from '@refinedev/core';
+import { splitLandingHeadline } from '@/features/landing/split-landing-headline';
 import { LandingCodePanel } from './code-panel';
 
 const GITHUB_REPO = 'https://github.com/lehuygiang28/gemini-proxy';
+const HEADLINE_PATH = '/v1';
 const FACTS = ['pool', 'failover', 'logs', 'deploy'] as const;
 
 type HeroSectionProps = {
@@ -16,8 +18,8 @@ type HeroSectionProps = {
  */
 export function HeroSection({ origin }: HeroSectionProps) {
     const { translate } = useTranslation();
-    const headline = translate('landing.hero.headline', { path: '/v1' });
-    const [headlineBefore, headlineAfter] = headline.split('/v1');
+    const headline = translate('landing.hero.headline', { path: HEADLINE_PATH });
+    const { before, after, hasPath } = splitLandingHeadline(headline, HEADLINE_PATH);
 
     return (
         <section className="gp-landing-hero">
@@ -26,9 +28,11 @@ export function HeroSection({ origin }: HeroSectionProps) {
                     <div>
                         <p className="gp-landing-eyebrow">{translate('landing.hero.eyebrow')}</p>
                         <h1 className="gp-landing-title">
-                            {headlineBefore}
-                            <span className="gp-landing-title-path">/v1</span>
-                            {headlineAfter}
+                            {before}
+                            {hasPath ? (
+                                <span className="gp-landing-title-path">{HEADLINE_PATH}</span>
+                            ) : null}
+                            {after}
                         </h1>
                         <p className="gp-landing-body">{translate('landing.hero.body')}</p>
                         <div className="gp-landing-actions">
@@ -38,6 +42,7 @@ export function HeroSection({ origin }: HeroSectionProps) {
                             <Link
                                 href={GITHUB_REPO}
                                 target="_blank"
+                                rel="noopener noreferrer"
                                 className="gp-landing-cta-ghost"
                             >
                                 {translate('landing.hero.github')}

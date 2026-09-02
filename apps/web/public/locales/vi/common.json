@@ -1071,7 +1071,7 @@
             },
             "api": {
                 "title": "API độc lập",
-                "meta": "Node.js, Bun, Deno"
+                "meta": "Node.js"
             },
             "edge": {
                 "title": "Edge",
