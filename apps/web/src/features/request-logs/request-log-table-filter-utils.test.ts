@@ -15,6 +15,7 @@ import {
     getDateRangeFromFilters,
     mapFiltersToSearchFormValues,
     blankRequestLogSearchValues,
+    hasModelColumnFilter,
 } from './request-log-table-filter-utils';
 
 describe('request-log-table-filter-utils', () => {
@@ -145,5 +146,24 @@ describe('request-log-table-filter-utils', () => {
         expect(blank.api_format).toBeUndefined();
         expect(blank.estimated_speed_tok_per_s).toBeUndefined();
         expect(buildRequestLogSearchFilters(blank)).toEqual([]);
+    });
+});
+
+describe('hasModelColumnFilter', () => {
+    it('is active when only api_format or only is_stream is set', () => {
+        expect(
+            hasModelColumnFilter([{ field: 'api_format', operator: 'eq', value: 'openai' }]),
+        ).toBe(true);
+        expect(hasModelColumnFilter([{ field: 'is_stream', operator: 'eq', value: false }])).toBe(
+            true,
+        );
+        expect(hasModelColumnFilter([{ field: 'is_successful', operator: 'eq', value: true }])).toBe(
+            false,
+        );
+    });
+
+    it('is active when the model contains OR filter is set', () => {
+        expect(hasModelColumnFilter(buildRequestLogSearchFilters({ model: 'flash' }))).toBe(true);
+        expect(hasModelColumnFilter([])).toBe(false);
     });
 });

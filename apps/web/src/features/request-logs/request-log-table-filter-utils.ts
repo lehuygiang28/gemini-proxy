@@ -218,6 +218,14 @@ export function hasModelFilter(filters: CrudFilter[]): boolean {
     return value !== undefined && value !== '';
 }
 
+export function hasModelColumnFilter(filters: CrudFilter[]): boolean {
+    return (
+        hasModelFilter(filters) ||
+        hasActiveFilter(filters, 'api_format') ||
+        hasActiveFilter(filters, 'is_stream')
+    );
+}
+
 export function getFilterScalar(filters: CrudFilter[], field: string): unknown {
     return findFilter(filters, field)?.value;
 }
