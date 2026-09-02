@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    formatRelativeTime,
     isSameCivilDay,
     parseDatetimeFormatMode,
     resolveDatetimePresentation,
@@ -80,5 +81,20 @@ describe('resolveDatetimePresentation', () => {
                 now,
             }),
         ).toEqual({ kind: 'exact' });
+    });
+});
+
+describe('formatRelativeTime', () => {
+    const now = new Date('2026-09-02T12:00:00.000Z');
+
+    it('formats seconds and hours in the active locale', () => {
+        expect(formatRelativeTime('2026-09-02T11:59:30.000Z', 'en', now)).toBe('30 seconds ago');
+        expect(formatRelativeTime('2026-09-02T09:00:00.000Z', 'en', now)).toBe('3 hours ago');
+        expect(formatRelativeTime('2026-09-02T11:59:30.000Z', 'vi', now)).toBe('30 giây trước');
+    });
+
+    it('formats future timestamps and returns empty for invalid dates', () => {
+        expect(formatRelativeTime('2026-09-03T12:00:00.000Z', 'en', now)).toBe('tomorrow');
+        expect(formatRelativeTime('not-a-date', 'en', now)).toBe('');
     });
 });
