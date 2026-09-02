@@ -143,6 +143,11 @@ export default function RequestLogsListPage() {
     const volumeQuery = useRequestLogsVolume({ p_range: chartRange });
     const volumeData = volumeQuery.query.data?.data as RequestLogsVolume | undefined;
     const activeFilterCount = countActiveLogFilters(filters);
+    const tableBusy = requestLogTableSpinning({
+        isLoading: Boolean(tableQuery.isLoading),
+        isFetching: Boolean(tableQuery.isFetching),
+        userInitiated: userInitiatedTableQuery,
+    });
 
     const handleViewDetails = useCallback(
         (record: ListRequestLog) => {
@@ -297,14 +302,16 @@ export default function RequestLogsListPage() {
             <Form {...boundSearchFormProps} initialValues={formInitialValues}>
                 {toolbarFilters}
 
-                <Spin
-                    spinning={requestLogTableSpinning({
-                        isLoading: Boolean(tableQuery.isLoading),
-                        isFetching: Boolean(tableQuery.isFetching),
-                        userInitiated: userInitiatedTableQuery,
-                    })}
-                    tip={translate('common.loading')}
-                >
+                {tableBusy ? (
+                    <Space size={8} style={{ marginBottom: 8 }}>
+                        <Spin size="small" />
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                            {translate('common.loading')}
+                        </Text>
+                    </Space>
+                ) : null}
+
+                <Spin spinning={tableBusy} tip={translate('common.loading')}>
                     <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
                         <Table<ListRequestLog>
                             {...tableProps}

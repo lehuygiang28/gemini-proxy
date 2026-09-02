@@ -1,4 +1,4 @@
-export const REQUEST_LOG_TABLE_BUSY_MIN_MS = 400;
+export const REQUEST_LOG_TABLE_BUSY_MIN_MS = 600;
 
 export function requestLogTableSpinning(input: {
     isLoading: boolean;
