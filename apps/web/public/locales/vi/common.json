@@ -1018,7 +1018,8 @@
         },
         "nav": {
             "github": "GitHub",
-            "getStarted": "Bắt đầu"
+            "signIn": "Đăng nhập",
+            "dashboard": "Dashboard"
         },
         "hero": {
             "eyebrow": "Cổng Gemini mã nguồn mở",
@@ -1083,8 +1084,7 @@
             "dashboard": "Dashboard",
             "github": "GitHub",
             "issues": "Issues",
-            "stack": "Next.js, TypeScript, Supabase, IBM Plex",
-            "copyright": "{year}"
+            "copyright": "© {year}"
         }
     },
     "languageSwitcher": {

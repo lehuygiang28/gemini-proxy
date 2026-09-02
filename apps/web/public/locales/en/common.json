@@ -1018,7 +1018,8 @@
         },
         "nav": {
             "github": "GitHub",
-            "getStarted": "Get started"
+            "signIn": "Sign in",
+            "dashboard": "Dashboard"
         },
         "hero": {
             "eyebrow": "Open-source Gemini gateway",
@@ -1083,8 +1084,7 @@
             "dashboard": "Dashboard",
             "github": "GitHub",
             "issues": "Issues",
-            "stack": "Next.js, TypeScript, Supabase, IBM Plex",
-            "copyright": "{year}"
+            "copyright": "© {year}"
         }
     },
     "languageSwitcher": {

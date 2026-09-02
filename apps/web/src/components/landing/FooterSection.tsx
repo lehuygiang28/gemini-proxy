@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useTranslation } from '@refinedev/core';
 
 const GITHUB_REPO = 'https://github.com/lehuygiang28/gemini-proxy';
+const AUTHOR_URL = 'https://github.com/lehuygiang28';
 
 /**
- * Compact landing footer with dashboard, GitHub, and stack line.
+ * Compact landing footer with product links and a single copyright line.
  */
 export function FooterSection() {
     const { translate } = useTranslation();
@@ -39,17 +40,12 @@ export function FooterSection() {
                     </div>
                 </div>
                 <div className="gp-landing-footer-bottom">
-                    <span>{translate('landing.footer.stack')}</span>
-                    <span>
+                    <p className="gp-landing-footer-copy">
                         {translate('landing.footer.copyright', { year })}{' '}
-                        <Link
-                            href="https://github.com/lehuygiang28"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
+                        <Link href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
                             lehuygiang28
                         </Link>
-                    </span>
+                    </p>
                 </div>
             </div>
         </footer>
