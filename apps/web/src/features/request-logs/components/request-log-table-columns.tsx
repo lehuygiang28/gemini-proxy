@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
 import type { FormProps } from 'antd';
@@ -39,8 +39,7 @@ import {
     REQUEST_LOG_ESTIMATED_SPEED_FIELD,
     REQUEST_LOG_PROMPT_TOKENS_FIELD,
     getDateRangeFromFilters,
-    getFilterScalar,
-    getModelSearchValue,
+    getModelColumnSearchValues,
     getNumericRangeFromFilters,
     hasActiveFilter,
     hasModelColumnFilter,
@@ -126,12 +125,18 @@ function ModelFilterDropdown({
     searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const activeModel = getModelSearchValue(crudFilters);
-    const activeApiFormat = getFilterScalar(crudFilters, 'api_format');
-    const activeIsStream = getFilterScalar(crudFilters, 'is_stream');
-    const modelFieldKey = String(activeModel ?? '');
-    const formatFieldKey = String(activeApiFormat ?? '');
-    const streamFieldKey = String(activeIsStream ?? '');
+    const columnSearch = getModelColumnSearchValues(crudFilters);
+    const modelFieldKey = String(columnSearch.model ?? '');
+    const formatFieldKey = String(columnSearch.api_format ?? '');
+    const streamFieldKey = String(columnSearch.is_stream ?? '');
+
+    useLayoutEffect(() => {
+        searchFormProps.form?.setFieldsValue({
+            model: columnSearch.model,
+            api_format: columnSearch.api_format,
+            is_stream: columnSearch.is_stream,
+        });
+    }, [columnSearch.api_format, columnSearch.is_stream, columnSearch.model, searchFormProps.form]);
 
     return (
         <FilterDropdownShell
@@ -153,7 +158,7 @@ function ModelFilterDropdown({
                     name="model"
                     noStyle
                     key={modelFieldKey}
-                    initialValue={typeof activeModel === 'string' ? activeModel : undefined}
+                    initialValue={columnSearch.model}
                 >
                     <Input
                         allowClear
@@ -172,9 +177,7 @@ function ModelFilterDropdown({
                         name="api_format"
                         noStyle
                         key={formatFieldKey}
-                        initialValue={
-                            typeof activeApiFormat === 'string' ? activeApiFormat : undefined
-                        }
+                        initialValue={columnSearch.api_format}
                     >
                         <Select
                             allowClear
@@ -195,9 +198,7 @@ function ModelFilterDropdown({
                         name="is_stream"
                         noStyle
                         key={streamFieldKey}
-                        initialValue={
-                            typeof activeIsStream === 'boolean' ? activeIsStream : undefined
-                        }
+                        initialValue={columnSearch.is_stream}
                     >
                         <Select
                             allowClear

@@ -226,6 +226,18 @@ export function hasModelColumnFilter(filters: CrudFilter[]): boolean {
     );
 }
 
+export function getModelColumnSearchValues(
+    filters: CrudFilter[],
+): Pick<RequestLogSearch, 'model' | 'api_format' | 'is_stream'> {
+    const apiFormat = getFilterScalar(filters, 'api_format');
+    const isStream = getFilterScalar(filters, 'is_stream');
+    return {
+        model: getModelSearchValue(filters),
+        api_format: typeof apiFormat === 'string' ? apiFormat : undefined,
+        is_stream: typeof isStream === 'boolean' ? isStream : undefined,
+    };
+}
+
 export function getFilterScalar(filters: CrudFilter[], field: string): unknown {
     return findFilter(filters, field)?.value;
 }

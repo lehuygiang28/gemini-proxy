@@ -15,6 +15,7 @@ import {
     getDateRangeFromFilters,
     mapFiltersToSearchFormValues,
     blankRequestLogSearchValues,
+    getModelColumnSearchValues,
     hasModelColumnFilter,
 } from './request-log-table-filter-utils';
 
@@ -165,5 +166,35 @@ describe('hasModelColumnFilter', () => {
     it('is active when the model contains OR filter is set', () => {
         expect(hasModelColumnFilter(buildRequestLogSearchFilters({ model: 'flash' }))).toBe(true);
         expect(hasModelColumnFilter([])).toBe(false);
+    });
+});
+
+describe('getModelColumnSearchValues', () => {
+    it('restores model, api_format, and is_stream false from crud filters', () => {
+        const filters = buildRequestLogSearchFilters({
+            model: 'flash-combo',
+            api_format: 'openai',
+            is_stream: false,
+        });
+        expect(getModelColumnSearchValues(filters)).toEqual({
+            model: 'flash-combo',
+            api_format: 'openai',
+            is_stream: false,
+        });
+    });
+
+    it('clears Format/Stream when those filters are absent so form restore does not keep stale selects', () => {
+        expect(getModelColumnSearchValues([])).toEqual({
+            model: undefined,
+            api_format: undefined,
+            is_stream: undefined,
+        });
+        expect(
+            getModelColumnSearchValues([{ field: 'is_successful', operator: 'eq', value: true }]),
+        ).toEqual({
+            model: undefined,
+            api_format: undefined,
+            is_stream: undefined,
+        });
     });
 });
