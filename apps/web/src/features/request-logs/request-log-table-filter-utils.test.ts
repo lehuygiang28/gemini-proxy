@@ -1,7 +1,13 @@
 import dayjs from 'dayjs';
 import { describe, expect, it } from 'vitest';
 import {
+    REQUEST_LOG_CACHE_TOKENS_FIELD,
+    REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+    REQUEST_LOG_COST_FIELD,
+    REQUEST_LOG_DURATION_MS_FIELD,
+    REQUEST_LOG_ESTIMATED_SPEED_FIELD,
     REQUEST_LOG_MODEL_FIELD,
+    REQUEST_LOG_PROMPT_TOKENS_FIELD,
     REQUEST_LOG_REQUESTED_MODEL_FIELD,
     buildRequestLogDeepLinkInitialFilters,
     buildRequestLogSearchFilters,
@@ -92,5 +98,42 @@ describe('request-log-table-filter-utils', () => {
         const filters = buildRequestLogSearchFilters({ model: 'flash-combo' });
         expect(countActiveLogFilters(filters)).toBe(1);
         expect(mapFiltersToSearchFormValues(filters).model).toBe('flash-combo');
+    });
+
+    it('maps numeric JSON metrics with -> (not ->>) and speed as a column', () => {
+        const filters = buildRequestLogSearchFilters({
+            prompt_tokens: [100, 5000],
+            completion_tokens: [10, undefined],
+            cache_tokens: [undefined, 80],
+            estimated_cost_usd: [0.01, 1],
+            total_response_time_ms: [0, 2000],
+            estimated_speed_tok_per_s: [5, 200],
+        });
+        expect(filters).toEqual([
+            { field: REQUEST_LOG_PROMPT_TOKENS_FIELD, operator: 'between', value: [100, 5000] },
+            { field: REQUEST_LOG_COMPLETION_TOKENS_FIELD, operator: 'gte', value: 10 },
+            { field: REQUEST_LOG_CACHE_TOKENS_FIELD, operator: 'lte', value: 80 },
+            { field: REQUEST_LOG_COST_FIELD, operator: 'between', value: [0.01, 1] },
+            { field: REQUEST_LOG_DURATION_MS_FIELD, operator: 'between', value: [0, 2000] },
+            { field: REQUEST_LOG_ESTIMATED_SPEED_FIELD, operator: 'between', value: [5, 200] },
+        ]);
+        expect(REQUEST_LOG_CACHE_TOKENS_FIELD).toBe('usage_metadata->cache_tokens');
+        expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('.')).toBe(false);
+        expect(REQUEST_LOG_PROMPT_TOKENS_FIELD.includes('->>')).toBe(false);
+        expect(REQUEST_LOG_DURATION_MS_FIELD).toBe('performance_metrics->total_response_time_ms');
+        expect(REQUEST_LOG_ESTIMATED_SPEED_FIELD).toBe('estimated_speed_tok_per_s');
+        expect(REQUEST_LOG_MODEL_FIELD).toBe('usage_metadata->>model');
+    });
+
+    it('skips numeric ranges when min is greater than max', () => {
+        expect(buildRequestLogSearchFilters({ cache_tokens: [90, 8] })).toEqual([]);
+    });
+
+    it('counts each numeric metric range once', () => {
+        const filters = buildRequestLogSearchFilters({
+            cache_tokens: [1, 10],
+            estimated_speed_tok_per_s: [20, 40],
+        });
+        expect(countActiveLogFilters(filters)).toBe(2);
     });
 });

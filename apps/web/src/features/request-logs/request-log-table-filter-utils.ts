@@ -6,6 +6,14 @@ export const REQUEST_LOG_MODEL_FIELD = 'usage_metadata->>model';
 export const REQUEST_LOG_REQUESTED_MODEL_FIELD = 'usage_metadata->>requested_model';
 export const REQUEST_LOG_DATE_GTE_FIELD = 'created_at';
 export const REQUEST_LOG_DATE_LTE_FIELD = 'created_at';
+export const REQUEST_LOG_PROMPT_TOKENS_FIELD = 'usage_metadata->prompt_tokens';
+export const REQUEST_LOG_COMPLETION_TOKENS_FIELD = 'usage_metadata->completion_tokens';
+export const REQUEST_LOG_CACHE_TOKENS_FIELD = 'usage_metadata->cache_tokens';
+export const REQUEST_LOG_COST_FIELD = 'usage_metadata->estimated_cost_usd';
+export const REQUEST_LOG_DURATION_MS_FIELD = 'performance_metrics->total_response_time_ms';
+export const REQUEST_LOG_ESTIMATED_SPEED_FIELD = 'estimated_speed_tok_per_s';
+
+export type RequestLogNumericRange = [number | undefined, number | undefined];
 
 export interface RequestLogSearch {
     request_id?: string;
@@ -16,6 +24,12 @@ export interface RequestLogSearch {
     api_key_id?: string;
     proxy_key_id?: string;
     date_range?: [Dayjs | string, Dayjs | string] | null;
+    prompt_tokens?: RequestLogNumericRange | null;
+    completion_tokens?: RequestLogNumericRange | null;
+    cache_tokens?: RequestLogNumericRange | null;
+    estimated_cost_usd?: RequestLogNumericRange | null;
+    total_response_time_ms?: RequestLogNumericRange | null;
+    estimated_speed_tok_per_s?: RequestLogNumericRange | null;
 }
 
 function isLogicalFilter(filter: CrudFilter): filter is LogicalFilter {
@@ -24,6 +38,38 @@ function isLogicalFilter(filter: CrudFilter): filter is LogicalFilter {
 
 function toIsoTimestamp(value: Dayjs | string): string {
     return dayjs.isDayjs(value) ? value.toISOString() : value;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
+function pushNumericRange(
+    filters: CrudFilter[],
+    field: string,
+    range: RequestLogNumericRange | null | undefined,
+): void {
+    if (!range) {
+        return;
+    }
+    const min = range[0];
+    const max = range[1];
+    const hasMin = isFiniteNumber(min);
+    const hasMax = isFiniteNumber(max);
+    if (hasMin && hasMax) {
+        if (min > max) {
+            return;
+        }
+        filters.push({ field, operator: 'between', value: [min, max] });
+        return;
+    }
+    if (hasMin) {
+        filters.push({ field, operator: 'gte', value: min });
+        return;
+    }
+    if (hasMax) {
+        filters.push({ field, operator: 'lte', value: max });
+    }
 }
 
 /**
@@ -81,6 +127,13 @@ export function buildRequestLogSearchFilters(values: RequestLogSearch): CrudFilt
         });
     }
 
+    pushNumericRange(filters, REQUEST_LOG_PROMPT_TOKENS_FIELD, values.prompt_tokens);
+    pushNumericRange(filters, REQUEST_LOG_COMPLETION_TOKENS_FIELD, values.completion_tokens);
+    pushNumericRange(filters, REQUEST_LOG_CACHE_TOKENS_FIELD, values.cache_tokens);
+    pushNumericRange(filters, REQUEST_LOG_COST_FIELD, values.estimated_cost_usd);
+    pushNumericRange(filters, REQUEST_LOG_DURATION_MS_FIELD, values.total_response_time_ms);
+    pushNumericRange(filters, REQUEST_LOG_ESTIMATED_SPEED_FIELD, values.estimated_speed_tok_per_s);
+
     return filters;
 }
 
@@ -123,6 +176,15 @@ export function mapFiltersToSearchFormValues(filters: CrudFilter[]): Partial<Req
         api_key_id: getFilterScalar(filters, 'api_key_id') as string | undefined,
         proxy_key_id: getFilterScalar(filters, 'proxy_key_id') as string | undefined,
         date_range: dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : undefined,
+        prompt_tokens: getNumericRangeFromFilters(filters, REQUEST_LOG_PROMPT_TOKENS_FIELD),
+        completion_tokens: getNumericRangeFromFilters(filters, REQUEST_LOG_COMPLETION_TOKENS_FIELD),
+        cache_tokens: getNumericRangeFromFilters(filters, REQUEST_LOG_CACHE_TOKENS_FIELD),
+        estimated_cost_usd: getNumericRangeFromFilters(filters, REQUEST_LOG_COST_FIELD),
+        total_response_time_ms: getNumericRangeFromFilters(filters, REQUEST_LOG_DURATION_MS_FIELD),
+        estimated_speed_tok_per_s: getNumericRangeFromFilters(
+            filters,
+            REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+        ),
     };
 }
 
@@ -184,6 +246,41 @@ export function getDateRangeFromFilters(filters: CrudFilter[]): [string, string]
     return null;
 }
 
+export function getNumericRangeFromFilters(
+    filters: CrudFilter[],
+    field: string,
+): RequestLogNumericRange | undefined {
+    const between = filters.find(
+        (filter) =>
+            isLogicalFilter(filter) && filter.field === field && filter.operator === 'between',
+    );
+    if (between && Array.isArray(between.value) && between.value.length === 2) {
+        return [between.value[0] as number | undefined, between.value[1] as number | undefined];
+    }
+    const gte = filters.find(
+        (filter) => isLogicalFilter(filter) && filter.field === field && filter.operator === 'gte',
+    )?.value;
+    const lte = filters.find(
+        (filter) => isLogicalFilter(filter) && filter.field === field && filter.operator === 'lte',
+    )?.value;
+    if (isFiniteNumber(gte) || isFiniteNumber(lte)) {
+        return [
+            isFiniteNumber(gte) ? gte : undefined,
+            isFiniteNumber(lte) ? lte : undefined,
+        ];
+    }
+    return undefined;
+}
+
+const NUMERIC_RANGE_FIELDS = new Set([
+    REQUEST_LOG_PROMPT_TOKENS_FIELD,
+    REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+    REQUEST_LOG_CACHE_TOKENS_FIELD,
+    REQUEST_LOG_COST_FIELD,
+    REQUEST_LOG_DURATION_MS_FIELD,
+    REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+]);
+
 const COUNTABLE_FILTER_FIELDS = new Set([
     'request_id',
     REQUEST_LOG_MODEL_FIELD,
@@ -193,11 +290,13 @@ const COUNTABLE_FILTER_FIELDS = new Set([
     'api_key_id',
     'proxy_key_id',
     REQUEST_LOG_DATE_GTE_FIELD,
+    ...NUMERIC_RANGE_FIELDS,
 ]);
 
 export function countActiveLogFilters(filters: CrudFilter[]): number {
     let count = 0;
     let hasDateRange = false;
+    const countedNumericFields = new Set<string>();
     for (const filter of filters) {
         if (isOrFilter(filter)) {
             if (getModelSearchValue([filter])) {
@@ -220,6 +319,13 @@ export function countActiveLogFilters(filters: CrudFilter[]): number {
             continue;
         }
         if (field === REQUEST_LOG_DATE_LTE_FIELD && filter.operator === 'lte') {
+            continue;
+        }
+        if (NUMERIC_RANGE_FIELDS.has(field)) {
+            if (!countedNumericFields.has(field)) {
+                countedNumericFields.add(field);
+                count += 1;
+            }
             continue;
         }
         if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
