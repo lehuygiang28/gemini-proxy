@@ -39,6 +39,7 @@ import {
     REQUEST_LOG_ESTIMATED_SPEED_FIELD,
     REQUEST_LOG_PROMPT_TOKENS_FIELD,
     getDateRangeFromFilters,
+    getFilterScalar,
     getModelSearchValue,
     getNumericRangeFromFilters,
     hasActiveFilter,
@@ -126,7 +127,11 @@ function ModelFilterDropdown({
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
     const activeModel = getModelSearchValue(crudFilters);
+    const activeApiFormat = getFilterScalar(crudFilters, 'api_format');
+    const activeIsStream = getFilterScalar(crudFilters, 'is_stream');
     const modelFieldKey = String(activeModel ?? '');
+    const formatFieldKey = String(activeApiFormat ?? '');
+    const streamFieldKey = String(activeIsStream ?? '');
 
     return (
         <FilterDropdownShell
@@ -163,7 +168,14 @@ function ModelFilterDropdown({
                     <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
                         {translate('request_logs.fields.format')}
                     </div>
-                    <Form.Item name="api_format" noStyle>
+                    <Form.Item
+                        name="api_format"
+                        noStyle
+                        key={formatFieldKey}
+                        initialValue={
+                            typeof activeApiFormat === 'string' ? activeApiFormat : undefined
+                        }
+                    >
                         <Select
                             allowClear
                             style={{ width: '100%' }}
@@ -179,7 +191,14 @@ function ModelFilterDropdown({
                     <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
                         {translate('request_logs.fields.stream')}
                     </div>
-                    <Form.Item name="is_stream" noStyle>
+                    <Form.Item
+                        name="is_stream"
+                        noStyle
+                        key={streamFieldKey}
+                        initialValue={
+                            typeof activeIsStream === 'boolean' ? activeIsStream : undefined
+                        }
+                    >
                         <Select
                             allowClear
                             style={{ width: '100%' }}
