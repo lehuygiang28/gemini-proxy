@@ -1055,7 +1055,7 @@
                 "vercel": "Vercel AI SDK"
             },
             "languages": {
-                "typescript": "TypeScript / JS",
+                "typescript": "TypeScript/JavaScript",
                 "python": "Python",
                 "curl": "curl"
             },

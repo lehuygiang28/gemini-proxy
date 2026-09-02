@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@refinedev/core';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
@@ -8,6 +8,7 @@ import python from 'react-syntax-highlighter/dist/esm/languages/prism/python';
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
 import {
     getLandingSnippet,
+    landingV1BaseUrl,
     listLandingLanguages,
     resolveLandingLanguage,
     type LandingClient,
@@ -21,18 +22,32 @@ SyntaxHighlighter.registerLanguage('bash', bash);
 
 const CLIENTS: LandingClient[] = ['google', 'openai', 'vercel'];
 
+type LandingCodePanelProps = {
+    origin: string;
+};
+
 /**
  * Client + language switcher with Signal Deck Prism highlighting.
  */
-export function LandingCodePanel() {
+export function LandingCodePanel({ origin }: LandingCodePanelProps) {
     const { translate } = useTranslation();
     const [client, setClient] = useState<LandingClient>('google');
     const [language, setLanguage] = useState<LandingLanguage>('typescript');
     const [copied, setCopied] = useState(false);
+    const [liveOrigin, setLiveOrigin] = useState(origin);
+
+    useEffect(() => {
+        setLiveOrigin(window.location.origin);
+    }, []);
 
     const languages = listLandingLanguages(client);
     const resolvedLanguage = resolveLandingLanguage({ client, language });
-    const snippet = getLandingSnippet({ client, language: resolvedLanguage });
+    const snippet = getLandingSnippet({
+        client,
+        language: resolvedLanguage,
+        origin: liveOrigin,
+    });
+    const baseUrl = landingV1BaseUrl(liveOrigin);
 
     const clientLabels = useMemo(
         () => ({
@@ -126,7 +141,7 @@ export function LandingCodePanel() {
                     }}
                     lineProps={(lineNumber) => {
                         const line = snippet.code.split('\n')[lineNumber - 1] ?? '';
-                        if (line.includes('your-proxy-endpoint/v1')) {
+                        if (line.includes(baseUrl)) {
                             return { className: 'gp-landing-v1-line' };
                         }
                         return {};

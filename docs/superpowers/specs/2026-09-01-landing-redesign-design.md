@@ -35,7 +35,7 @@ Reading this as: B2B developer-tool landing for Gemini Proxy operators, with Sig
 ## Design decisions (locked)
 
 1. **Identity:** Signal Deck tokens only. Dark marketing default. Wordmark is the text "Gemini Proxy" (no invented logo).
-2. **Canonical example URL:** `https://your-proxy-endpoint/v1` for Google GenAI, OpenAI SDK, and Vercel AI SDK. Proven by `packages/core/test/proxy-contract/v1-routing.test.ts` and README. Legacy `/api/gproxy/{gemini\|openai}` stays in the product, off the landing.
+2. **Canonical example URL:** `{origin}/v1` on the live landing (the origin of the page the visitor opened). README still uses `https://your-proxy-endpoint/v1`. Proven by `packages/core/test/proxy-contract/v1-routing.test.ts`. Legacy `/api/gproxy/{gemini\|openai}` stays in the product, off the landing.
 3. **IA:** Top bar, hero, connect (SDK tabs), what-it-does (max four facts), deploy strip, footer. Drop standalone Tech Stack, Architecture essay, Deployment 3-up, Features 6-up.
 4. **Hero visual:** real `/v1` snippet or App -> Proxy -> Gemini flow. Not a mesh blob, not a fake dashboard of empty divs.
 5. **Anti-slop:** no gradient text, no emoji headings, no three-equal-card row, no em-dash, no "Seamless / Unleash / Next-Gen", no Inter, no purple glow.
@@ -87,10 +87,10 @@ const google = createGoogleGenerativeAI({
 GPT-5.6 Sol brief, implemented in-app (Superdesign is reference only):
 
 - Hero keeps the ops-dense split: headline + CTAs on the left, **one** code panel on the right.
-- Two tab rows on that panel: **client** (`Google GenAI`, `OpenAI SDK`, `Vercel AI SDK`) then **language** (`TypeScript / JS`, `Python`, `curl`).
-- Default: Google GenAI + TypeScript / JS.
+- Two tab rows on that panel: **client** (`Google GenAI`, `OpenAI SDK`, `Vercel AI SDK`) then **language** (`TypeScript/JavaScript`, `Python`, `curl`).
+- Default: Google GenAI + TypeScript/JavaScript.
 - Vercel AI SDK is TypeScript-only; Python/curl hide instead of showing an empty panel.
-- Every snippet includes the import (or the full curl command) and `https://your-proxy-endpoint/v1`.
+- Every snippet includes the import (or the full curl command) and `{origin}/v1` for the current site.
 - Models in demos: `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemma-4-31b-it`. No `gemini-2.x`.
 - Highlighting: Prism `typescript` / `python` / `bash` with Signal Deck token colors, not oneDark purple. The `/v1` line is accent-tinted.
 

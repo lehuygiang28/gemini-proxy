@@ -6,18 +6,21 @@ export type LandingSnippet = {
     prismLanguage: 'typescript' | 'python' | 'bash';
 };
 
-const CANONICAL_BASE = 'https://your-proxy-endpoint/v1';
+type SnippetTemplate = {
+    prismLanguage: LandingSnippet['prismLanguage'];
+    code: (baseUrl: string) => string;
+};
 
-const SNIPPETS: Record<LandingClient, Partial<Record<LandingLanguage, LandingSnippet>>> = {
+const SNIPPETS: Record<LandingClient, Partial<Record<LandingLanguage, SnippetTemplate>>> = {
     google: {
         typescript: {
             prismLanguage: 'typescript',
-            code: `import { GoogleGenAI } from '@google/genai';
+            code: (baseUrl) => `import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({
     apiKey: 'YOUR_PROXY_API_KEY',
     httpOptions: {
-        baseUrl: '${CANONICAL_BASE}',
+        baseUrl: '${baseUrl}',
     },
 });
 
@@ -30,13 +33,13 @@ console.log(response.text);`,
         },
         python: {
             prismLanguage: 'python',
-            code: `from google import genai
+            code: (baseUrl) => `from google import genai
 from google.genai import types
 
 client = genai.Client(
     api_key="YOUR_PROXY_API_KEY",
     http_options=types.HttpOptions(
-        base_url="${CANONICAL_BASE}",
+        base_url="${baseUrl}",
     ),
 )
 
@@ -48,7 +51,7 @@ print(response.text)`,
         },
         curl: {
             prismLanguage: 'bash',
-            code: `curl "${CANONICAL_BASE}/models/gemini-3.5-flash:generateContent" \\
+            code: (baseUrl) => `curl "${baseUrl}/models/gemini-3.5-flash:generateContent" \\
   -H "Content-Type: application/json" \\
   -H "x-goog-api-key: $GEMINI_PROXY_API_KEY" \\
   -d '{
@@ -59,11 +62,11 @@ print(response.text)`,
     openai: {
         typescript: {
             prismLanguage: 'typescript',
-            code: `import OpenAI from 'openai';
+            code: (baseUrl) => `import OpenAI from 'openai';
 
 const openai = new OpenAI({
     apiKey: 'YOUR_PROXY_API_KEY',
-    baseURL: '${CANONICAL_BASE}',
+    baseURL: '${baseUrl}',
 });
 
 const completion = await openai.chat.completions.create({
@@ -75,11 +78,11 @@ console.log(completion.choices[0]?.message.content);`,
         },
         python: {
             prismLanguage: 'python',
-            code: `from openai import OpenAI
+            code: (baseUrl) => `from openai import OpenAI
 
 client = OpenAI(
     api_key="YOUR_PROXY_API_KEY",
-    base_url="${CANONICAL_BASE}",
+    base_url="${baseUrl}",
 )
 
 completion = client.chat.completions.create(
@@ -90,7 +93,7 @@ print(completion.choices[0].message.content)`,
         },
         curl: {
             prismLanguage: 'bash',
-            code: `curl "${CANONICAL_BASE}/chat/completions" \\
+            code: (baseUrl) => `curl "${baseUrl}/chat/completions" \\
   -H "Authorization: Bearer $GEMINI_PROXY_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -102,12 +105,12 @@ print(completion.choices[0].message.content)`,
     vercel: {
         typescript: {
             prismLanguage: 'typescript',
-            code: `import { generateText } from 'ai';
+            code: (baseUrl) => `import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 const google = createGoogleGenerativeAI({
     apiKey: 'YOUR_PROXY_API_KEY',
-    baseURL: '${CANONICAL_BASE}',
+    baseURL: '${baseUrl}',
 });
 
 const { text } = await generateText({
@@ -119,6 +122,31 @@ console.log(text);`,
         },
     },
 };
+
+/**
+ * Builds `{origin}/v1` for landing examples.
+ */
+export function landingV1BaseUrl(origin: string): string {
+    return `${origin.trim().replace(/\/+$/, '')}/v1`;
+}
+
+/**
+ * Resolves the public origin from request headers (Host / forwarded).
+ */
+export function originFromRequestHeaders(headersList: {
+    get(name: string): string | null;
+}): string {
+    const forwardedHost = headersList.get('x-forwarded-host');
+    const host = (forwardedHost ?? headersList.get('host') ?? 'localhost')
+        .split(',')[0]
+        ?.trim()
+        .replace(/\/+$/, '');
+    const forwardedProto = headersList.get('x-forwarded-proto')?.split(',')[0]?.trim();
+    const isLocal =
+        host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.startsWith('[::1]');
+    const proto = forwardedProto ?? (isLocal ? 'http' : 'https');
+    return `${proto}://${host}`;
+}
 
 /**
  * Returns language tabs available for a client. Vercel AI SDK is TypeScript-only.
@@ -150,6 +178,14 @@ export function resolveLandingLanguage(input: {
 export function getLandingSnippet(input: {
     client: LandingClient;
     language: LandingLanguage;
+    origin: string;
 }): LandingSnippet | null {
-    return SNIPPETS[input.client][input.language] ?? null;
+    const template = SNIPPETS[input.client][input.language];
+    if (!template) {
+        return null;
+    }
+    return {
+        prismLanguage: template.prismLanguage,
+        code: template.code(landingV1BaseUrl(input.origin)),
+    };
 }

@@ -7,10 +7,14 @@ import { LandingCodePanel } from './code-panel';
 const GITHUB_REPO = 'https://github.com/lehuygiang28/gemini-proxy';
 const FACTS = ['pool', 'failover', 'logs', 'deploy'] as const;
 
+type HeroSectionProps = {
+    origin: string;
+};
+
 /**
  * Ops-dense hero: headline, CTAs, highlighted /v1 snippets, four facts.
  */
-export function HeroSection() {
+export function HeroSection({ origin }: HeroSectionProps) {
     const { translate } = useTranslation();
     const headline = translate('landing.hero.headline', { path: '/v1' });
     const [headlineBefore, headlineAfter] = headline.split('/v1');
@@ -41,7 +45,7 @@ export function HeroSection() {
                             <span className="gp-landing-mit">{translate('landing.hero.mit')}</span>
                         </div>
                     </div>
-                    <LandingCodePanel />
+                    <LandingCodePanel origin={origin} />
                 </div>
                 <div className="gp-landing-facts">
                     {FACTS.map((fact) => (
