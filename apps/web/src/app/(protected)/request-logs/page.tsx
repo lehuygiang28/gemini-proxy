@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
@@ -22,6 +22,7 @@ import {
     useRequestLogTableColumns,
     type ListRequestLog,
 } from '@/features/request-logs';
+import { requestLogTableSpinning } from '@/features/request-logs/request-log-table-query-ui';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
     blankRequestLogSearchValues,
@@ -82,6 +83,29 @@ export default function RequestLogsListPage() {
         onSearch: (values) => buildRequestLogSearchFilters(values),
     });
 
+    const [userInitiatedTableQuery, setUserInitiatedTableQuery] = useState(false);
+
+    useEffect(() => {
+        if (!tableQuery.isFetching) {
+            setUserInitiatedTableQuery(false);
+        }
+    }, [tableQuery.isFetching]);
+
+    const beginUserTableQuery = useCallback(() => {
+        setUserInitiatedTableQuery(true);
+    }, []);
+
+    const boundSearchFormProps = useMemo(
+        () => ({
+            ...searchFormProps,
+            onFinish: async (values: RequestLogSearch) => {
+                beginUserTableQuery();
+                await searchFormProps.onFinish?.(values);
+            },
+        }),
+        [beginUserTableQuery, searchFormProps],
+    );
+
     const formInitialValues = useMemo(
         () => ({
             ...mapFiltersToSearchFormValues(filters),
@@ -124,25 +148,27 @@ export default function RequestLogsListPage() {
     const tableColumns = useRequestLogTableColumns({
         translate,
         filters,
-        searchFormProps,
+        searchFormProps: boundSearchFormProps,
         onViewDetails: handleViewDetails,
         formatRemovedKeyLabel,
         dateLocaleFormat,
     });
 
     const handleClearFilters = useCallback(() => {
-        searchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
+        beginUserTableQuery();
+        boundSearchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
         setFilters([], 'replace');
-    }, [searchFormProps.form, setFilters]);
+    }, [beginUserTableQuery, boundSearchFormProps.form, setFilters]);
 
     const handleRefreshAll = useCallback(() => {
+        beginUserTableQuery();
         void tableQuery.refetch();
         void volumeQuery.query.refetch();
-    }, [tableQuery, volumeQuery.query]);
+    }, [beginUserTableQuery, tableQuery, volumeQuery.query]);
 
     const submitSearch = useCallback(() => {
-        void searchFormProps.form?.submit();
-    }, [searchFormProps.form]);
+        void boundSearchFormProps.form?.submit();
+    }, [boundSearchFormProps.form]);
 
     const toolbarFilters = (
         <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
@@ -242,12 +268,21 @@ export default function RequestLogsListPage() {
                 onRangeChange={setChartRange}
             />
 
-            <Form {...searchFormProps} initialValues={formInitialValues}>
+            <Form {...boundSearchFormProps} initialValues={formInitialValues}>
                 {toolbarFilters}
 
                 <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
                     <Table<ListRequestLog>
                         {...tableProps}
+                        loading={requestLogTableSpinning({
+                            isLoading: Boolean(tableQuery.isLoading),
+                            isFetching: Boolean(tableQuery.isFetching),
+                            userInitiated: userInitiatedTableQuery,
+                        })}
+                        onChange={(pagination, _antdFilters, sorter, extra) => {
+                            beginUserTableQuery();
+                            tableProps.onChange?.(pagination, {}, sorter, extra);
+                        }}
                         rowKey="id"
                         size="small"
                         columns={tableColumns}
