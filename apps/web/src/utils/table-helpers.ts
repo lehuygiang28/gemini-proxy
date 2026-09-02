@@ -1,6 +1,7 @@
 import type { PresetStatusColorType } from 'antd/es/_util/colors';
 import { PROVIDERS } from '@/constants/providers';
 import type { PerformanceMetrics, UsageMetadata } from '@gemini-proxy/database';
+import { estimateSpeedTokPerS } from '@/features/request-logs/estimate-speed';
 
 // Token formatting utilities
 export const formatTokenCount = (count?: number, emptyLabel = ''): string => {
@@ -51,17 +52,10 @@ export const formatSpeed = (
     durationMs: number | undefined,
     emptyLabel = '—',
 ): string => {
-    if (
-        completionTokens === null ||
-        completionTokens === undefined ||
-        durationMs === null ||
-        durationMs === undefined ||
-        durationMs <= 0 ||
-        completionTokens <= 0
-    ) {
+    const tokensPerSecond = estimateSpeedTokPerS({ completionTokens, durationMs });
+    if (tokensPerSecond === null) {
         return emptyLabel;
     }
-    const tokensPerSecond = completionTokens / (durationMs / 1000);
     return `${tokensPerSecond.toFixed(1)} tok/s`;
 };
 
