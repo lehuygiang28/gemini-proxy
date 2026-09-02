@@ -12,11 +12,13 @@ import { parseDatetimeFormatMode } from '@/features/datetime/datetime-format';
 type DateTimeFormatContextType = {
     mode: DatetimeFormatMode;
     setMode: (mode: DatetimeFormatMode) => void;
+    now: Date;
 };
 
 export const DateTimeFormatContext = createContext<DateTimeFormatContextType>({
     mode: 'auto',
     setMode: () => undefined,
+    now: new Date(0),
 });
 
 type DateTimeFormatContextProviderProps = {
@@ -28,9 +30,15 @@ export const DateTimeFormatContextProvider: React.FC<
 > = ({ children, defaultMode }) => {
     const [isMounted, setIsMounted] = useState(false);
     const [mode, setModeState] = useState<DatetimeFormatMode>(defaultMode ?? 'auto');
+    const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
         setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        const id = window.setInterval(() => setNow(new Date()), 30_000);
+        return () => window.clearInterval(id);
     }, []);
 
     useEffect(() => {
@@ -45,7 +53,7 @@ export const DateTimeFormatContextProvider: React.FC<
     };
 
     return (
-        <DateTimeFormatContext.Provider value={{ mode, setMode }}>
+        <DateTimeFormatContext.Provider value={{ mode, setMode, now }}>
             {children}
         </DateTimeFormatContext.Provider>
     );

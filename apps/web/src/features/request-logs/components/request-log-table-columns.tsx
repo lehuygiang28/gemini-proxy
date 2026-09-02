@@ -4,7 +4,18 @@ import React, { useMemo } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
 import type { FormProps } from 'antd';
-import { Button, DatePicker, Form, Input, InputNumber, Select, Space, Tag, Tooltip, theme } from 'antd';
+import {
+    Button,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    Select,
+    Space,
+    Tag,
+    Tooltip,
+    theme,
+} from 'antd';
 import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -14,12 +25,12 @@ import {
     extractPerformanceMetrics,
     extractUsageMetadata,
     formatDuration,
-    formatSpeed,
     formatTokenCountWithUnit,
     formatUsd,
     getRequestType,
     getRequestTypeColor,
 } from '@/utils/table-helpers';
+import { formatStoredEstimatedSpeed } from '../estimate-speed';
 import {
     REQUEST_LOG_CACHE_TOKENS_FIELD,
     REQUEST_LOG_COMPLETION_TOKENS_FIELD,
@@ -618,7 +629,10 @@ export function useRequestLogTableColumns({
                 filterIcon: () => (
                     <SearchOutlined
                         style={{
-                            color: getNumericRangeFromFilters(filters, REQUEST_LOG_PROMPT_TOKENS_FIELD)
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_PROMPT_TOKENS_FIELD,
+                            )
                                 ? token.colorPrimary
                                 : undefined,
                         }}
@@ -692,7 +706,10 @@ export function useRequestLogTableColumns({
                 filterIcon: () => (
                     <SearchOutlined
                         style={{
-                            color: getNumericRangeFromFilters(filters, REQUEST_LOG_CACHE_TOKENS_FIELD)
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_CACHE_TOKENS_FIELD,
+                            )
                                 ? token.colorPrimary
                                 : undefined,
                         }}
@@ -773,24 +790,14 @@ export function useRequestLogTableColumns({
                         }}
                     />
                 ),
-                render: (_: unknown, record: ListRequestLog) => {
-                    const storedSpeed = record.estimated_speed_tok_per_s;
-                    const usage = extractUsageMetadata(record.usage_metadata);
-                    const performance = extractPerformanceMetrics(record.performance_metrics);
-                    const label =
-                        storedSpeed != null && Number(storedSpeed) > 0
-                            ? `${Number(storedSpeed).toFixed(1)} tok/s`
-                            : formatSpeed(
-                                  usage.completion_tokens,
-                                  performance.duration_ms,
-                                  translate('common.na'),
-                              );
-                    return (
-                        <span className="gp-live-mono" style={{ color: 'var(--gp-accent)' }}>
-                            {label}
-                        </span>
-                    );
-                },
+                render: (_: unknown, record: ListRequestLog) => (
+                    <span className="gp-live-mono" style={{ color: 'var(--gp-accent)' }}>
+                        {formatStoredEstimatedSpeed(
+                            record.estimated_speed_tok_per_s,
+                            translate('common.na'),
+                        )}
+                    </span>
+                ),
             },
             {
                 title: translate('request_logs.fields.duration'),
@@ -811,7 +818,10 @@ export function useRequestLogTableColumns({
                 filterIcon: () => (
                     <SearchOutlined
                         style={{
-                            color: getNumericRangeFromFilters(filters, REQUEST_LOG_DURATION_MS_FIELD)
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_DURATION_MS_FIELD,
+                            )
                                 ? token.colorPrimary
                                 : undefined,
                         }}

@@ -6,6 +6,6 @@ export {
     useRequestLogTableColumns,
     type ListRequestLog,
 } from './components/request-log-table-columns';
-export { estimateSpeedTokPerS } from './estimate-speed';
+export { estimateSpeedTokPerS, formatStoredEstimatedSpeed } from './estimate-speed';
 export { resolveKeyLabel } from './resolve-key-label';
 export type { ResolveKeyLabelInput, ResolveKeyLabelResult } from './resolve-key-label';

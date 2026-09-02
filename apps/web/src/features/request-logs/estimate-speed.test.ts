@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateSpeedTokPerS } from './estimate-speed';
+import { estimateSpeedTokPerS, formatStoredEstimatedSpeed } from './estimate-speed';
 
 describe('estimateSpeedTokPerS', () => {
     it('returns completion tokens per API second', () => {
@@ -14,5 +14,14 @@ describe('estimateSpeedTokPerS', () => {
     it('returns null when completion tokens are missing or not positive', () => {
         expect(estimateSpeedTokPerS({ completionTokens: 0, durationMs: 1000 })).toBeNull();
         expect(estimateSpeedTokPerS({ completionTokens: null, durationMs: 1000 })).toBeNull();
+    });
+});
+
+describe('formatStoredEstimatedSpeed', () => {
+    it('formats the stored column and does not invent a JSON fallback', () => {
+        expect(formatStoredEstimatedSpeed(47, '—')).toBe('47.0 tok/s');
+        expect(formatStoredEstimatedSpeed(47.04, '—')).toBe('47.0 tok/s');
+        expect(formatStoredEstimatedSpeed(null, '—')).toBe('—');
+        expect(formatStoredEstimatedSpeed(0, '—')).toBe('—');
     });
 });

@@ -72,3 +72,24 @@ export function formatRelativeTime(iso: string, locale: string, now: Date = new 
     }
     return formatter.format(Math.round(duration), 'year');
 }
+
+export type QuotaTimezoneState = {
+    status: 'loading' | 'ready';
+    timeZone: string;
+};
+
+export function resolveQuotaTimezoneState(input: {
+    identityReady: boolean;
+    settingsQueryEnabled: boolean;
+    settingsFetched: boolean;
+    timezone?: string | null;
+}): QuotaTimezoneState {
+    if (!input.identityReady || (input.settingsQueryEnabled && !input.settingsFetched)) {
+        return { status: 'loading', timeZone: 'UTC' };
+    }
+    const timezone = input.timezone?.trim();
+    if (!timezone) {
+        return { status: 'ready', timeZone: 'UTC' };
+    }
+    return { status: 'ready', timeZone: timezone };
+}

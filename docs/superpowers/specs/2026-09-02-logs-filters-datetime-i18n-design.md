@@ -76,25 +76,39 @@ Numeric min > max: do not submit. PostgREST errors: existing Refine empty + erro
 ## Est. Speed SQL
 
 ```sql
+CREATE FUNCTION request_log_estimated_speed(usage_metadata jsonb, performance_metrics jsonb)
+RETURNS numeric LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE
+    WHEN completion > 0 AND duration > 0
+    THEN completion / NULLIF(duration / 1000.0, 0)
+    ELSE NULL
+  END
+  FROM (
+    SELECT
+      CASE
+        WHEN usage_metadata->>'completion_tokens' ~ '^[0-9]+(\.[0-9]+)?$'
+        THEN (usage_metadata->>'completion_tokens')::numeric
+        ELSE NULL
+      END AS completion,
+      CASE
+        WHEN performance_metrics->>'duration_ms' ~ '^[0-9]+(\.[0-9]+)?$'
+        THEN (performance_metrics->>'duration_ms')::numeric
+        ELSE NULL
+      END AS duration
+  ) parsed;
+$$;
+
 ALTER TABLE request_logs
 ADD COLUMN estimated_speed_tok_per_s numeric
 GENERATED ALWAYS AS (
-  CASE
-    WHEN (usage_metadata->>'completion_tokens') ~ '^[0-9]+$'
-     AND (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$'
-     AND (usage_metadata->>'completion_tokens')::numeric > 0
-     AND (performance_metrics->>'duration_ms')::numeric > 0
-    THEN (usage_metadata->>'completion_tokens')::numeric
-         / NULLIF((performance_metrics->>'duration_ms')::numeric / 1000.0, 0)
-    ELSE NULL
-  END
+  request_log_estimated_speed(usage_metadata, performance_metrics)
 ) STORED;
 
 CREATE INDEX idx_request_logs_user_est_speed
   ON request_logs (user_id, estimated_speed_tok_per_s);
 ```
 
-Mirror in `packages/database/sql/schema.sql` and `database.types.ts`. TypeScript helper `estimateSpeedTokPerS` must match this formula for display.
+Mirror in `packages/database/sql/schema.sql` and `database.types.ts`. Decimal token/duration strings are accepted. Invalid JSON text is never cast (`nested CASE`), so inserts cannot fail the generated column. TypeScript `estimateSpeedTokPerS` matches the formula; the table renderer displays only `estimated_speed_tok_per_s`.
 
 ## Datetime preference
 

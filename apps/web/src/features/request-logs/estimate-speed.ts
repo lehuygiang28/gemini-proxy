@@ -18,3 +18,13 @@ export function estimateSpeedTokPerS(input: {
     }
     return completionTokens / (durationMs / 1000);
 }
+
+export function formatStoredEstimatedSpeed(
+    stored: number | null | undefined,
+    emptyLabel = '—',
+): string {
+    if (stored == null || !Number.isFinite(Number(stored)) || Number(stored) <= 0) {
+        return emptyLabel;
+    }
+    return `${Number(stored).toFixed(1)} tok/s`;
+}

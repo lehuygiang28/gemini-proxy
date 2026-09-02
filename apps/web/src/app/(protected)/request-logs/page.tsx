@@ -4,18 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
-import {
-    Table,
-    Space,
-    Badge,
-    Typography,
-    Button,
-    Input,
-    Popover,
-    Empty,
-    Form,
-    theme,
-} from 'antd';
+import { Table, Space, Badge, Typography, Button, Input, Popover, Empty, Form, theme } from 'antd';
 import {
     FilterOutlined,
     ReloadOutlined,
@@ -35,6 +24,7 @@ import {
 } from '@/features/request-logs';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
+    blankRequestLogSearchValues,
     buildRequestLogDeepLinkInitialFilters,
     buildRequestLogDeepLinkInitialValues,
     buildRequestLogSearchFilters,
@@ -141,7 +131,7 @@ export default function RequestLogsListPage() {
     });
 
     const handleClearFilters = useCallback(() => {
-        searchFormProps.form?.resetFields();
+        searchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
         setFilters([], 'replace');
     }, [searchFormProps.form, setFilters]);
 

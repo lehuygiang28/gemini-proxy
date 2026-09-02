@@ -4,6 +4,7 @@ import {
     isSameCivilDay,
     parseDatetimeFormatMode,
     resolveDatetimePresentation,
+    resolveQuotaTimezoneState,
 } from './datetime-format';
 
 describe('parseDatetimeFormatMode', () => {
@@ -81,6 +82,54 @@ describe('resolveDatetimePresentation', () => {
                 now,
             }),
         ).toEqual({ kind: 'exact' });
+    });
+});
+
+describe('resolveQuotaTimezoneState', () => {
+    it('stays loading until identity and settings have resolved', () => {
+        expect(
+            resolveQuotaTimezoneState({
+                identityReady: false,
+                settingsQueryEnabled: false,
+                settingsFetched: false,
+                timezone: undefined,
+            }),
+        ).toEqual({ status: 'loading', timeZone: 'UTC' });
+        expect(
+            resolveQuotaTimezoneState({
+                identityReady: true,
+                settingsQueryEnabled: true,
+                settingsFetched: false,
+                timezone: undefined,
+            }),
+        ).toEqual({ status: 'loading', timeZone: 'UTC' });
+    });
+
+    it('uses UTC when the settings row is missing or timezone is blank', () => {
+        expect(
+            resolveQuotaTimezoneState({
+                identityReady: true,
+                settingsQueryEnabled: true,
+                settingsFetched: true,
+                timezone: undefined,
+            }),
+        ).toEqual({ status: 'ready', timeZone: 'UTC' });
+        expect(
+            resolveQuotaTimezoneState({
+                identityReady: true,
+                settingsQueryEnabled: true,
+                settingsFetched: true,
+                timezone: '',
+            }),
+        ).toEqual({ status: 'ready', timeZone: 'UTC' });
+        expect(
+            resolveQuotaTimezoneState({
+                identityReady: true,
+                settingsQueryEnabled: true,
+                settingsFetched: true,
+                timezone: 'Asia/Ho_Chi_Minh',
+            }),
+        ).toEqual({ status: 'ready', timeZone: 'Asia/Ho_Chi_Minh' });
     });
 });
 

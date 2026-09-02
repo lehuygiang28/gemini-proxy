@@ -34,20 +34,20 @@ export const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({
     const { token } = useToken();
     const { translate, getLocale } = useTranslation();
     const locale = getLocale();
-    const { mode } = useContext(DateTimeFormatContext);
-    const quotaTimeZone = useUserQuotaTimezone();
+    const { mode, now } = useContext(DateTimeFormatContext);
+    const { status, timeZone } = useUserQuotaTimezone();
 
     if (!dateString) {
         return <Text type="secondary">{translate('common.never')}</Text>;
     }
 
-    const timeZone = quotaTimeZone && quotaTimeZone.length > 0 ? quotaTimeZone : 'Invalid/Zone';
     const presentation = resolveDatetimePresentation({
         iso: dateString,
-        mode,
+        mode: status === 'loading' && mode === 'auto' ? 'exact' : mode,
         timeZone,
+        now,
     });
-    const relativeLabel = formatRelativeTime(dateString, locale);
+    const relativeLabel = formatRelativeTime(dateString, locale, now);
 
     if (presentation.kind === 'relative' && relativeLabel) {
         return (

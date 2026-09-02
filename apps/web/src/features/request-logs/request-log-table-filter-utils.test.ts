@@ -14,6 +14,7 @@ import {
     countActiveLogFilters,
     getDateRangeFromFilters,
     mapFiltersToSearchFormValues,
+    blankRequestLogSearchValues,
 } from './request-log-table-filter-utils';
 
 describe('request-log-table-filter-utils', () => {
@@ -135,5 +136,14 @@ describe('request-log-table-filter-utils', () => {
             estimated_speed_tok_per_s: [20, 40],
         });
         expect(countActiveLogFilters(filters)).toBe(2);
+    });
+
+    it('blankRequestLogSearchValues clears every search field including deep-link keys', () => {
+        const blank = blankRequestLogSearchValues();
+        expect(blank.api_key_id).toBeUndefined();
+        expect(blank.proxy_key_id).toBeUndefined();
+        expect(blank.api_format).toBeUndefined();
+        expect(blank.estimated_speed_tok_per_s).toBeUndefined();
+        expect(buildRequestLogSearchFilters(blank)).toEqual([]);
     });
 });

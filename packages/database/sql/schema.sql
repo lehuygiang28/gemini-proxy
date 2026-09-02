@@ -189,6 +189,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS proxy_api_keys_value_alive_uidx
     ON proxy_api_keys (proxy_key_value)
     WHERE deleted_at IS NULL;
 
+CREATE OR REPLACE FUNCTION request_log_estimated_speed(
+    usage_metadata jsonb,
+    performance_metrics jsonb
+)
+RETURNS numeric
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT CASE
+        WHEN completion > 0 AND duration > 0
+        THEN completion / NULLIF(duration / 1000.0, 0)
+        ELSE NULL
+    END
+    FROM (
+        SELECT
+            CASE
+                WHEN usage_metadata->>'completion_tokens' ~ '^[0-9]+(\.[0-9]+)?$'
+                THEN (usage_metadata->>'completion_tokens')::numeric
+                ELSE NULL
+            END AS completion,
+            CASE
+                WHEN performance_metrics->>'duration_ms' ~ '^[0-9]+(\.[0-9]+)?$'
+                THEN (performance_metrics->>'duration_ms')::numeric
+                ELSE NULL
+            END AS duration
+    ) parsed;
+$$;
+
 -- Request Logs table - stores detailed request logs
 CREATE TABLE IF NOT EXISTS request_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -207,15 +235,7 @@ CREATE TABLE IF NOT EXISTS request_logs (
     is_stream BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     estimated_speed_tok_per_s NUMERIC GENERATED ALWAYS AS (
-        CASE
-            WHEN (usage_metadata->>'completion_tokens') ~ '^[0-9]+$'
-             AND (performance_metrics->>'duration_ms') ~ '^[0-9]+(\.[0-9]+)?$'
-             AND (usage_metadata->>'completion_tokens')::numeric > 0
-             AND (performance_metrics->>'duration_ms')::numeric > 0
-            THEN (usage_metadata->>'completion_tokens')::numeric
-                 / NULLIF((performance_metrics->>'duration_ms')::numeric / 1000.0, 0)
-            ELSE NULL
-        END
+        request_log_estimated_speed(usage_metadata, performance_metrics)
     ) STORED,
     CONSTRAINT request_logs_request_id_length CHECK (char_length(request_id) >= 1 AND char_length(request_id) <= 255)
 );

@@ -264,10 +264,7 @@ export function getNumericRangeFromFilters(
         (filter) => isLogicalFilter(filter) && filter.field === field && filter.operator === 'lte',
     )?.value;
     if (isFiniteNumber(gte) || isFiniteNumber(lte)) {
-        return [
-            isFiniteNumber(gte) ? gte : undefined,
-            isFiniteNumber(lte) ? lte : undefined,
-        ];
+        return [isFiniteNumber(gte) ? gte : undefined, isFiniteNumber(lte) ? lte : undefined];
     }
     return undefined;
 }
@@ -333,4 +330,23 @@ export function countActiveLogFilters(filters: CrudFilter[]): number {
         }
     }
     return count;
+}
+
+export function blankRequestLogSearchValues(): RequestLogSearch {
+    return {
+        request_id: undefined,
+        model: undefined,
+        api_format: undefined,
+        is_successful: undefined,
+        is_stream: undefined,
+        api_key_id: undefined,
+        proxy_key_id: undefined,
+        date_range: undefined,
+        prompt_tokens: undefined,
+        completion_tokens: undefined,
+        cache_tokens: undefined,
+        estimated_cost_usd: undefined,
+        total_response_time_ms: undefined,
+        estimated_speed_tok_per_s: undefined,
+    };
 }

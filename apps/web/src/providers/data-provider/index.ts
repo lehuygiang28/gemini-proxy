@@ -6,11 +6,19 @@ import { supabaseBrowserClient } from '@utils/supabase/client';
 import type { RpcFunctionName } from '@/types/rpc.types';
 import { handleRpcResponse, validateRpcParams } from '@/types/rpc.types';
 
+import { getRequestLogList } from './request-log-list';
+
 // Enhanced custom data provider with RPC support following Refine v5 patterns
 const supabaseDP = dataProviderSupabase(supabaseBrowserClient);
 
 export const dataProvider: DataProvider = {
     ...supabaseDP,
+    getList: async (params) => {
+        if (params.resource === 'request_logs') {
+            return getRequestLogList(supabaseBrowserClient, params);
+        }
+        return supabaseDP.getList(params);
+    },
     custom: async ({ url, method, payload, meta }: CustomParams) => {
         // Handle RPC function calls using meta parameter for function name
         if (meta?.operation === 'rpc' && meta?.function) {
