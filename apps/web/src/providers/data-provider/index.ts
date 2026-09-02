@@ -1,16 +1,26 @@
 'use client';
 
-import { type CustomParams, type DataProvider } from '@refinedev/core';
+import { type BaseRecord, type CustomParams, type DataProvider } from '@refinedev/core';
 import { dataProvider as dataProviderSupabase } from '@refinedev/supabase';
 import { supabaseBrowserClient } from '@utils/supabase/client';
 import type { RpcFunctionName } from '@/types/rpc.types';
 import { handleRpcResponse, validateRpcParams } from '@/types/rpc.types';
+
+import { getRequestLogList } from './request-log-list';
+
+type GetListParams = Parameters<NonNullable<DataProvider['getList']>>[0];
 
 // Enhanced custom data provider with RPC support following Refine v5 patterns
 const supabaseDP = dataProviderSupabase(supabaseBrowserClient);
 
 export const dataProvider: DataProvider = {
     ...supabaseDP,
+    getList: async <TData extends BaseRecord = BaseRecord>(params: GetListParams) => {
+        if (params.resource === 'request_logs') {
+            return getRequestLogList<TData>(supabaseBrowserClient, params);
+        }
+        return supabaseDP.getList<TData>(params);
+    },
     custom: async ({ url, method, payload, meta }: CustomParams) => {
         // Handle RPC function calls using meta parameter for function name
         if (meta?.operation === 'rpc' && meta?.function) {

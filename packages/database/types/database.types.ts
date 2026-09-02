@@ -473,6 +473,7 @@ export type Database = {
                     api_format: string;
                     api_key_id: string | null;
                     created_at: string;
+                    estimated_speed_tok_per_s: number | null;
                     error_details: Json | null;
                     id: string;
                     is_stream: boolean;

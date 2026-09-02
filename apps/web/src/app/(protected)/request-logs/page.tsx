@@ -4,19 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
-import {
-    Table,
-    Space,
-    Badge,
-    Typography,
-    Button,
-    Select,
-    Input,
-    Popover,
-    Empty,
-    Form,
-    theme,
-} from 'antd';
+import { Table, Space, Badge, Typography, Button, Input, Popover, Empty, Form, theme } from 'antd';
 import {
     FilterOutlined,
     ReloadOutlined,
@@ -36,6 +24,7 @@ import {
 } from '@/features/request-logs';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
+    blankRequestLogSearchValues,
     buildRequestLogDeepLinkInitialFilters,
     buildRequestLogDeepLinkInitialValues,
     buildRequestLogSearchFilters,
@@ -71,7 +60,7 @@ export default function RequestLogsListPage() {
         [searchParams],
     );
 
-    const { tableProps, searchFormProps, filters, tableQuery } = useTable<
+    const { tableProps, searchFormProps, filters, tableQuery, setFilters } = useTable<
         ListRequestLog,
         HttpError,
         RequestLogSearch
@@ -142,9 +131,9 @@ export default function RequestLogsListPage() {
     });
 
     const handleClearFilters = useCallback(() => {
-        searchFormProps.form?.resetFields();
-        void searchFormProps.form?.submit();
-    }, [searchFormProps.form]);
+        searchFormProps.form?.setFieldsValue(blankRequestLogSearchValues());
+        setFilters([], 'replace');
+    }, [searchFormProps.form, setFilters]);
 
     const handleRefreshAll = useCallback(() => {
         void tableQuery.refetch();
@@ -157,38 +146,6 @@ export default function RequestLogsListPage() {
 
     const toolbarFilters = (
         <Space wrap size={[8, 8]} style={{ marginBottom: 12 }}>
-            <Form.Item name="api_format" noStyle>
-                <Select
-                    allowClear
-                    placeholder={translate('request_logs.placeholders.selectFormat')}
-                    style={{ minWidth: 120 }}
-                    size="small"
-                    options={[
-                        { value: 'gemini', label: 'Gemini' },
-                        { value: 'openai', label: 'OpenAI' },
-                    ]}
-                    onChange={submitSearch}
-                />
-            </Form.Item>
-            <Form.Item name="is_stream" noStyle>
-                <Select
-                    allowClear
-                    placeholder={translate('request_logs.placeholders.selectStream')}
-                    style={{ minWidth: 130 }}
-                    size="small"
-                    options={[
-                        {
-                            value: true,
-                            label: translate('request_logs.stream.streaming'),
-                        },
-                        {
-                            value: false,
-                            label: translate('request_logs.stream.nonStreaming'),
-                        },
-                    ]}
-                    onChange={submitSearch}
-                />
-            </Form.Item>
             <Popover
                 trigger="click"
                 title={translate('request_logs.filters.advanced')}
@@ -294,7 +251,7 @@ export default function RequestLogsListPage() {
                         rowKey="id"
                         size="small"
                         columns={tableColumns}
-                        scroll={{ x: 1200 }}
+                        scroll={{ x: 1600 }}
                         sticky
                         showSorterTooltip={{ target: 'sorter-icon' }}
                         tableLayout="fixed"

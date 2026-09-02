@@ -1,8 +1,14 @@
 'use client';
 
-import React from 'react';
-import { Typography, Space, theme } from 'antd';
+import React, { useContext } from 'react';
+import { Space, Tooltip, Typography, theme } from 'antd';
 import { useTranslation } from '@refinedev/core';
+import { DateTimeFormatContext } from '@contexts/datetime-format';
+import {
+    formatRelativeTime,
+    resolveDatetimePresentation,
+} from '@/features/datetime/datetime-format';
+import { useUserQuotaTimezone } from '@/features/datetime/use-user-quota-timezone';
 import { formatDate, formatTime } from '@/utils/table-helpers';
 
 const { Text } = Typography;
@@ -13,6 +19,14 @@ interface DateTimeDisplayProps {
     showTime?: boolean;
 }
 
+function exactLabel(dateString: string, locale: string, showTime: boolean): string {
+    const date = formatDate(dateString, locale);
+    if (!showTime) {
+        return date;
+    }
+    return `${date} ${formatTime(dateString, locale)}`.trim();
+}
+
 export const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({
     dateString,
     showTime = true,
@@ -20,9 +34,27 @@ export const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({
     const { token } = useToken();
     const { translate, getLocale } = useTranslation();
     const locale = getLocale();
+    const { mode, now } = useContext(DateTimeFormatContext);
+    const { status, timeZone } = useUserQuotaTimezone();
 
     if (!dateString) {
         return <Text type="secondary">{translate('common.never')}</Text>;
+    }
+
+    const presentation = resolveDatetimePresentation({
+        iso: dateString,
+        mode: status === 'loading' && mode === 'auto' ? 'exact' : mode,
+        timeZone,
+        now,
+    });
+    const relativeLabel = formatRelativeTime(dateString, locale, now);
+
+    if (presentation.kind === 'relative' && relativeLabel) {
+        return (
+            <Tooltip title={exactLabel(dateString, locale, showTime)}>
+                <Text>{relativeLabel}</Text>
+            </Tooltip>
+        );
     }
 
     return (

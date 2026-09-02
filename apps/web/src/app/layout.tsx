@@ -10,10 +10,12 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 
 import { ColorModeContextProvider } from '@contexts/color-mode';
+import { DateTimeFormatContextProvider } from '@contexts/datetime-format';
 import { DevtoolsProvider } from '@providers/devtools';
 import { RefineProvider } from '@providers/refine-provider';
 import { IntlClientProvider } from '@i18n/intl-client-provider';
-import { THEME_COOKIE_NAME } from '@constants';
+import { DATETIME_FORMAT_COOKIE_NAME, THEME_COOKIE_NAME } from '@constants';
+import { parseDatetimeFormatMode } from '@/features/datetime/datetime-format';
 
 const ibmPlexSans = IBM_Plex_Sans({
     subsets: ['latin', 'vietnamese'],
@@ -86,6 +88,9 @@ export default async function RootLayout({
     const cookieStore = await cookies();
     const theme = cookieStore.get(THEME_COOKIE_NAME);
     const defaultMode = theme?.value === 'light' ? 'light' : 'dark';
+    const defaultDatetimeFormat = parseDatetimeFormatMode(
+        cookieStore.get(DATETIME_FORMAT_COOKIE_NAME)?.value,
+    );
     const locale = await getLocale();
     const messages = await getMessages();
 
@@ -99,11 +104,13 @@ export default async function RootLayout({
                 <Suspense>
                     <AntdRegistry>
                         <ColorModeContextProvider defaultMode={defaultMode} locale={locale}>
-                            <IntlClientProvider locale={locale} messages={messages}>
-                                <DevtoolsProvider>
-                                    <RefineProvider>{children}</RefineProvider>
-                                </DevtoolsProvider>
-                            </IntlClientProvider>
+                            <DateTimeFormatContextProvider defaultMode={defaultDatetimeFormat}>
+                                <IntlClientProvider locale={locale} messages={messages}>
+                                    <DevtoolsProvider>
+                                        <RefineProvider>{children}</RefineProvider>
+                                    </DevtoolsProvider>
+                                </IntlClientProvider>
+                            </DateTimeFormatContextProvider>
                         </ColorModeContextProvider>
                     </AntdRegistry>
                 </Suspense>

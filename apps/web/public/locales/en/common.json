@@ -564,8 +564,9 @@
             "model": "Model",
             "input": "Input",
             "output": "Output",
+            "cache": "Cache",
             "cost": "Cost",
-            "speed": "Speed",
+            "speed": "Est. Speed",
             "duration": "Duration",
             "overhead": "Overhead",
             "key": "Key",
@@ -584,7 +585,9 @@
             "selectStatus": "Select status",
             "selectStream": "Select stream type",
             "searchApiKey": "Search API key by name…",
-            "searchProxyKey": "Search proxy key by name…"
+            "searchProxyKey": "Search proxy key by name…",
+            "min": "Min",
+            "max": "Max"
         },
         "identity": {
             "apiKey": "API key",
@@ -688,7 +691,8 @@
             "estimatedCost": "Est. cost",
             "estimatedCostUnavailable": "—",
             "model": "Model",
-            "routingOverhead": "Proxy routing overhead (total − API time)"
+            "routingOverhead": "Proxy routing overhead (total − API time)",
+            "estimatedSpeedTooltip": "Our estimate: completion tokens ÷ (API duration in seconds). Not Google-reported throughput."
         },
         "severity": {
             "success": "Success",
@@ -906,7 +910,14 @@
             "colorMode": "Color mode",
             "dark": "Dark",
             "light": "Light",
-            "hint": "Stored in a browser cookie. Does not affect request logging."
+            "hint": "Stored in a browser cookie. Does not affect request logging.",
+            "datetimeFormat": "Date & time",
+            "datetimeHint": "Auto uses relative times on the same civil day in your quota timezone. Hover a relative value to see the exact timestamp.",
+            "datetime": {
+                "relative": "Relative",
+                "exact": "Exact",
+                "auto": "Auto"
+            }
         },
         "timezone": {
             "label": "Quota timezone",

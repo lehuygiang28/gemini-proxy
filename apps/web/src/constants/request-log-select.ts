@@ -39,4 +39,4 @@ export const REQUEST_LOG_DETAIL_SELECT = `
 
 /** List / live-feed columns with key joins. */
 export const REQUEST_LOG_LIST_SELECT =
-    'id, request_id, api_format, is_stream, is_successful, performance_metrics, usage_metadata, retry_attempts, user_id, created_at, api_key_id, proxy_key_id, api_keys(id,name,deleted_at), proxy_api_keys(id,name,deleted_at)';
+    'id, request_id, api_format, is_stream, is_successful, performance_metrics, usage_metadata, retry_attempts, user_id, created_at, api_key_id, proxy_key_id, estimated_speed_tok_per_s, api_keys(id,name,deleted_at), proxy_api_keys(id,name,deleted_at)';

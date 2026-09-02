@@ -153,29 +153,29 @@
     "documentTitle": {
         "default": "Gemini Proxy",
         "suffix": " | Gemini Proxy",
-        "dashboard": { "list": "Bảng điều khiển | Gemini Proxy" },
+        "dashboard": { "list": "Console | Gemini Proxy" },
         "api_keys": {
-            "list": "Khóa API | Gemini Proxy",
-            "show": "#{id} Khóa API | Gemini Proxy",
-            "edit": "#{id} Sửa khóa API | Gemini Proxy",
-            "create": "Tạo khóa API | Gemini Proxy"
+            "list": "API Keys | Gemini Proxy",
+            "show": "#{id} API Key | Gemini Proxy",
+            "edit": "#{id} Edit API Key | Gemini Proxy",
+            "create": "Create API Key | Gemini Proxy"
         },
         "proxy_api_keys": {
-            "list": "Khóa proxy | Gemini Proxy",
-            "show": "#{id} Khóa proxy | Gemini Proxy",
-            "edit": "#{id} Sửa khóa proxy | Gemini Proxy",
-            "create": "Tạo khóa proxy | Gemini Proxy"
+            "list": "Proxy API Keys | Gemini Proxy",
+            "show": "#{id} Proxy API Key | Gemini Proxy",
+            "edit": "#{id} Edit Proxy API Key | Gemini Proxy",
+            "create": "Create Proxy API Key | Gemini Proxy"
         },
         "request_logs": {
-            "list": "Nhật ký | Gemini Proxy",
-            "show": "#{id} Nhật ký | Gemini Proxy"
+            "list": "Logs | Gemini Proxy",
+            "show": "#{id} Log | Gemini Proxy"
         },
-        "proxy_reconciliation_needed": { "list": "Đối soát | Gemini Proxy" },
+        "proxy_reconciliation_needed": { "list": "Reconciliation | Gemini Proxy" },
         "user_settings": { "list": "Cài đặt | Gemini Proxy" },
         "model_combos": {
-            "list": "Combo | Gemini Proxy",
-            "create": "Tạo combo | Gemini Proxy",
-            "edit": "#{id} Sửa combo | Gemini Proxy"
+            "list": "Combos | Gemini Proxy",
+            "create": "Create combo | Gemini Proxy",
+            "edit": "#{id} Edit combo | Gemini Proxy"
         }
     },
     "header": {
@@ -185,16 +185,16 @@
         "accountMenu": "Menu tài khoản"
     },
     "dashboard": {
-        "dashboard": "Bảng điều khiển",
-        "titles": { "list": "Bảng điều khiển" }
+        "dashboard": "Console",
+        "titles": { "list": "Console" }
     },
     "api_keys": {
-        "api_keys": "Khóa API",
+        "api_keys": "API Keys",
         "titles": {
-            "list": "Khóa API",
-            "create": "Tạo khóa API",
-            "edit": "Sửa khóa API",
-            "show": "Xem khóa API"
+            "list": "API Keys",
+            "create": "Create API Key",
+            "edit": "Edit API Key",
+            "show": "Show API Key"
         },
         "fields": {
             "id": "ID",
@@ -204,7 +204,7 @@
             "apiKeyValue": "Giá trị khóa API",
             "provider": "Nhà cung cấp",
             "status": "Trạng thái",
-            "health": "Sức khỏe",
+            "health": "Health",
             "usage": "Thống kê sử dụng",
             "tokens": "Token",
             "lastUsed": "Dùng lần cuối",
@@ -249,15 +249,15 @@
             "completionTokens": "Token đầu ra"
         },
         "actions": {
-            "viewLogs": "Xem nhật ký của khóa này",
+            "viewLogs": "View Logs",
             "viewDetails": "Xem chi tiết",
             "edit": "Sửa khóa API",
-            "rotate": "Thay / xoay khóa",
+            "rotate": "Rotate key",
             "delete": "Xóa khóa API"
         },
         "delete": {
             "title": "Xóa khóa API",
-            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+            "description": "Khóa sẽ bị tắt và ẩn. Request log vẫn được giữ liên kết."
         },
         "empty": "Không tìm thấy khóa API",
         "notFound": "Không tìm thấy khóa API",
@@ -268,7 +268,7 @@
             "updateFailed": "Cập nhật thất bại",
             "updateFailedDesc": "Không cập nhật được trạng thái khóa API",
             "deleted": "Đã xóa khóa API",
-            "deletedDesc": "Đã gỡ khóa API \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deletedDesc": "Đã gỡ khóa API \"{name}\". Request log vẫn được giữ.",
             "deleteFailed": "Xóa thất bại",
             "deleteFailedDesc": "Không xóa được khóa API"
         },
@@ -282,7 +282,7 @@
         "edit": {
             "editing": "Đang sửa {name}",
             "subtitle": "Chỉnh sửa thông tin khóa API hiện có.",
-            "keyRotatable": "Dán khóa mới rồi lưu để xoay tại chỗ.",
+            "keyRotatable": "Dán khóa mới rồi lưu để rotate tại chỗ.",
             "rotateHint": "Chấp nhận mọi khóa chưa che, tối thiểu 10 ký tự.",
             "basicInfo": "Thông tin cơ bản",
             "settings": "Cài đặt"
@@ -300,7 +300,7 @@
             "manual": "Nhập thủ công",
             "bulkPaste": "Dán hàng loạt",
             "importJson": "Nhập JSON",
-            "bulkPlaceholder": "Dán khóa API vào đây, phân tách bằng dấu phẩy, khoảng trắng, dòng mới, dấu chấm phẩy hoặc dấu ống.\n\nVí dụ:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nHoặc:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nMỗi khóa phải dài ít nhất 10 ký tự.",
+            "bulkPlaceholder": "Dán khóa API vào đây, phân tách bằng dấu phẩy, khoảng trắng, dòng mới, dấu chấm phẩy hoặc pipe.\n\nVí dụ:\nAIzaXXXXXXXXXXXXXXXXXXXX1, AIzaXXXXXXXXXXXXXXXXXXXX2, AIzaXXXXXXXXXXXXXXXXXXXX3\n\nHoặc:\nAIzaXXXXXXXXXXXXXXXXXXXX1\nAIzaXXXXXXXXXXXXXXXXXXXX2\nAIzaXXXXXXXXXXXXXXXXXXXX3\n\nMỗi khóa phải dài ít nhất 10 ký tự.",
             "jsonPlaceholder": "Dán mảng JSON các khóa API.\n\nVí dụ:\n\nMảng chuỗi:\n[\"AIzaXXXXXXXXXXXXXXXXXXXX1\", \"AIzaXXXXXXXXXXXXXXXXXXXX2\"]\n\nMảng đối tượng:\n[\n  {\"name\": \"Gproxy key 1\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX1\"},\n  {\"name\": \"Gproxy key 2\", \"key\": \"AIzaXXXXXXXXXXXXXXXXXXXX2\"}\n]\n\nCác trường hỗ trợ: name/title/label, api_key_value/apiKey/key/value",
             "addKey": "Thêm khóa API",
             "importKeys": "Nhập khóa",
@@ -344,7 +344,7 @@
                 "commas": "Dấu phẩy",
                 "newLines": "Dòng mới",
                 "semicolons": "Dấu chấm phẩy",
-                "pipes": "Dấu ống",
+                "pipes": "Pipe",
                 "tabs": "Tab",
                 "jsonTitle": "Định dạng JSON",
                 "jsonBody": "Mảng JSON gồm chuỗi hoặc đối tượng. Các trường đối tượng được hỗ trợ:",
@@ -374,12 +374,12 @@
         }
     },
     "proxy_api_keys": {
-        "proxy_api_keys": "Khóa proxy",
+        "proxy_api_keys": "Proxy API Keys",
         "titles": {
-            "list": "Khóa proxy",
-            "create": "Tạo khóa proxy",
-            "edit": "Sửa khóa proxy",
-            "show": "Xem khóa proxy"
+            "list": "Proxy API Keys",
+            "create": "Create Proxy API Key",
+            "edit": "Edit Proxy API Key",
+            "show": "Show Proxy API Key"
         },
         "fields": {
             "id": "ID",
@@ -388,7 +388,7 @@
             "proxyKey": "Khóa proxy",
             "proxyKeyValue": "Giá trị khóa proxy",
             "status": "Trạng thái",
-            "health": "Sức khỏe",
+            "health": "Health",
             "usage": "Thống kê sử dụng",
             "tokens": "Token",
             "lastUsed": "Dùng lần cuối",
@@ -431,17 +431,17 @@
             "completionTokens": "Token đầu ra"
         },
         "actions": {
-            "viewLogs": "Xem nhật ký của khóa này",
+            "viewLogs": "View Logs",
             "viewDetails": "Xem chi tiết",
             "edit": "Sửa khóa proxy",
-            "rotate": "Xoay khóa proxy",
+            "rotate": "Rotate key",
             "resetQuota": "Reset hạn mức",
             "delete": "Xóa khóa proxy"
         },
         "quotaReset": {
             "action": "Reset hạn mức",
             "title": "Reset hạn mức hiện tại?",
-            "description": "Chỉ xóa usage cửa sổ hiện tại. Limit và nhật ký request giữ nguyên.",
+            "description": "Chỉ xóa usage cửa sổ hiện tại. Limit và request log giữ nguyên.",
             "confirm": "Reset hạn mức",
             "minute": "Phút hiện tại (RPM)",
             "day": "Ngày hiện tại (RPD + token)",
@@ -456,7 +456,7 @@
         },
         "delete": {
             "title": "Xóa khóa proxy",
-            "description": "Khóa sẽ bị tắt và ẩn. Nhật ký yêu cầu vẫn được giữ liên kết."
+            "description": "Khóa sẽ bị tắt và ẩn. Request log vẫn được giữ liên kết."
         },
         "empty": "Không tìm thấy khóa proxy",
         "notFound": "Không tìm thấy khóa proxy",
@@ -467,13 +467,13 @@
             "updateFailed": "Cập nhật thất bại",
             "updateFailedDesc": "Không cập nhật được trạng thái khóa proxy",
             "deleted": "Đã xóa khóa proxy",
-            "deletedDesc": "Đã gỡ khóa proxy \"{name}\". Nhật ký yêu cầu vẫn được giữ.",
+            "deletedDesc": "Đã gỡ khóa proxy \"{name}\". Request log vẫn được giữ.",
             "deleteFailed": "Xóa thất bại",
             "deleteFailedDesc": "Không xóa được khóa proxy",
-            "rotated": "Đã xoay khóa proxy",
-            "rotatedDesc": "Khóa proxy \"{name}\" đã được xoay. Cập nhật client với giá trị mới.",
-            "rotateFailed": "Xoay khóa thất bại",
-            "rotateFailedDesc": "Không xoay được khóa proxy"
+            "rotated": "Đã rotate Proxy API Key",
+            "rotatedDesc": "Khóa proxy \"{name}\" đã được rotate. Cập nhật client với giá trị mới.",
+            "rotateFailed": "Rotate key thất bại",
+            "rotateFailedDesc": "Không rotate được Proxy API Key"
         },
         "errors": {
             "enterName": "Vui lòng nhập tên",
@@ -494,9 +494,9 @@
             "settings": "Cài đặt"
         },
         "rotate": {
-            "title": "Xoay khóa proxy?",
+            "title": "Rotate key?",
             "description": "Thao tác này thay secret ngay. Client cũ sẽ thất bại cho đến khi dùng khóa mới.",
-            "confirm": "Xoay khóa",
+            "confirm": "Rotate key",
             "doneTitle": "Sao chép khóa proxy mới",
             "doneBody": "Hãy lưu giá trị này ngay. Client dùng khóa cũ sẽ không xác thực được."
         },
@@ -546,27 +546,28 @@
         "snippet": "Đoạn mã"
     },
     "request_logs": {
-        "request_logs": "Nhật ký",
+        "request_logs": "Logs",
         "titles": {
-            "list": "Nhật ký",
-            "show": "Xem nhật ký",
-            "details": "Chi tiết nhật ký"
+            "list": "Logs",
+            "show": "Show Log",
+            "details": "Request Log Details"
         },
         "fields": {
             "keys": "Khóa",
             "status": "Trạng thái",
             "type": "Loại",
-            "format": "Định dạng",
+            "format": "Format",
             "stream": "Stream",
             "performance": "Hiệu năng",
             "tokens": "Token",
             "created": "Thời gian",
             "model": "Model",
-            "input": "Đầu vào",
-            "output": "Đầu ra",
+            "input": "Token đầu vào",
+            "output": "Token đầu ra",
+            "cache": "Token cache",
             "cost": "Chi phí",
-            "speed": "Tốc độ",
-            "duration": "Thời lượng",
+            "speed": "Est. Speed",
+            "duration": "Thời gian xử lý",
             "overhead": "Overhead",
             "key": "Khóa",
             "requestId": "Mã request",
@@ -584,7 +585,9 @@
             "selectStatus": "Chọn trạng thái",
             "selectStream": "Chọn kiểu stream",
             "searchApiKey": "Tìm khóa API theo tên…",
-            "searchProxyKey": "Tìm khóa proxy theo tên…"
+            "searchProxyKey": "Tìm khóa proxy theo tên…",
+            "min": "Min",
+            "max": "Max"
         },
         "identity": {
             "apiKey": "Khóa API",
@@ -603,7 +606,7 @@
             "removedFromVault": "Đã xóa khỏi vault · tên lấy từ bản ghi khóa.",
             "recordGone": "Bản ghi khóa không còn tồn tại.",
             "provider": "Nhà cung cấp",
-            "lifetimeTokens": "Token suốt đời {count}",
+            "lifetimeTokens": "Lifetime token {count}",
             "noUser": "Không có người dùng trên request này.",
             "authenticatedTag": "Đã xác thực"
         },
@@ -621,11 +624,11 @@
         "live": {
             "pause": "Tạm dừng",
             "resume": "Tiếp tục",
-            "onMessage": "Đang cập nhật trực tiếp — bảng làm mới khi có nhật ký mới.",
+            "onMessage": "Đang cập nhật trực tiếp — bảng làm mới khi có log mới.",
             "offMessage": "Đã tạm dừng cập nhật trực tiếp — bấm tiếp tục để tự làm mới."
         },
-        "retention": "Nhật ký chi tiết cũ hơn 90 ngày sẽ bị xóa tự động. Tổng mức dùng suốt đời trên khóa API và khóa proxy được giữ lại.",
-        "retentionShort": "Nhật ký cũ hơn 90 ngày sẽ bị xóa tự động.",
+        "retention": "Log chi tiết cũ hơn 90 ngày sẽ bị xóa tự động. Tổng mức dùng lifetime trên khóa API và khóa proxy được giữ lại.",
+        "retentionShort": "Log cũ hơn 90 ngày sẽ bị xóa tự động.",
         "chart": {
             "title": "Hoạt động",
             "empty": "Không có request trong khoảng thời gian này",
@@ -656,12 +659,12 @@
             "viewDetails": "Xem chi tiết",
             "copyRequestId": "Sao chép request ID",
             "close": "Đóng",
-            "back": "Quay lại nhật ký"
+            "back": "Back to Logs"
         },
-        "empty": "Không tìm thấy nhật ký",
+        "empty": "Không tìm thấy log",
         "notFound": {
-            "title": "Không tìm thấy nhật ký",
-            "description": "Không tìm thấy nhật ký này hoặc bạn không có quyền xem."
+            "title": "Không tìm thấy log",
+            "description": "Không tìm thấy log này hoặc bạn không có quyền xem."
         },
         "clipboard": {
             "copied": "Đã sao chép",
@@ -688,7 +691,8 @@
             "estimatedCost": "Chi phí ước tính",
             "estimatedCostUnavailable": "—",
             "model": "Model",
-            "routingOverhead": "Overhead routing proxy (tổng − thời gian API)"
+            "routingOverhead": "Overhead routing proxy (tổng − thời gian API)",
+            "estimatedSpeedTooltip": "Ước lượng của chúng ta: completion tokens ÷ (API duration, giây). Không phải throughput Google báo cáo."
         },
         "severity": {
             "success": "Thành công",
@@ -714,7 +718,7 @@
             "noResponse": "Không có dữ liệu response",
             "noError": "Không có chi tiết lỗi",
             "bodyNotStored": "Nội dung chưa được lưu.",
-            "enableInSettings": "Bật trong Cài đặt → Giám sát"
+            "enableInSettings": "Bật trong Cài đặt → Observability"
         },
         "retries": {
             "title": "Dòng thời gian thử lại",
@@ -726,8 +730,8 @@
         }
     },
     "proxy_reconciliation_needed": {
-        "proxy_reconciliation_needed": "Đối soát",
-        "titles": { "list": "Đối soát" },
+        "proxy_reconciliation_needed": "Reconciliation",
+        "titles": { "list": "Reconciliation" },
         "heldTitle": "Reservation vẫn được giữ",
         "heldCopy": "Giới hạn vẫn fail-closed cho đến khi bạn thử lại. Đối soát chạy lại cùng RPC finalize idempotent; hệ thống không tự nhả reservation cũ.",
         "retrySuccess": "Đã gửi đối soát",
@@ -748,15 +752,15 @@
         "titles": { "list": "Cài đặt" }
     },
     "model_combos": {
-        "model_combos": "Combo",
+        "model_combos": "Combos",
         "titles": {
-            "list": "Combo",
+            "list": "Combos",
             "create": "Tạo combo",
             "edit": "Sửa combo"
         }
     },
     "combos": {
-        "title": "Combo",
+        "title": "Combos",
         "create": "Tạo combo",
         "search": "Tìm tên combo",
         "empty": "Chưa có combo",
@@ -776,7 +780,7 @@
             "actions": "Thao tác"
         },
         "models": {
-            "help": "Thử theo thứ tự này. Xoay khóa Gemini trước khi chuyển model tiếp theo",
+            "help": "Thử theo thứ tự này. Rotate key Gemini trước khi chuyển model tiếp theo",
             "moveUp": "Đưa lên",
             "moveDown": "Đưa xuống",
             "remove": "Xóa model"
@@ -817,7 +821,7 @@
         "syncFailed": "Không đồng bộ được model Google",
         "lastSync": "Lần đồng bộ Google {time}",
         "groups": {
-            "combos": "Combo",
+            "combos": "Combos",
             "gemini": "Gemini",
             "gemma": "Gemma",
             "custom": "Tùy chỉnh"
@@ -830,8 +834,8 @@
         }
     },
     "observability": {
-        "title": "Bảng điều khiển",
-        "subtitle": "Tổng quan vận hành, luồng request trực tiếp và sức khỏe khóa",
+        "title": "Console",
+        "subtitle": "Tổng quan vận hành, luồng request trực tiếp và key health",
         "pause": "Tạm dừng",
         "resume": "Tiếp tục",
         "refresh": "Làm mới",
@@ -852,13 +856,13 @@
             "totalTokens": "Tổng token",
             "estimatedCost": "Chi phí ước tính (USD)",
             "estimatedCostHint": "Ước tính Standard paid từ snapshot đã lưu. Không phải hóa đơn Google.",
-            "periodHint": "{days} ngày gần nhất từ nhật ký request",
-            "periodHintDefault": "Trong kỳ từ nhật ký request"
+            "periodHint": "{days} ngày gần nhất từ request log",
+            "periodHintDefault": "Trong kỳ từ request log"
         },
         "hourlyTitle": "Request theo giờ (24 giờ qua)",
         "formatTitle": "Theo định dạng",
         "liveFeedTitle": "Luồng request trực tiếp",
-        "keyHealthTitle": "Sức khỏe khóa",
+        "keyHealthTitle": "Key health",
         "columns": {
             "time": "Thời gian",
             "status": "Trạng thái",
@@ -893,9 +897,9 @@
     },
     "settings": {
         "title": "Cài đặt",
-        "subtitle": "Kiểm soát ghi nhật ký, múi giờ hạn mức, giá token và tùy chọn bảng điều khiển.",
+        "subtitle": "Kiểm soát ghi log, múi giờ hạn mức, giá token và tùy chọn Console.",
         "tabs": {
-            "observability": "Giám sát",
+            "observability": "Observability",
             "pricing": "Giá token",
             "routing": "Định tuyến",
             "timezone": "Múi giờ",
@@ -906,7 +910,14 @@
             "colorMode": "Chế độ màu",
             "dark": "Tối",
             "light": "Sáng",
-            "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi nhật ký request."
+            "hint": "Lưu trong cookie trình duyệt. Không ảnh hưởng đến ghi log request.",
+            "datetimeFormat": "Ngày giờ",
+            "datetimeHint": "Tự động dùng thời gian tương đối trong cùng ngày theo múi giờ hạn mức. Hover giá trị tương đối để xem timestamp chính xác.",
+            "datetime": {
+                "relative": "Tương đối",
+                "exact": "Chính xác",
+                "auto": "Tự động"
+            }
         },
         "timezone": {
             "label": "Múi giờ hạn mức",
@@ -919,21 +930,21 @@
         },
         "observability": {
             "saved": "Đã lưu cài đặt",
-            "savedDesc": "Tùy chọn giám sát đã được cập nhật cho nhật ký request mới.",
+            "savedDesc": "Tùy chọn giám sát đã được cập nhật cho request log mới.",
             "saveFailed": "Lưu cài đặt thất bại",
-            "banner": "Lưu body nhật ký chi tiết mặc định tắt",
-            "bannerDesc": "Khi bật, body request/response đã được làm sạch sẽ được lưu trên nhật ký mới (tối đa {kib} KiB). Phản hồi streaming được đưa vào khi proxy đệm toàn bộ body upstream để phân tích token. Body có thể chứa prompt hoặc completion — chỉ bật nếu bạn chấp nhận đánh đổi về lưu trữ và quyền riêng tư.",
+            "banner": "Lưu body log chi tiết mặc định tắt",
+            "bannerDesc": "Khi bật, body request/response đã được làm sạch sẽ được lưu trên log mới (tối đa {kib} KiB). Phản hồi streaming được đưa vào khi proxy đệm toàn bộ body upstream để phân tích token. Body có thể chứa prompt hoặc completion — chỉ bật nếu bạn chấp nhận đánh đổi về lưu trữ và quyền riêng tư.",
             "detailed": "Giám sát chi tiết",
-            "detailedExtra": "Công tắc chính. Khi tắt, nhật ký chỉ lưu headers (mặc định hiện tại).",
+            "detailedExtra": "Công tắc chính. Khi tắt, log chỉ lưu headers (mặc định hiện tại).",
             "saveRequest": "Lưu body request",
-            "saveRequestExtra": "Lưu JSON/text gửi tới model trên mỗi nhật ký (request_data.body).",
+            "saveRequestExtra": "Lưu JSON/text gửi tới model trên mỗi log (request_data.body).",
             "saveResponse": "Lưu body response",
-            "saveResponseExtra": "Lưu phản hồi model trên mỗi nhật ký, kể cả dữ liệu streaming (response_data.body).",
+            "saveResponseExtra": "Lưu phản hồi model trên mỗi log, kể cả dữ liệu streaming (response_data.body).",
             "reset": "Đặt lại mặc định"
         },
         "pricing": {
             "saved": "Đã lưu giá",
-            "savedDesc": "Giá của bạn sẽ áp dụng cho ước tính chi phí trên nhật ký request mới.",
+            "savedDesc": "Giá của bạn sẽ áp dụng cho ước tính chi phí trên request log mới.",
             "saveFailed": "Lưu giá thất bại",
             "intro": "Hệ thống ước tính chi phí từ số token đã dùng. Hầu hết có thể để mặc định — chỉ chỉnh khi giá thực tế của bạn khác bảng bên dưới.",
             "yourPricesTitle": "Giá của bạn",
@@ -1014,7 +1025,7 @@
     "landing": {
         "meta": {
             "title": "Gemini Proxy - Quản lý khóa API",
-            "description": "Gom khóa Gemini, failover, ghi nhật ký. Trỏ mọi SDK vào một URL /v1."
+            "description": "Gom khóa Gemini, failover, ghi log. Trỏ mọi SDK vào một URL /v1."
         },
         "nav": {
             "github": "GitHub",
@@ -1024,7 +1035,7 @@
         "hero": {
             "eyebrow": "Cổng Gemini mã nguồn mở",
             "headline": "Trỏ mọi Gemini SDK vào một URL {path}.",
-            "body": "Gom khóa, failover, ghi nhật ký. Cùng client OpenAI và Google bạn đang dùng.",
+            "body": "Gom khóa, failover, ghi log. Cùng client OpenAI và Google bạn đang dùng.",
             "getStarted": "Bắt đầu",
             "github": "GitHub",
             "mit": "Giấy phép MIT"

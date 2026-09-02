@@ -4,7 +4,18 @@ import React, { useMemo } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
 import type { FormProps } from 'antd';
-import { Button, DatePicker, Form, Input, Select, Space, Tag, Tooltip, theme } from 'antd';
+import {
+    Button,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    Select,
+    Space,
+    Tag,
+    Tooltip,
+    theme,
+} from 'antd';
 import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -14,16 +25,22 @@ import {
     extractPerformanceMetrics,
     extractUsageMetadata,
     formatDuration,
-    formatRoutingOverhead,
-    formatSpeed,
     formatTokenCountWithUnit,
     formatUsd,
     getRequestType,
     getRequestTypeColor,
 } from '@/utils/table-helpers';
+import { formatStoredEstimatedSpeed } from '../estimate-speed';
 import {
+    REQUEST_LOG_CACHE_TOKENS_FIELD,
+    REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+    REQUEST_LOG_COST_FIELD,
+    REQUEST_LOG_DURATION_MS_FIELD,
+    REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+    REQUEST_LOG_PROMPT_TOKENS_FIELD,
     getDateRangeFromFilters,
     getModelSearchValue,
+    getNumericRangeFromFilters,
     hasActiveFilter,
     hasModelFilter,
     type RequestLogSearch,
@@ -280,6 +297,130 @@ function StatusFilterDropdown({
     );
 }
 
+function FormatFilterDropdown({
+    searchFormProps,
+    confirm,
+    clearFilters,
+    translate,
+}: FilterDropdownProps & {
+    searchFormProps: FormProps<RequestLogSearch>;
+    translate: UseRequestLogTableColumnsOptions['translate'];
+}) {
+    return (
+        <FilterDropdownShell
+            resetLabel={translate('request_logs.filters.reset')}
+            confirmLabel={translate('request_logs.filters.apply')}
+            onReset={() => {
+                clearFilters?.();
+                resetSearchFields(searchFormProps, ['api_format']);
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+            onConfirm={() => {
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+        >
+            <Form.Item name="api_format" noStyle>
+                <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder={translate('request_logs.placeholders.selectFormat')}
+                    options={[
+                        { value: 'gemini', label: 'Gemini' },
+                        { value: 'openai', label: 'OpenAI' },
+                    ]}
+                />
+            </Form.Item>
+        </FilterDropdownShell>
+    );
+}
+
+function StreamFilterDropdown({
+    searchFormProps,
+    confirm,
+    clearFilters,
+    translate,
+}: FilterDropdownProps & {
+    searchFormProps: FormProps<RequestLogSearch>;
+    translate: UseRequestLogTableColumnsOptions['translate'];
+}) {
+    return (
+        <FilterDropdownShell
+            resetLabel={translate('request_logs.filters.reset')}
+            confirmLabel={translate('request_logs.filters.apply')}
+            onReset={() => {
+                clearFilters?.();
+                resetSearchFields(searchFormProps, ['is_stream']);
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+            onConfirm={() => {
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+        >
+            <Form.Item name="is_stream" noStyle>
+                <Select
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder={translate('request_logs.placeholders.selectStream')}
+                    options={[
+                        { value: true, label: translate('request_logs.stream.streaming') },
+                        { value: false, label: translate('request_logs.stream.nonStreaming') },
+                    ]}
+                />
+            </Form.Item>
+        </FilterDropdownShell>
+    );
+}
+
+function NumericFilterDropdown({
+    searchFormProps,
+    confirm,
+    clearFilters,
+    translate,
+    searchField,
+}: FilterDropdownProps & {
+    searchFormProps: FormProps<RequestLogSearch>;
+    translate: UseRequestLogTableColumnsOptions['translate'];
+    searchField: keyof RequestLogSearch;
+}) {
+    return (
+        <FilterDropdownShell
+            resetLabel={translate('request_logs.filters.reset')}
+            confirmLabel={translate('request_logs.filters.apply')}
+            onReset={() => {
+                clearFilters?.();
+                resetSearchFields(searchFormProps, [searchField]);
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+            onConfirm={() => {
+                confirm({ closeDropdown: true });
+                submitSearchForm(searchFormProps);
+            }}
+        >
+            <Space.Compact style={{ width: '100%' }}>
+                <Form.Item name={[searchField, 0]} noStyle>
+                    <InputNumber
+                        controls={false}
+                        style={{ width: '50%' }}
+                        placeholder={translate('request_logs.placeholders.min')}
+                    />
+                </Form.Item>
+                <Form.Item name={[searchField, 1]} noStyle>
+                    <InputNumber
+                        controls={false}
+                        style={{ width: '50%' }}
+                        placeholder={translate('request_logs.placeholders.max')}
+                    />
+                </Form.Item>
+            </Space.Compact>
+        </FilterDropdownShell>
+    );
+}
+
 /**
  * OpenRouter-style request log columns; column filters bind to Refine searchFormProps.
  */
@@ -343,7 +484,6 @@ export function useRequestLogTableColumns({
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     const labels = comboLogModelLabels(usage);
-                    const formatLabel = getRequestType(record.api_format);
                     const retryCount = Array.isArray(record.retry_attempts)
                         ? record.retry_attempts.length
                         : 0;
@@ -363,22 +503,6 @@ export function useRequestLogTableColumns({
                                     {labels.requested}
                                 </div>
                             ) : null}
-                            <Space size={4} wrap style={{ marginTop: 2 }}>
-                                <Tag
-                                    color={getRequestTypeColor(record.api_format)}
-                                    style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
-                                >
-                                    {formatLabel}
-                                </Tag>
-                                {record.is_stream ? (
-                                    <Tag
-                                        color="processing"
-                                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
-                                    >
-                                        {translate('request_logs.stream.streaming')}
-                                    </Tag>
-                                ) : null}
-                            </Space>
                             {retryCount > 0 ? (
                                 <div
                                     style={{ color: token.colorError, fontSize: 11, marginTop: 2 }}
@@ -423,11 +547,97 @@ export function useRequestLogTableColumns({
                 ),
             },
             {
+                title: translate('request_logs.fields.format'),
+                dataIndex: 'api_format',
+                key: 'api_format',
+                width: 96,
+                sorter: true,
+                filterDropdown: (props) => (
+                    <FormatFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: hasActiveFilter(filters, 'api_format')
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
+                render: (value: string) => (
+                    <Tag
+                        color={getRequestTypeColor(value)}
+                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
+                    >
+                        {getRequestType(value)}
+                    </Tag>
+                ),
+            },
+            {
+                title: translate('request_logs.fields.stream'),
+                dataIndex: 'is_stream',
+                key: 'is_stream',
+                width: 108,
+                sorter: true,
+                filterDropdown: (props) => (
+                    <StreamFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: hasActiveFilter(filters, 'is_stream')
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
+                render: (value: boolean) => (
+                    <Tag
+                        color={value ? 'processing' : 'default'}
+                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
+                    >
+                        {value
+                            ? translate('request_logs.stream.streaming')
+                            : translate('request_logs.stream.nonStreaming')}
+                    </Tag>
+                ),
+            },
+            {
                 title: translate('request_logs.fields.input'),
-                key: 'input_tokens',
-                width: 88,
+                dataIndex: REQUEST_LOG_PROMPT_TOKENS_FIELD,
+                key: 'prompt_tokens',
+                width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="prompt_tokens"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_PROMPT_TOKENS_FIELD,
+                            )
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     return (
@@ -439,10 +649,32 @@ export function useRequestLogTableColumns({
             },
             {
                 title: translate('request_logs.fields.output'),
-                key: 'output_tokens',
-                width: 88,
+                dataIndex: REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+                key: 'completion_tokens',
+                width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="completion_tokens"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+                            )
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     return (
@@ -456,11 +688,67 @@ export function useRequestLogTableColumns({
                 },
             },
             {
-                title: translate('request_logs.fields.cost'),
-                key: 'cost',
-                width: 80,
+                title: translate('request_logs.fields.cache'),
+                dataIndex: REQUEST_LOG_CACHE_TOKENS_FIELD,
+                key: 'cache_tokens',
+                width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="cache_tokens"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_CACHE_TOKENS_FIELD,
+                            )
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
+                render: (_: unknown, record: ListRequestLog) => {
+                    const usage = extractUsageMetadata(record.usage_metadata);
+                    return (
+                        <span className="gp-live-mono">
+                            {formatTokenCountWithUnit(usage.cache_tokens, translate('common.na'))}
+                        </span>
+                    );
+                },
+            },
+            {
+                title: translate('request_logs.fields.cost'),
+                dataIndex: REQUEST_LOG_COST_FIELD,
+                key: 'estimated_cost_usd',
+                width: 96,
+                align: 'right' as const,
+                className: 'gp-logs-num-col',
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="estimated_cost_usd"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(filters, REQUEST_LOG_COST_FIELD)
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     return (
@@ -471,31 +759,74 @@ export function useRequestLogTableColumns({
                 },
             },
             {
-                title: translate('request_logs.fields.speed'),
-                key: 'speed',
-                width: 88,
+                title: (
+                    <Tooltip title={translate('request_logs.metrics.estimatedSpeedTooltip')}>
+                        {translate('request_logs.fields.speed')}
+                    </Tooltip>
+                ),
+                dataIndex: REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+                key: 'estimated_speed_tok_per_s',
+                width: 108,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
-                render: (_: unknown, record: ListRequestLog) => {
-                    const usage = extractUsageMetadata(record.usage_metadata);
-                    const performance = extractPerformanceMetrics(record.performance_metrics);
-                    return (
-                        <span className="gp-live-mono" style={{ color: 'var(--gp-accent)' }}>
-                            {formatSpeed(
-                                usage.completion_tokens,
-                                performance.duration_ms,
-                                translate('common.na'),
-                            )}
-                        </span>
-                    );
-                },
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="estimated_speed_tok_per_s"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+                            )
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
+                render: (_: unknown, record: ListRequestLog) => (
+                    <span className="gp-live-mono" style={{ color: 'var(--gp-accent)' }}>
+                        {formatStoredEstimatedSpeed(
+                            record.estimated_speed_tok_per_s,
+                            translate('common.na'),
+                        )}
+                    </span>
+                ),
             },
             {
                 title: translate('request_logs.fields.duration'),
-                key: 'duration',
-                width: 72,
+                dataIndex: REQUEST_LOG_DURATION_MS_FIELD,
+                key: 'total_response_time_ms',
+                width: 112,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
+                sorter: true,
+                filterDropdown: (props) => (
+                    <NumericFilterDropdown
+                        {...props}
+                        searchFormProps={searchFormProps}
+                        translate={translate}
+                        searchField="total_response_time_ms"
+                    />
+                ),
+                filterIcon: () => (
+                    <SearchOutlined
+                        style={{
+                            color: getNumericRangeFromFilters(
+                                filters,
+                                REQUEST_LOG_DURATION_MS_FIELD,
+                            )
+                                ? token.colorPrimary
+                                : undefined,
+                        }}
+                    />
+                ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const performance = extractPerformanceMetrics(record.performance_metrics);
                     return (
@@ -505,30 +836,6 @@ export function useRequestLogTableColumns({
                                 translate('common.na'),
                             )}
                         </span>
-                    );
-                },
-            },
-            {
-                title: translate('request_logs.fields.overhead'),
-                key: 'overhead',
-                width: 72,
-                align: 'right' as const,
-                className: 'gp-logs-num-col',
-                render: (_: unknown, record: ListRequestLog) => {
-                    const performance = extractPerformanceMetrics(record.performance_metrics);
-                    return (
-                        <Tooltip title={translate('request_logs.metrics.routingOverhead')}>
-                            <span
-                                className="gp-live-mono"
-                                style={{ color: 'var(--gp-text-muted)' }}
-                            >
-                                {formatRoutingOverhead(
-                                    performance.total_response_time_ms,
-                                    performance.duration_ms,
-                                    translate('common.na'),
-                                )}
-                            </span>
-                        </Tooltip>
                     );
                 },
             },
