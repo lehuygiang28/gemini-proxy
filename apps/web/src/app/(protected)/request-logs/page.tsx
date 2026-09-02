@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, useTable } from '@refinedev/antd';
 import { useGo, useTranslation, type HttpError, type LiveModeProps } from '@refinedev/core';
 import type { RequestLogsVolume, RequestLogsVolumeRange } from '@gemini-proxy/database';
@@ -22,7 +22,10 @@ import {
     useRequestLogTableColumns,
     type ListRequestLog,
 } from '@/features/request-logs';
-import { requestLogTableSpinning } from '@/features/request-logs/request-log-table-query-ui';
+import {
+    requestLogTableBusyClearDelayMs,
+    requestLogTableSpinning,
+} from '@/features/request-logs/request-log-table-query-ui';
 import { REQUEST_LOG_LIST_SELECT } from '@/constants/request-log-select';
 import {
     blankRequestLogSearchValues,
@@ -84,14 +87,25 @@ export default function RequestLogsListPage() {
     });
 
     const [userInitiatedTableQuery, setUserInitiatedTableQuery] = useState(false);
+    const userTableQueryStartedAt = useRef(0);
 
     useEffect(() => {
-        if (!tableQuery.isFetching) {
-            setUserInitiatedTableQuery(false);
+        const delayMs = requestLogTableBusyClearDelayMs({
+            isFetching: Boolean(tableQuery.isFetching),
+            userInitiated: userInitiatedTableQuery,
+            elapsedMs: Date.now() - userTableQueryStartedAt.current,
+        });
+        if (delayMs === null) {
+            return;
         }
-    }, [tableQuery.isFetching]);
+        const timeoutId = window.setTimeout(() => {
+            setUserInitiatedTableQuery(false);
+        }, delayMs);
+        return () => window.clearTimeout(timeoutId);
+    }, [tableQuery.isFetching, userInitiatedTableQuery]);
 
     const beginUserTableQuery = useCallback(() => {
+        userTableQueryStartedAt.current = Date.now();
         setUserInitiatedTableQuery(true);
     }, []);
 
