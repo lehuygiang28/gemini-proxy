@@ -24,12 +24,12 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
             'created_at',
             'model',
             'is_successful',
-            'prompt_tokens',
-            'completion_tokens',
-            'cache_tokens',
-            'estimated_cost_usd',
-            'estimated_speed_tok_per_s',
-            'total_response_time_ms',
+            REQUEST_LOG_PROMPT_TOKENS_FIELD,
+            REQUEST_LOG_COMPLETION_TOKENS_FIELD,
+            REQUEST_LOG_CACHE_TOKENS_FIELD,
+            REQUEST_LOG_COST_FIELD,
+            REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+            REQUEST_LOG_DURATION_MS_FIELD,
             'key',
             'actions',
         ]);
@@ -59,32 +59,32 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
             REQUEST_LOG_TABLE_COLUMN_SPECS.map((column) => [column.key, column]),
         );
 
-        expect(byKey.prompt_tokens).toMatchObject({
+        expect(byKey[REQUEST_LOG_PROMPT_TOKENS_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_PROMPT_TOKENS_FIELD,
             sorter: true,
             filter: 'numeric',
         });
-        expect(byKey.completion_tokens).toMatchObject({
+        expect(byKey[REQUEST_LOG_COMPLETION_TOKENS_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_COMPLETION_TOKENS_FIELD,
             sorter: true,
             filter: 'numeric',
         });
-        expect(byKey.cache_tokens).toMatchObject({
+        expect(byKey[REQUEST_LOG_CACHE_TOKENS_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_CACHE_TOKENS_FIELD,
             sorter: true,
             filter: 'numeric',
         });
-        expect(byKey.estimated_cost_usd).toMatchObject({
+        expect(byKey[REQUEST_LOG_COST_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_COST_FIELD,
             sorter: true,
             filter: 'numeric',
         });
-        expect(byKey.total_response_time_ms).toMatchObject({
+        expect(byKey[REQUEST_LOG_DURATION_MS_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_DURATION_MS_FIELD,
             sorter: true,
             filter: 'numeric',
         });
-        expect(byKey.estimated_speed_tok_per_s).toMatchObject({
+        expect(byKey[REQUEST_LOG_ESTIMATED_SPEED_FIELD]).toMatchObject({
             dataIndex: REQUEST_LOG_ESTIMATED_SPEED_FIELD,
             sorter: true,
             filter: 'numeric',
@@ -92,5 +92,16 @@ describe('REQUEST_LOG_TABLE_COLUMN_SPECS', () => {
         expect(REQUEST_LOG_PROMPT_TOKENS_FIELD.includes('.')).toBe(false);
         expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('->>')).toBe(false);
         expect(REQUEST_LOG_CACHE_TOKENS_FIELD.includes('->')).toBe(true);
+    });
+
+    it('uses the PostgREST field as the Ant Design column key (Refine sorter.columnKey)', () => {
+        for (const column of REQUEST_LOG_TABLE_COLUMN_SPECS) {
+            if (!column.sorter) {
+                continue;
+            }
+            expect(column.dataIndex).toBeDefined();
+            expect(column.key).toBe(column.dataIndex);
+            expect(column.key.includes('.')).toBe(false);
+        }
     });
 });
