@@ -70,7 +70,7 @@ export default function RequestLogsListPage() {
         [searchParams],
     );
 
-    const { tableProps, searchFormProps, filters, tableQuery } = useTable<
+    const { tableProps, searchFormProps, filters, tableQuery, setFilters } = useTable<
         ListRequestLog,
         HttpError,
         RequestLogSearch
@@ -142,8 +142,8 @@ export default function RequestLogsListPage() {
 
     const handleClearFilters = useCallback(() => {
         searchFormProps.form?.resetFields();
-        void searchFormProps.form?.submit();
-    }, [searchFormProps.form]);
+        setFilters([], 'replace');
+    }, [searchFormProps.form, setFilters]);
 
     const handleRefreshAll = useCallback(() => {
         void tableQuery.refetch();
