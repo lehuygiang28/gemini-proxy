@@ -13,5 +13,6 @@ describe('selectLandingTab', () => {
 
     it('ignores unrelated keys', () => {
         expect(selectLandingTab(ITEMS, 'google', 'Enter')).toBeNull();
+        expect(selectLandingTab(ITEMS, 'google', 'ArrowDown')).toBeNull();
     });
 });

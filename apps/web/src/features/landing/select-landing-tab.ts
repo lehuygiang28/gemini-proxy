@@ -1,5 +1,5 @@
 /**
- * Moves within a landing tablist using the WAI-ARIA tabs keys.
+ * Moves within a horizontal landing tablist using ArrowLeft/ArrowRight, Home, and End.
  */
 export function selectLandingTab<T extends string>(
     items: readonly T[],
@@ -10,10 +10,10 @@ export function selectLandingTab<T extends string>(
     if (index < 0 || items.length === 0) {
         return null;
     }
-    if (key === 'ArrowRight' || key === 'ArrowDown') {
+    if (key === 'ArrowRight') {
         return items[(index + 1) % items.length];
     }
-    if (key === 'ArrowLeft' || key === 'ArrowUp') {
+    if (key === 'ArrowLeft') {
         return items[(index - 1 + items.length) % items.length];
     }
     if (key === 'Home') {

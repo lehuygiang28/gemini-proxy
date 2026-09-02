@@ -1,4 +1,4 @@
-export type SplitLandingHeadline = {
+type SplitLandingHeadline = {
     after: string;
     before: string;
     hasPath: boolean;
