@@ -306,12 +306,12 @@ export default function RequestLogsListPage() {
                     <Space size={8} style={{ marginBottom: 8 }}>
                         <Spin size="small" />
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                            {translate('common.loading')}
+                            {translate('loading')}
                         </Text>
                     </Space>
                 ) : null}
 
-                <Spin spinning={tableBusy} tip={translate('common.loading')}>
+                <Spin spinning={tableBusy} tip={translate('loading')}>
                     <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
                         <Table<ListRequestLog>
                             {...tableProps}
