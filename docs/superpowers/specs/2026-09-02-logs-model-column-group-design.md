@@ -1,7 +1,7 @@
 # Logs table: group Format and Stream into Model
 
 **Date:** 2026-09-02
-**Status:** Design dialogue locked; awaiting spec review before implementation plan
+**Status:** Implemented — Format and Stream grouped into the Model column and filter popover
 **Parent:** [2026-09-02-logs-filters-datetime-i18n-design.md](./2026-09-02-logs-filters-datetime-i18n-design.md)
 **Approach:** A — restore OpenRouter-style Model grouping; keep token / cost / speed / duration as separate sortable columns
 
