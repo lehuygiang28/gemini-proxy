@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import type { CrudFilter } from '@refinedev/core';
 import type { ColumnType } from 'antd/es/table';
 import type { FormProps } from 'antd';
@@ -39,13 +39,14 @@ import {
     REQUEST_LOG_ESTIMATED_SPEED_FIELD,
     REQUEST_LOG_PROMPT_TOKENS_FIELD,
     getDateRangeFromFilters,
-    getModelSearchValue,
+    getModelColumnSearchValues,
     getNumericRangeFromFilters,
     hasActiveFilter,
-    hasModelFilter,
+    hasModelColumnFilter,
     type RequestLogSearch,
 } from '../request-log-table-filter-utils';
 import { comboLogModelLabels } from '../combo-log-model-labels';
+import { modelColumnPresentation } from '../request-log-model-column';
 import { KeyCombobox } from './key-combobox';
 
 const { RangePicker } = DatePicker;
@@ -124,8 +125,18 @@ function ModelFilterDropdown({
     searchFormProps: FormProps<RequestLogSearch>;
     translate: UseRequestLogTableColumnsOptions['translate'];
 }) {
-    const activeModel = getModelSearchValue(crudFilters);
-    const modelFieldKey = String(activeModel ?? '');
+    const columnSearch = getModelColumnSearchValues(crudFilters);
+    const modelFieldKey = String(columnSearch.model ?? '');
+    const formatFieldKey = String(columnSearch.api_format ?? '');
+    const streamFieldKey = String(columnSearch.is_stream ?? '');
+
+    useLayoutEffect(() => {
+        searchFormProps.form?.setFieldsValue({
+            model: columnSearch.model,
+            api_format: columnSearch.api_format,
+            is_stream: columnSearch.is_stream,
+        });
+    }, [columnSearch.api_format, columnSearch.is_stream, columnSearch.model, searchFormProps.form]);
 
     return (
         <FilterDropdownShell
@@ -133,7 +144,7 @@ function ModelFilterDropdown({
             confirmLabel={translate('request_logs.filters.apply')}
             onReset={() => {
                 clearFilters?.();
-                resetSearchFields(searchFormProps, ['model']);
+                resetSearchFields(searchFormProps, ['model', 'api_format', 'is_stream']);
                 confirm({ closeDropdown: true });
                 submitSearchForm(searchFormProps);
             }}
@@ -142,21 +153,71 @@ function ModelFilterDropdown({
                 submitSearchForm(searchFormProps);
             }}
         >
-            <Form.Item
-                name="model"
-                noStyle
-                key={modelFieldKey}
-                initialValue={typeof activeModel === 'string' ? activeModel : undefined}
-            >
-                <Input
-                    allowClear
-                    placeholder={translate('request_logs.placeholders.searchModel')}
-                    onPressEnter={() => {
-                        confirm({ closeDropdown: true });
-                        submitSearchForm(searchFormProps);
-                    }}
-                />
-            </Form.Item>
+            <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                <Form.Item
+                    name="model"
+                    noStyle
+                    key={modelFieldKey}
+                    initialValue={columnSearch.model}
+                >
+                    <Input
+                        allowClear
+                        placeholder={translate('request_logs.placeholders.searchModel')}
+                        onPressEnter={() => {
+                            confirm({ closeDropdown: true });
+                            submitSearchForm(searchFormProps);
+                        }}
+                    />
+                </Form.Item>
+                <div>
+                    <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
+                        {translate('request_logs.fields.format')}
+                    </div>
+                    <Form.Item
+                        name="api_format"
+                        noStyle
+                        key={formatFieldKey}
+                        initialValue={columnSearch.api_format}
+                    >
+                        <Select
+                            allowClear
+                            style={{ width: '100%' }}
+                            placeholder={translate('request_logs.placeholders.selectFormat')}
+                            options={[
+                                { value: 'gemini', label: 'Gemini' },
+                                { value: 'openai', label: 'OpenAI' },
+                            ]}
+                        />
+                    </Form.Item>
+                </div>
+                <div>
+                    <div style={{ fontSize: 11, color: 'var(--gp-text-muted)', marginBottom: 4 }}>
+                        {translate('request_logs.fields.stream')}
+                    </div>
+                    <Form.Item
+                        name="is_stream"
+                        noStyle
+                        key={streamFieldKey}
+                        initialValue={columnSearch.is_stream}
+                    >
+                        <Select
+                            allowClear
+                            style={{ width: '100%' }}
+                            placeholder={translate('request_logs.placeholders.selectStream')}
+                            options={[
+                                {
+                                    value: true,
+                                    label: translate('request_logs.stream.streaming'),
+                                },
+                                {
+                                    value: false,
+                                    label: translate('request_logs.stream.nonStreaming'),
+                                },
+                            ]}
+                        />
+                    </Form.Item>
+                </div>
+            </Space>
         </FilterDropdownShell>
     );
 }
@@ -297,84 +358,6 @@ function StatusFilterDropdown({
     );
 }
 
-function FormatFilterDropdown({
-    searchFormProps,
-    confirm,
-    clearFilters,
-    translate,
-}: FilterDropdownProps & {
-    searchFormProps: FormProps<RequestLogSearch>;
-    translate: UseRequestLogTableColumnsOptions['translate'];
-}) {
-    return (
-        <FilterDropdownShell
-            resetLabel={translate('request_logs.filters.reset')}
-            confirmLabel={translate('request_logs.filters.apply')}
-            onReset={() => {
-                clearFilters?.();
-                resetSearchFields(searchFormProps, ['api_format']);
-                confirm({ closeDropdown: true });
-                submitSearchForm(searchFormProps);
-            }}
-            onConfirm={() => {
-                confirm({ closeDropdown: true });
-                submitSearchForm(searchFormProps);
-            }}
-        >
-            <Form.Item name="api_format" noStyle>
-                <Select
-                    allowClear
-                    style={{ width: '100%' }}
-                    placeholder={translate('request_logs.placeholders.selectFormat')}
-                    options={[
-                        { value: 'gemini', label: 'Gemini' },
-                        { value: 'openai', label: 'OpenAI' },
-                    ]}
-                />
-            </Form.Item>
-        </FilterDropdownShell>
-    );
-}
-
-function StreamFilterDropdown({
-    searchFormProps,
-    confirm,
-    clearFilters,
-    translate,
-}: FilterDropdownProps & {
-    searchFormProps: FormProps<RequestLogSearch>;
-    translate: UseRequestLogTableColumnsOptions['translate'];
-}) {
-    return (
-        <FilterDropdownShell
-            resetLabel={translate('request_logs.filters.reset')}
-            confirmLabel={translate('request_logs.filters.apply')}
-            onReset={() => {
-                clearFilters?.();
-                resetSearchFields(searchFormProps, ['is_stream']);
-                confirm({ closeDropdown: true });
-                submitSearchForm(searchFormProps);
-            }}
-            onConfirm={() => {
-                confirm({ closeDropdown: true });
-                submitSearchForm(searchFormProps);
-            }}
-        >
-            <Form.Item name="is_stream" noStyle>
-                <Select
-                    allowClear
-                    style={{ width: '100%' }}
-                    placeholder={translate('request_logs.placeholders.selectStream')}
-                    options={[
-                        { value: true, label: translate('request_logs.stream.streaming') },
-                        { value: false, label: translate('request_logs.stream.nonStreaming') },
-                    ]}
-                />
-            </Form.Item>
-        </FilterDropdownShell>
-    );
-}
-
 function NumericFilterDropdown({
     searchFormProps,
     confirm,
@@ -465,7 +448,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.model'),
                 key: 'model',
-                width: 220,
+                width: 240,
                 filterDropdown: (props) => (
                     <ModelFilterDropdown
                         {...props}
@@ -477,16 +460,20 @@ export function useRequestLogTableColumns({
                 filterIcon: () => (
                     <SearchOutlined
                         style={{
-                            color: hasModelFilter(filters) ? token.colorPrimary : undefined,
+                            color: hasModelColumnFilter(filters) ? token.colorPrimary : undefined,
                         }}
                     />
                 ),
                 render: (_: unknown, record: ListRequestLog) => {
                     const usage = extractUsageMetadata(record.usage_metadata);
                     const labels = comboLogModelLabels(usage);
-                    const retryCount = Array.isArray(record.retry_attempts)
-                        ? record.retry_attempts.length
-                        : 0;
+                    const presentation = modelColumnPresentation({
+                        apiFormat: record.api_format,
+                        isStream: record.is_stream,
+                        retryCount: Array.isArray(record.retry_attempts)
+                            ? record.retry_attempts.length
+                            : 0,
+                    });
                     return (
                         <div>
                             <div style={{ fontSize: 13, color: 'var(--gp-text)', fontWeight: 500 }}>
@@ -503,12 +490,35 @@ export function useRequestLogTableColumns({
                                     {labels.requested}
                                 </div>
                             ) : null}
-                            {retryCount > 0 ? (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 4,
+                                    marginTop: 4,
+                                }}
+                            >
+                                <Tag
+                                    color={getRequestTypeColor(presentation.apiFormat)}
+                                    style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
+                                >
+                                    {getRequestType(presentation.apiFormat)}
+                                </Tag>
+                                {presentation.showStream ? (
+                                    <Tag
+                                        color="processing"
+                                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
+                                    >
+                                        {translate('request_logs.stream.streaming')}
+                                    </Tag>
+                                ) : null}
+                            </div>
+                            {presentation.showRetries ? (
                                 <div
                                     style={{ color: token.colorError, fontSize: 11, marginTop: 2 }}
                                 >
                                     {translate('request_logs.metrics.retries', {
-                                        count: retryCount,
+                                        count: presentation.retryCount,
                                     })}
                                 </div>
                             ) : null}
@@ -543,70 +553,6 @@ export function useRequestLogTableColumns({
                         {value
                             ? translate('request_logs.status.success')
                             : translate('request_logs.status.failed')}
-                    </Tag>
-                ),
-            },
-            {
-                title: translate('request_logs.fields.format'),
-                dataIndex: 'api_format',
-                key: 'api_format',
-                width: 96,
-                sorter: true,
-                filterDropdown: (props) => (
-                    <FormatFilterDropdown
-                        {...props}
-                        searchFormProps={searchFormProps}
-                        translate={translate}
-                    />
-                ),
-                filterIcon: () => (
-                    <SearchOutlined
-                        style={{
-                            color: hasActiveFilter(filters, 'api_format')
-                                ? token.colorPrimary
-                                : undefined,
-                        }}
-                    />
-                ),
-                render: (value: string) => (
-                    <Tag
-                        color={getRequestTypeColor(value)}
-                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
-                    >
-                        {getRequestType(value)}
-                    </Tag>
-                ),
-            },
-            {
-                title: translate('request_logs.fields.stream'),
-                dataIndex: 'is_stream',
-                key: 'is_stream',
-                width: 108,
-                sorter: true,
-                filterDropdown: (props) => (
-                    <StreamFilterDropdown
-                        {...props}
-                        searchFormProps={searchFormProps}
-                        translate={translate}
-                    />
-                ),
-                filterIcon: () => (
-                    <SearchOutlined
-                        style={{
-                            color: hasActiveFilter(filters, 'is_stream')
-                                ? token.colorPrimary
-                                : undefined,
-                        }}
-                    />
-                ),
-                render: (value: boolean) => (
-                    <Tag
-                        color={value ? 'processing' : 'default'}
-                        style={{ margin: 0, borderRadius: 2, fontSize: 10 }}
-                    >
-                        {value
-                            ? translate('request_logs.stream.streaming')
-                            : translate('request_logs.stream.nonStreaming')}
                     </Tag>
                 ),
             },

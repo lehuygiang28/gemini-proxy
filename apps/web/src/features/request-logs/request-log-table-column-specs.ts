@@ -22,8 +22,6 @@ export const REQUEST_LOG_TABLE_COLUMN_SPECS: RequestLogTableColumnSpec[] = [
     { key: 'created_at', dataIndex: 'created_at', sorter: true, filter: 'date' },
     { key: 'model', sorter: false, filter: 'model' },
     { key: 'is_successful', dataIndex: 'is_successful', sorter: true, filter: 'enum' },
-    { key: 'api_format', dataIndex: 'api_format', sorter: true, filter: 'enum' },
-    { key: 'is_stream', dataIndex: 'is_stream', sorter: true, filter: 'enum' },
     {
         key: 'prompt_tokens',
         dataIndex: REQUEST_LOG_PROMPT_TOKENS_FIELD,

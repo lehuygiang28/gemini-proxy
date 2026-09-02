@@ -15,6 +15,8 @@ import {
     getDateRangeFromFilters,
     mapFiltersToSearchFormValues,
     blankRequestLogSearchValues,
+    getModelColumnSearchValues,
+    hasModelColumnFilter,
 } from './request-log-table-filter-utils';
 
 describe('request-log-table-filter-utils', () => {
@@ -145,5 +147,54 @@ describe('request-log-table-filter-utils', () => {
         expect(blank.api_format).toBeUndefined();
         expect(blank.estimated_speed_tok_per_s).toBeUndefined();
         expect(buildRequestLogSearchFilters(blank)).toEqual([]);
+    });
+});
+
+describe('hasModelColumnFilter', () => {
+    it('is active when only api_format or only is_stream is set', () => {
+        expect(
+            hasModelColumnFilter([{ field: 'api_format', operator: 'eq', value: 'openai' }]),
+        ).toBe(true);
+        expect(hasModelColumnFilter([{ field: 'is_stream', operator: 'eq', value: false }])).toBe(
+            true,
+        );
+        expect(
+            hasModelColumnFilter([{ field: 'is_successful', operator: 'eq', value: true }]),
+        ).toBe(false);
+    });
+
+    it('is active when the model contains OR filter is set', () => {
+        expect(hasModelColumnFilter(buildRequestLogSearchFilters({ model: 'flash' }))).toBe(true);
+        expect(hasModelColumnFilter([])).toBe(false);
+    });
+});
+
+describe('getModelColumnSearchValues', () => {
+    it('restores model, api_format, and is_stream false from crud filters', () => {
+        const filters = buildRequestLogSearchFilters({
+            model: 'flash-combo',
+            api_format: 'openai',
+            is_stream: false,
+        });
+        expect(getModelColumnSearchValues(filters)).toEqual({
+            model: 'flash-combo',
+            api_format: 'openai',
+            is_stream: false,
+        });
+    });
+
+    it('clears Format/Stream when those filters are absent so form restore does not keep stale selects', () => {
+        expect(getModelColumnSearchValues([])).toEqual({
+            model: undefined,
+            api_format: undefined,
+            is_stream: undefined,
+        });
+        expect(
+            getModelColumnSearchValues([{ field: 'is_successful', operator: 'eq', value: true }]),
+        ).toEqual({
+            model: undefined,
+            api_format: undefined,
+            is_stream: undefined,
+        });
     });
 });
