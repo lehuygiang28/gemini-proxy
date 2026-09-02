@@ -114,6 +114,10 @@ memory_bank/
 supabase/.temp/*
 .vercel
 
+# Superdesign local scratch (init + design-system stay tracked)
+.superdesign/tmp/
+.superdesign/website/
+
 # Gemini Proxy CLI configuration
 .gproxy/
 

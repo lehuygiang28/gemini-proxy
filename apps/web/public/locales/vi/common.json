@@ -1014,141 +1014,77 @@
     "landing": {
         "meta": {
             "title": "Gemini Proxy - Quản lý khóa API",
-            "description": "Admin sẵn sàng production để quản lý khóa API nhà cung cấp, khóa proxy và nhật ký request, xây dựng với Ant Design và Supabase"
+            "description": "Gom khóa Gemini, failover, ghi nhật ký. Trỏ mọi SDK vào một URL /v1."
+        },
+        "nav": {
+            "github": "GitHub",
+            "signIn": "Đăng nhập",
+            "dashboard": "Dashboard"
         },
         "hero": {
-            "badgeMit": "Giấy phép MIT",
-            "tagline": "Proxy API sẵn sàng production cho Google Gemini",
-            "body": "Quản lý khóa an toàn, cân bằng tải thông minh, giám sát toàn diện và streaming liền mạch. Triển khai mọi nơi với hỗ trợ đa nền tảng.",
+            "eyebrow": "Cổng Gemini mã nguồn mở",
+            "headline": "Trỏ mọi Gemini SDK vào một URL {path}.",
+            "body": "Gom khóa, failover, ghi nhật ký. Cùng client OpenAI và Google bạn đang dùng.",
             "getStarted": "Bắt đầu",
-            "github": "Xem trên GitHub"
+            "github": "GitHub",
+            "mit": "Giấy phép MIT"
         },
-        "features": {
-            "heading": "Tính năng cốt lõi",
-            "subheading": "Mọi thứ bạn cần để quản lý, giám sát và mở rộng việc sử dụng Gemini API",
-            "apiKeys": {
-                "title": "Quản lý khóa API",
-                "body": "Lưu trữ an toàn và luân chuyển thông minh nhiều khóa API Google Gemini kèm theo dõi sử dụng theo thời gian thực.",
-                "t1": "Lưu trữ an toàn",
-                "t2": "Luân chuyển khóa",
-                "t3": "Phân tích sử dụng"
+        "facts": {
+            "pool": {
+                "title": "Gom khóa",
+                "body": "Luân chuyển credential giữa các project và hạn mức."
             },
-            "loadBalancing": {
-                "title": "Cân bằng tải",
-                "body": "Phân phối request thông minh giữa nhiều khóa API với cơ chế failover và retry tự động.",
-                "t1": "Phân phối tự động",
-                "t2": "Failover",
-                "t3": "Logic retry"
+            "failover": {
+                "title": "Failover",
+                "body": "Thử lại request lỗi trên khóa còn khỏe."
             },
-            "monitoring": {
-                "title": "Giám sát & phân tích",
-                "body": "Ghi nhật ký request theo thời gian thực, chỉ số hiệu năng, theo dõi chi phí và dashboard toàn diện.",
-                "t1": "Nhật ký thời gian thực",
-                "t2": "Chỉ số hiệu năng",
-                "t3": "Theo dõi chi phí"
+            "logs": {
+                "title": "Ghi mọi request",
+                "body": "Xem latency, usage, lỗi và payload."
             },
-            "security": {
-                "title": "Bảo mật & kiểm soát truy cập",
-                "body": "Quản lý khóa API proxy, xác thực request, giới hạn tốc độ và xử lý môi trường an toàn.",
-                "t1": "Xác thực",
-                "t2": "Giới hạn tốc độ",
-                "t3": "Lưu trữ an toàn"
-            },
-            "logging": {
-                "title": "Ghi nhật ký toàn diện",
-                "body": "Nhật ký request/response chi tiết kèm chỉ số hiệu năng, số lần retry và khả năng xuất dữ liệu.",
-                "t1": "Nhật ký request",
-                "t2": "Theo dõi response",
-                "t3": "Xuất dữ liệu"
-            },
-            "platforms": {
-                "title": "Hỗ trợ đa nền tảng",
-                "body": "Triển khai mọi nơi với hỗ trợ Next.js, Vercel, Cloudflare, Appwrite và máy chủ độc lập.",
-                "t1": "Next.js",
-                "t2": "Vercel",
-                "t3": "Cloudflare"
+            "deploy": {
+                "title": "Deploy mọi nơi",
+                "body": "Full-stack, API độc lập, hoặc edge."
             }
         },
-        "footer": {
-            "blurb": "Proxy sẵn sàng production cho Google Gemini với quản lý khóa an toàn, cân bằng tải thông minh và giám sát toàn diện.",
-            "quickLinks": "Liên kết nhanh",
-            "dashboard": "Bảng điều khiển",
-            "github": "Kho GitHub",
-            "issues": "Báo cáo sự cố",
-            "builtWith": "Xây dựng với",
-            "copyright": "© {year} Gemini Proxy • Made with ❤️ by"
+        "snippets": {
+            "clientsLabel": "Client SDK",
+            "languagesLabel": "Ngôn ngữ ví dụ",
+            "clients": {
+                "google": "Google GenAI",
+                "openai": "OpenAI SDK",
+                "vercel": "Vercel AI SDK"
+            },
+            "languages": {
+                "typescript": "TypeScript/JavaScript",
+                "python": "Python",
+                "curl": "curl"
+            },
+            "copy": "Sao chép",
+            "copied": "Đã sao chép"
         },
-        "architecture": {
-            "heading": "Kiến trúc",
-            "subheading": "Kiến trúc đơn giản, an toàn và có thể mở rộng cho môi trường production",
-            "howItWorks": "Cách hoạt động",
-            "yourApp": "Ứng dụng của bạn",
-            "yourAppBody": "Gửi request API bằng SDK bạn chọn",
-            "proxyBody": "Định tuyến thông minh request tới các khóa API khỏe mạnh, ghi nhật ký dữ liệu request/response và quản lý cân bằng tải",
-            "geminiApi": "Google Gemini API",
-            "geminiApiBody": "Xử lý các request AI của bạn",
-            "dataStorage": "Lưu trữ dữ liệu",
-            "dataStorageBody": "Mọi dữ liệu được lưu an toàn trong Supabase PostgreSQL với Row Level Security (RLS) để bảo vệ tối đa. Khóa API, nhật ký request và phân tích được lưu với kiểm soát truy cập phù hợp và chỉ người dùng được ủy quyền mới truy cập được.",
-            "security": "Tính năng bảo mật",
-            "securityBody": "Xây dựng với bảo mật cấp doanh nghiệp gồm chính sách RLS, RPC có kiểu, xử lý môi trường an toàn và nhật ký kiểm toán toàn diện cho tuân thủ."
-        },
-        "deployment": {
-            "heading": "Tùy chọn triển khai",
-            "subheading": "Chọn tùy chọn triển khai phù hợp nhất với nhu cầu của bạn",
-            "platforms": "Nền tảng hỗ trợ:",
+        "deploy": {
+            "eyebrow": "Deploy",
+            "heading": "Một proxy, ba cách chạy.",
             "web": {
-                "title": "Ứng dụng web Next.js",
-                "badge": "Full-Stack",
-                "body": "Giải pháp đầy đủ với giao diện web + API proxy trong một lần triển khai. Dashboard tích hợp để quản lý khóa API và giám sát.",
-                "t1": "Dashboard web",
-                "t2": "API Proxy",
-                "t3": "Quản lý người dùng"
+                "title": "Next.js full-stack",
+                "meta": "dashboard + API"
             },
             "api": {
                 "title": "API độc lập",
-                "badge": "Chỉ API",
-                "body": "Máy chủ API Node.js nhẹ với tài nguyên tối thiểu. Phù hợp cho triển khai tùy chỉnh và microservices.",
-                "t1": "Nhẹ",
-                "t2": "Tùy biến",
-                "t3": "Mở rộng được"
+                "meta": "Node.js"
             },
             "edge": {
-                "title": "Edge Functions",
-                "badge": "Serverless",
-                "body": "Triển khai lên Vercel, Cloudflare hoặc Appwrite để phân phối CDN toàn cầu và tự động mở rộng.",
-                "t1": "CDN toàn cầu",
-                "t2": "Tự động mở rộng",
-                "t3": "Độ trễ thấp"
+                "title": "Edge",
+                "meta": "Vercel, Cloudflare"
             }
         },
-        "tech": {
-            "heading": "Công nghệ",
-            "subheading": "Xây dựng với các công nghệ hiện đại, sẵn sàng cho production",
-            "nextDesc": "Framework React với App Router",
-            "reactDesc": "Thư viện UI để xây dựng giao diện",
-            "tsDesc": "JavaScript có kiểu ở mọi quy mô",
-            "refineDesc": "Framework admin panel dựa trên React",
-            "antdDesc": "Ngôn ngữ thiết kế UI doanh nghiệp",
-            "supabaseDesc": "Thay thế Firebase mã nguồn mở",
-            "honoDesc": "Framework web nhẹ",
-            "categoryFramework": "Framework",
-            "categoryLibrary": "Thư viện",
-            "categoryLanguage": "Ngôn ngữ",
-            "categoryUi": "Thư viện UI",
-            "categoryDatabase": "Cơ sở dữ liệu"
-        },
-        "examples": {
-            "heading": "Ví dụ tích hợp",
-            "subheading": "Bắt đầu trong vài phút với các ví dụ SDK đầy đủ",
-            "quickStart": "Ví dụ bắt đầu nhanh",
-            "copy": "Sao chép",
-            "copied": "Đã sao chép!",
-            "officialSdk": "SDK chính thức",
-            "compatible": "Tương thích",
-            "modern": "Hiện đại",
-            "googleDesc": "Dùng SDK Google Generative AI chính thức với endpoint proxy của chúng tôi:",
-            "openaiDesc": "Dùng client tương thích OpenAI với endpoint proxy của chúng tôi:",
-            "aiSdkDesc": "Dùng Vercel AI SDK với endpoint proxy của chúng tôi (lưu ý đường dẫn /v1beta):"
+        "footer": {
+            "blurb": "Proxy Gemini mã nguồn mở cho gom khóa, failover và nhìn request.",
+            "dashboard": "Dashboard",
+            "github": "GitHub",
+            "issues": "Issues",
+            "copyright": "© {year}"
         }
     },
     "languageSwitcher": {

@@ -1,25 +1,23 @@
 'use client';
 
 import React from 'react';
+import './landing.css';
+import { LandingHeader } from './landing-header';
 import { HeroSection } from './HeroSection';
-import { FeaturesSection } from './FeaturesSection';
-import { CodeExamplesSection } from './CodeExamplesSection';
-import { TechStackSection } from './TechStackSection';
 import { DeploymentSection } from './DeploymentSection';
-import { ArchitectureSection } from './ArchitectureSection';
 import { FooterSection } from './FooterSection';
-import { HeaderlessPageChrome } from '@components/headerless-page-chrome';
 
-export const LandingPage: React.FC = () => {
+type LandingPageProps = {
+    origin: string;
+};
+
+export const LandingPage: React.FC<LandingPageProps> = ({ origin }) => {
     return (
-        <HeaderlessPageChrome>
-            <HeroSection />
-            <FeaturesSection />
-            <CodeExamplesSection />
-            <TechStackSection />
+        <div className="gp-landing">
+            <LandingHeader />
+            <HeroSection origin={origin} />
             <DeploymentSection />
-            <ArchitectureSection />
             <FooterSection />
-        </HeaderlessPageChrome>
+        </div>
     );
 };
