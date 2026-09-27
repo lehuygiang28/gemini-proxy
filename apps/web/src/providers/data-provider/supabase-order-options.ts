@@ -20,7 +20,14 @@ const REQUEST_LOG_QUERY_FIELD_ALIASES: Record<string, string> = {
  * Short keys like `prompt_tokens` are not request_logs columns — map them to JSONB paths.
  */
 export function resolveRequestLogQueryField(field: string): string {
-    return REQUEST_LOG_QUERY_FIELD_ALIASES[field] ?? field;
+    if (Object.prototype.hasOwnProperty.call(REQUEST_LOG_QUERY_FIELD_ALIASES, field)) {
+        return REQUEST_LOG_QUERY_FIELD_ALIASES[field];
+    }
+    return field;
+}
+
+function requestLogSortNullsLast(field: string): boolean {
+    return field === REQUEST_LOG_ESTIMATED_SPEED_FIELD || field.includes('->');
 }
 
 export function supabaseOrderOptions(sorter: { field: string; order: 'asc' | 'desc' }): {
@@ -28,7 +35,7 @@ export function supabaseOrderOptions(sorter: { field: string; order: 'asc' | 'de
     nullsFirst?: boolean;
 } {
     const field = resolveRequestLogQueryField(sorter.field);
-    if (field === REQUEST_LOG_ESTIMATED_SPEED_FIELD) {
+    if (requestLogSortNullsLast(field)) {
         return { ascending: sorter.order === 'asc', nullsFirst: false };
     }
     return { ascending: sorter.order === 'asc' };

@@ -254,6 +254,8 @@ export default function RequestLogsListPage() {
                             delay: isLive ? 200 : 0,
                         }}
                         onChange={(pagination, _antdFilters, sorter, extra) => {
+                            // Column filters submit via searchFormProps; ignore antd filter state so
+                            // sort clicks do not map stale column keys to eq.null filters.
                             tableProps.onChange?.(pagination, {}, sorter, extra);
                         }}
                         rowKey="id"

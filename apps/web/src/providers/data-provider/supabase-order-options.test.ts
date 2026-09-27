@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { REQUEST_LOG_ESTIMATED_SPEED_FIELD } from '@/features/request-logs/request-log-table-filter-utils';
+import {
+    REQUEST_LOG_DURATION_MS_FIELD,
+    REQUEST_LOG_ESTIMATED_SPEED_FIELD,
+    REQUEST_LOG_PROMPT_TOKENS_FIELD,
+} from '@/features/request-logs/request-log-table-filter-utils';
 import { supabaseOrderOptions, resolveRequestLogQueryField } from './supabase-order-options';
 
 describe('supabaseOrderOptions', () => {
@@ -16,6 +20,24 @@ describe('supabaseOrderOptions', () => {
                 order: 'asc',
             }),
         ).toEqual({ ascending: true, nullsFirst: false });
+    });
+
+    it('forces nulls last for JSONB-backed metric columns', () => {
+        expect(
+            supabaseOrderOptions({
+                field: REQUEST_LOG_PROMPT_TOKENS_FIELD,
+                order: 'desc',
+            }),
+        ).toEqual({ ascending: false, nullsFirst: false });
+        expect(
+            supabaseOrderOptions({
+                field: 'total_response_time_ms',
+                order: 'desc',
+            }),
+        ).toEqual({ ascending: false, nullsFirst: false });
+        expect(resolveRequestLogQueryField('total_response_time_ms')).toBe(
+            REQUEST_LOG_DURATION_MS_FIELD,
+        );
     });
 
     it('leaves other columns on the default null placement', () => {
@@ -45,5 +67,11 @@ describe('resolveRequestLogQueryField', () => {
         expect(resolveRequestLogQueryField('estimated_speed_tok_per_s')).toBe(
             REQUEST_LOG_ESTIMATED_SPEED_FIELD,
         );
+    });
+
+    it('does not resolve inherited object property names as aliases', () => {
+        expect(resolveRequestLogQueryField('toString')).toBe('toString');
+        expect(resolveRequestLogQueryField('constructor')).toBe('constructor');
+        expect(resolveRequestLogQueryField('__proto__')).toBe('__proto__');
     });
 });
