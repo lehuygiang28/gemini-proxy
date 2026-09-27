@@ -17,6 +17,7 @@ import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/
 import { useTranslation } from '@refinedev/core';
 import { normalizeGeminiModelId } from '@gemini-proxy/core';
 import { ModelPicker, SourceTag } from '@/features/models/model-picker';
+import { ModelProbeButton } from '@/features/models/model-probe-button';
 import { fillComboPreset, type ComboPresetKind } from '@/features/models/fill-combo-preset';
 import { useModelCatalog } from '@/features/models/use-model-catalog';
 
@@ -165,6 +166,7 @@ export function ComboFormFields(props: { isCreate: boolean; globalStrategy: stri
                                 aria-label={translate('combos.models.remove')}
                                 onClick={() => handleRemoveModel(index)}
                             />
+                            <ModelProbeButton model={modelId} size="small" />
                         </Space>
                     );
                 })}

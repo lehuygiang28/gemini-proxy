@@ -808,6 +808,11 @@
             "edit": "Sửa combo"
         }
     },
+    "modelProbe": {
+        "test": "Test",
+        "success": "Thành công",
+        "failed": "Lỗi"
+    },
     "picker": {
         "placeholder": "Chọn model",
         "addModel": "Thêm model",

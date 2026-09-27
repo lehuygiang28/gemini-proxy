@@ -28,6 +28,8 @@ import {
     SearchOutlined,
     FilterOutlined,
 } from '@ant-design/icons';
+import { DEFAULT_GEMINI_PROBE_MODEL } from '@gemini-proxy/core';
+import { ModelProbeButton } from '@/features/models/model-probe-button';
 import type { Tables } from '@gemini-proxy/database';
 import {
     SensitiveKeyDisplay,
@@ -301,9 +303,16 @@ export default function ApiKeysListPage() {
                         {
                             title: translate('api_keys.fields.provider'),
                             dataIndex: 'provider',
-                            width: 120,
-                            render: (value: string) => (
-                                <Tag color={getProviderColor(value)}>{getProviderText(value)}</Tag>
+                            width: 200,
+                            render: (value: string, record: ApiKey) => (
+                                <Space direction="vertical" size={4}>
+                                    <Tag color={getProviderColor(value)}>{getProviderText(value)}</Tag>
+                                    <ModelProbeButton
+                                        model={DEFAULT_GEMINI_PROBE_MODEL}
+                                        apiKeyId={record.id}
+                                        size="small"
+                                    />
+                                </Space>
                             ),
                             sorter: true,
                             filters: PROVIDER_OPTIONS.map(({ label, value }) => ({

@@ -808,6 +808,11 @@
             "edit": "Edit combo"
         }
     },
+    "modelProbe": {
+        "test": "Test",
+        "success": "OK",
+        "failed": "Failed"
+    },
     "picker": {
         "placeholder": "Choose a model",
         "addModel": "Add model",
