@@ -26,7 +26,7 @@ export function ModelProbeButton(props: {
                 model: props.model,
                 apiKeyId: props.apiKeyId,
             });
-            if (result.ok) {
+            if (result.ok === true) {
                 setState('success');
                 return;
             }

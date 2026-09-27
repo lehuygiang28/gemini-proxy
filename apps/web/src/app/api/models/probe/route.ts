@@ -31,7 +31,7 @@ export async function POST(request: Request): Promise<Response> {
         return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 });
     }
     const parsed = parseModelProbeBody(parsedBody);
-    if (!parsed.ok) {
+    if (parsed.ok === false) {
         return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
     }
     const body = parsed.body;
@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
         apiKeyId,
         geminiBaseUrl: process.env.GOOGLE_GEMINI_API_BASE_URL,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
         const status =
             result.message === 'no_api_key' || result.message === 'api_key_not_found' ? 404 : 502;
         return NextResponse.json(
