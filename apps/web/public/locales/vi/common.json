@@ -812,7 +812,19 @@
         "test": "Test",
         "success": "Thành công",
         "failed": "Lỗi",
-        "inactiveHint": "Test trực tiếp khóa này; khóa tắt không được proxy pool dùng"
+        "inactiveHint": "Test trực tiếp khóa này; khóa tắt không được proxy pool dùng",
+        "errors": {
+            "unauthorized": "Cần đăng nhập",
+            "invalidJson": "Body request không hợp lệ",
+            "invalidBody": "Request probe không hợp lệ",
+            "modelRequired": "Cần id model",
+            "noApiKey": "Không có API key đang bật",
+            "apiKeyNotFound": "Không tìm thấy API key",
+            "rateLimited": "Probe quá nhanh — đợi vài giây",
+            "networkError": "Lỗi mạng",
+            "probeFailed": "Probe thất bại",
+            "invalidGeminiBase": "URL Gemini API không hợp lệ"
+        }
     },
     "picker": {
         "placeholder": "Chọn model",

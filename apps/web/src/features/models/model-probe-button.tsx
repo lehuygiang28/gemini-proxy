@@ -5,8 +5,11 @@ import { Button, Tooltip, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useTranslation } from '@refinedev/core';
 import { fetchModelProbe } from './fetch-model-probe';
+import { formatModelProbeErrorMessage } from './format-model-probe-error';
 
 type ProbeState = 'idle' | 'loading' | 'success' | 'error';
+
+const ERROR_TEXT_MAX = 120;
 
 export function ModelProbeButton(props: {
     readonly model: string;
@@ -31,30 +34,39 @@ export function ModelProbeButton(props: {
                 return;
             }
             setState('error');
-            setErrorMessage(result.error);
+            let message = formatModelProbeErrorMessage(result.error, translate);
+            if (result.status) {
+                message = `${message} (HTTP ${result.status})`;
+            }
+            setErrorMessage(message);
         } catch (error) {
             setState('error');
             setErrorMessage(
-                error instanceof Error ? error.message : translate('modelProbe.failed'),
+                error instanceof Error ? error.message : translate('modelProbe.errors.probeFailed'),
             );
         }
     };
+
+    const errorLabel =
+        errorMessage && errorMessage.length > ERROR_TEXT_MAX
+            ? `${errorMessage.slice(0, ERROR_TEXT_MAX)}…`
+            : errorMessage;
 
     const statusNode =
         state === 'success' ? (
             <Typography.Text type="success">
                 <CheckCircleOutlined /> {translate('modelProbe.success')}
             </Typography.Text>
-        ) : state === 'error' ? (
-            <Tooltip title={errorMessage ?? translate('modelProbe.failed')}>
-                <Typography.Text type="danger">
-                    <CloseCircleOutlined /> {translate('modelProbe.failed')}
+        ) : state === 'error' && errorLabel ? (
+            <Tooltip title={errorMessage !== errorLabel ? errorMessage : undefined}>
+                <Typography.Text type="danger" style={{ maxWidth: 360 }}>
+                    <CloseCircleOutlined /> {errorLabel}
                 </Typography.Text>
             </Tooltip>
         ) : null;
 
     return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Button
                 size={props.size ?? 'small'}
                 icon={<ThunderboltOutlined />}

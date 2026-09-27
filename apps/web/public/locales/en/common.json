@@ -812,7 +812,19 @@
         "test": "Test",
         "success": "OK",
         "failed": "Failed",
-        "inactiveHint": "Tests this key directly; inactive keys are not used by the proxy pool"
+        "inactiveHint": "Tests this key directly; inactive keys are not used by the proxy pool",
+        "errors": {
+            "unauthorized": "Sign in required",
+            "invalidJson": "Invalid request body",
+            "invalidBody": "Invalid probe request",
+            "modelRequired": "Model id is required",
+            "noApiKey": "No active API key available",
+            "apiKeyNotFound": "API key not found",
+            "rateLimited": "Too many probes — wait a moment",
+            "networkError": "Network error",
+            "probeFailed": "Probe failed",
+            "invalidGeminiBase": "Invalid Gemini API base URL"
+        }
     },
     "picker": {
         "placeholder": "Choose a model",
