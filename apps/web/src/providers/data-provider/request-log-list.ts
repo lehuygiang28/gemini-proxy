@@ -3,7 +3,7 @@
 import type { BaseRecord, DataProvider, GetListResponse } from '@refinedev/core';
 import { generateFilter, handleError } from '@refinedev/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { supabaseOrderOptions } from './supabase-order-options';
+import { resolveRequestLogQueryField, supabaseOrderOptions } from './supabase-order-options';
 
 type GetListParams = Parameters<NonNullable<DataProvider['getList']>>[0];
 
@@ -26,7 +26,12 @@ export async function getRequestLogList<TData extends BaseRecord = BaseRecord>(
     }
 
     sorters?.forEach((item) => {
-        const [foreignTable, field] = item.field.split(/\.(?=[^.]+$)/);
+        const resolvedField = resolveRequestLogQueryField(item.field);
+        if (resolvedField.includes('->')) {
+            query.order(resolvedField, supabaseOrderOptions({ ...item, field: resolvedField }));
+            return;
+        }
+        const [foreignTable, field] = resolvedField.split(/\.(?=[^.]+$)/);
         if (foreignTable && field) {
             query.select(meta?.select ?? `*, ${foreignTable}(${field})`).order(field, {
                 ascending: item.order === 'asc',
@@ -34,10 +39,14 @@ export async function getRequestLogList<TData extends BaseRecord = BaseRecord>(
             });
             return;
         }
-        query.order(item.field, supabaseOrderOptions(item));
+        query.order(resolvedField, supabaseOrderOptions({ ...item, field: resolvedField }));
     });
 
     filters?.forEach((item) => {
+        if ('field' in item && typeof item.field === 'string') {
+            generateFilter({ ...item, field: resolveRequestLogQueryField(item.field) }, query);
+            return;
+        }
         generateFilter(item, query);
     });
 

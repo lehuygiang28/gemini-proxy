@@ -559,7 +559,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.input'),
                 dataIndex: REQUEST_LOG_PROMPT_TOKENS_FIELD,
-                key: 'prompt_tokens',
+                key: REQUEST_LOG_PROMPT_TOKENS_FIELD,
                 width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
@@ -596,7 +596,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.output'),
                 dataIndex: REQUEST_LOG_COMPLETION_TOKENS_FIELD,
-                key: 'completion_tokens',
+                key: REQUEST_LOG_COMPLETION_TOKENS_FIELD,
                 width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
@@ -636,7 +636,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.cache'),
                 dataIndex: REQUEST_LOG_CACHE_TOKENS_FIELD,
-                key: 'cache_tokens',
+                key: REQUEST_LOG_CACHE_TOKENS_FIELD,
                 width: 104,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
@@ -673,7 +673,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.cost'),
                 dataIndex: REQUEST_LOG_COST_FIELD,
-                key: 'estimated_cost_usd',
+                key: REQUEST_LOG_COST_FIELD,
                 width: 96,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',
@@ -748,7 +748,7 @@ export function useRequestLogTableColumns({
             {
                 title: translate('request_logs.fields.duration'),
                 dataIndex: REQUEST_LOG_DURATION_MS_FIELD,
-                key: 'total_response_time_ms',
+                key: REQUEST_LOG_DURATION_MS_FIELD,
                 width: 112,
                 align: 'right' as const,
                 className: 'gp-logs-num-col',

@@ -248,6 +248,16 @@ export default function RequestLogsListPage() {
                 <div className="gp-panel gp-logs-table-panel" style={{ padding: 0 }}>
                     <Table<ListRequestLog>
                         {...tableProps}
+                        // tableProps.loading is isLoading when live=auto, so refetch is silent.
+                        loading={{
+                            spinning: Boolean(tableQuery.isFetching),
+                            delay: isLive ? 200 : 0,
+                        }}
+                        onChange={(pagination, _antdFilters, sorter, extra) => {
+                            // Column filters submit via searchFormProps; ignore antd filter state so
+                            // sort clicks do not map stale column keys to eq.null filters.
+                            tableProps.onChange?.(pagination, {}, sorter, extra);
+                        }}
                         rowKey="id"
                         size="small"
                         columns={tableColumns}
