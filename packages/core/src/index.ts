@@ -16,7 +16,10 @@ export {
     DEFAULT_GEMINI_PROBE_MODEL,
     type ProbeGeminiModelResult,
 } from './model-probe/probe-gemini-model';
-export { probeModelForUser, type ProbeModelForUserResult } from './model-probe/probe-model-for-user';
+export {
+    probeModelForUser,
+    type ProbeModelForUserResult,
+} from './model-probe/probe-model-for-user';
 export { parseGoogleModelsList } from './combo/parse-google-models-list';
 export type {
     ComboAttempt,

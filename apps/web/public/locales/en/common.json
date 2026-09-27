@@ -811,7 +811,8 @@
     "modelProbe": {
         "test": "Test",
         "success": "OK",
-        "failed": "Failed"
+        "failed": "Failed",
+        "inactiveHint": "Tests this key directly; inactive keys are not used by the proxy pool"
     },
     "picker": {
         "placeholder": "Choose a model",

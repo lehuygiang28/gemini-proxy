@@ -811,7 +811,8 @@
     "modelProbe": {
         "test": "Test",
         "success": "Thành công",
-        "failed": "Lỗi"
+        "failed": "Lỗi",
+        "inactiveHint": "Test trực tiếp khóa này; khóa tắt không được proxy pool dùng"
     },
     "picker": {
         "placeholder": "Chọn model",

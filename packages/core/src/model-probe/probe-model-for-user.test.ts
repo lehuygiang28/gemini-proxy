@@ -13,13 +13,10 @@ function createSupabase(input: {
                 throw new Error(`unexpected table ${table}`);
             }
             const chain = {
-                eqCalls: [] as string[],
                 select: () => chain,
-                eq: (_field: string, value: string) => {
-                    chain.eqCalls.push(value);
-                    return chain;
-                },
+                eq: () => chain,
                 is: () => chain,
+                order: () => chain,
                 limit: () => ({
                     maybeSingle: async () => ({
                         data: input.apiKey,

@@ -14,19 +14,33 @@ export async function probeModelForUser(input: {
     readonly geminiBaseUrl?: string;
     readonly fetchImpl?: typeof fetch;
 }): Promise<ProbeModelForUserResult> {
-    const query = input.supabase
+    let query = input.supabase
         .from('api_keys')
         .select('id, api_key_value')
         .eq('user_id', input.userId)
-        .eq('is_active', true)
         .is('deleted_at', null);
-    const { data: apiKey, error: keyError } = await (input.apiKeyId
-        ? query.eq('id', input.apiKeyId).maybeSingle()
-        : query.limit(1).maybeSingle());
+    if (input.apiKeyId) {
+        const { data: apiKey, error: keyError } = await query
+            .eq('id', input.apiKeyId)
+            .maybeSingle();
+        if (keyError || !apiKey?.api_key_value) {
+            return { ok: false, message: 'api_key_not_found' };
+        }
+        return probeGeminiModel({
+            apiKeyValue: apiKey.api_key_value,
+            modelId: input.modelId,
+            geminiBaseUrl: input.geminiBaseUrl,
+            fetchImpl: input.fetchImpl,
+        });
+    }
+    const { data: apiKey, error: keyError } = await query
+        .eq('is_active', true)
+        .order('last_used_at', { ascending: true, nullsFirst: true })
+        .order('last_error_at', { ascending: true, nullsFirst: true })
+        .limit(1)
+        .maybeSingle();
     if (keyError || !apiKey?.api_key_value) {
-        return input.apiKeyId
-            ? { ok: false, message: 'api_key_not_found' }
-            : { ok: false, message: 'no_api_key' };
+        return { ok: false, message: 'no_api_key' };
     }
     return probeGeminiModel({
         apiKeyValue: apiKey.api_key_value,

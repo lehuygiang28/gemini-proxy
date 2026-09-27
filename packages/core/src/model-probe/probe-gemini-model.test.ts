@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-    GEMINI_MODEL_PROBE_MESSAGE,
-    probeGeminiModel,
-} from './probe-gemini-model';
+import { GEMINI_MODEL_PROBE_MESSAGE, probeGeminiModel } from './probe-gemini-model';
 
 describe('probeGeminiModel', () => {
     it('posts a minimal generateContent request with "hi"', async () => {

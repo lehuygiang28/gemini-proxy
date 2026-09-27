@@ -12,6 +12,7 @@ export function ModelProbeButton(props: {
     readonly model: string;
     readonly apiKeyId?: string;
     readonly size?: 'small' | 'middle';
+    readonly disabled?: boolean;
 }) {
     const { translate } = useTranslation();
     const [state, setState] = useState<ProbeState>('idle');
@@ -20,16 +21,23 @@ export function ModelProbeButton(props: {
     const handleProbe = async () => {
         setState('loading');
         setErrorMessage(null);
-        const result = await fetchModelProbe({
-            model: props.model,
-            apiKeyId: props.apiKeyId,
-        });
-        if (result.ok) {
-            setState('success');
-            return;
+        try {
+            const result = await fetchModelProbe({
+                model: props.model,
+                apiKeyId: props.apiKeyId,
+            });
+            if (result.ok) {
+                setState('success');
+                return;
+            }
+            setState('error');
+            setErrorMessage(result.error);
+        } catch (error) {
+            setState('error');
+            setErrorMessage(
+                error instanceof Error ? error.message : translate('modelProbe.failed'),
+            );
         }
-        setState('error');
-        setErrorMessage(result.error);
     };
 
     const statusNode =
@@ -51,6 +59,7 @@ export function ModelProbeButton(props: {
                 size={props.size ?? 'small'}
                 icon={<ThunderboltOutlined />}
                 loading={state === 'loading'}
+                disabled={props.disabled}
                 onClick={() => void handleProbe()}
             >
                 {translate('modelProbe.test')}

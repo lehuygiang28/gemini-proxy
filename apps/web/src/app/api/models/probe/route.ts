@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@gemini-proxy/database';
-import { DEFAULT_GEMINI_PROBE_MODEL, normalizeGeminiModelId, probeModelForUser } from '@gemini-proxy/core';
+import {
+    DEFAULT_GEMINI_PROBE_MODEL,
+    normalizeGeminiModelId,
+    probeModelForUser,
+} from '@gemini-proxy/core';
+import { parseModelProbeBody } from '@/features/models/parse-model-probe-body';
+import { consumeModelProbeRateLimit } from '@/features/models/model-probe-rate-limit';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-type ProbeBody = {
-    model?: string;
-    apiKeyId?: string;
-};
 
 export async function POST(request: Request): Promise<Response> {
     const supabase = await createSupabaseServerClient();
@@ -20,18 +21,26 @@ export async function POST(request: Request): Promise<Response> {
     if (!user) {
         return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
     }
-    let body: ProbeBody;
+    if (!consumeModelProbeRateLimit(user.id)) {
+        return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429 });
+    }
+    let parsedBody: unknown;
     try {
-        body = (await request.json()) as ProbeBody;
+        parsedBody = await request.json();
     } catch {
         return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 });
     }
+    const parsed = parseModelProbeBody(parsedBody);
+    if (!parsed.ok) {
+        return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
+    }
+    const body = parsed.body;
     const rawModel = body.model?.trim() || DEFAULT_GEMINI_PROBE_MODEL;
     const modelId = normalizeGeminiModelId(rawModel);
     if (!modelId) {
         return NextResponse.json({ ok: false, error: 'model_required' }, { status: 400 });
     }
-    const apiKeyId = typeof body.apiKeyId === 'string' && body.apiKeyId.trim() ? body.apiKeyId : undefined;
+    const apiKeyId = body.apiKeyId?.trim() ? body.apiKeyId.trim() : undefined;
     const result = await probeModelForUser({
         supabase: supabase as unknown as SupabaseClient<Database>,
         userId: user.id,

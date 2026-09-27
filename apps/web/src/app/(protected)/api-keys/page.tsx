@@ -306,12 +306,22 @@ export default function ApiKeysListPage() {
                             width: 200,
                             render: (value: string, record: ApiKey) => (
                                 <Space direction="vertical" size={4}>
-                                    <Tag color={getProviderColor(value)}>{getProviderText(value)}</Tag>
-                                    <ModelProbeButton
-                                        model={DEFAULT_GEMINI_PROBE_MODEL}
-                                        apiKeyId={record.id}
-                                        size="small"
-                                    />
+                                    <Tag color={getProviderColor(value)}>
+                                        {getProviderText(value)}
+                                    </Tag>
+                                    <Tooltip
+                                        title={
+                                            record.is_active
+                                                ? undefined
+                                                : translate('modelProbe.inactiveHint')
+                                        }
+                                    >
+                                        <ModelProbeButton
+                                            model={DEFAULT_GEMINI_PROBE_MODEL}
+                                            apiKeyId={record.id}
+                                            size="small"
+                                        />
+                                    </Tooltip>
                                 </Space>
                             ),
                             sorter: true,
